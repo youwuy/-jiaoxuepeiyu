@@ -1,65 +1,97 @@
 <template>
-  <section class="login-shell student-theme">
-    <div class="login-visual">
-      <div class="brand-mark">学</div>
-      <p class="system-kicker">Web 教辅系统</p>
-      <h1>学员端</h1>
-      <p class="system-copy">课程学习、实训任务、资源浏览与综合成绩复盘统一入口。</p>
-      <div class="progress-card">
-        <span>学习进度</span>
-        <strong>76%</strong>
-        <div><i /></div>
+  <section class="login-shell student-theme calicat-login">
+    <aside class="calicat-login-visual" aria-hidden="true">
+      <span class="calicat-orb orb-large"></span>
+      <span class="calicat-orb orb-medium"></span>
+      <span class="calicat-orb orb-small"></span>
+
+      <div v-if="mode === 'phone'" class="calicat-brand-content">
+        <div class="calicat-brand-icon">
+          <el-icon><Monitor /></el-icon>
+        </div>
+        <h1>城轨实训平台</h1>
+        <p>城市轨道交通虚拟仿真实训系统</p>
+        <ul>
+          <li v-for="feature in brandFeatures" :key="feature">
+            <span><el-icon><Check /></el-icon></span>
+            {{ feature }}
+          </li>
+        </ul>
       </div>
-    </div>
+    </aside>
 
-    <main class="login-panel">
-      <div class="panel-header">
-        <p>欢迎</p>
-        <h2>登录学员端</h2>
-      </div>
+    <main class="calicat-login-panel">
+      <form class="calicat-login-form" @submit.prevent="submit">
+        <h2>欢迎</h2>
 
-      <el-tabs v-model="mode" stretch class="login-tabs" @tab-change="switchMode">
-        <el-tab-pane label="学号登录" name="studentId" />
-        <el-tab-pane label="手机号登录" name="phone" />
-      </el-tabs>
+        <div class="calicat-login-tabs" role="tablist" aria-label="登录方式">
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="mode === 'studentId'"
+            :class="{ active: mode === 'studentId' }"
+            @click="setMode('studentId')"
+          >
+            <el-icon><User /></el-icon>
+            学号登录
+          </button>
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="mode === 'phone'"
+            :class="{ active: mode === 'phone' }"
+            @click="setMode('phone')"
+          >
+            <el-icon><Iphone /></el-icon>
+            手机号登录
+          </button>
+        </div>
 
-      <el-form label-position="top" @submit.prevent>
-        <el-form-item v-if="mode === 'studentId'" label="学号" :error="errors.studentId">
+        <div v-if="mode === 'studentId'" class="calicat-field">
+          <label for="student-login-id">学号</label>
           <el-input
+            id="student-login-id"
             v-model="form.studentId"
-            size="large"
+            class="calicat-input"
+            :prefix-icon="User"
             placeholder="请输入学号"
-            clearable
             @input="onStudentIdInput"
           />
-        </el-form-item>
+          <p v-if="errors.studentId" class="calicat-field-error">{{ errors.studentId }}</p>
+        </div>
 
-        <el-form-item v-else label="手机号" :error="errors.phone">
+        <div v-else class="calicat-field">
+          <label for="student-login-phone">手机号</label>
           <el-input
+            id="student-login-phone"
             v-model="form.phone"
-            size="large"
+            class="calicat-input"
+            :prefix-icon="Iphone"
             placeholder="请输入手机号"
             maxlength="11"
-            clearable
             @input="onPhoneInput"
           />
-        </el-form-item>
+          <p v-if="errors.phone" class="calicat-field-error">{{ errors.phone }}</p>
+        </div>
 
-        <el-form-item label="密码" :error="errors.password">
+        <div class="calicat-field">
+          <label for="student-login-password">密码</label>
           <el-input
+            id="student-login-password"
             v-model="form.password"
-            size="large"
+            class="calicat-input"
+            :prefix-icon="Lock"
             placeholder="请输入密码"
             show-password
             maxlength="20"
             @input="onPasswordInput"
             @keyup.enter="submit"
           />
-        </el-form-item>
+          <p v-if="errors.password" class="calicat-field-error">{{ errors.password }}</p>
+        </div>
 
-        <el-button class="login-button" type="primary" size="large" :loading="loading" @click="submit">登录</el-button>
-      </el-form>
-
+        <el-button class="calicat-login-button" native-type="submit" :loading="loading">登 录</el-button>
+      </form>
     </main>
   </section>
 </template>
@@ -68,6 +100,7 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { Check, Iphone, Lock, Monitor, User } from '@element-plus/icons-vue';
 import { loginStudent } from '../../api/auth';
 import {
   normalizePasswordInput,
@@ -81,6 +114,7 @@ import {
 const router = useRouter();
 const mode = ref<StudentLoginMode>('studentId');
 const loading = ref(false);
+const brandFeatures = ['沉浸式虚拟仿真实训环境', '多岗位协同演练与考核', '实时成绩分析与智能评估'];
 
 const form = reactive({
   studentId: '',
@@ -96,8 +130,14 @@ function clearErrors() {
   errors.password = undefined;
 }
 
-function switchMode() {
-  if (mode.value === 'studentId') {
+function setMode(nextMode: StudentLoginMode) {
+  if (mode.value === nextMode) {
+    return;
+  }
+
+  mode.value = nextMode;
+
+  if (nextMode === 'studentId') {
     form.phone = '';
   } else {
     form.studentId = '';
