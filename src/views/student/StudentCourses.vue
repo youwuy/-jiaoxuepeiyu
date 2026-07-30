@@ -15,7 +15,18 @@
     <el-empty v-if="visibleCourses.length === 0" description="暂未找到课程" />
 
     <section v-else class="course-grid">
-      <article v-for="course in visibleCourses" :key="course.id" class="course-card">
+      <article
+        v-for="course in visibleCourses"
+        :key="course.id"
+        class="course-card"
+        :class="{ 'is-clickable': course.status !== 'notStarted' }"
+        :tabindex="course.status === 'notStarted' ? -1 : 0"
+        :aria-disabled="course.status === 'notStarted'"
+        role="button"
+        @click="openCourse(course)"
+        @keyup.enter="openCourse(course)"
+        @keyup.space.prevent="openCourse(course)"
+      >
         <div class="course-card-head">
           <div class="course-labels">
             <span class="course-status-pill" :class="`is-${course.status}`">
@@ -53,7 +64,7 @@
           :class="{ 'is-muted': course.status === 'notStarted', 'is-plain': course.status === 'completed' }"
           :type="course.status === 'learning' ? 'primary' : 'default'"
           :disabled="course.status === 'notStarted'"
-          @click="openCourse(course)"
+          @click.stop="openCourse(course)"
         >
           {{ statusMeta[course.status].action }}
         </el-button>

@@ -1,131 +1,159 @@
 <template>
-  <section class="learn-page">
-    <aside class="course-sidebar">
-      <button class="back-link" @click="router.push('/student/courses')">
-        <el-icon><ArrowLeft /></el-icon>
-        我的课程
-      </button>
+  <StudentShell eyebrow="课程学习" title="课程详情">
+    <section class="learn-workbench">
+      <aside class="course-sidebar">
+        <button class="back-link" @click="router.push('/student/courses')">
+          <el-icon><ArrowLeft /></el-icon>
+          返回课程列表
+        </button>
 
-      <div class="course-title-block">
-        <h1>{{ course.name }}</h1>
-        <p>整体学习进度 {{ progress }}%</p>
-        <el-progress :percentage="progress" :stroke-width="8" :show-text="false" />
-      </div>
+        <div class="course-title-block">
+          <h1>{{ course.name }}</h1>
+          <div class="course-progress-strip">
+            <span :style="{ width: `${progress}%` }"></span>
+          </div>
+          <strong>{{ progress }}%</strong>
+        </div>
 
-      <el-scrollbar class="catalog-scroll">
-        <section v-for="chapter in course.chapters" :key="chapter.id" class="catalog-section">
-          <div class="chapter-row">
-            <span>{{ chapter.title }}</span>
-            <el-tag size="small" :type="chapterTagType(chapter.status)">
-              {{ chapterStatusText[chapter.status] }}
-            </el-tag>
+        <el-scrollbar class="catalog-scroll">
+          <section v-for="(chapter, chapterIndex) in course.chapters" :key="chapter.id" class="catalog-section">
+            <div class="chapter-row" :class="`is-${chapter.status}`">
+              <span class="chapter-caret">
+                <el-icon><ArrowDown v-if="chapter.status !== 'notStarted'" /><ArrowRight v-else /></el-icon>
+              </span>
+              <span class="chapter-index" :class="`is-${chapter.status}`">
+                <CircleCheckFilled v-if="chapter.status === 'completed'" />
+                <template v-else>{{ chapterIndex + 1 }}</template>
+              </span>
+              <strong>{{ chapter.title }}</strong>
+              <em>{{ chapterStatusText[chapter.status] }}</em>
+            </div>
+
+            <button
+              v-for="item in chapter.items"
+              :key="item.id"
+              class="catalog-item"
+              :class="itemClasses(item)"
+              @click="selectItem(item)"
+            >
+              <span class="catalog-item-state">
+                <el-icon>
+                  <CircleCheckFilled v-if="item.status === 'completed'" />
+                  <CircleCheck v-else-if="selectedItem?.id === item.id" />
+                  <CircleClose v-else-if="item.status === 'locked'" />
+                  <Clock v-else />
+                </el-icon>
+              </span>
+              <el-icon class="catalog-item-type">
+                <Document v-if="item.type === 'courseware'" />
+                <DocumentChecked v-else />
+              </el-icon>
+              <span>{{ item.title }}</span>
+              <strong v-if="item.score !== undefined">{{ item.score }}分</strong>
+              <strong v-else-if="item.deadline" class="is-danger">截止 {{ item.deadline.slice(5) }}</strong>
+              <strong v-else>{{ item.type === 'courseware' ? '课件' : '作业' }}</strong>
+            </button>
+          </section>
+        </el-scrollbar>
+      </aside>
+
+      <main class="learn-main">
+        <section v-if="selectedItem" class="courseware-panel">
+          <header class="learn-header">
+            <div class="learn-file-icon">
+              <el-icon><Document /></el-icon>
+            </div>
+            <div>
+              <h2>{{ selectedItem.title }}</h2>
+              <p>
+                课件类型：{{ selectedItem.resourceType ?? itemTypeText[selectedItem.type] }}
+                <span>最低学习时长：{{ selectedItem.minDurationMinutes ?? 15 }}分钟</span>
+              </p>
+            </div>
+            <div class="learn-timer">
+              <el-icon><Timer /></el-icon>
+              <strong>已学习 {{ formatLearnedTime(selectedItem) }}</strong>
+            </div>
+          </header>
+
+          <div v-if="selectedItem.type === 'courseware'" class="preview-window">
+            <img :src="stationPreview" :alt="selectedItem.title" />
           </div>
 
-          <button
-            v-for="item in chapter.items"
-            :key="item.id"
-            class="catalog-item"
-            :class="{ active: selectedItem?.id === item.id, locked: item.status === 'locked' }"
-            @click="selectItem(item)"
-          >
-            <el-icon>
-              <Lock v-if="item.status === 'locked'" />
-              <CircleCheck v-else-if="item.status === 'completed'" />
-              <VideoPlay v-else-if="item.type === 'courseware'" />
-              <DocumentChecked v-else />
-            </el-icon>
-            <span>{{ item.title }}</span>
-            <strong v-if="item.score !== undefined">{{ item.score }} 分</strong>
-            <strong v-else-if="item.deadline">截止 {{ item.deadline.slice(5) }}</strong>
-          </button>
+          <div v-else class="assignment-panel">
+            <el-tag type="warning" effect="light">课程作业</el-tag>
+            <h3>{{ selectedItem.title }}</h3>
+            <p>截止时间 {{ selectedItem.deadline }}，完成后可在目录中查看得分和学习记录。</p>
+            <el-button type="primary" :disabled="selectedItem.status === 'locked'">进入作业</el-button>
+          </div>
         </section>
-      </el-scrollbar>
-    </aside>
-
-    <main class="learn-main">
-      <header class="learn-header">
-        <div>
-          <p>{{ selectedItem?.type === 'courseware' ? '课件学习' : '课程作业' }}</p>
-          <h2>{{ selectedItem?.title }}</h2>
-        </div>
-        <div class="learn-timer">
-          <span>已学习时长</span>
-          <strong>{{ selectedItem?.durationMinutes ?? 0 }} 分钟</strong>
-        </div>
-      </header>
-
-      <section v-if="selectedItem?.type === 'courseware'" class="courseware-panel">
-        <div class="ware-meta">
-          <el-tag>课件</el-tag>
-          <span>最低学习时长 {{ selectedItem.minDurationMinutes }} 分钟</span>
-          <span>{{ selectedItem.openStart }} 至 {{ selectedItem.openEnd }} 开放</span>
-        </div>
-        <div class="preview-window">
-          <el-icon><Reading /></el-icon>
-          <h3>{{ selectedItem.title }}</h3>
-          <p>这里展示课件预览内容。后续接入资源预览接口后，可加载 PDF、视频、PPT、图片等资源。</p>
-        </div>
-      </section>
-
-      <section v-else class="assignment-panel">
-        <div>
-          <el-tag type="danger">作业</el-tag>
-          <span>截止时间 {{ selectedItem?.deadline }}</span>
-        </div>
-        <h3>{{ selectedItem?.title }}</h3>
-        <p>作业入口已占位，后续将继续拆分理论题作答、实训题作业和答题报告页面。</p>
-        <el-button type="primary" :disabled="selectedItem?.status === 'locked'">进入作业</el-button>
-      </section>
-    </main>
-  </section>
+      </main>
+    </section>
+  </StudentShell>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowRight,
   CircleCheck,
+  CircleCheckFilled,
+  CircleClose,
+  Clock,
+  Document,
   DocumentChecked,
-  Lock,
-  Reading,
-  VideoPlay
+  Timer
 } from '@element-plus/icons-vue';
+import StudentShell from '../../components/student/StudentShell.vue';
+import stationPreview from '../../assets/course-station-preview.png';
 import {
   calculateCourseProgress,
   mockStudentCourses,
   type CourseCatalogItem,
-  type CourseChapter
+  type CourseChapter,
+  type CourseItemType
 } from '../../features/student/courses';
 
 const route = useRoute();
 const router = useRouter();
-const courseId = Number(route.params.id);
-const course = computed(() => mockStudentCourses.find((item) => item.id === courseId) ?? mockStudentCourses[0]);
+const courseId = computed(() => Number(route.params.id));
+const course = computed(() => mockStudentCourses.find((item) => item.id === courseId.value) ?? mockStudentCourses[0]);
 const progress = computed(() => calculateCourseProgress(course.value));
-
-const selectedItem = ref<CourseCatalogItem | undefined>(
-  course.value.chapters.flatMap((chapter) => chapter.items).find((item) => item.status === 'current') ??
-    course.value.chapters[0]?.items[0]
-);
+const selectedItem = ref<CourseCatalogItem>();
 
 const chapterStatusText: Record<CourseChapter['status'], string> = {
   completed: '已完成',
-  learning: '学习中',
+  learning: '',
   notStarted: '未开始'
 };
 
-function chapterTagType(status: CourseChapter['status']) {
-  if (status === 'completed') {
-    return 'success';
-  }
+const itemTypeText: Record<CourseItemType, string> = {
+  courseware: 'PPT文档',
+  assignment: '在线作业'
+};
 
-  if (status === 'learning') {
-    return 'primary';
-  }
+watch(
+  course,
+  (nextCourse) => {
+    selectedItem.value =
+      nextCourse.chapters.flatMap((chapter) => chapter.items).find((item) => item.status === 'current') ??
+      nextCourse.chapters.flatMap((chapter) => chapter.items).find((item) => item.status !== 'locked') ??
+      nextCourse.chapters[0]?.items[0];
+  },
+  { immediate: true }
+);
 
-  return 'info';
+function itemClasses(item: CourseCatalogItem) {
+  return {
+    active: selectedItem.value?.id === item.id,
+    completed: item.status === 'completed',
+    locked: item.status === 'locked',
+    pending: item.status === 'pending'
+  };
 }
 
 function selectItem(item: CourseCatalogItem) {
@@ -135,5 +163,17 @@ function selectItem(item: CourseCatalogItem) {
   }
 
   selectedItem.value = item;
+}
+
+function formatLearnedTime(item: CourseCatalogItem): string {
+  const totalSeconds = item.learnedSeconds ?? (item.durationMinutes ?? 0) * 60;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (seconds <= 0) {
+    return `${minutes}分钟`;
+  }
+
+  return `${minutes}分${seconds}秒`;
 }
 </script>
