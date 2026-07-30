@@ -168,3 +168,83 @@ Each `answers[]` item:
 - `standardAnswer`
 - `answerContent`
 - `score`
+
+## Scores
+
+### `GET /api/student/scores/semester`
+
+Response `data`:
+
+- `records`
+
+Each `records[]` item:
+
+- `academicTerm`
+- `coursewareLearningScore`
+- `trainingPracticeScore`
+- `courseAssignmentScore`
+- `examScore`
+- `coursewareWeight`
+- `trainingPracticeWeight`
+- `assignmentWeight`
+- `examWeight`
+- `comprehensiveScore`
+
+Behavior:
+
+- Returns current student's semester scores ordered by term descending.
+- Calculates `comprehensiveScore` with the configured four component weights when a stored summary score is not present.
+
+## Training Archives
+
+### `GET /api/student/archives`
+
+Query:
+
+- `mode` optional: `SINGLE` or `TEAM`
+- `keyword` optional training name keyword.
+
+Response `data`:
+
+- `records`
+
+Each `records[]` item:
+
+- `archiveId`
+- `trainingName`
+- `trainingMode`: `SINGLE` or `TEAM`
+- `roleName`
+- `submittedAt`
+- `submitType`: `NORMAL`, `ABNORMAL_EXIT`, or `ROOM_DISSOLVED`
+- `durationSeconds`
+- `personalScore`
+- `teamScore`
+
+### `GET /api/student/archives/{archiveId}`
+
+Response `data`:
+
+- `archiveId`
+- `trainingName`
+- `trainingMode`
+- `roleName`
+- `studentName`
+- `studentNo`
+- `className`
+- `submittedAt`
+- `submitType`
+- `durationSeconds`
+- `personalScore`
+- `teamScore`
+- `recordingUrl`
+- `steps`
+
+Each `steps[]` item:
+
+- `stepId`
+- `stepName`
+- `standardOperation`
+- `actualOperation`
+- `score`
+- `durationSeconds`
+- `videoStartSecond`
