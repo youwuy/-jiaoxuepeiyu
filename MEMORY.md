@@ -48,6 +48,7 @@
 - 2026-07-31: Admin file export endpoints use dependency-free UTF-8 BOM CSV downloads (`/export/file`) for Excel compatibility while preserving existing JSON `/export` endpoints for frontend-controlled export.
 - 2026-07-31: Backend completion tracking now lives in `docs/backend-completion-audit.md`; completion remains unproven until Maven/JDK tests, MySQL 5.7 import, runtime smoke checks, static OpenAPI regeneration, deployment packaging, and PDF requirement audit are verified.
 - 2026-07-31: Admin training course export is being implemented as `/api/admin/trainings/export` JSON rows plus `/api/admin/trainings/export/file` UTF-8 BOM CSV, matching the existing admin export pattern.
+- 2026-07-31: Management PDF states subway job roles are global foundation data; backend models this as `edu_job_role` and `/api/admin/job-roles` list/create/update/enable/disable APIs rather than overloading per-training team roles.
 
 ## Operational Notes
 
