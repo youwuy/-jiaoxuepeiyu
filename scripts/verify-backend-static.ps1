@@ -1,6 +1,15 @@
 $ErrorActionPreference = "Stop"
 
-$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
+function Join-RepoPath {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Parts)
+    $path = $root
+    foreach ($part in $Parts) {
+        $path = Join-Path $path $part
+    }
+    return $path
+}
 
 function Require-File {
     param(
@@ -41,14 +50,14 @@ function Reject-Content {
     }
 }
 
-$pom = Join-Path $root "backend\pom.xml"
-$appConfig = Join-Path $root "backend\src\main\resources\application.yml"
-$deployConfig = Join-Path $root "deploy\config\application.yml.example"
-$deployReadme = Join-Path $root "deploy\README.md"
-$healthController = Join-Path $root "backend\src\main\java\com\qizhifu\jiaoxuepeiyu\controller\HealthController.java"
-$bootstrapService = Join-Path $root "backend\src\main\java\com\qizhifu\jiaoxuepeiyu\bootstrap\BootstrapAdminService.java"
-$bootstrapInitializer = Join-Path $root "backend\src\main\java\com\qizhifu\jiaoxuepeiyu\bootstrap\BootstrapAdminInitializer.java"
-$databaseInit = Join-Path $root "database\init"
+$pom = Join-RepoPath "backend" "pom.xml"
+$appConfig = Join-RepoPath "backend" "src" "main" "resources" "application.yml"
+$deployConfig = Join-RepoPath "deploy" "config" "application.yml.example"
+$deployReadme = Join-RepoPath "deploy" "README.md"
+$healthController = Join-RepoPath "backend" "src" "main" "java" "com" "qizhifu" "jiaoxuepeiyu" "controller" "HealthController.java"
+$bootstrapService = Join-RepoPath "backend" "src" "main" "java" "com" "qizhifu" "jiaoxuepeiyu" "bootstrap" "BootstrapAdminService.java"
+$bootstrapInitializer = Join-RepoPath "backend" "src" "main" "java" "com" "qizhifu" "jiaoxuepeiyu" "bootstrap" "BootstrapAdminInitializer.java"
+$databaseInit = Join-RepoPath "database" "init"
 
 Require-File $pom "backend/pom.xml is required."
 Require-File $appConfig "backend application.yml is required."

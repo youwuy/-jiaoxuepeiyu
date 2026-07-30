@@ -68,3 +68,4 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-deploy-layout.ps1
 ```
 
 These checks verify the Java 8 build settings, OpenAPI dependency, MySQL target metadata, deployment runtime layout, bootstrap admin configuration, and the rule that database init scripts must not seed default users.
+The PowerShell scripts use segment-based path joining so the same checks run on Windows and GitHub Ubuntu runners.

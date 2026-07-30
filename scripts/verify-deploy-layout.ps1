@@ -1,6 +1,15 @@
 $ErrorActionPreference = "Stop"
 
-$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+
+function Join-RepoPath {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Parts)
+    $path = $root
+    foreach ($part in $Parts) {
+        $path = Join-Path $path $part
+    }
+    return $path
+}
 
 function Require-File {
     param(
@@ -24,11 +33,11 @@ function Require-Content {
     }
 }
 
-$packageSh = Join-Path $root "deploy\package.sh"
-$packageBat = Join-Path $root "deploy\package.bat"
-$startBat = Join-Path $root "deploy\start-backend.bat"
-$startSh = Join-Path $root "deploy\start-backend.sh"
-$configExample = Join-Path $root "deploy\config\application.yml.example"
+$packageSh = Join-RepoPath "deploy" "package.sh"
+$packageBat = Join-RepoPath "deploy" "package.bat"
+$startBat = Join-RepoPath "deploy" "start-backend.bat"
+$startSh = Join-RepoPath "deploy" "start-backend.sh"
+$configExample = Join-RepoPath "deploy" "config" "application.yml.example"
 
 Require-File $packageSh "deploy/package.sh is required."
 Require-File $packageBat "deploy/package.bat is required for Windows release packaging."

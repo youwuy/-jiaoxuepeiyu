@@ -50,6 +50,7 @@
 - 2026-07-31: Admin training course export is being implemented as `/api/admin/trainings/export` JSON rows plus `/api/admin/trainings/export/file` UTF-8 BOM CSV, matching the existing admin export pattern.
 - 2026-07-31: Management PDF states subway job roles are global foundation data; backend models this as `edu_job_role` and `/api/admin/job-roles` list/create/update/enable/disable APIs rather than overloading per-training team roles.
 - 2026-07-31: CI backend verification should run static backend checks, deployment layout checks, MySQL 5.7.42 schema import, `mvn test`, and `mvn package -DskipTests`; local Windows verification may still be limited when Maven/JDK are not on PATH.
+- 2026-07-31: PowerShell verification scripts should use segment-based `Join-Path` helpers instead of backslash-delimited paths so they run on both Windows and GitHub Ubuntu runners.
 
 ## Operational Notes
 
