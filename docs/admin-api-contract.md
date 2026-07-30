@@ -1365,3 +1365,127 @@ Response `data`:
 ### `GET /api/admin/archives/export`
 
 Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
+
+## IAM Role And Permission Management
+
+### `GET /api/admin/permissions/tree`
+
+Response `data`: permission tree assembled from `sys_permission`.
+
+Each node:
+
+- `permissionId`
+- `parentId`
+- `permissionName`
+- `permissionCode`
+- `permissionType`: `MENU`, `PAGE`, or `BUTTON`.
+- `routePath`
+- `visible`
+- `sortOrder`
+- `children`
+
+### `GET /api/admin/roles`
+
+Query:
+
+- `keyword` optional fuzzy role name or role code.
+- `enabled` optional boolean.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of role rows.
+
+Each row:
+
+- `roleId`
+- `roleName`
+- `roleCode`
+- `dataScope`: `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `remark`
+- `enabled`
+- `userCount`
+- `permissionIds`
+- `createdAt`
+- `updatedAt`
+
+### `GET /api/admin/roles/{roleId}`
+
+Response `data`: one role row with bound `permissionIds`.
+
+### `POST /api/admin/roles`
+
+Header:
+
+- `X-User-Id`: temporary admin operator id until token authentication is wired into a servlet filter.
+
+Request body:
+
+- `roleName` required.
+- `roleCode` required and unique.
+- `dataScope` optional, defaults to `PERSONAL`; accepts `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `remark` optional.
+- `permissionIds` optional list of permission ids.
+
+Response `data`: created role id.
+
+### `PUT /api/admin/roles/{roleId}`
+
+Header:
+
+- `X-User-Id`
+
+Request body: same as create role. The submitted permission list fully replaces existing bindings.
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/enable`
+
+Header:
+
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/disable`
+
+Header:
+
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/delete`
+
+Header:
+
+- `X-User-Id`
+
+Soft deletes the role and disables it for future use. Existing `sys_user_role` rows are preserved for audit compatibility.
+
+Response `data`: `null`.
+
+### `PUT /api/admin/roles/{roleId}/permissions`
+
+Header:
+
+- `X-User-Id`
+
+Request body:
+
+- `permissionIds` optional list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Response `data`: `null`.
+
+### `GET /api/admin/roles/{roleId}/logs`
+
+Response `data`: list of role operation logs sorted by newest first.
+
+Each log:
+
+- `logId`
+- `roleId`
+- `operatorId`
+- `operatorName`
+- `action`
+- `content`
+- `createdAt`
