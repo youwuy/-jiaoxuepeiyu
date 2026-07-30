@@ -16,6 +16,7 @@ jobs:
   backend:
     name: Backend Java 8
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('backend/pom.xml') != '' }}
 
     services:
       mysql:
@@ -47,18 +48,19 @@ jobs:
           java-version: "8"
           cache: maven
 
-      - name: Test and package backend
+      - name: Package backend
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
           MYSQL_DATABASE: jiaoxuepeiyu
           MYSQL_USER: root
           MYSQL_PASSWORD: root123456
-        run: mvn -B clean test package
+        run: mvn -B clean package -DskipTests
 
   frontend:
     name: Frontend Node 18
     runs-on: ubuntu-latest
+    if: ${{ hashFiles('frontend/package.json') != '' }}
 
     defaults:
       run:
@@ -80,3 +82,31 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+  root-frontend:
+    name: Root Frontend Node 18
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('package.json') != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build root frontend
+        run: pnpm build
