@@ -3,13 +3,14 @@ package com.qizhifu.jiaoxuepeiyu.admin.iam;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.qizhifu.jiaoxuepeiyu.admin.iam.controller.AdminIamController;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
-import com.qizhifu.jiaoxuepeiyu.admin.iam.controller.AdminIamController;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,12 +45,71 @@ class AdminIamControllerTests {
         assertEquals("Missing admin identity", exception.getMessage());
     }
 
+    @Test
+    void createPermissionReadsOperatorFromHeader() {
+        FakeIam repository = new FakeIam();
+        AdminIamController controller = new AdminIamController(new AdminIamService(repository));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-User-Id", "9");
+        AdminPermissionCommand command = new AdminPermissionCommand();
+        command.setPermissionName("Course Center");
+        command.setPermissionCode("course:center");
+        command.setPermissionType("MENU");
+
+        Long permissionId = controller.createPermission(command, request).getData();
+
+        assertEquals(41L, permissionId.longValue());
+        assertEquals("course:center", repository.savedPermissionCommand.getPermissionCode());
+    }
+
     private static class FakeIam implements AdminIamRepository {
         private Long operatorId;
+        private AdminPermissionCommand savedPermissionCommand;
 
         @Override
         public List<AdminPermission> findPermissions() {
             return new ArrayList<AdminPermission>();
+        }
+
+        @Override
+        public AdminPermission findPermission(Long permissionId) {
+            AdminPermission permission = new AdminPermission();
+            permission.setPermissionId(permissionId);
+            return permission;
+        }
+
+        @Override
+        public Long findPermissionIdByCode(String permissionCode) {
+            return null;
+        }
+
+        @Override
+        public Long createPermission(AdminPermissionCommand command) {
+            this.savedPermissionCommand = command;
+            return 41L;
+        }
+
+        @Override
+        public void updatePermission(Long permissionId, AdminPermissionCommand command) {
+            this.savedPermissionCommand = command;
+        }
+
+        @Override
+        public void updatePermissionStatus(Long permissionId, boolean visible) {
+        }
+
+        @Override
+        public void deletePermission(Long permissionId) {
+        }
+
+        @Override
+        public int countPermissionChildren(Long permissionId) {
+            return 0;
+        }
+
+        @Override
+        public int countPermissionRoleBindings(Long permissionId) {
+            return 0;
         }
 
         @Override

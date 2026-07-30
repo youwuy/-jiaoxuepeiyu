@@ -1819,6 +1819,74 @@ Each node:
 - `sortOrder`
 - `children`
 
+### `POST /api/admin/permissions`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`: temporary admin operator id fallback.
+
+Request body:
+
+- `parentId` optional parent permission id.
+- `permissionName` required.
+- `permissionCode` required and unique.
+- `permissionType` required; accepts `MENU`, `PAGE`, or `BUTTON`.
+- `routePath` optional frontend route path.
+- `visible` optional boolean, defaults to `true`.
+- `sortOrder` optional integer, defaults to `0`.
+
+Response `data`: created permission id.
+
+### `PUT /api/admin/permissions/{permissionId}`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Request body: same as permission create.
+
+Rules:
+
+- `permissionCode` must stay unique.
+- A permission cannot use itself as parent.
+- Role permission bindings are preserved.
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/enable`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/disable`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/delete`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Rules:
+
+- Deletes only leaf permission nodes.
+- Rejects deletion when the permission is bound to any role.
+
+Response `data`: `null`.
+
 ### `GET /api/admin/roles`
 
 Query:

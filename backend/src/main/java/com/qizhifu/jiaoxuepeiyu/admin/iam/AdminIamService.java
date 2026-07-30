@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.iam;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -25,6 +26,8 @@ public class AdminIamService {
     private static final int MAX_PAGE_SIZE = 100;
     private static final Set<String> DATA_SCOPES = new HashSet<String>(
             Arrays.asList("PERSONAL", "MANAGED_ORG", "ALL"));
+    private static final Set<String> PERMISSION_TYPES = new HashSet<String>(
+            Arrays.asList("MENU", "PAGE", "BUTTON"));
 
     private final AdminIamRepository repository;
 
@@ -50,6 +53,52 @@ public class AdminIamService {
         return roots;
     }
 
+    @Transactional
+    public Long createPermission(AdminPermissionCommand command, Long operatorId) {
+        requireOperator(operatorId);
+        AdminPermissionCommand normalized = normalizedPermission(command, null);
+        assertParentExists(normalized.getParentId());
+        assertPermissionCodeAvailable(normalized.getPermissionCode(), null);
+        return repository.createPermission(normalized);
+    }
+
+    @Transactional
+    public void updatePermission(Long permissionId, AdminPermissionCommand command, Long operatorId) {
+        requireOperator(operatorId);
+        getPermission(permissionId);
+        AdminPermissionCommand normalized = normalizedPermission(command, permissionId);
+        assertParentExists(normalized.getParentId());
+        assertPermissionCodeAvailable(normalized.getPermissionCode(), permissionId);
+        repository.updatePermission(permissionId, normalized);
+    }
+
+    @Transactional
+    public void enablePermission(Long permissionId, Long operatorId) {
+        requireOperator(operatorId);
+        getPermission(permissionId);
+        repository.updatePermissionStatus(permissionId, true);
+    }
+
+    @Transactional
+    public void disablePermission(Long permissionId, Long operatorId) {
+        requireOperator(operatorId);
+        getPermission(permissionId);
+        repository.updatePermissionStatus(permissionId, false);
+    }
+
+    @Transactional
+    public void deletePermission(Long permissionId, Long operatorId) {
+        requireOperator(operatorId);
+        getPermission(permissionId);
+        if (repository.countPermissionChildren(permissionId) > 0) {
+            throw new BusinessException(400, "Permission has child nodes");
+        }
+        if (repository.countPermissionRoleBindings(permissionId) > 0) {
+            throw new BusinessException(400, "Permission is bound to roles");
+        }
+        repository.deletePermission(permissionId);
+    }
+
     public PageResponse<AdminRole> listRoles(AdminRoleQuery query) {
         AdminRoleQuery normalized = normalizedQuery(query);
         return new PageResponse<AdminRole>(
@@ -65,6 +114,14 @@ public class AdminIamService {
             throw new BusinessException(404, "Role not found");
         }
         return role;
+    }
+
+    private AdminPermission getPermission(Long permissionId) {
+        AdminPermission permission = repository.findPermission(permissionId);
+        if (permission == null) {
+            throw new BusinessException(404, "Permission not found");
+        }
+        return permission;
     }
 
     @Transactional
@@ -150,6 +207,50 @@ public class AdminIamService {
         normalized.setRemark(trimToNull(command.getRemark()));
         normalized.setPermissionIds(unique(command.getPermissionIds()));
         return normalized;
+    }
+
+    private AdminPermissionCommand normalizedPermission(AdminPermissionCommand command, Long permissionId) {
+        if (command == null) {
+            throw new BusinessException(400, "Permission data is required");
+        }
+        Long parentId = command.getParentId();
+        if (permissionId != null && permissionId.equals(parentId)) {
+            throw new BusinessException(400, "Permission cannot use itself as parent");
+        }
+        String permissionName = trimToNull(command.getPermissionName());
+        if (permissionName == null) {
+            throw new BusinessException(400, "Permission name is required");
+        }
+        String permissionCode = trimToNull(command.getPermissionCode());
+        if (permissionCode == null) {
+            throw new BusinessException(400, "Permission code is required");
+        }
+        String permissionType = upper(trimToNull(command.getPermissionType()));
+        if (!PERMISSION_TYPES.contains(permissionType)) {
+            throw new BusinessException(400, "Permission type is invalid");
+        }
+        AdminPermissionCommand normalized = new AdminPermissionCommand();
+        normalized.setParentId(parentId);
+        normalized.setPermissionName(permissionName);
+        normalized.setPermissionCode(permissionCode);
+        normalized.setPermissionType(permissionType);
+        normalized.setRoutePath(trimToNull(command.getRoutePath()));
+        normalized.setVisible(command.getVisible() == null ? Boolean.TRUE : command.getVisible());
+        normalized.setSortOrder(command.getSortOrder() == null ? 0 : command.getSortOrder());
+        return normalized;
+    }
+
+    private void assertPermissionCodeAvailable(String permissionCode, Long currentPermissionId) {
+        Long existingPermissionId = repository.findPermissionIdByCode(permissionCode);
+        if (existingPermissionId != null && !existingPermissionId.equals(currentPermissionId)) {
+            throw new BusinessException(400, "Permission code already exists");
+        }
+    }
+
+    private void assertParentExists(Long parentId) {
+        if (parentId != null && repository.findPermission(parentId) == null) {
+            throw new BusinessException(400, "Parent permission not found");
+        }
     }
 
     private AdminRoleQuery normalizedQuery(AdminRoleQuery query) {

@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.iam.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
@@ -20,6 +21,39 @@ public interface AdminIamMapper {
             + "route_path, CASE WHEN visible = 1 THEN TRUE ELSE FALSE END AS visible, sort_order "
             + "FROM sys_permission ORDER BY sort_order ASC, id ASC")
     List<AdminPermission> findPermissions();
+
+    @Select("SELECT id AS permission_id, parent_id, permission_name, permission_code, permission_type, "
+            + "route_path, CASE WHEN visible = 1 THEN TRUE ELSE FALSE END AS visible, sort_order "
+            + "FROM sys_permission WHERE id = #{permissionId} LIMIT 1")
+    AdminPermission findPermission(@Param("permissionId") Long permissionId);
+
+    @Select("SELECT id FROM sys_permission WHERE permission_code = #{permissionCode} LIMIT 1")
+    Long findPermissionIdByCode(@Param("permissionCode") String permissionCode);
+
+    @Insert("INSERT INTO sys_permission (parent_id, permission_name, permission_code, permission_type, "
+            + "route_path, visible, sort_order, created_at, updated_at) "
+            + "VALUES (#{parentId}, #{permissionName}, #{permissionCode}, #{permissionType}, "
+            + "#{routePath}, #{visible}, #{sortOrder}, NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "permissionId")
+    void insertPermission(AdminPermissionCommand command);
+
+    @Update("UPDATE sys_permission SET parent_id = #{parentId}, permission_name = #{permissionName}, "
+            + "permission_code = #{permissionCode}, permission_type = #{permissionType}, "
+            + "route_path = #{routePath}, visible = #{visible}, sort_order = #{sortOrder}, updated_at = NOW() "
+            + "WHERE id = #{permissionId}")
+    void updatePermission(AdminPermissionCommand command);
+
+    @Update("UPDATE sys_permission SET visible = #{visible}, updated_at = NOW() WHERE id = #{permissionId}")
+    void updatePermissionStatus(@Param("permissionId") Long permissionId, @Param("visible") int visible);
+
+    @Delete("DELETE FROM sys_permission WHERE id = #{permissionId}")
+    void deletePermission(@Param("permissionId") Long permissionId);
+
+    @Select("SELECT COUNT(*) FROM sys_permission WHERE parent_id = #{permissionId}")
+    int countPermissionChildren(@Param("permissionId") Long permissionId);
+
+    @Select("SELECT COUNT(*) FROM sys_role_permission WHERE permission_id = #{permissionId}")
+    int countPermissionRoleBindings(@Param("permissionId") Long permissionId);
 
     @Select("<script>"
             + "SELECT r.id AS role_id, r.role_name, r.role_code, r.data_scope, r.remark, "

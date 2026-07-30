@@ -3,6 +3,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.iam.controller;
 import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.AdminIamService;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -36,6 +37,42 @@ public class AdminIamController {
     @Operation(summary = "List permission tree", description = "Returns menu, page, and button permissions assembled from the parent-child permission table.")
     public ApiResponse<List<AdminPermission>> listPermissionTree() {
         return ApiResponse.ok(service.listPermissionTree());
+    }
+
+    @PostMapping("/api/admin/permissions")
+    @Operation(summary = "Create permission node", description = "Creates a menu, page, or button permission node for role authorization.")
+    public ApiResponse<Long> createPermission(@RequestBody AdminPermissionCommand body, HttpServletRequest request) {
+        return ApiResponse.ok(service.createPermission(body, AdminContext.requireAdminId(request)));
+    }
+
+    @PutMapping("/api/admin/permissions/{permissionId}")
+    @Operation(summary = "Update permission node", description = "Updates permission metadata and hierarchy without changing role bindings.")
+    public ApiResponse<Void> updatePermission(@PathVariable Long permissionId,
+                                              @RequestBody AdminPermissionCommand body,
+                                              HttpServletRequest request) {
+        service.updatePermission(permissionId, body, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/api/admin/permissions/{permissionId}/enable")
+    @Operation(summary = "Enable permission node", description = "Marks a permission node visible for menu and authorization tree rendering.")
+    public ApiResponse<Void> enablePermission(@PathVariable Long permissionId, HttpServletRequest request) {
+        service.enablePermission(permissionId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/api/admin/permissions/{permissionId}/disable")
+    @Operation(summary = "Disable permission node", description = "Hides a permission node while preserving role permission bindings.")
+    public ApiResponse<Void> disablePermission(@PathVariable Long permissionId, HttpServletRequest request) {
+        service.disablePermission(permissionId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/api/admin/permissions/{permissionId}/delete")
+    @Operation(summary = "Delete permission node", description = "Deletes an unbound leaf permission node from the permission tree.")
+    public ApiResponse<Void> deletePermission(@PathVariable Long permissionId, HttpServletRequest request) {
+        service.deletePermission(permissionId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
     }
 
     @GetMapping("/api/admin/roles")

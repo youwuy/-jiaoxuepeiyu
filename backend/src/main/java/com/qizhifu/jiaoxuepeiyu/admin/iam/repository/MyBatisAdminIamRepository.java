@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.iam.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -21,6 +22,48 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     @Override
     public List<AdminPermission> findPermissions() {
         return mapper.findPermissions();
+    }
+
+    @Override
+    public AdminPermission findPermission(Long permissionId) {
+        return mapper.findPermission(permissionId);
+    }
+
+    @Override
+    public Long findPermissionIdByCode(String permissionCode) {
+        return mapper.findPermissionIdByCode(permissionCode);
+    }
+
+    @Override
+    public Long createPermission(AdminPermissionCommand command) {
+        mapper.insertPermission(command);
+        return command.getPermissionId();
+    }
+
+    @Override
+    public void updatePermission(Long permissionId, AdminPermissionCommand command) {
+        command.setPermissionId(permissionId);
+        mapper.updatePermission(command);
+    }
+
+    @Override
+    public void updatePermissionStatus(Long permissionId, boolean visible) {
+        mapper.updatePermissionStatus(permissionId, visible ? 1 : 0);
+    }
+
+    @Override
+    public void deletePermission(Long permissionId) {
+        mapper.deletePermission(permissionId);
+    }
+
+    @Override
+    public int countPermissionChildren(Long permissionId) {
+        return mapper.countPermissionChildren(permissionId);
+    }
+
+    @Override
+    public int countPermissionRoleBindings(Long permissionId) {
+        return mapper.countPermissionRoleBindings(permissionId);
     }
 
     @Override
