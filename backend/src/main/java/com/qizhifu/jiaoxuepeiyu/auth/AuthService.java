@@ -11,6 +11,7 @@ import com.qizhifu.jiaoxuepeiyu.auth.port.UserAccountRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class AuthService {
     private final TokenGenerator tokenGenerator;
     private final Clock clock;
 
+    @Autowired
     public AuthService(UserAccountRepository users,
                        SessionRepository sessions,
                        PasswordHasher passwordHasher,

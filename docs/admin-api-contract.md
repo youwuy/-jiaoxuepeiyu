@@ -957,3 +957,78 @@ Response `data`:
 ### `GET /api/admin/courses/{courseId}/logs`
 
 Response `data`: course operation logs sorted by newest first.
+
+## Assignment Review
+
+Attempt status:
+
+- `SAVED`
+- `SUBMITTED`
+- `REVIEWED`
+
+### `GET /api/admin/assignment-attempts`
+
+Query:
+
+- `courseId` optional.
+- `assignmentId` optional.
+- `classId` optional.
+- `studentId` optional.
+- `status` optional: `SUBMITTED` or `REVIEWED`.
+- `keyword` optional fuzzy student name, student number, or assignment title.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of assignment attempts with student, class, course, assignment, score, and review state.
+
+### `GET /api/admin/assignment-attempts/{attemptId}`
+
+Response `data`: assignment attempt detail with question answers.
+
+Each answer includes:
+
+- `questionId`
+- `questionType`
+- `title`
+- `standardAnswer`
+- `answerContent`
+- `questionScore`
+- `score`
+- `reviewComment`
+
+### `POST /api/admin/assignment-attempts/{attemptId}/review`
+
+Header:
+
+- `X-User-Id`: current admin or teacher user id.
+
+Request body:
+
+```json
+{
+  "reviewComment": "Good work",
+  "answers": [
+    {
+      "questionId": 1,
+      "score": 8,
+      "comment": "Clear answer"
+    },
+    {
+      "questionId": 2,
+      "score": 10,
+      "comment": "OK"
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Only `SUBMITTED` or previously `REVIEWED` attempts can be reviewed.
+- Each answer score must be within `0` and its question score.
+- Reviewed total score cannot exceed assignment total score.
+- Marks the attempt `REVIEWED`, stores reviewer and review time, persists per-question score/comment, and refreshes course progress.
+
+### `GET /api/admin/assignment-attempts/{attemptId}/logs`
+
+Response `data`: review operation logs sorted by newest first.

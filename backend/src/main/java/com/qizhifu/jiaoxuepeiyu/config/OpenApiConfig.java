@@ -12,12 +12,12 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI jiaoxuePeiyuOpenAPI() {
+    public OpenAPI jiaoxuePeiyuOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Jiaoxue Peiyu Backend API")
-                        .description("OpenAPI document for admin, student, UE, and test integrations.")
-                        .version("0.1.0"))
+                        .title("Web教辅系统 API")
+                        .version("0.1.0")
+                        .description("Web教辅系统后台接口文档，覆盖管理端、学员端、UE三维程序和测试联调接口。"))
                 .components(new Components()
                         .addSecuritySchemes("UserIdHeader", new SecurityScheme()
                                 .type(SecurityScheme.Type.APIKEY)
