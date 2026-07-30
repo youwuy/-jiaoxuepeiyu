@@ -91,6 +91,20 @@ jobs:
           MYSQL_PASSWORD: root123456
         run: mvn -B package -DskipTests
 
+      - name: Smoke test packaged backend
+        working-directory: ${{ github.workspace }}
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: jiaoxuepeiyu
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root123456
+          APP_ACCOUNT_INITIAL_PASSWORD: InitPass${{ github.run_number }}
+          APP_BOOTSTRAP_ADMIN_USERNAME: ciadmin
+          APP_BOOTSTRAP_ADMIN_PASSWORD: CiAdmin${{ github.run_number }}
+          APP_BOOTSTRAP_ADMIN_REAL_NAME: CI Administrator
+        run: bash scripts/ci-backend-smoke.sh
+
   frontend:
     name: Frontend Node 18
     runs-on: ubuntu-latest
