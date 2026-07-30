@@ -23,7 +23,7 @@ Query:
 
 - `keyword` optional course name keyword.
 
-Response `data`:
+Response `data`: array of course items.
 
 - `courseId`
 - `courseName`
@@ -173,11 +173,9 @@ Each `answers[]` item:
 
 ### `GET /api/student/scores/semester`
 
-Response `data`:
+Response `data`: array of semester score items.
 
-- `records`
-
-Each `records[]` item:
+Each item:
 
 - `academicTerm`
 - `coursewareLearningScore`
@@ -195,6 +193,106 @@ Behavior:
 - Returns current student's semester scores ordered by term descending.
 - Calculates `comprehensiveScore` with the configured four component weights when a stored summary score is not present.
 
+## Training Center
+
+### `GET /api/student/trainings`
+
+Query:
+
+- `mode` optional: `SINGLE` or `TEAM`
+- `keyword` optional training name keyword.
+
+Response `data`: array of training items.
+
+- `trainingId`
+- `trainingName`
+- `trainingMode`: `SINGLE` or `TEAM`
+- `status`: `NOT_STARTED`, `RUNNING`, or `FINISHED`
+- `openStartTime`
+- `openEndTime`
+- `teamSize`
+- `roleCount`
+- `appRequired`
+- `appInstalled`
+- `activeRoomId`
+
+### `GET /api/student/trainings/app-installation`
+
+Response `data`:
+
+- `installed`
+- `version`
+- `downloadUrl`
+- `message`
+
+### `POST /api/student/trainings/{trainingId}/rooms`
+
+Behavior:
+
+- Creates a room for a team training.
+- Rejects the request when the student is already in another active room.
+- Adds the creator as room owner and member.
+
+Response `data`: same as `GET /api/student/training-rooms/{roomId}`.
+
+### `GET /api/student/training-rooms/{roomId}`
+
+Response `data`:
+
+- `roomId`
+- `trainingId`
+- `trainingName`
+- `roomCode`
+- `roomStatus`: `WAITING`, `STARTED`, or `DISSOLVED`
+- `ownerStudentId`
+- `teamSize`
+- `members`
+- `roles`
+
+Each `members[]` item:
+
+- `studentId`
+- `studentName`
+- `roleId`
+- `roleName`
+- `owner`
+
+Each `roles[]` item:
+
+- `roleId`
+- `roleName`
+- `claimed`
+- `claimedByStudentId`
+
+### `POST /api/student/training-rooms/{roomId}/join`
+
+Behavior:
+
+- Rejects joining when the student is already in another active room.
+- Rejects joining when the room is full or no longer waiting.
+
+### `POST /api/student/training-rooms/{roomId}/leave`
+
+Behavior:
+
+- Releases the student's claimed role.
+- Dissolves the room when the owner leaves before start.
+
+### `POST /api/student/training-rooms/{roomId}/roles/{roleId}/claim`
+
+Behavior:
+
+- Claims an unclaimed role for the current student.
+- Rejects conflicts when another member already claimed the role.
+
+### `POST /api/student/training-rooms/{roomId}/start`
+
+Behavior:
+
+- Only the owner can start.
+- Requires the room to be full and every member to have a role.
+- Changes room status to `STARTED`.
+
 ## Training Archives
 
 ### `GET /api/student/archives`
@@ -204,11 +302,9 @@ Query:
 - `mode` optional: `SINGLE` or `TEAM`
 - `keyword` optional training name keyword.
 
-Response `data`:
+Response `data`: array of training archive items.
 
-- `records`
-
-Each `records[]` item:
+Each item:
 
 - `archiveId`
 - `trainingName`
