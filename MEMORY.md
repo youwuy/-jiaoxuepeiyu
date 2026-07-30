@@ -33,6 +33,7 @@
 - 2026-07-30: Deployment packaging must be run on a release machine with `JRE8_HOME` or `deploy/runtime/jre8`; `deploy/package.sh` fails without a JRE 8 source and copies it into `deploy/dist/runtime/jre8` so target users do not install Java.
 - 2026-07-30: `/api/health` is the public deployment smoke-check endpoint and returns service status, Java runtime version, MySQL 5.7.42.0 target, and server time.
 - 2026-07-30: File upload is handled by an independent local storage module at `POST /api/files`; resource/course/assignment modules should upload file content first and then store the returned `fileUrl`, `fileName`, and `fileSize` metadata.
+- 2026-07-30: UE training integration uses student-authenticated callbacks under `/api/ue/trainings`; status callbacks upsert `training_monitor_snapshot`, and result callbacks insert immutable `training_attempt` plus `training_attempt_step` rows for existing admin/student archive APIs.
 
 ## Operational Notes
 
