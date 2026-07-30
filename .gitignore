@@ -1,5 +1,26 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# frontend
 node_modules/
 dist/
-.DS_Store
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# backend
+backend/target/
+backend/*.log
+
+# deploy/runtime artifacts
+deploy/dist/
+deploy/runtime/jre8/
+
+# logs and temp
+logs/
+tmp/
 *.local
 *.log
