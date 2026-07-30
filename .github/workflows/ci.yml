@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - zhan/frontend-test
+      - chen/backend
+  pull_request:
+    branches:
+      - main
+      - zhan/frontend-test
+      - chen/backend
+
+jobs:
+  backend:
+    name: Backend Java 8
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7.42
+        env:
+          MYSQL_ROOT_PASSWORD: root123456
+          MYSQL_DATABASE: jiaoxuepeiyu
+          TZ: Asia/Shanghai
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot123456"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+
+      - name: Test and package backend
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: jiaoxuepeiyu
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root123456
+        run: mvn -B clean test package
+
+  frontend:
+    name: Frontend Node 18
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
