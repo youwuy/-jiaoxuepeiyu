@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.score.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScore;
+import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreImportRow;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.score.port.AdminSemesterScoreRepository;
@@ -37,6 +38,23 @@ public class MyBatisAdminSemesterScoreRepository implements AdminSemesterScoreRe
         normalized.setPage(1);
         normalized.setPageSize(query.getPageSize());
         return mapper.findRanking(normalized);
+    }
+
+    @Override
+    public Long findStudentIdByStudentNo(String studentNo) {
+        return mapper.findStudentIdByStudentNo(studentNo);
+    }
+
+    @Override
+    public boolean semesterExists(Long semesterId) {
+        return mapper.countSemester(semesterId) > 0;
+    }
+
+    @Override
+    public void upsertScores(List<AdminSemesterScoreImportRow> rows) {
+        if (rows != null && !rows.isEmpty()) {
+            mapper.upsertScores(rows);
+        }
     }
 
     private AdminSemesterScoreQuery likeQuery(AdminSemesterScoreQuery source) {

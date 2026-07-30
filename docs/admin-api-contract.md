@@ -303,6 +303,142 @@ Behavior:
 - `classId` is required.
 - Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password` to create the password hash.
 
+### `POST /api/admin/accounts/teachers/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "accountNo": "teacher001",
+      "realName": "Teacher One",
+      "phone": "13812345678",
+      "idCard": "110101199001011234",
+      "jobTitle": "Teacher",
+      "orgId": 1,
+      "roleIds": [4],
+      "managedOrgIds": [1, 2],
+      "teachingClassIds": [3]
+    }
+  ]
+}
+```
+
+Response `data`:
+
+- `totalCount`
+- `validCount`
+- `errorCount`
+- `rows`: normalized import rows with `valid` and row-level `errors`.
+
+Behavior:
+
+- Validates already parsed teacher account rows.
+- Checks required account number, name, valid phone, organization, optional ID card format, existing account number, and duplicate account numbers within submitted rows.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/accounts/teachers/import`
+
+Request body: same as teacher import preview.
+
+Response `data`:
+
+- `importedCount`
+- `userIds`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Creates teacher accounts through the same validation, role binding, organization scope binding, and initial-password hashing path as `POST /api/admin/accounts/teachers`.
+- Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+- Does not return plaintext initial passwords.
+- Rejects the whole import when any row has validation errors.
+
+### `GET /api/admin/accounts/teachers/export`
+
+Query: same filters as `GET /api/admin/accounts/teachers`.
+
+Response `data`: array of export-ready teacher account rows.
+
+Each row:
+
+- `userId`
+- `accountNo`
+- `realName`
+- `maskedPhone`
+- `maskedIdCard`
+- `userType`
+- `orgName`
+- `className`
+- `jobTitle`
+- `enabled`
+- `createdAt`
+
+Behavior:
+
+- Returns all rows matching filters, ordered by newest account first.
+- Sensitive phone and ID card fields are masked.
+- Binary Excel file generation is handled by frontend or deployment integration later.
+
+### `POST /api/admin/accounts/students/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "accountNo": "student001",
+      "realName": "Student One",
+      "phone": "13812345678",
+      "idCard": "110101199001011234",
+      "orgId": 1,
+      "classId": 3
+    }
+  ]
+}
+```
+
+Response `data`: same shape as teacher import preview.
+
+Behavior:
+
+- Validates already parsed student account rows.
+- Checks required account number, name, valid phone, organization, class, optional ID card format, existing account number, and duplicate account numbers within submitted rows.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/accounts/students/import`
+
+Request body: same as student import preview.
+
+Response `data`:
+
+- `importedCount`
+- `userIds`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Creates student accounts through the same validation and initial-password hashing path as `POST /api/admin/accounts/students`.
+- Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+- Does not return plaintext initial passwords.
+- Rejects the whole import when any row has validation errors.
+
+### `GET /api/admin/accounts/students/export`
+
+Query: same filters as `GET /api/admin/accounts/students`.
+
+Response `data`: array of export-ready student account rows.
+
+Behavior:
+
+- Returns all rows matching filters, ordered by newest account first.
+- Sensitive phone and ID card fields are masked.
+- Binary Excel file generation is handled by frontend or deployment integration later.
+
 ### `PUT /api/admin/accounts/teachers/{userId}`
 
 Request body: same as teacher create.
@@ -1484,6 +1620,63 @@ Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
 ### `GET /api/admin/scores/semester/export`
 
 Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+
+### `POST /api/admin/scores/semester/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "studentNo": "student001",
+      "semesterId": 1,
+      "coursewareLearningScore": 80,
+      "trainingPracticeScore": 90,
+      "courseAssignmentScore": 85,
+      "examScore": 88,
+      "coursewareWeight": 20,
+      "trainingPracticeWeight": 30,
+      "assignmentWeight": 20,
+      "examWeight": 30
+    }
+  ]
+}
+```
+
+Response `data`:
+
+- `totalCount`
+- `validCount`
+- `errorCount`
+- `rows`: normalized import rows with `studentId`, calculated `comprehensiveScore`, `valid`, and row-level `errors`.
+
+Behavior:
+
+- Validates already parsed offline score rows.
+- `studentNo` must belong to an enabled student account.
+- `semesterId` must exist.
+- Component scores and weights are required and must be between `0` and `100`.
+- The four weights must add up to `100`.
+- Duplicate `studentNo + semesterId` rows in the same import are rejected.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/scores/semester/import`
+
+Request body: same as import preview.
+
+Response `data`:
+
+- `importedCount`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Calculates `comprehensiveScore` on the backend using the submitted component scores and weights.
+- Upserts `score_semester_summary` by `student_id + semester_id`.
+- Sets `published_at` to the import time so imported scores are immediately visible in score lists and student score APIs.
+- Rejects the whole import when any row has validation errors.
 
 ## Training Archive Management
 

@@ -9,9 +9,13 @@ public interface AdminAccountRepository {
 
     List<AdminAccount> findAccounts(AdminAccountQuery query);
 
+    List<AdminAccount> findAccountsForExport(AdminAccountQuery query);
+
     long countAccounts(AdminAccountQuery query);
 
     AdminAccount findById(Long userId);
+
+    List<String> findExistingAccountNos(List<String> accountNos);
 
     Long create(AdminAccountCommand command, String passwordHash);
 
