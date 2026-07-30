@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
@@ -110,6 +110,7 @@ import {
 } from '@element-plus/icons-vue';
 import StudentShell from '../../components/student/StudentShell.vue';
 import stationPreview from '../../assets/course-station-preview.png';
+import { fetchStudentCourse } from '../../api/student';
 import {
   calculateCourseProgress,
   mockStudentCourses,
@@ -121,7 +122,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
-const course = computed(() => mockStudentCourses.find((item) => item.id === courseId.value) ?? mockStudentCourses[0]);
+const course = ref(mockStudentCourses.find((item) => item.id === courseId.value) ?? mockStudentCourses[0]);
 const progress = computed(() => calculateCourseProgress(course.value));
 const selectedItem = ref<CourseCatalogItem>();
 
@@ -135,6 +136,14 @@ const itemTypeText: Record<CourseItemType, string> = {
   courseware: 'PPT文档',
   assignment: '在线作业'
 };
+
+onMounted(async () => {
+  try {
+    course.value = await fetchStudentCourse(courseId.value);
+  } catch {
+    ElMessage.warning('后端课程详情接口暂不可用，已展示本地示例数据');
+  }
+});
 
 watch(
   course,
