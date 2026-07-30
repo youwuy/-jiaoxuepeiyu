@@ -38,6 +38,7 @@
 - 2026-07-31: Admin account batch import/export uses parsed-row JSON endpoints under `/api/admin/accounts/{teachers|students}`; import reuses single-account create validation and configured initial-password hashing, while export returns masked phone and ID card fields without generating binary Excel on the backend.
 - 2026-07-31: Admin offline semester score import uses parsed-row JSON under `/api/admin/scores/semester/import`; rows are validated by student number and semester id, comprehensive scores are calculated server-side, and writes upsert `score_semester_summary` by `student_id + semester_id`.
 - 2026-07-31: Common password change is exposed as `PUT /api/auth/password` for admin, teacher, and student tokens; it validates the current password and `PasswordPolicy`, updates only `sys_user.password_hash`, and keeps the older student profile password endpoint for compatibility.
+- 2026-07-31: Admin profile APIs live under `/api/admin/profile`; they resolve admin/teacher identity through `AdminContext`, read and update only the current `sys_user`, and mask phone/ID card values in profile responses.
 
 ## Operational Notes
 
