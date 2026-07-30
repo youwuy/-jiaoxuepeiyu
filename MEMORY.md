@@ -35,6 +35,7 @@
 - 2026-07-30: File upload is handled by an independent local storage module at `POST /api/files`; resource/course/assignment modules should upload file content first and then store the returned `fileUrl`, `fileName`, and `fileSize` metadata.
 - 2026-07-30: UE training integration uses student-authenticated callbacks under `/api/ue/trainings`; status callbacks upsert `training_monitor_snapshot`, and result callbacks insert immutable `training_attempt` plus `training_attempt_step` rows for existing admin/student archive APIs.
 - 2026-07-30: Online presence uses `sys_user.last_heartbeat_time` and `last_login_ip`; clients call `POST /api/online/heartbeat` about every 30 seconds, `POST /api/auth/logout` clears heartbeat, and admin online dashboards treat users without heartbeat for 120 seconds as offline.
+- 2026-07-31: Admin account batch import/export uses parsed-row JSON endpoints under `/api/admin/accounts/{teachers|students}`; import reuses single-account create validation and configured initial-password hashing, while export returns masked phone and ID card fields without generating binary Excel on the backend.
 
 ## Operational Notes
 

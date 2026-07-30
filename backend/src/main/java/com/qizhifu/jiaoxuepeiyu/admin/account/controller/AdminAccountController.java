@@ -4,6 +4,10 @@ import com.qizhifu.jiaoxuepeiyu.admin.account.AdminAccountService;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AccountIdsCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountExportRow;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportResult;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.BatchOrgCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.RoleBindingCommand;
@@ -11,6 +15,7 @@ import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +46,42 @@ public class AdminAccountController {
     @Operation(summary = "List student accounts", description = "Returns paged student accounts with class, organization, and masked sensitive fields.")
     public ApiResponse<PageResponse<AdminAccount>> listStudents(@ModelAttribute AdminAccountQuery query) {
         return ApiResponse.ok(service.listStudents(query));
+    }
+
+    @PostMapping("/teachers/import/preview")
+    @Operation(summary = "Preview teacher account import", description = "Validates parsed teacher account rows before submission and returns row-level errors.")
+    public ApiResponse<AdminAccountImportPreview> previewTeacherImport(@RequestBody AdminAccountImportCommand body) {
+        return ApiResponse.ok(service.previewImport("teacher", body));
+    }
+
+    @PostMapping("/teachers/import")
+    @Operation(summary = "Import teacher accounts", description = "Creates teacher accounts from validated parsed rows using the configured initial password hash.")
+    public ApiResponse<AdminAccountImportResult> importTeachers(@RequestBody AdminAccountImportCommand body) {
+        return ApiResponse.ok(service.importAccounts("teacher", body));
+    }
+
+    @GetMapping("/teachers/export")
+    @Operation(summary = "Export teacher accounts", description = "Returns export-ready teacher account rows with masked sensitive fields.")
+    public ApiResponse<List<AdminAccountExportRow>> exportTeachers(@ModelAttribute AdminAccountQuery query) {
+        return ApiResponse.ok(service.exportAccounts("teacher", query));
+    }
+
+    @PostMapping("/students/import/preview")
+    @Operation(summary = "Preview student account import", description = "Validates parsed student account rows before submission and returns row-level errors.")
+    public ApiResponse<AdminAccountImportPreview> previewStudentImport(@RequestBody AdminAccountImportCommand body) {
+        return ApiResponse.ok(service.previewImport("student", body));
+    }
+
+    @PostMapping("/students/import")
+    @Operation(summary = "Import student accounts", description = "Creates student accounts from validated parsed rows using the configured initial password hash.")
+    public ApiResponse<AdminAccountImportResult> importStudents(@RequestBody AdminAccountImportCommand body) {
+        return ApiResponse.ok(service.importAccounts("student", body));
+    }
+
+    @GetMapping("/students/export")
+    @Operation(summary = "Export student accounts", description = "Returns export-ready student account rows with masked sensitive fields.")
+    public ApiResponse<List<AdminAccountExportRow>> exportStudents(@ModelAttribute AdminAccountQuery query) {
+        return ApiResponse.ok(service.exportAccounts("student", query));
     }
 
     @GetMapping("/{userId}")
