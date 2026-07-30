@@ -2,6 +2,9 @@ package com.qizhifu.jiaoxuepeiyu.admin.score.controller;
 
 import com.qizhifu.jiaoxuepeiyu.admin.score.AdminSemesterScoreService;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScore;
+import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreImportPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreImportResult;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreStatistics;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
@@ -11,6 +14,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -47,5 +52,17 @@ public class AdminSemesterScoreController {
     @Operation(summary = "Export semester score rows", description = "Returns export-ready semester score rows. Binary Excel generation is handled by deployment integration later.")
     public ApiResponse<List<AdminSemesterScore>> exportScores(@ModelAttribute AdminSemesterScoreQuery query) {
         return ApiResponse.ok(service.listRanking(query));
+    }
+
+    @PostMapping("/import/preview")
+    @Operation(summary = "Preview semester score import", description = "Validates parsed offline score rows and returns row-level errors with calculated comprehensive scores for valid rows.")
+    public ApiResponse<AdminSemesterScoreImportPreview> previewImport(@RequestBody AdminSemesterScoreImportCommand body) {
+        return ApiResponse.ok(service.previewImport(body));
+    }
+
+    @PostMapping("/import")
+    @Operation(summary = "Import semester scores", description = "Upserts validated offline score rows and calculates comprehensive scores on the backend.")
+    public ApiResponse<AdminSemesterScoreImportResult> importScores(@RequestBody AdminSemesterScoreImportCommand body) {
+        return ApiResponse.ok(service.importScores(body));
     }
 }
