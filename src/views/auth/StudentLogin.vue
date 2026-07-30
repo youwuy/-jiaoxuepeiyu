@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 import {
   normalizePasswordInput,
   normalizePhoneInput,
@@ -79,6 +79,7 @@ import {
   type StudentLoginMode
 } from '../../features/auth/validation';
 
+const router = useRouter();
 const mode = ref<StudentLoginMode>('studentId');
 
 const form = reactive({
@@ -128,8 +129,6 @@ function submit() {
     return;
   }
 
-  ElMessageBox.alert('登录接口待后端联调接入', '提示', {
-    confirmButtonText: '知道了'
-  });
+  router.push('/student/courses');
 }
 </script>
