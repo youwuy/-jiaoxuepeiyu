@@ -45,6 +45,7 @@
 - 2026-07-31: Admin profile APIs live under `/api/admin/profile`; they resolve admin/teacher identity through `AdminContext`, read and update only the current `sys_user`, and mask phone/ID card values in profile responses.
 - 2026-07-31: Admin permission management reuses `sys_permission` as the menu/page/button source of truth; write APIs validate type, unique code, parent existence, self-parent prevention, and delete only unbound leaf permission nodes.
 - 2026-07-31: Deployment packaging now has both `deploy/package.sh` and `deploy/package.bat`; both require `JRE8_HOME` or `deploy/runtime/jre8` and generate `deploy/dist/runtime/jre8` so target users do not install Java manually.
+- 2026-07-31: Admin file export endpoints use dependency-free UTF-8 BOM CSV downloads (`/export/file`) for Excel compatibility while preserving existing JSON `/export` endpoints for frontend-controlled export.
 
 ## Operational Notes
 

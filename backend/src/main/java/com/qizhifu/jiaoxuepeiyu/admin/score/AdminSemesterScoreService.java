@@ -70,6 +70,15 @@ public class AdminSemesterScoreService {
         return scores;
     }
 
+    public List<AdminSemesterScore> exportScores(AdminSemesterScoreQuery query) {
+        AdminSemesterScoreQuery normalized = normalizedQuery(query);
+        normalized.setPage(1);
+        normalized.setPageSize(MAX_PAGE_SIZE);
+        List<AdminSemesterScore> scores = repository.findScores(normalized);
+        normalizeScores(scores);
+        return scores;
+    }
+
     public AdminSemesterScoreImportPreview previewImport(AdminSemesterScoreImportCommand command) {
         if (command == null || command.getRows().isEmpty()) {
             throw new BusinessException(400, "Import rows are required");

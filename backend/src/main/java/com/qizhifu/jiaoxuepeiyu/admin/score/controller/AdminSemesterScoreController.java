@@ -9,9 +9,13 @@ import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreStatistics;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
+import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,9 +53,43 @@ public class AdminSemesterScoreController {
     }
 
     @GetMapping("/export")
-    @Operation(summary = "Export semester score rows", description = "Returns export-ready semester score rows. Binary Excel generation is handled by deployment integration later.")
+    @Operation(summary = "Export semester score rows", description = "Returns export-ready semester score rows for frontend-controlled export.")
     public ApiResponse<List<AdminSemesterScore>> exportScores(@ModelAttribute AdminSemesterScoreQuery query) {
-        return ApiResponse.ok(service.listRanking(query));
+        return ApiResponse.ok(service.exportScores(query));
+    }
+
+    @GetMapping("/export/file")
+    @Operation(summary = "Download semester score CSV", description = "Downloads filtered semester score rows as an Excel-compatible CSV file.")
+    public ResponseEntity<byte[]> exportScoreFile(@ModelAttribute AdminSemesterScoreQuery query) {
+        List<List<String>> csvRows = new ArrayList<List<String>>();
+        for (AdminSemesterScore score : service.exportScores(query)) {
+            csvRows.add(Arrays.asList(
+                    value(score.getScoreId()),
+                    value(score.getStudentNo()),
+                    value(score.getStudentName()),
+                    value(score.getClassName()),
+                    value(score.getMajorName()),
+                    value(score.getAcademicTerm()),
+                    value(score.getCoursewareLearningScore()),
+                    value(score.getTrainingPracticeScore()),
+                    value(score.getCourseAssignmentScore()),
+                    value(score.getExamScore()),
+                    value(score.getComprehensiveScore()),
+                    value(score.getPublishedAt())));
+        }
+        return CsvExporter.toAttachment("semester-scores.csv", Arrays.asList(
+                "Score ID",
+                "Student No",
+                "Student Name",
+                "Class",
+                "Major",
+                "Academic Term",
+                "Courseware Score",
+                "Training Score",
+                "Assignment Score",
+                "Exam Score",
+                "Comprehensive Score",
+                "Published At"), csvRows);
     }
 
     @PostMapping("/import/preview")
@@ -64,5 +102,9 @@ public class AdminSemesterScoreController {
     @Operation(summary = "Import semester scores", description = "Upserts validated offline score rows and calculates comprehensive scores on the backend.")
     public ApiResponse<AdminSemesterScoreImportResult> importScores(@RequestBody AdminSemesterScoreImportCommand body) {
         return ApiResponse.ok(service.importScores(body));
+    }
+
+    private String value(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

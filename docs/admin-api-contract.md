@@ -463,7 +463,17 @@ Behavior:
 
 - Returns all rows matching filters, ordered by newest account first.
 - Sensitive phone and ID card fields are masked.
-- Binary Excel file generation is handled by frontend or deployment integration later.
+
+### `GET /api/admin/accounts/teachers/export/file`
+
+Query: same filters as `GET /api/admin/accounts/teachers`.
+
+Response: `text/csv;charset=UTF-8` attachment named `teacher-accounts.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same masked export rows as `GET /api/admin/accounts/teachers/export`.
 
 ### `POST /api/admin/accounts/students/import/preview`
 
@@ -520,7 +530,17 @@ Behavior:
 
 - Returns all rows matching filters, ordered by newest account first.
 - Sensitive phone and ID card fields are masked.
-- Binary Excel file generation is handled by frontend or deployment integration later.
+
+### `GET /api/admin/accounts/students/export/file`
+
+Query: same filters as `GET /api/admin/accounts/students`.
+
+Response: `text/csv;charset=UTF-8` attachment named `student-accounts.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same masked export rows as `GET /api/admin/accounts/students/export`.
 
 ### `PUT /api/admin/accounts/teachers/{userId}`
 
@@ -1702,7 +1722,16 @@ Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
 
 ### `GET /api/admin/scores/semester/export`
 
-Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+Response `data`: export-ready score rows for frontend-controlled export.
+
+### `GET /api/admin/scores/semester/export/file`
+
+Response: `text/csv;charset=UTF-8` attachment named `semester-scores.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filters as `GET /api/admin/scores/semester`.
 
 ### `POST /api/admin/scores/semester/import/preview`
 
@@ -1799,7 +1828,16 @@ Response `data`:
 
 ### `GET /api/admin/archives/export`
 
-Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
+Response `data`: export-ready archive rows for frontend-controlled export.
+
+### `GET /api/admin/archives/export/file`
+
+Response: `text/csv;charset=UTF-8` attachment named `training-archives.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filters as `GET /api/admin/archives`.
 
 ## IAM Role And Permission Management
 

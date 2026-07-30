@@ -36,6 +36,25 @@ class AdminSemesterScoreServiceTests {
     }
 
     @Test
+    void exportsScoresFromFilteredScoreRowsNotRanking() {
+        FakeScores repository = new FakeScores();
+        repository.scores = Arrays.asList(score(null));
+        AdminSemesterScoreQuery query = new AdminSemesterScoreQuery();
+        query.setPage(3);
+        query.setPageSize(10);
+        AdminSemesterScoreService service = new AdminSemesterScoreService(repository);
+
+        List<AdminSemesterScore> scores = service.exportScores(query);
+
+        assertEquals(1, scores.size());
+        assertEquals(1, repository.findScoresCalls);
+        assertEquals(0, repository.findRankingCalls);
+        assertEquals(1, repository.lastQuery.getPage());
+        assertEquals(100, repository.lastQuery.getPageSize());
+        assertEquals(new BigDecimal("86.4"), scores.get(0).getComprehensiveScore());
+    }
+
+    @Test
     void returnsStatisticsWithDefaultNumbers() {
         FakeScores repository = new FakeScores();
         repository.statistics = null;
@@ -169,10 +188,13 @@ class AdminSemesterScoreServiceTests {
         private final Map<String, Long> studentIds = new HashMap<String, Long>();
         private final List<Long> existingSemesterIds = new ArrayList<Long>();
         private final List<AdminSemesterScoreImportRow> upsertedRows = new ArrayList<AdminSemesterScoreImportRow>();
+        private int findScoresCalls;
+        private int findRankingCalls;
 
         @Override
         public List<AdminSemesterScore> findScores(AdminSemesterScoreQuery query) {
             this.lastQuery = query;
+            this.findScoresCalls++;
             return scores;
         }
 
@@ -190,6 +212,7 @@ class AdminSemesterScoreServiceTests {
         @Override
         public List<AdminSemesterScore> findRanking(AdminSemesterScoreQuery query) {
             this.lastQuery = query;
+            this.findRankingCalls++;
             return scores;
         }
 

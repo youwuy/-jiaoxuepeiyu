@@ -13,9 +13,13 @@ import com.qizhifu.jiaoxuepeiyu.admin.account.model.BatchOrgCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.RoleBindingCommand;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
+import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,6 +70,12 @@ public class AdminAccountController {
         return ApiResponse.ok(service.exportAccounts("teacher", query));
     }
 
+    @GetMapping("/teachers/export/file")
+    @Operation(summary = "Download teacher account CSV", description = "Downloads teacher account rows as an Excel-compatible CSV file with masked sensitive fields.")
+    public ResponseEntity<byte[]> exportTeacherFile(@ModelAttribute AdminAccountQuery query) {
+        return accountCsv("teacher-accounts.csv", service.exportAccounts("teacher", query));
+    }
+
     @PostMapping("/students/import/preview")
     @Operation(summary = "Preview student account import", description = "Validates parsed student account rows before submission and returns row-level errors.")
     public ApiResponse<AdminAccountImportPreview> previewStudentImport(@RequestBody AdminAccountImportCommand body) {
@@ -82,6 +92,12 @@ public class AdminAccountController {
     @Operation(summary = "Export student accounts", description = "Returns export-ready student account rows with masked sensitive fields.")
     public ApiResponse<List<AdminAccountExportRow>> exportStudents(@ModelAttribute AdminAccountQuery query) {
         return ApiResponse.ok(service.exportAccounts("student", query));
+    }
+
+    @GetMapping("/students/export/file")
+    @Operation(summary = "Download student account CSV", description = "Downloads student account rows as an Excel-compatible CSV file with masked sensitive fields.")
+    public ResponseEntity<byte[]> exportStudentFile(@ModelAttribute AdminAccountQuery query) {
+        return accountCsv("student-accounts.csv", service.exportAccounts("student", query));
     }
 
     @GetMapping("/{userId}")
@@ -149,5 +165,39 @@ public class AdminAccountController {
     public ApiResponse<Void> updateRoles(@PathVariable Long userId, @RequestBody RoleBindingCommand body) {
         service.updateRoles(userId, body.getRoleIds());
         return ApiResponse.ok(null);
+    }
+
+    private ResponseEntity<byte[]> accountCsv(String filename, List<AdminAccountExportRow> rows) {
+        List<List<String>> csvRows = new ArrayList<List<String>>();
+        for (AdminAccountExportRow row : rows) {
+            csvRows.add(Arrays.asList(
+                    value(row.getUserId()),
+                    value(row.getAccountNo()),
+                    value(row.getRealName()),
+                    value(row.getMaskedPhone()),
+                    value(row.getMaskedIdCard()),
+                    value(row.getUserType()),
+                    value(row.getOrgName()),
+                    value(row.getClassName()),
+                    value(row.getJobTitle()),
+                    value(row.getEnabled()),
+                    value(row.getCreatedAt())));
+        }
+        return CsvExporter.toAttachment(filename, Arrays.asList(
+                "User ID",
+                "Account No",
+                "Real Name",
+                "Phone",
+                "ID Card",
+                "User Type",
+                "Organization",
+                "Class",
+                "Job Title",
+                "Enabled",
+                "Created At"), csvRows);
+    }
+
+    private String value(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }
