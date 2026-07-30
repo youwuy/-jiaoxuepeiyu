@@ -1,0 +1,2002 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Web教辅系统 API",
+    "description": "Web教辅系统后台接口文档",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/api/student/profile/phone": {
+      "put": {
+        "tags": [
+          "student-profile-controller"
+        ],
+        "operationId": "updatePhone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/profile/password": {
+      "put": {
+        "tags": [
+          "student-profile-controller"
+        ],
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/profile/id-card": {
+      "put": {
+        "tags": [
+          "student-profile-controller"
+        ],
+        "operationId": "updateIdCard",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdCardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/trainings/{trainingId}/rooms": {
+      "post": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "createRoom",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}/start": {
+      "post": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "startRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}/roles/{roleId}/claim": {
+      "post": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "claimRole",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}/leave": {
+      "post": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "leaveRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}/join": {
+      "post": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "joinRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/messages/{messageId}/read": {
+      "post": {
+        "tags": [
+          "student-message-controller"
+        ],
+        "operationId": "markRead",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/messages/read-all": {
+      "post": {
+        "tags": [
+          "student-message-controller"
+        ],
+        "operationId": "markAllRead",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/courses/{courseId}/progress": {
+      "post": {
+        "tags": [
+          "student-course-controller"
+        ],
+        "operationId": "updateProgress",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/assignments/{assignmentId}/submit": {
+      "post": {
+        "tags": [
+          "student-assignment-controller"
+        ],
+        "operationId": "submit",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentAssignmentSubmitResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/assignments/{assignmentId}/answers": {
+      "post": {
+        "tags": [
+          "student-assignment-controller"
+        ],
+        "operationId": "saveAnswers",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentAnswerCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/student/login": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "studentLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/admin/login": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "adminLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLoginResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/trainings": {
+      "get": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "listTrainings",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListStudentTraining"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/trainings/app-installation": {
+      "get": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "appInstallation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingAppInstallation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}": {
+      "get": {
+        "tags": [
+          "student-training-controller"
+        ],
+        "operationId": "getRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/scores/semester": {
+      "get": {
+        "tags": [
+          "student-score-controller"
+        ],
+        "operationId": "listSemesterScores",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListStudentSemesterScore"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/resources/public": {
+      "get": {
+        "tags": [
+          "student-resource-controller"
+        ],
+        "operationId": "listPublicResources",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "majorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPublicResourceCard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/profile": {
+      "get": {
+        "tags": [
+          "student-profile-controller"
+        ],
+        "operationId": "get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/messages": {
+      "get": {
+        "tags": [
+          "student-message-controller"
+        ],
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentMessageSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/courses": {
+      "get": {
+        "tags": [
+          "student-course-controller"
+        ],
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListStudentCourseCard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/courses/{courseId}": {
+      "get": {
+        "tags": [
+          "student-course-controller"
+        ],
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentCourseDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/assignments/{assignmentId}": {
+      "get": {
+        "tags": [
+          "student-assignment-controller"
+        ],
+        "operationId": "get_2",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentAssignmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/assignments/{assignmentId}/report": {
+      "get": {
+        "tags": [
+          "student-assignment-controller"
+        ],
+        "operationId": "report",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentAssignmentReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/archives": {
+      "get": {
+        "tags": [
+          "student-archive-controller"
+        ],
+        "operationId": "list_2",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListStudentTrainingArchive"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/archives/{archiveId}": {
+      "get": {
+        "tags": [
+          "student-archive-controller"
+        ],
+        "operationId": "get_3",
+        "parameters": [
+          {
+            "name": "archiveId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentTrainingArchiveDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health-controller"
+        ],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PhoneRequest": {
+        "required": [
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "PasswordRequest": {
+        "required": [
+          "confirmPassword",
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          },
+          "confirmPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "IdCardRequest": {
+        "required": [
+          "idCard"
+        ],
+        "type": "object",
+        "properties": {
+          "idCard": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseTrainingRoom": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingRoom"
+          }
+        }
+      },
+      "TrainingRoom": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "roomCode": {
+            "type": "string"
+          },
+          "roomStatus": {
+            "type": "string"
+          },
+          "ownerStudentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "teamSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingRoomMember"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingRoomRole"
+            }
+          }
+        }
+      },
+      "TrainingRoomMember": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TrainingRoomRole": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "claimed": {
+            "type": "boolean"
+          },
+          "claimedByStudentId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ProgressRequest": {
+        "required": [
+          "contentId"
+        ],
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studiedSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseStudentAssignmentSubmitResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentAssignmentSubmitResult"
+          }
+        }
+      },
+      "StudentAssignmentSubmitResult": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string"
+          },
+          "autoScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AnswerItem": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "answerContent": {
+            "type": "string"
+          }
+        }
+      },
+      "AssignmentAnswerCommand": {
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnswerItem"
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "account",
+          "loginType",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "loginType": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseLoginResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResult"
+          }
+        }
+      },
+      "AuthenticatedUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResult": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthenticatedUser"
+          }
+        }
+      },
+      "ApiResponseListStudentTraining": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentTraining"
+            }
+          }
+        }
+      },
+      "StudentTraining": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teamSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roleCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "appRequired": {
+            "type": "boolean"
+          },
+          "appInstalled": {
+            "type": "boolean"
+          },
+          "activeRoomId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseTrainingAppInstallation": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingAppInstallation"
+          }
+        }
+      },
+      "TrainingAppInstallation": {
+        "type": "object",
+        "properties": {
+          "installed": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          },
+          "downloadUrl": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListStudentSemesterScore": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentSemesterScore"
+            }
+          }
+        }
+      },
+      "StudentSemesterScore": {
+        "type": "object",
+        "properties": {
+          "academicTerm": {
+            "type": "string"
+          },
+          "coursewareLearningScore": {
+            "type": "number"
+          },
+          "trainingPracticeScore": {
+            "type": "number"
+          },
+          "courseAssignmentScore": {
+            "type": "number"
+          },
+          "examScore": {
+            "type": "number"
+          },
+          "coursewareWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trainingPracticeWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "examWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comprehensiveScore": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponseListPublicResourceCard": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicResourceCard"
+            }
+          }
+        }
+      },
+      "PublicResourceCard": {
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string"
+          },
+          "previewUrl": {
+            "type": "string"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorName": {
+            "type": "string"
+          },
+          "uploaderName": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseStudentProfile": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentProfile"
+          }
+        }
+      },
+      "StudentProfile": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "idCard": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "passwordHash": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseStudentMessageSummary": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentMessageSummary"
+          }
+        }
+      },
+      "StudentMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StudentMessageSummary": {
+        "type": "object",
+        "properties": {
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentMessage"
+            }
+          }
+        }
+      },
+      "ApiResponseListStudentCourseCard": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentCourseCard"
+            }
+          }
+        }
+      },
+      "StudentCourseCard": {
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "academicTerm": {
+            "type": "string"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coursewareCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "teacherNames": {
+            "type": "string"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseStudentCourseDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentCourseDetail"
+          }
+        }
+      },
+      "StudentCourseChapter": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "chapterTitle": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentCourseItem"
+            }
+          }
+        }
+      },
+      "StudentCourseDetail": {
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "academicTerm": {
+            "type": "string"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "teacherNames": {
+            "type": "string"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastContentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentCourseChapter"
+            }
+          }
+        }
+      },
+      "StudentCourseItem": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "itemType": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignmentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requiredDurationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studiedSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseStudentAssignmentDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentAssignmentDetail"
+          }
+        }
+      },
+      "StudentAssignmentDetail": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "courseId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignmentTitle": {
+            "type": "string"
+          },
+          "assignmentType": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentAssignmentQuestion"
+            }
+          }
+        }
+      },
+      "StudentAssignmentQuestion": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "questionType": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "options": {
+            "type": "string"
+          },
+          "answerContent": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseStudentAssignmentReport": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentAssignmentReport"
+          }
+        }
+      },
+      "StudentAssignmentReport": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignmentTitle": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reviewComment": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentAssignmentReportAnswer"
+            }
+          }
+        }
+      },
+      "StudentAssignmentReportAnswer": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "questionType": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "standardAnswer": {
+            "type": "string"
+          },
+          "answerContent": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListStudentTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentTrainingArchive"
+            }
+          }
+        }
+      },
+      "StudentTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "archiveId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponseStudentTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentTrainingArchiveDetail"
+          }
+        }
+      },
+      "StudentTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "archiveId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "recordingUrl": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentTrainingArchiveStep"
+            }
+          }
+        }
+      },
+      "StudentTrainingArchiveStep": {
+        "type": "object",
+        "properties": {
+          "stepId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stepName": {
+            "type": "string"
+          },
+          "standardOperation": {
+            "type": "string"
+          },
+          "actualOperation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseMapStringObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

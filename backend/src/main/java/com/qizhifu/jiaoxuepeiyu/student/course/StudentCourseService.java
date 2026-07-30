@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +24,7 @@ public class StudentCourseService {
     private final StudentCourseRepository repository;
     private final Clock clock;
 
+    @Autowired
     public StudentCourseService(StudentCourseRepository repository) {
         this(repository, Clock.systemDefaultZone());
     }
