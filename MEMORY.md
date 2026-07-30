@@ -23,6 +23,7 @@
 - 2026-07-30: User clarified Git workflow preference: do not push every small change; push `chen/backend` after completing a major backend module, then merge/sync to `main` after that module-level push.
 - 2026-07-30: Admin exam management keeps question bank records mutable but stores immutable paper question snapshots in `exam_paper_question`; disabled questions remain available to historical papers and are only excluded from future assembly.
 - 2026-07-30: Admin course management uses `course_teacher` and `course_class` for multi-teacher/multi-class bindings while maintaining `course.class_id` as the first class for legacy student-course compatibility; student course and assignment queries read through `course_class` with a `course.class_id` fallback.
+- 2026-07-30: Admin assignment review uses `assignment_attempt` as the review state source; reviewed attempts store reviewer metadata and per-question scores/comments in `assignment_answer`, then refresh course progress after review.
 
 ## Operational Notes
 
