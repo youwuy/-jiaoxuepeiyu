@@ -255,12 +255,12 @@ a {
 }
 
 .student-topbar {
-  height: 60px;
+  height: 42px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 54px;
-  padding: 0 31px;
+  gap: 42px;
+  padding: 0 22px;
   border-bottom: 1px solid #edf0f5;
   background: #ffffff;
 }
@@ -268,32 +268,32 @@ a {
 .student-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 196px;
+  gap: 8px;
+  min-width: 146px;
 }
 
 .student-brand strong {
   color: #18243b;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .student-brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 23px;
+  height: 23px;
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 5px;
   background: #2f69f1;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .student-nav {
   display: flex;
   align-items: center;
-  gap: 42px;
+  gap: 34px;
   height: 100%;
 }
 
@@ -302,7 +302,7 @@ a {
   align-items: center;
   height: 100%;
   color: #6d7890;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   transition: color 160ms ease;
 }
@@ -318,13 +318,13 @@ a {
 .student-userbar {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   color: #7a8496;
 }
 
 .student-userbar .el-button.is-circle {
-  width: 28px;
-  height: 28px;
+  width: 23px;
+  height: 23px;
   border: 0;
   background: transparent;
   color: #778397;
@@ -345,14 +345,14 @@ a {
   color: #253049;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .student-main {
-  width: min(1186px, calc(100% - 62px));
+  width: min(888px, calc(100% - 44px));
   margin: 0 auto;
-  padding: 25px 0 48px;
+  padding: 27px 0 36px;
 }
 
 .course-toolbar h2,
@@ -641,11 +641,11 @@ a {
 
 .training-filterbar {
   display: grid;
-  grid-template-columns: auto minmax(220px, 268px) 120px;
+  grid-template-columns: auto 164px 78px;
   justify-content: end;
   align-items: center;
-  gap: 10px;
-  margin: 30px 0 36px;
+  gap: 7px;
+  margin: 0 0 31px;
 }
 
 .training-segmented {
@@ -653,16 +653,16 @@ a {
   --el-segmented-item-selected-bg-color: #2f6df6;
   --el-segmented-item-selected-color: #ffffff;
   --el-border-radius-base: 4px;
-  height: 34px;
-  padding: 2px;
+  height: 25px;
+  padding: 1px;
 }
 
 .training-segmented .el-segmented__item {
-  min-width: 78px;
-  height: 30px;
-  border-radius: 4px;
+  min-width: 48px;
+  height: 23px;
+  border-radius: 3px;
   color: #6f7f95;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .training-segmented .el-segmented__item-label {
@@ -672,26 +672,30 @@ a {
 
 .training-search .el-input__wrapper,
 .training-status-select .el-select__wrapper {
-  min-height: 34px;
-  border-radius: 5px;
+  min-height: 25px;
+  border-radius: 4px;
   background: #ffffff;
   box-shadow: 0 0 0 1px #edf1f7 inset;
 }
 
+.training-status-select .el-select__wrapper {
+  padding: 0 7px;
+}
+
 .training-search .el-input__inner,
 .training-status-select .el-select__placeholder {
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .training-list-panel {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .training-list-card {
   overflow: hidden;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 7px;
   background: #ffffff;
 }
 
@@ -701,22 +705,22 @@ a {
 
 .training-parent-row {
   display: grid;
-  grid-template-columns: 34px minmax(180px, 1.35fr) 180px 54px 48px 160px 74px 112px;
+  grid-template-columns: 28px 144px 150px 42px 40px 126px 58px 96px;
   align-items: center;
-  min-height: 58px;
-  padding: 0 18px;
-  gap: 12px;
+  min-height: 37px;
+  padding: 0 13px;
+  gap: 8px;
   color: #526176;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .training-expand {
   display: inline-grid;
-  width: 26px;
-  height: 26px;
+  width: 21px;
+  height: 21px;
   place-items: center;
   border: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #eef6ff;
   color: #3d8dff;
   cursor: pointer;
@@ -726,7 +730,7 @@ a {
   display: block;
   overflow: hidden;
   color: #2d3b4f;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -752,12 +756,12 @@ a {
 .training-score-pill,
 .training-mode-pill {
   justify-self: start;
-  min-height: 22px;
-  border-radius: 5px;
-  padding: 0 8px;
-  font-size: 12px;
+  min-height: 18px;
+  border-radius: 4px;
+  padding: 0 6px;
+  font-size: 10px;
   font-weight: 800;
-  line-height: 22px;
+  line-height: 18px;
 }
 
 .training-type-pill.is-practice {
@@ -772,26 +776,26 @@ a {
 
 .training-topic-count {
   color: #344256;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .training-term {
   color: #667789;
-  font-size: 12px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
 .training-state-pill {
   position: relative;
-  padding-left: 18px;
+  padding-left: 15px;
 }
 
 .training-state-pill::before {
   position: absolute;
   top: 50%;
-  left: 8px;
-  width: 5px;
-  height: 5px;
+  left: 7px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   content: "";
   transform: translateY(-50%);
@@ -851,25 +855,25 @@ a {
 
 .training-step-row {
   display: grid;
-  grid-template-columns: 34px minmax(220px, 1fr) 150px 120px;
+  grid-template-columns: 28px 258px 110px 117px 72px;
   align-items: center;
-  min-height: 50px;
-  padding: 0 198px 0 72px;
-  column-gap: 14px;
+  min-height: 37px;
+  padding: 0 166px 0 64px;
+  column-gap: 12px;
   border-top: 1px solid #f5f7fa;
   color: #506176;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .training-step-index {
   display: inline-grid;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   place-items: center;
-  border-radius: 4px;
+  border-radius: 3px;
   background: #edf4ff;
   color: #7d91aa;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
 }
 
@@ -886,20 +890,25 @@ a {
   color: #18b961;
 }
 
+.training-step-row .training-mode-pill {
+  grid-column: 3;
+}
+
 .training-mode-pill.is-team {
   background: #eef5ff;
   color: #3d82ff;
 }
 
 .training-row-action.el-button {
-  width: 112px;
-  height: 30px;
+  grid-column: 5;
+  width: 72px;
+  height: 23px;
   margin: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #11a455;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -1519,7 +1528,7 @@ a {
   line-height: 1.8;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 760px) {
   .student-topbar {
     grid-template-columns: 1fr auto;
     gap: 18px;
