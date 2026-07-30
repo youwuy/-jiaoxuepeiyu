@@ -40,6 +40,27 @@ Response `data`:
 
 ## Auth
 
+### First Admin Bootstrap
+
+There is no committed default administrator password.
+
+For the first deployment startup only, configure:
+
+- `APP_BOOTSTRAP_ADMIN_USERNAME`
+- `APP_BOOTSTRAP_ADMIN_PASSWORD`
+- Optional: `APP_BOOTSTRAP_ADMIN_REAL_NAME`
+- Optional: `APP_BOOTSTRAP_ADMIN_PHONE`
+
+Behavior:
+
+- The backend creates one `admin` user only when both username and password are configured and no admin user exists.
+- If only username or only password is configured, startup fails.
+- If an admin already exists, bootstrap is skipped and existing users are not changed.
+- The password must be `8-20` characters and contain letters and digits.
+- Only the hashed password is stored.
+
+Remove the bootstrap username and password environment variables after the first successful startup. Student and teacher initial passwords are still controlled by `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+
 ### `POST /api/auth/admin/login`
 
 Request body:

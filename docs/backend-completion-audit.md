@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 Branch: `chen/backend`
-Last audited commit: `d443694 feat: add admin csv file export APIs`
+Last audited baseline commit: `894f21a feat: add admin job role config APIs`
 
 ## Scope
 
@@ -29,6 +29,7 @@ These items have code-level evidence in the repository:
 - Deployment scripts exist for Linux/macOS and Windows, and packaging scripts require `JRE8_HOME` or `deploy/runtime/jre8` so generated packages include `runtime/jre8`.
 - Admin file export endpoints now provide Excel-compatible UTF-8 BOM CSV downloads at `/export/file` while preserving JSON export endpoints.
 - The latest completed backend module has been pushed to `origin/chen/backend` and fast-forwarded to `origin/main`.
+- First-admin bootstrap code creates an optional environment-configured admin at startup only when no admin exists, stores only the hashed password, and documents the one-time deployment variables.
 
 ## Not Yet Proven
 
@@ -36,6 +37,7 @@ These items are not complete until stronger evidence is collected:
 
 - `mvn test` has not run successfully in this workspace because `mvn` is not installed.
 - `mvn package` has not run successfully in this workspace because Maven and a JDK are not available on `PATH`.
+- `BootstrapAdminServiceTests` has not run successfully in this workspace because `mvn` is not installed.
 - The Spring Boot service has not been started locally, so runtime Swagger pages, `/api/health`, login, current user, and representative module smoke tests have not been verified.
 - MySQL 5.7.42.0 schema import has not been tested against a real MySQL 5.7.42.0 instance.
 - A final deployment package has not been generated because no JRE 8 source directory is available in this workspace.
@@ -44,7 +46,7 @@ These items are not complete until stronger evidence is collected:
 
 ## Delivery Risks
 
-- There are no committed default users or plaintext passwords in `database/init`, by design. Student login works only after an admin creates or resets a student account with `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password` configured.
+- There are no committed default users or plaintext passwords in `database/init`, by design. First deployment should use the optional one-time bootstrap admin environment variables, then remove them after first successful startup. Student login works only after an admin creates or resets a student account with `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password` configured.
 - Binary `.xlsx` parsing and generation are intentionally not implemented in the backend. Current import APIs accept parsed JSON rows, and current file exports generate Excel-compatible CSV files.
 - Camera/NVR passwords are stored as configured metadata. Release deployment should ensure database access and logs do not expose these values.
 - Some plan checklist files still contain unchecked verification or commit steps; treat the repository code and this audit as the current source of truth, then close stale checklist items when their evidence is verified.

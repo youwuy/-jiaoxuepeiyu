@@ -52,7 +52,7 @@ Web education support platform deployment package
 
 1. The Java runtime is bundled under runtime/jre8. Users do not need to install Java.
 2. Initialize MySQL 5.7.42 with SQL files under database/init in filename order.
-3. Edit config/application.yml or set MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, and APP_ACCOUNT_INITIAL_PASSWORD.
+3. Edit config/application.yml or set MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, APP_ACCOUNT_INITIAL_PASSWORD, and one-time APP_BOOTSTRAP_ADMIN_USERNAME / APP_BOOTSTRAP_ADMIN_PASSWORD for first admin creation.
 4. Run start-backend.sh on Linux/macOS or start-backend.bat on Windows.
 5. Runtime logs are written under logs/.
 6. The web directory contains frontend static files for Nginx or another web server when frontend/dist exists at packaging time.
