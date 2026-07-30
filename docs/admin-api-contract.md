@@ -1182,3 +1182,107 @@ Monitor rows are read from `training_monitor_snapshot`; UE/device callbacks can 
 ### `GET /api/admin/trainings/{trainingId}/logs`
 
 Response `data`: training operation logs sorted by newest first.
+
+## Device Efficiency
+
+Device status:
+
+- `OFFLINE`
+- `IDLE`
+- `IN_USE`
+- `FAULT`
+
+Device type examples:
+
+- `TRAINING_TERMINAL`
+- `VR`
+- `CONTROL_DESK`
+- `OTHER`
+
+Common query:
+
+- `startDate` optional `YYYY-MM-DD`; defaults to the first day of the current month when both dates are omitted.
+- `endDate` optional `YYYY-MM-DD`; defaults to today when omitted.
+- `classroomId` optional.
+- `deviceType` optional.
+- `deviceStatus` optional.
+- `rankLimit` optional for ranking endpoints, default `10`, maximum `100`.
+
+Behavior:
+
+- Date ranges are inclusive.
+- The maximum query window is `366` days.
+- Real-time state is read from `device` and latest active `device_usage_event`.
+- Historical usage, utilization, monthly trend, and heat ranking are read from `device_usage_daily_summary`.
+
+### `GET /api/admin/devices/efficiency`
+
+Response `data`:
+
+- `summary`
+- `realtimeStates`
+- `monthlyTrends`
+- `heatRanking`
+
+This is the dashboard aggregate endpoint for the management device efficiency page.
+
+### `GET /api/admin/devices/efficiency/summary`
+
+Response `data`:
+
+- `totalDeviceCount`
+- `onlineDeviceCount`
+- `activeDeviceCount`
+- `faultDeviceCount`
+- `totalUsageMinutes`
+- `averageUtilizationRate`
+- `activeTrainingCount`
+
+### `GET /api/admin/devices/efficiency/realtime`
+
+Response `data`: list of device real-time states.
+
+Each item:
+
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `deviceStatus`
+- `classroomId`
+- `classroomName`
+- `currentTrainingId`
+- `currentTrainingName`
+- `currentStudentId`
+- `currentStudentName`
+- `currentStartedAt`
+- `currentUsageMinutes`
+- `lastHeartbeatAt`
+
+### `GET /api/admin/devices/efficiency/monthly-trends`
+
+Response `data`: list grouped by month.
+
+Each item:
+
+- `month`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
+
+### `GET /api/admin/devices/efficiency/heat-ranking`
+
+Response `data`: devices sorted by usage heat.
+
+Each item:
+
+- `rankNo`
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `classroomId`
+- `classroomName`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
