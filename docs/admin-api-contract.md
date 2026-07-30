@@ -99,6 +99,66 @@ Behavior:
 - New password cannot equal the current password.
 - Stores only the new password hash and never returns plaintext passwords or password hashes.
 
+## Admin Profile
+
+### `GET /api/admin/profile`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+- `userId`
+- `accountNo`
+- `realName`
+- `userType`: `admin` or `teacher`.
+- `phone`: masked phone number.
+- `idCard`: masked ID card number.
+- `orgName`
+- `jobTitle`
+
+### `PUT /api/admin/profile/phone`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Request body:
+
+```json
+{
+  "phone": "13812345678"
+}
+```
+
+Behavior:
+
+- Updates the current admin or teacher phone number.
+- Phone must be an 11-digit number.
+
+### `PUT /api/admin/profile/id-card`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Request body:
+
+```json
+{
+  "idCard": "110101199001011234"
+}
+```
+
+Behavior:
+
+- Updates the current admin or teacher ID card number.
+- ID card must match the configured 18-character ID format.
+
 ## Online Presence
 
 ### `POST /api/online/heartbeat`
