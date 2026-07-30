@@ -15,6 +15,14 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
 app:
   online:
     heartbeat-interval-seconds: 30

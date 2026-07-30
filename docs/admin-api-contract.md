@@ -10,6 +10,15 @@ All admin APIs use the common response envelope:
 }
 ```
 
+Online OpenAPI documentation is available after backend startup:
+
+- `GET /v3/api-docs`
+- `GET /swagger-ui.html`
+
+Temporary integration identity header:
+
+- `X-User-Id`
+
 ## Organization
 
 ### `GET /api/admin/org/tree`
@@ -279,3 +288,115 @@ Request body:
   "className": "Class 2026-01"
 }
 ```
+
+## Facility Configuration
+
+### `GET /api/admin/classrooms`
+
+Response `data`: array of classrooms with cameras.
+
+### `GET /api/admin/classrooms/{classroomId}`
+
+Response `data`: classroom detail with camera list.
+
+### `POST /api/admin/classrooms`
+
+Request body:
+
+```json
+{
+  "roomName": "Training Room A",
+  "cameras": [
+    {
+      "nvrHost": "10.0.0.1",
+      "nvrPort": 554,
+      "adminUsername": "admin",
+      "adminPassword": "input-from-admin",
+      "nvrChannel": "CH01",
+      "streamUrl": "rtsp://10.0.0.1/live/ch01"
+    }
+  ]
+}
+```
+
+Behavior:
+
+- At least one camera is required.
+- `nvrHost` must be IPv4.
+- `nvrPort` must be between `1` and `65535`.
+- The same classroom cannot contain duplicate `nvrHost + nvrChannel` pairs.
+
+### `PUT /api/admin/classrooms/{classroomId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates the classroom name.
+- Replaces the classroom camera list with the submitted list.
+
+### `DELETE /api/admin/classrooms/{classroomId}`
+
+Deletes the classroom and its camera records.
+
+## Score Configuration
+
+### `GET /api/admin/score-weights`
+
+Query:
+
+- `semesterId` optional.
+
+Response `data`: score weight history sorted by newest effective time.
+
+### `POST /api/admin/score-weights`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Request body:
+
+```json
+{
+  "semesterId": 1,
+  "coursewareWeight": 20,
+  "trainingPracticeWeight": 30,
+  "assignmentWeight": 20,
+  "examWeight": 30
+}
+```
+
+Behavior:
+
+- The four weights must add up to `100`.
+- Creates a new score weight history row instead of mutating previous rows.
+
+### `GET /api/admin/score-grade-rules`
+
+Response `data`: score grade rules sorted from high score to low score.
+
+### `PUT /api/admin/score-grade-rules`
+
+Request body:
+
+```json
+[
+  {
+    "gradeName": "A",
+    "minScore": 90,
+    "maxScore": 100
+  },
+  {
+    "gradeName": "B",
+    "minScore": 80,
+    "maxScore": 89.9
+  }
+]
+```
+
+Behavior:
+
+- Replaces all score grade rules.
+- Ranges must stay within `0` to `100`.
+- Ranges cannot overlap.
