@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.iam.port;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -10,6 +11,22 @@ import java.util.List;
 public interface AdminIamRepository {
 
     List<AdminPermission> findPermissions();
+
+    AdminPermission findPermission(Long permissionId);
+
+    Long findPermissionIdByCode(String permissionCode);
+
+    Long createPermission(AdminPermissionCommand command);
+
+    void updatePermission(Long permissionId, AdminPermissionCommand command);
+
+    void updatePermissionStatus(Long permissionId, boolean visible);
+
+    void deletePermission(Long permissionId);
+
+    int countPermissionChildren(Long permissionId);
+
+    int countPermissionRoleBindings(Long permissionId);
 
     List<AdminRole> findRoles(AdminRoleQuery query);
 
