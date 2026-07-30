@@ -2,13 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
+  fetchStudentArchiveDetail,
   fetchStudentCourses,
   fetchStudentProfile,
   fetchStudentResources,
+  fetchStudentTrainings,
   fetchTrainingAppInstallation,
   fetchTrainingRoom,
+  markAllStudentMessagesRead,
+  markStudentMessageRead,
   startTrainingRoom,
-  updateCoursewareProgress
+  updateCoursewareProgress,
+  updateStudentIdCard,
+  updateStudentPassword,
+  updateStudentPhone
 } from '../src/api/student';
 
 const originalFetch = globalThis.fetch;
@@ -80,6 +87,50 @@ describe('api http client', () => {
     ]);
   });
 
+  it('passes course keyword filters to the documented course endpoint', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ data: [] }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await fetchStudentCourses('信号 系统');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/student/courses?keyword=%E4%BF%A1%E5%8F%B7+%E7%B3%BB%E7%BB%9F', expect.any(Object));
+  });
+
+  it('passes documented training filters and maps status and mode fields', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: [
+          {
+            trainingId: 11,
+            trainingName: '站台门故障处置',
+            trainingMode: 'team',
+            status: 'finished',
+            openStartTime: '2026-07-01T00:00:00',
+            openEndTime: '2026-07-31T23:59:59',
+            teamSize: 4,
+            roleCount: 3,
+            activeRoomId: 88
+          }
+        ]
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchStudentTrainings({ mode: 'team', keyword: '站台门' })).resolves.toMatchObject([
+      {
+        id: 11,
+        title: '站台门故障处置',
+        mode: 'team',
+        status: 'completed',
+        activeRoomId: 88
+      }
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/student/trainings?mode=team&keyword=%E7%AB%99%E5%8F%B0%E9%97%A8',
+      expect.any(Object)
+    );
+  });
+
   it('uses the documented public resource endpoint and maps file metadata', async () => {
     const fetchMock = vi.fn(() =>
       mockJsonResponse({
@@ -97,7 +148,7 @@ describe('api http client', () => {
     );
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(fetchStudentResources()).resolves.toMatchObject([
+    await expect(fetchStudentResources({ keyword: '规范', resourceType: 'PDF' })).resolves.toMatchObject([
       {
         id: 9,
         title: '实训操作规范手册',
@@ -105,7 +156,10 @@ describe('api http client', () => {
         size: '1.0 MB'
       }
     ]);
-    expect(fetchMock).toHaveBeenCalledWith('/api/student/resources/public', expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/student/resources/public?keyword=%E8%A7%84%E8%8C%83&resourceType=PDF',
+      expect.any(Object)
+    );
   });
 
   it('combines documented profile, score, message, and archive endpoints for the profile page', async () => {
@@ -179,5 +233,79 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/trainings/66/rooms', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/student/training-rooms/77', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/student/training-rooms/77/start', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('maps documented archive detail records for the profile archive detail view', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: {
+          archiveId: 5,
+          trainingName: '自动扶梯伤客任务演练',
+          trainingMode: '多人实训',
+          roleName: '值班站长',
+          studentName: '张林林',
+          studentNo: 'A20260001',
+          className: '城轨运营 2401 班',
+          submittedAt: '2026-07-30T10:30:22',
+          submitType: '正常提交',
+          durationSeconds: 178,
+          personalScore: 90,
+          teamScore: 95,
+          recordingUrl: 'https://example.test/video.mp4',
+          steps: [
+            {
+              stepId: 1,
+              stepName: '发现伤者并上报',
+              standardOperation: '立即上报',
+              actualOperation: '立即上报',
+              score: 15,
+              durationSeconds: 9,
+              videoStartSecond: 12
+            }
+          ]
+        }
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchStudentArchiveDetail(5)).resolves.toMatchObject({
+      id: 5,
+      title: '自动扶梯伤客任务演练',
+      studentNo: 'A20260001',
+      steps: [{ id: 1, expected: '立即上报', videoStartSecond: 12 }]
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/student/archives/5', expect.any(Object));
+  });
+
+  it('uses documented profile and message mutation endpoints', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await markStudentMessageRead(3);
+    await markAllStudentMessagesRead();
+    await updateStudentPhone('13800138000');
+    await updateStudentIdCard('320100200001011234');
+    await updateStudentPassword('old-password', 'new-password', 'new-password');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/student/messages/3/read', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/messages/read-all', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/student/profile/phone',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ phone: '13800138000' }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      '/api/student/profile/id-card',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ idCard: '320100200001011234' }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      5,
+      '/api/student/profile/password',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword: 'old-password', newPassword: 'new-password', confirmPassword: 'new-password' })
+      })
+    );
   });
 });

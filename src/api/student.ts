@@ -1,7 +1,7 @@
 import { requestJson } from './http';
 import type { CourseCatalogItem, CourseChapter, CourseItemStatus, CourseItemType, StudentCourse } from '../features/student/courses';
-import type { ScorePart, StudentMessage, TrainingArchive } from '../features/student/profile';
-import type { StudentResource } from '../features/student/resources';
+import type { ScorePart, SemesterScore, StudentMessage, TrainingArchive, TrainingArchiveDetail, TrainingArchiveStep } from '../features/student/profile';
+import { coverForResourceType, type StudentResource } from '../features/student/resources';
 import type { StudentTraining, TrainingMode, TrainingStatus } from '../features/student/training';
 
 interface PageResult<T> {
@@ -16,8 +16,11 @@ export interface StudentProfileResult {
     name: string;
     className: string;
     studentId: string;
+    phone?: string;
+    idCard?: string;
   };
   scoreParts?: ScorePart[];
+  semesterScores?: SemesterScore[];
   messages?: StudentMessage[];
   archives?: TrainingArchive[];
 }
@@ -91,6 +94,9 @@ interface BackendResource {
   resourceId: number;
   resourceName: string;
   resourceType?: string;
+  coverUrl?: string;
+  previewUrl?: string;
+  fileUrl?: string;
   fileSize?: number;
   majorName?: string;
   uploaderName?: string;
@@ -101,10 +107,13 @@ interface BackendProfile {
   studentId?: number;
   studentNo?: string;
   realName?: string;
+  phone?: string;
+  idCard?: string;
   className?: string;
 }
 
 interface BackendSemesterScore {
+  academicTerm?: string;
   coursewareLearningScore?: number;
   trainingPracticeScore?: number;
   courseAssignmentScore?: number;
@@ -125,6 +134,7 @@ interface BackendMessage {
   id: number;
   messageType?: string;
   title: string;
+  content?: string;
   read?: boolean;
   createdAt?: string;
 }
@@ -132,10 +142,44 @@ interface BackendMessage {
 interface BackendArchive {
   archiveId: number;
   trainingName: string;
+  trainingMode?: string;
+  roleName?: string;
   durationSeconds?: number;
   submittedAt?: string;
+  submitType?: string;
   personalScore?: number;
   teamScore?: number;
+}
+
+interface BackendArchiveStep {
+  stepId: number;
+  stepName: string;
+  standardOperation?: string;
+  actualOperation?: string;
+  score?: number;
+  durationSeconds?: number;
+  videoStartSecond?: number;
+}
+
+interface BackendArchiveDetail extends BackendArchive {
+  studentName?: string;
+  studentNo?: string;
+  className?: string;
+  recordingUrl?: string;
+  steps?: BackendArchiveStep[];
+}
+
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+
+  const query = search.toString();
+  return query ? `?${query}` : '';
 }
 
 function normalizeList<T>(value: T[] | PageResult<T>): T[] {
@@ -289,33 +333,101 @@ function mapTraining(item: BackendTraining): StudentTraining {
 }
 
 function mapResource(item: BackendResource): StudentResource {
+  const type = item.resourceType || '资源';
   return {
     id: item.resourceId,
     title: item.resourceName,
-    category: '公开资料',
-    type: item.resourceType || '资源',
+    category: item.majorName || '城市轨道交通通信信号技术',
+    type,
     courseName: item.majorName || item.uploaderName,
+    author: item.uploaderName,
+    coverUrl: item.coverUrl || coverForResourceType(type),
+    previewUrl: item.previewUrl,
+    fileUrl: item.fileUrl,
     updatedAt: formatDate(item.updatedAt),
     size: formatFileSize(item.fileSize)
   };
 }
 
-function mapScoreParts(scores: BackendSemesterScore[]): ScorePart[] {
+function mapSemesterScore(score: BackendSemesterScore): SemesterScore {
+  return {
+    academicTerm: score.academicTerm || '',
+    coursewareLearningScore: Number(score.coursewareLearningScore ?? 0),
+    trainingPracticeScore: Number(score.trainingPracticeScore ?? 0),
+    courseAssignmentScore: Number(score.courseAssignmentScore ?? 0),
+    examScore: Number(score.examScore ?? 0),
+    coursewareWeight: score.coursewareWeight ?? 0,
+    trainingPracticeWeight: score.trainingPracticeWeight ?? 0,
+    assignmentWeight: score.assignmentWeight ?? 0,
+    examWeight: score.examWeight ?? 0,
+    comprehensiveScore: Number(score.comprehensiveScore ?? 0)
+  };
+}
+
+function mapScoreParts(scores: SemesterScore[]): ScorePart[] {
   const latest = scores[0];
   if (!latest) {
     return [];
   }
 
   return [
-    { label: '课件完成度', score: Number(latest.coursewareLearningScore ?? 0), weight: (latest.coursewareWeight ?? 0) / 100 },
-    { label: '课程作业', score: Number(latest.courseAssignmentScore ?? 0), weight: (latest.assignmentWeight ?? 0) / 100 },
-    { label: '实训练习', score: Number(latest.trainingPracticeScore ?? 0), weight: (latest.trainingPracticeWeight ?? 0) / 100 },
-    { label: '考试', score: Number(latest.examScore ?? 0), weight: (latest.examWeight ?? 0) / 100 }
+    { label: '课件完成度', score: latest.coursewareLearningScore, weight: latest.coursewareWeight / 100 },
+    { label: '课程作业', score: latest.courseAssignmentScore, weight: latest.assignmentWeight / 100 },
+    { label: '实训练习', score: latest.trainingPracticeScore, weight: latest.trainingPracticeWeight / 100 },
+    { label: '考试', score: latest.examScore, weight: latest.examWeight / 100 }
   ];
 }
 
-export async function fetchStudentCourses(): Promise<StudentCourse[]> {
-  const result = await requestJson<BackendCourseCard[] | PageResult<BackendCourseCard>>('/student/courses');
+function mapMessage(message: BackendMessage): StudentMessage {
+  return {
+    id: message.id,
+    title: message.content || message.title,
+    unread: !message.read,
+    type: message.messageType || message.title,
+    content: message.content,
+    time: formatDateTime(message.createdAt)
+  };
+}
+
+function mapArchive(archive: BackendArchive): TrainingArchive {
+  return {
+    id: archive.archiveId,
+    title: archive.trainingName,
+    score: Number(archive.personalScore ?? archive.teamScore ?? 0),
+    duration: formatDuration(archive.durationSeconds),
+    finishedAt: formatDateTime(archive.submittedAt),
+    mode: archive.trainingMode,
+    role: archive.roleName,
+    submitType: archive.submitType,
+    teamScore: archive.teamScore === undefined ? undefined : Number(archive.teamScore)
+  };
+}
+
+function mapArchiveStep(step: BackendArchiveStep): TrainingArchiveStep {
+  return {
+    id: step.stepId,
+    name: step.stepName,
+    expected: step.standardOperation || '',
+    actual: step.actualOperation || '',
+    score: Number(step.score ?? 0),
+    durationSeconds: step.durationSeconds ?? 0,
+    videoStartSecond: step.videoStartSecond
+  };
+}
+
+function mapArchiveDetail(detail: BackendArchiveDetail): TrainingArchiveDetail {
+  return {
+    ...mapArchive(detail),
+    studentName: detail.studentName,
+    studentNo: detail.studentNo,
+    className: detail.className,
+    recordingUrl: detail.recordingUrl,
+    steps: (detail.steps ?? []).map(mapArchiveStep)
+  };
+}
+
+export async function fetchStudentCourses(keyword = ''): Promise<StudentCourse[]> {
+  const result = await requestJson<BackendCourseCard[] | PageResult<BackendCourseCard>>(`/student/courses${buildQuery({ keyword })}`);
 
   return normalizeList(result).map(mapCourse);
 }
@@ -342,8 +454,8 @@ export async function updateCoursewareProgress(
   });
 }
 
-export async function fetchStudentTrainings(): Promise<StudentTraining[]> {
-  const result = await requestJson<BackendTraining[] | PageResult<BackendTraining>>('/student/trainings');
+export async function fetchStudentTrainings(filters: { mode?: string; keyword?: string } = {}): Promise<StudentTraining[]> {
+  const result = await requestJson<BackendTraining[] | PageResult<BackendTraining>>(`/student/trainings${buildQuery(filters)}`);
 
   return normalizeList(result).map(mapTraining);
 }
@@ -374,10 +486,56 @@ export async function startTrainingRoom(roomId: number): Promise<TrainingRoom> {
   });
 }
 
-export async function fetchStudentResources(): Promise<StudentResource[]> {
-  const result = await requestJson<BackendResource[] | PageResult<BackendResource>>('/student/resources/public');
+export async function fetchStudentResources(filters: { keyword?: string; resourceType?: string; majorId?: number } = {}): Promise<StudentResource[]> {
+  const result = await requestJson<BackendResource[] | PageResult<BackendResource>>(`/student/resources/public${buildQuery(filters)}`);
 
   return normalizeList(result).map(mapResource);
+}
+
+export async function fetchStudentArchiveDetail(archiveId: number): Promise<TrainingArchiveDetail> {
+  const result = await requestJson<BackendArchiveDetail>(`/student/archives/${archiveId}`, {
+    fallbackLabel: '实训档案详情'
+  });
+
+  return mapArchiveDetail(result);
+}
+
+export async function markStudentMessageRead(messageId: number): Promise<void> {
+  await requestJson<void>(`/student/messages/${messageId}/read`, {
+    method: 'POST',
+    fallbackLabel: '标记消息已读'
+  });
+}
+
+export async function markAllStudentMessagesRead(): Promise<void> {
+  await requestJson<void>('/student/messages/read-all', {
+    method: 'POST',
+    fallbackLabel: '全部标记已读'
+  });
+}
+
+export async function updateStudentPhone(phone: string): Promise<void> {
+  await requestJson<void>('/student/profile/phone', {
+    method: 'PUT',
+    body: JSON.stringify({ phone }),
+    fallbackLabel: '修改手机号'
+  });
+}
+
+export async function updateStudentIdCard(idCard: string): Promise<void> {
+  await requestJson<void>('/student/profile/id-card', {
+    method: 'PUT',
+    body: JSON.stringify({ idCard }),
+    fallbackLabel: '修改身份证号'
+  });
+}
+
+export async function updateStudentPassword(currentPassword: string, newPassword: string, confirmPassword: string): Promise<void> {
+  await requestJson<void>('/student/profile/password', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    fallbackLabel: '修改密码'
+  });
 }
 
 export async function fetchStudentProfile(): Promise<StudentProfileResult> {
@@ -392,22 +550,13 @@ export async function fetchStudentProfile(): Promise<StudentProfileResult> {
     student: {
       name: profile.realName || '学员',
       className: profile.className || '',
-      studentId: profile.studentNo || String(profile.studentId ?? '')
+      studentId: profile.studentNo || String(profile.studentId ?? ''),
+      phone: profile.phone,
+      idCard: profile.idCard
     },
-    scoreParts: mapScoreParts(scores),
-    messages: (messages.messages ?? []).map((message) => ({
-      id: message.id,
-      title: message.title,
-      unread: !message.read,
-      type: message.messageType,
-      time: formatDateTime(message.createdAt)
-    })),
-    archives: archives.map((archive) => ({
-      id: archive.archiveId,
-      title: archive.trainingName,
-      score: Number(archive.personalScore ?? archive.teamScore ?? 0),
-      duration: formatDuration(archive.durationSeconds),
-      finishedAt: formatDateTime(archive.submittedAt)
-    }))
+    semesterScores: scores.map(mapSemesterScore),
+    scoreParts: mapScoreParts(scores.map(mapSemesterScore)),
+    messages: (messages.messages ?? []).map(mapMessage),
+    archives: archives.map(mapArchive)
   };
 }
