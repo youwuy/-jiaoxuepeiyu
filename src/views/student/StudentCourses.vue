@@ -1,26 +1,5 @@
 <template>
-  <section class="student-page">
-    <header class="student-topbar">
-      <div>
-        <p>学员端</p>
-        <h1>我的课程</h1>
-      </div>
-      <div class="student-userbar">
-        <el-badge is-dot>
-          <el-button :icon="Bell" circle aria-label="消息通知" />
-        </el-badge>
-        <el-dropdown>
-          <button class="user-trigger">张同学</button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item>退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-    </header>
-
-    <main class="student-main">
+  <StudentShell eyebrow="学员端" title="我的课程">
       <section class="course-toolbar">
         <div>
           <h2>课程学习</h2>
@@ -86,14 +65,14 @@
           </el-button>
         </article>
       </section>
-    </main>
-  </section>
+  </StudentShell>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Bell, Calendar, Search } from '@element-plus/icons-vue';
+import { Calendar, Search } from '@element-plus/icons-vue';
+import StudentShell from '../../components/student/StudentShell.vue';
 import {
   buildCourseViews,
   filterCoursesByKeyword,
