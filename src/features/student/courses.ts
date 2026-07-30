@@ -125,16 +125,16 @@ export function formatOpenPeriod(course: Pick<StudentCourse, 'startAt' | 'endAt'
 
 export const mockStudentCourses: StudentCourse[] = [
   {
-    id: 2026073003,
+    id: 2026073006,
     name: '城市轨道交通概论',
-    term: '2025-2026 学年下学期',
-    startAt: '2026-07-01',
-    endAt: '2026-08-31',
-    completedItems: 7,
-    totalItems: 9,
-    resourceCount: 6,
-    assignmentCount: 3,
-    teachers: ['赵老师', '钱老师'],
+    term: '2024-2025学年 下学期',
+    startAt: '2025-03-11',
+    endAt: '2025-06-20',
+    completedItems: 2,
+    totalItems: 10,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
     mode: 'sequence',
     chapters: [
       {
@@ -149,8 +149,8 @@ export const mockStudentCourses: StudentCourse[] = [
             status: 'completed',
             durationMinutes: 18,
             minDurationMinutes: 15,
-            openStart: '2026-07-01',
-            openEnd: '2026-08-31'
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
           },
           {
             id: 'work-1-1',
@@ -158,7 +158,7 @@ export const mockStudentCourses: StudentCourse[] = [
             title: '章节理论练习',
             status: 'completed',
             score: 92,
-            deadline: '2026-07-20'
+            deadline: '2025-04-20'
           }
         ]
       },
@@ -174,8 +174,8 @@ export const mockStudentCourses: StudentCourse[] = [
             status: 'completed',
             durationMinutes: 22,
             minDurationMinutes: 20,
-            openStart: '2026-07-01',
-            openEnd: '2026-08-31'
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
           },
           {
             id: 'ware-2-2',
@@ -184,15 +184,15 @@ export const mockStudentCourses: StudentCourse[] = [
             status: 'current',
             durationMinutes: 12,
             minDurationMinutes: 20,
-            openStart: '2026-07-01',
-            openEnd: '2026-08-31'
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
           },
           {
             id: 'work-2-1',
             type: 'assignment',
             title: '车站布局实训作业',
             status: 'pending',
-            deadline: '2026-08-15'
+            deadline: '2025-05-15'
           }
         ]
       },
@@ -208,31 +208,31 @@ export const mockStudentCourses: StudentCourse[] = [
             status: 'locked',
             durationMinutes: 0,
             minDurationMinutes: 25,
-            openStart: '2026-07-10',
-            openEnd: '2026-08-31'
+            openStart: '2025-03-20',
+            openEnd: '2025-06-20'
           },
           {
             id: 'work-3-1',
             type: 'assignment',
             title: '运营组织理论作业',
             status: 'locked',
-            deadline: '2026-08-28'
+            deadline: '2025-06-10'
           }
         ]
       }
     ]
   },
   {
-    id: 2026073002,
+    id: 2026073005,
     name: '轨道交通信号系统',
-    term: '2025-2026 学年下学期',
-    startAt: '2026-08-10',
-    endAt: '2026-10-20',
-    completedItems: 0,
-    totalItems: 8,
-    resourceCount: 5,
-    assignmentCount: 3,
-    teachers: ['孙老师'],
+    term: '2024-2025学年 下学期',
+    startAt: '2025-03-11',
+    endAt: '2025-06-20',
+    completedItems: 2,
+    totalItems: 10,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
     mode: 'free',
     chapters: [
       {
@@ -247,8 +247,112 @@ export const mockStudentCourses: StudentCourse[] = [
             status: 'pending',
             durationMinutes: 0,
             minDurationMinutes: 18,
-            openStart: '2026-08-10',
-            openEnd: '2026-10-20'
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2026073004,
+    name: '城轨车辆构造与维护',
+    term: '2024-2025学年 下学期',
+    startAt: '2025-03-11',
+    endAt: '2025-06-20',
+    completedItems: 10,
+    totalItems: 10,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
+    mode: 'sequence',
+    chapters: [
+      {
+        id: 'vehicle-1',
+        title: '第一章 车辆基础结构',
+        status: 'completed',
+        items: [
+          {
+            id: 'vehicle-ware-1',
+            type: 'courseware',
+            title: '转向架与车体结构',
+            status: 'completed',
+            durationMinutes: 24,
+            minDurationMinutes: 20,
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
+          },
+          {
+            id: 'vehicle-work-1',
+            type: 'assignment',
+            title: '车辆构造单元测验',
+            status: 'completed',
+            score: 96,
+            deadline: '2025-05-18'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2026073003,
+    name: '城轨交通安全管理',
+    term: '2025-2026学年 上学期',
+    startAt: '2025-09-07',
+    endAt: '2025-12-30',
+    completedItems: 0,
+    totalItems: 10,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
+    mode: 'sequence',
+    chapters: [
+      {
+        id: 'safety-1',
+        title: '第一章 安全制度认知',
+        status: 'notStarted',
+        items: [
+          {
+            id: 'safety-ware-1',
+            type: 'courseware',
+            title: '运营安全基础',
+            status: 'locked',
+            durationMinutes: 0,
+            minDurationMinutes: 20,
+            openStart: '2025-09-07',
+            openEnd: '2025-12-30'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2026073002,
+    name: '轨道交通供电系统',
+    term: '2025-2026学年 上学期',
+    startAt: '2025-09-07',
+    endAt: '2025-12-30',
+    completedItems: 0,
+    totalItems: 10,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
+    mode: 'free',
+    chapters: [
+      {
+        id: 'power-1',
+        title: '第一章 供电系统组成',
+        status: 'notStarted',
+        items: [
+          {
+            id: 'power-ware-1',
+            type: 'courseware',
+            title: '牵引供电基础',
+            status: 'locked',
+            durationMinutes: 0,
+            minDurationMinutes: 20,
+            openStart: '2025-09-07',
+            openEnd: '2025-12-30'
           }
         ]
       }
@@ -256,15 +360,15 @@ export const mockStudentCourses: StudentCourse[] = [
   },
   {
     id: 2026073001,
-    name: '行车组织基础',
-    term: '2025-2026 学年上学期',
-    startAt: '2026-04-01',
-    endAt: '2026-06-30',
-    completedItems: 8,
-    totalItems: 8,
-    resourceCount: 4,
-    assignmentCount: 4,
-    teachers: ['李老师', '周老师'],
+    name: '轨道交通运营管理',
+    term: '2024-2025学年 上学期',
+    startAt: '2024-09-15',
+    endAt: '2025-01-03',
+    completedItems: 17,
+    totalItems: 22,
+    resourceCount: 12,
+    assignmentCount: 8,
+    teachers: ['王建国', '李忠华'],
     mode: 'sequence',
     chapters: [
       {
@@ -278,7 +382,7 @@ export const mockStudentCourses: StudentCourse[] = [
             title: '期末综合报告',
             status: 'completed',
             score: 88,
-            deadline: '2026-06-20'
+            deadline: '2024-12-20'
           }
         ]
       }

@@ -1,47 +1,43 @@
 <template>
   <section class="student-shell">
-    <aside class="student-nav">
+    <header class="student-topbar">
       <div class="student-brand">
-        <strong>教辅系统</strong>
-        <span>学员端</span>
+        <span class="student-brand-icon">
+          <el-icon><Collection /></el-icon>
+        </span>
+        <strong>城轨实训教学系统</strong>
       </div>
-      <nav>
+      <nav class="student-nav">
         <RouterLink v-for="item in navItems" :key="item.path" :to="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
         </RouterLink>
       </nav>
-    </aside>
+      <div class="student-userbar">
+        <el-badge is-dot>
+          <el-button :icon="Bell" circle aria-label="消息通知" />
+        </el-badge>
+        <el-dropdown>
+          <button class="user-trigger">
+            张林林
+            <el-icon><ArrowDown /></el-icon>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item>退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </header>
 
-    <section class="student-shell-main">
-      <header class="student-topbar">
-        <div>
-          <p>{{ eyebrow }}</p>
-          <h1>{{ title }}</h1>
-        </div>
-        <div class="student-userbar">
-          <el-badge is-dot>
-            <el-button :icon="Bell" circle aria-label="消息通知" />
-          </el-badge>
-          <el-dropdown>
-            <button class="user-trigger">张同学</button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </header>
-      <main class="student-main">
-        <slot />
-      </main>
-    </section>
+    <main class="student-main" :aria-label="`${eyebrow}-${title}`">
+      <slot />
+    </main>
   </section>
 </template>
 
 <script setup lang="ts">
-import { Bell, Collection, DataAnalysis, Files, Monitor } from '@element-plus/icons-vue';
+import { ArrowDown, Bell, Collection, DataAnalysis, Files, Monitor } from '@element-plus/icons-vue';
 
 defineProps<{
   eyebrow: string;
