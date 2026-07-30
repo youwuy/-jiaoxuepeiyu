@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { requestJson, tryRequestJson } from '../src/api/http';
-import { fetchStudentCourses, fetchStudentProfile, fetchStudentResources } from '../src/api/student';
+import {
+  createTrainingRoom,
+  fetchStudentCourses,
+  fetchStudentProfile,
+  fetchStudentResources,
+  fetchTrainingAppInstallation,
+  fetchTrainingRoom,
+  startTrainingRoom,
+  updateCoursewareProgress
+} from '../src/api/student';
 
 const originalFetch = globalThis.fetch;
 
@@ -135,5 +144,40 @@ describe('api http client', () => {
     expect(profile.scoreParts).toContainEqual({ label: '课件完成度', score: 92, weight: 0.2 });
     expect(profile.messages).toMatchObject([{ id: 3, unread: true }]);
     expect(profile.archives).toMatchObject([{ id: 5, duration: '01:01:01', score: 91 }]);
+  });
+
+  it('uses the documented courseware progress endpoint and request body', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 0, data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await updateCoursewareProgress(12, 34, 90, false);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/student/courses/12/progress',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ contentId: 34, studiedSeconds: 90, completed: false })
+      })
+    );
+  });
+
+  it('uses documented training room and app installation endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => mockJsonResponse({ data: { installed: true, version: '1.0.0' } }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: { roomId: 77, trainingId: 66, roomCode: 'A100' } }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: { roomId: 77, trainingId: 66, roomStatus: 'WAITING' } }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: { roomId: 77, trainingId: 66, roomStatus: 'STARTED' } }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchTrainingAppInstallation()).resolves.toMatchObject({ installed: true });
+    await expect(createTrainingRoom(66)).resolves.toMatchObject({ roomId: 77, roomCode: 'A100' });
+    await expect(fetchTrainingRoom(77)).resolves.toMatchObject({ roomStatus: 'WAITING' });
+    await expect(startTrainingRoom(77)).resolves.toMatchObject({ roomStatus: 'STARTED' });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/student/trainings/app-installation', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/trainings/66/rooms', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/student/training-rooms/77', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/student/training-rooms/77/start', expect.objectContaining({ method: 'POST' }));
   });
 });

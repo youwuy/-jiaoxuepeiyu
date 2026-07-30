@@ -62,11 +62,29 @@ interface BackendTraining {
   trainingName: string;
   trainingMode?: string;
   status?: string;
+  openStartTime?: string;
   openEndTime?: string;
   teamSize?: number;
   roleCount?: number;
   appRequired?: boolean;
   appInstalled?: boolean;
+  activeRoomId?: number;
+}
+
+export interface TrainingAppInstallation {
+  installed?: boolean;
+  version?: string;
+  downloadUrl?: string;
+  message?: string;
+}
+
+export interface TrainingRoom {
+  roomId: number;
+  trainingId: number;
+  trainingName?: string;
+  roomCode?: string;
+  roomStatus?: string;
+  teamSize?: number;
 }
 
 interface BackendResource {
@@ -251,11 +269,13 @@ function mapTraining(item: BackendTraining): StudentTraining {
     mode,
     status,
     category: 'practice',
-    term: '2024-2025学年 下学期',
+    term: '',
+    startAt: formatDate(item.openStartTime),
     deadline: formatDate(item.openEndTime),
     topicCount: Math.max(item.roleCount ?? 1, 1),
     countdown: status === 'notStarted' ? `${formatDate(item.openEndTime)} 开放` : undefined,
     attempts: item.appInstalled ? 1 : 0,
+    activeRoomId: item.activeRoomId,
     roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined,
     steps: [
       {
@@ -305,10 +325,53 @@ export async function fetchStudentCourse(courseId: number): Promise<StudentCours
   return mapCourse(result);
 }
 
+export async function updateCoursewareProgress(
+  courseId: number,
+  contentId: number,
+  studiedSeconds: number,
+  completed: boolean
+): Promise<void> {
+  await requestJson<void>(`/student/courses/${courseId}/progress`, {
+    method: 'POST',
+    body: JSON.stringify({
+      contentId,
+      studiedSeconds,
+      completed
+    }),
+    fallbackLabel: '学习进度'
+  });
+}
+
 export async function fetchStudentTrainings(): Promise<StudentTraining[]> {
   const result = await requestJson<BackendTraining[] | PageResult<BackendTraining>>('/student/trainings');
 
   return normalizeList(result).map(mapTraining);
+}
+
+export async function fetchTrainingAppInstallation(): Promise<TrainingAppInstallation> {
+  return requestJson<TrainingAppInstallation>('/student/trainings/app-installation', {
+    fallbackLabel: '实训应用安装状态'
+  });
+}
+
+export async function createTrainingRoom(trainingId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/trainings/${trainingId}/rooms`, {
+    method: 'POST',
+    fallbackLabel: '创建实训房间'
+  });
+}
+
+export async function fetchTrainingRoom(roomId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}`, {
+    fallbackLabel: '实训房间'
+  });
+}
+
+export async function startTrainingRoom(roomId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}/start`, {
+    method: 'POST',
+    fallbackLabel: '开始组队实训'
+  });
 }
 
 export async function fetchStudentResources(): Promise<StudentResource[]> {

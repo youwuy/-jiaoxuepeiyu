@@ -110,7 +110,7 @@ import {
 } from '@element-plus/icons-vue';
 import StudentShell from '../../components/student/StudentShell.vue';
 import stationPreview from '../../assets/course-station-preview.png';
-import { fetchStudentCourse } from '../../api/student';
+import { fetchStudentCourse, updateCoursewareProgress } from '../../api/student';
 import {
   calculateCourseProgress,
   mockStudentCourses,
@@ -125,6 +125,7 @@ const courseId = computed(() => Number(route.params.id));
 const course = ref(mockStudentCourses.find((item) => item.id === courseId.value) ?? mockStudentCourses[0]);
 const progress = computed(() => calculateCourseProgress(course.value));
 const selectedItem = ref<CourseCatalogItem>();
+const progressSyncingIds = ref<string[]>([]);
 
 const chapterStatusText: Record<CourseChapter['status'], string> = {
   completed: '已完成',
@@ -172,6 +173,28 @@ function selectItem(item: CourseCatalogItem) {
   }
 
   selectedItem.value = item;
+
+  if (item.type === 'courseware') {
+    syncCoursewareProgress(item);
+  }
+}
+
+async function syncCoursewareProgress(item: CourseCatalogItem) {
+  const contentId = Number(item.id);
+  if (!Number.isFinite(contentId) || progressSyncingIds.value.includes(item.id)) {
+    return;
+  }
+
+  progressSyncingIds.value = [...progressSyncingIds.value, item.id];
+  try {
+    const requiredSeconds = (item.minDurationMinutes ?? 0) * 60;
+    const studiedSeconds = Math.max(item.learnedSeconds ?? 0, Math.min(requiredSeconds, 60));
+    await updateCoursewareProgress(courseId.value, contentId, studiedSeconds, item.status === 'completed');
+  } catch {
+    ElMessage.warning('学习进度暂未同步，稍后会继续使用本地展示');
+  } finally {
+    progressSyncingIds.value = progressSyncingIds.value.filter((id) => id !== item.id);
+  }
 }
 
 function formatLearnedTime(item: CourseCatalogItem): string {

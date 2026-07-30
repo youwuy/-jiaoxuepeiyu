@@ -69,6 +69,7 @@
               class="training-row-action"
               :class="{ 'is-score': training.status === 'completed', 'is-disabled': training.status === 'notStarted' }"
               :disabled="training.status === 'notStarted'"
+              :loading="actionLoadingIds.includes(step.id)"
               @click="handleTrainingAction(training, step)"
             >
               <el-icon><Document /></el-icon>
@@ -85,7 +86,13 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowDown, ArrowRight, Calendar, Clock, Document, Search, Trophy, User } from '@element-plus/icons-vue';
-import { fetchStudentTrainings } from '../../api/student';
+import {
+  createTrainingRoom,
+  fetchStudentTrainings,
+  fetchTrainingAppInstallation,
+  fetchTrainingRoom,
+  startTrainingRoom
+} from '../../api/student';
 import StudentShell from '../../components/student/StudentShell.vue';
 import {
   filterTrainings,
@@ -100,6 +107,7 @@ const mode = ref<TrainingModeFilter>('all');
 const status = ref<TrainingStatus | 'all'>('all');
 const keyword = ref('');
 const loading = ref(false);
+const actionLoadingIds = ref<number[]>([]);
 const trainings = ref(mockTrainings);
 const expandedIds = ref<number[]>(mockTrainings.map((item) => item.id));
 const modeOptions = [
@@ -144,12 +152,41 @@ function actionText(training: StudentTraining, step: StudentTrainingStep) {
   return '开始实训';
 }
 
-function handleTrainingAction(training: StudentTraining, step: StudentTrainingStep) {
+async function handleTrainingAction(training: StudentTraining, step: StudentTrainingStep) {
   if (training.status === 'notStarted') {
     return;
   }
 
-  ElMessage.success(`${actionText(training, step)}：${step.title}`);
+  if (training.status === 'completed' || step.action === 'score') {
+    ElMessage.info(`正在查看成绩单：${step.title}`);
+    return;
+  }
+
+  actionLoadingIds.value = [...actionLoadingIds.value, step.id];
+  try {
+    if (step.mode === 'team' || step.action === 'team') {
+      const room = training.activeRoomId
+        ? await fetchTrainingRoom(training.activeRoomId)
+        : await createTrainingRoom(training.id);
+      ElMessage.success(`组队房间已准备：${room.roomCode || room.roomId}`);
+      return;
+    }
+
+    const installation = await fetchTrainingAppInstallation();
+    if (installation.installed === false) {
+      ElMessage.warning(installation.message || '实训应用未安装，请先安装后再开始实训');
+      return;
+    }
+
+    if (training.activeRoomId) {
+      await startTrainingRoom(training.activeRoomId);
+    }
+    ElMessage.success(`开始实训：${step.title}`);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '实训接口调用失败');
+  } finally {
+    actionLoadingIds.value = actionLoadingIds.value.filter((id) => id !== step.id);
+  }
 }
 
 onMounted(async () => {
