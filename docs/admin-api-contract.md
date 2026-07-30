@@ -24,6 +24,20 @@ Preferred authenticated identity:
 - Send `Authorization: Bearer <token>` after login.
 - Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
 
+## Health
+
+### `GET /api/health`
+
+Public deployment smoke-check endpoint.
+
+Response `data`:
+
+- `status`: `OK`.
+- `service`: `jiaoxuepeiyu-backend`.
+- `javaVersion`: runtime Java version.
+- `databaseVersionTarget`: `MySQL 5.7.42.0`.
+- `time`: current server time.
+
 ## Auth
 
 ### `POST /api/auth/admin/login`
@@ -61,6 +75,42 @@ Header:
 - `Authorization: Bearer <token>`
 
 Invalidates the current token session. Response `data`: `null`.
+
+## Files
+
+### `POST /api/files`
+
+Consumes: `multipart/form-data`.
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Form fields:
+
+- `file` required multipart file.
+- `category` optional directory category. Accepted characters: letters, digits, `_`, and `-`. Blank defaults to `general`.
+
+Response `data`:
+
+```json
+{
+  "fileUrl": "/uploads/resources/5d41402abc4b2a76b9719d911017c592.pdf",
+  "fileName": "lesson.pdf",
+  "storedFileName": "5d41402abc4b2a76b9719d911017c592.pdf",
+  "fileSize": 1048576,
+  "contentType": "application/pdf",
+  "category": "resources"
+}
+```
+
+Behavior:
+
+- Stores the file under configurable `app.file.upload-root`.
+- Serves uploaded files from configurable `app.file.public-prefix`, default `/uploads`.
+- Rejects empty files, files larger than configured limits, and unsafe categories.
+- Requires an authenticated admin, teacher, or student token.
+- Use this endpoint before creating or updating resource metadata; copy `fileUrl`, `fileName`, and `fileSize` into `POST /api/admin/resources`.
 
 ## Organization
 
@@ -472,9 +522,9 @@ Request body:
 ```json
 {
   "resourceName": "Safety Training",
-  "coverUrl": "https://cdn.example/cover.png",
-  "fileUrl": "https://cdn.example/intro.mp4",
-  "previewUrl": "https://cdn.example/preview/intro.mp4",
+  "coverUrl": "/uploads/covers/0cc175b9c0f1b6a831c399e269772661.png",
+  "fileUrl": "/uploads/resources/92eb5ffee6ae2fec3ad71c777531578f.mp4",
+  "previewUrl": "/uploads/previews/4a8a08f09d37b73795649038408b5f33.mp4",
   "fileName": "intro.mp4",
   "fileSize": 1048576,
   "majorId": 1,
@@ -488,6 +538,7 @@ Behavior:
 - `resourceName` cannot exceed `20` characters; `courseName` cannot exceed `30` characters.
 - File size cannot exceed `200MB`.
 - File suffix determines resource type.
+- Upload file content with `POST /api/files` first; this API stores only metadata and version snapshots.
 - Initial public status is `NOT_APPLIED`.
 - Creates version `1` and a resource operation log.
 

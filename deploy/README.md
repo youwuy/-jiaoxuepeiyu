@@ -59,6 +59,21 @@ Set `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
 
 Do not write production passwords into the repository.
 
+## File Storage
+
+Uploaded files are stored locally and served from the backend process.
+
+Set these environment variables when the default package paths are not appropriate:
+
+```bash
+APP_FILE_UPLOAD_ROOT=/path/to/persistent/uploads
+APP_FILE_PUBLIC_PREFIX=/uploads
+APP_FILE_MAX_SIZE=200MB
+APP_FILE_MAX_SIZE_BYTES=209715200
+```
+
+Keep `APP_FILE_UPLOAD_ROOT` on persistent storage so uploaded courseware, covers, previews, and attachments survive service upgrades.
+
 ## Packaging
 
 Build the backend first:
@@ -98,3 +113,13 @@ stop-backend.bat
 ```
 
 Logs are written to `logs/backend.log` and `logs/backend-error.log`.
+
+## Smoke Check
+
+After startup, verify the backend:
+
+```text
+GET http://127.0.0.1:8080/api/health
+```
+
+The response contains `status`, `service`, `javaVersion`, `databaseVersionTarget`, and `time`.
