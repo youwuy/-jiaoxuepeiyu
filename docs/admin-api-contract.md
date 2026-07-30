@@ -76,6 +76,29 @@ Header:
 
 Invalidates the current token session and marks the user offline. Response `data`: `null`.
 
+### `PUT /api/auth/password`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Request body:
+
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword123",
+  "confirmPassword": "newPassword123"
+}
+```
+
+Behavior:
+
+- Validates the current password before updating.
+- New password must be `8-20` characters and contain letters and digits.
+- New password cannot equal the current password.
+- Stores only the new password hash and never returns plaintext passwords or password hashes.
+
 ## Online Presence
 
 ### `POST /api/online/heartbeat`

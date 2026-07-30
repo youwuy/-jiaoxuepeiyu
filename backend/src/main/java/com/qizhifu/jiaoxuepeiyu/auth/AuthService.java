@@ -9,9 +9,11 @@ import com.qizhifu.jiaoxuepeiyu.auth.port.PasswordHasher;
 import com.qizhifu.jiaoxuepeiyu.auth.port.SessionRepository;
 import com.qizhifu.jiaoxuepeiyu.auth.port.TokenGenerator;
 import com.qizhifu.jiaoxuepeiyu.auth.port.UserAccountRepository;
+import com.qizhifu.jiaoxuepeiyu.common.validation.PasswordPolicy;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +81,22 @@ public class AuthService {
         sessions.invalidateToken(requireToken(token));
     }
 
+    @Transactional
+    public void changePassword(String token, String currentPassword, String newPassword, String confirmPassword) {
+        AuthenticatedUser currentUser = currentUser(token);
+        PasswordPolicy.Result result = PasswordPolicy.validateChange(currentPassword, newPassword, confirmPassword);
+        if (!result.isValid()) {
+            throw new AuthenticationException(firstError(result.getErrors()));
+        }
+
+        UserAccount user = users.findById(currentUser.getId())
+                .orElseThrow(() -> new AuthenticationException("Invalid or expired token"));
+        if (!passwordHasher.matches(currentPassword, user.getPasswordHash())) {
+            throw new AuthenticationException("Current password is incorrect");
+        }
+        users.updatePasswordHash(user.getId(), passwordHasher.hash(newPassword));
+    }
+
     private boolean belongsToPortal(UserAccount user, Portal portal) {
         if (portal == Portal.STUDENT) {
             return "student".equalsIgnoreCase(user.getUserType());
@@ -91,5 +109,9 @@ public class AuthService {
             throw new AuthenticationException("Missing token");
         }
         return token.trim();
+    }
+
+    private String firstError(List<String> errors) {
+        return errors.isEmpty() ? "Invalid password" : errors.get(0);
     }
 }

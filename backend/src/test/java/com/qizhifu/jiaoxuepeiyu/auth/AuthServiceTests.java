@@ -117,6 +117,50 @@ class AuthServiceTests {
         assertEquals("token-1", sessions.invalidatedToken);
     }
 
+    @Test
+    void changesPasswordAfterCurrentPasswordAndPolicyValidation() {
+        FakeUsers users = new FakeUsers();
+        users.account = account(1L, "teacher", 1);
+        FakeSessions sessions = new FakeSessions();
+        sessions.activeUser = authenticatedUser(1L, "teacher");
+        AuthService service = service(users, sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        service.changePassword("token-1", "secret123", "newSecret123", "newSecret123");
+
+        assertEquals(1L, users.updatedPasswordUserId.longValue());
+        assertEquals("newSecret123", users.updatedPasswordHash);
+    }
+
+    @Test
+    void rejectsPasswordChangeWhenCurrentPasswordIsWrong() {
+        FakeUsers users = new FakeUsers();
+        users.account = account(1L, "teacher", 1);
+        FakeSessions sessions = new FakeSessions();
+        sessions.activeUser = authenticatedUser(1L, "teacher");
+        AuthService service = service(users, sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> {
+            service.changePassword("token-1", "wrong123", "newSecret123", "newSecret123");
+        });
+
+        assertEquals("Current password is incorrect", exception.getMessage());
+    }
+
+    @Test
+    void rejectsPasswordChangeWhenNewPasswordViolatesPolicy() {
+        FakeUsers users = new FakeUsers();
+        users.account = account(1L, "teacher", 1);
+        FakeSessions sessions = new FakeSessions();
+        sessions.activeUser = authenticatedUser(1L, "teacher");
+        AuthService service = service(users, sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> {
+            service.changePassword("token-1", "secret123", "short1", "short1");
+        });
+
+        assertEquals("Password length must be 8-20 characters", exception.getMessage());
+    }
+
     private AuthService service(UserAccountRepository users,
                                 SessionRepository sessions,
                                 PasswordHasher hasher,
@@ -147,10 +191,23 @@ class AuthServiceTests {
 
     private static class FakeUsers implements UserAccountRepository {
         private UserAccount account;
+        private Long updatedPasswordUserId;
+        private String updatedPasswordHash;
 
         @Override
         public Optional<UserAccount> findByIdentity(LoginIdentityType identityType, String accountValue) {
             return Optional.ofNullable(account);
+        }
+
+        @Override
+        public Optional<UserAccount> findById(Long userId) {
+            return Optional.ofNullable(account);
+        }
+
+        @Override
+        public void updatePasswordHash(Long userId, String passwordHash) {
+            this.updatedPasswordUserId = userId;
+            this.updatedPasswordHash = passwordHash;
         }
     }
 

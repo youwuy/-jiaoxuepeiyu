@@ -25,4 +25,14 @@ public class MyBatisUserAccountRepository implements UserAccountRepository {
         }
         return Optional.ofNullable(user);
     }
+
+    @Override
+    public Optional<UserAccount> findById(Long userId) {
+        return Optional.ofNullable(mapper.findById(userId));
+    }
+
+    @Override
+    public void updatePasswordHash(Long userId, String passwordHash) {
+        mapper.updatePasswordHash(userId, passwordHash);
+    }
 }
