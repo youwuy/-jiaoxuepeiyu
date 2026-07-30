@@ -21,3 +21,22 @@ docker compose up -d mysql
 
 - 前端：http://localhost:5173
 - 后端：http://localhost:8080/api/health
+
+## Deployment
+
+Backend release packaging is documented in [deploy/README.md](deploy/README.md).
+
+Windows release packaging:
+
+```bat
+set JRE8_HOME=C:\path\to\jre8
+deploy\package.bat
+```
+
+Linux/macOS release packaging:
+
+```bash
+JRE8_HOME=/path/to/jre8 deploy/package.sh
+```
+
+Both package commands require a JRE 8 source and copy it into `deploy/dist/runtime/jre8` so target users do not install Java manually.

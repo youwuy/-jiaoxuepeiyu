@@ -94,7 +94,22 @@ Create the deployment package:
 JRE8_HOME=/path/to/jre8 deploy/package.sh
 ```
 
+Windows release machines can use the native batch packager:
+
+```bat
+set JRE8_HOME=C:\path\to\jre8
+deploy\package.bat
+```
+
+If `JRE8_HOME` is not set, both packagers read the runtime from `deploy/runtime/jre8`.
+
 The command fails when the backend jar or JRE 8 runtime is missing. This is intentional: the final package must be runnable without asking users to install Java.
+
+Before release, run the static deployment layout check:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-deploy-layout.ps1
+```
 
 ## Start And Stop
 

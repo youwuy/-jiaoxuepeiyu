@@ -44,6 +44,7 @@
 - 2026-07-31: Common password change is exposed as `PUT /api/auth/password` for admin, teacher, and student tokens; it validates the current password and `PasswordPolicy`, updates only `sys_user.password_hash`, and keeps the older student profile password endpoint for compatibility.
 - 2026-07-31: Admin profile APIs live under `/api/admin/profile`; they resolve admin/teacher identity through `AdminContext`, read and update only the current `sys_user`, and mask phone/ID card values in profile responses.
 - 2026-07-31: Admin permission management reuses `sys_permission` as the menu/page/button source of truth; write APIs validate type, unique code, parent existence, self-parent prevention, and delete only unbound leaf permission nodes.
+- 2026-07-31: Deployment packaging now has both `deploy/package.sh` and `deploy/package.bat`; both require `JRE8_HOME` or `deploy/runtime/jre8` and generate `deploy/dist/runtime/jre8` so target users do not install Java manually.
 
 ## Operational Notes
 
