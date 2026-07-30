@@ -250,9 +250,21 @@ function mapTraining(item: BackendTraining): StudentTraining {
     title: item.trainingName,
     mode,
     status,
+    category: 'practice',
+    term: '2024-2025学年 下学期',
     deadline: formatDate(item.openEndTime),
+    topicCount: Math.max(item.roleCount ?? 1, 1),
+    countdown: status === 'notStarted' ? `${formatDate(item.openEndTime)} 开放` : undefined,
     attempts: item.appInstalled ? 1 : 0,
-    roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined
+    roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined,
+    steps: [
+      {
+        id: item.trainingId,
+        title: item.trainingName,
+        mode,
+        action: status === 'completed' ? 'score' : mode === 'team' ? 'team' : 'start'
+      }
+    ]
   };
 }
 
