@@ -1,5 +1,6 @@
 package com.qizhifu.jiaoxuepeiyu.admin;
 
+import com.qizhifu.jiaoxuepeiyu.auth.AuthenticatedUserContext;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,6 +12,10 @@ public final class AdminContext {
     }
 
     public static Long requireAdminId(HttpServletRequest request) {
+        Long authenticatedUserId = AuthenticatedUserContext.requireAdminId(request);
+        if (authenticatedUserId != null) {
+            return authenticatedUserId;
+        }
         String value = request.getHeader(USER_ID_HEADER);
         if (value == null || value.trim().length() == 0) {
             throw new BusinessException(401, "Missing admin identity");
