@@ -363,6 +363,13 @@ Behavior:
 - Requires the room to be full and every member to have a role.
 - Changes room status to `STARTED`.
 
+UE launch and callback integration:
+
+- `GET /api/ue/trainings/{trainingId}/task` returns launch metadata for the current student.
+- `POST /api/ue/trainings/{trainingId}/status` reports live status.
+- `POST /api/ue/trainings/{trainingId}/attempts` submits scores, steps, and recording metadata.
+- Full callback contract is documented in `docs/ue-api-contract.md`.
+
 ## Training Archives
 
 ### `GET /api/student/archives`

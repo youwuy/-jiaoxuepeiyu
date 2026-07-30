@@ -1271,7 +1271,7 @@ Response `data`:
 - `cameras`: classroom camera stream and online state.
 - `students`: student desk state, progress state, room state, role, and score.
 
-Monitor rows are read from `training_monitor_snapshot`; UE/device callbacks can update that table later without changing this query contract.
+Monitor rows are read from `training_monitor_snapshot`; UE callbacks update that table through `POST /api/ue/trainings/{trainingId}/status` and `POST /api/ue/trainings/{trainingId}/attempts`.
 
 ### `GET /api/admin/trainings/{trainingId}/logs`
 
@@ -1444,6 +1444,8 @@ Response `data`: `PageResponse` of immutable training attempt archive rows.
 ### `GET /api/admin/archives/{archiveId}`
 
 Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
+
+Archive rows are created by UE result callbacks documented in `docs/ue-api-contract.md`.
 
 ### `GET /api/admin/archives/statistics`
 
