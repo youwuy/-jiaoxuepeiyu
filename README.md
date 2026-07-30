@@ -1,5 +1,7 @@
 # Web教辅系统
 
+[![CI](https://github.com/youwuy/-jiaoxuepeiyu/actions/workflows/ci.yml/badge.svg)](https://github.com/youwuy/-jiaoxuepeiyu/actions/workflows/ci.yml)
+
 项目启动说明见 [docs/project-division.md](docs/project-division.md)。
 开发环境说明见 [docs/environment.md](docs/environment.md)。
 
