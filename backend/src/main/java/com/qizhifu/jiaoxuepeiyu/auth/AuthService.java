@@ -1,5 +1,6 @@
 package com.qizhifu.jiaoxuepeiyu.auth;
 
+import com.qizhifu.jiaoxuepeiyu.auth.model.AuthenticatedUser;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginCommand;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginResult;
 import com.qizhifu.jiaoxuepeiyu.auth.model.Portal;
@@ -67,10 +68,28 @@ public class AuthService {
         return new LoginResult(token, expiresAt, user.toAuthenticatedUser());
     }
 
+    public AuthenticatedUser currentUser(String token) {
+        String normalizedToken = requireToken(token);
+        return sessions.findActiveUserByToken(normalizedToken, Instant.now(clock))
+                .orElseThrow(() -> new AuthenticationException("Invalid or expired token"));
+    }
+
+    @Transactional
+    public void logout(String token) {
+        sessions.invalidateToken(requireToken(token));
+    }
+
     private boolean belongsToPortal(UserAccount user, Portal portal) {
         if (portal == Portal.STUDENT) {
             return "student".equalsIgnoreCase(user.getUserType());
         }
         return "admin".equalsIgnoreCase(user.getUserType()) || "teacher".equalsIgnoreCase(user.getUserType());
+    }
+
+    private String requireToken(String token) {
+        if (token == null || token.trim().length() == 0) {
+            throw new AuthenticationException("Missing token");
+        }
+        return token.trim();
     }
 }

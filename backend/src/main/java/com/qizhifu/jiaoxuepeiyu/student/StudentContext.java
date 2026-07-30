@@ -1,5 +1,6 @@
 package com.qizhifu.jiaoxuepeiyu.student;
 
+import com.qizhifu.jiaoxuepeiyu.auth.AuthenticatedUserContext;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,6 +12,10 @@ public final class StudentContext {
     }
 
     public static Long requireStudentId(HttpServletRequest request) {
+        Long authenticatedUserId = AuthenticatedUserContext.requireStudentId(request);
+        if (authenticatedUserId != null) {
+            return authenticatedUserId;
+        }
         String value = request.getHeader(USER_ID_HEADER);
         if (value == null || value.trim().length() == 0) {
             throw new BusinessException(401, "Missing student identity");

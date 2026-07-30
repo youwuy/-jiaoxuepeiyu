@@ -15,9 +15,52 @@ Online OpenAPI documentation is available after backend startup:
 - `GET /v3/api-docs`
 - `GET /swagger-ui.html`
 
-Temporary integration identity header:
+Compatibility identity fallback:
 
 - `X-User-Id`
+
+Preferred authenticated identity:
+
+- Send `Authorization: Bearer <token>` after login.
+- Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
+
+## Auth
+
+### `POST /api/auth/admin/login`
+
+Request body:
+
+```json
+{
+  "loginType": "username",
+  "account": "teacher001",
+  "password": "configured-password"
+}
+```
+
+`loginType` accepts `username`, `employeeNo`, or `phone`.
+
+Response `data`:
+
+- `token`
+- `expiresAt`
+- `user`
+
+### `GET /api/auth/current`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Response `data`: current authenticated user.
+
+### `POST /api/auth/logout`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Invalidates the current token session. Response `data`: `null`.
 
 ## Organization
 

@@ -31,4 +31,9 @@ public class MyBatisSessionRepository implements SessionRepository {
     public Optional<AuthenticatedUser> findActiveUserByToken(String token, Instant now) {
         return Optional.ofNullable(mapper.findActiveUserByToken(TokenHash.sha256(token), now));
     }
+
+    @Override
+    public void invalidateToken(String token) {
+        mapper.invalidateToken(TokenHash.sha256(token));
+    }
 }

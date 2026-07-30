@@ -28,6 +28,11 @@ public interface SessionMapper {
             + "WHERE s.token_hash = #{tokenHash} "
             + "AND s.invalidated_at IS NULL "
             + "AND s.expires_at > #{now} "
+            + "AND u.status = 1 "
             + "LIMIT 1")
     AuthenticatedUser findActiveUserByToken(@Param("tokenHash") String tokenHash, @Param("now") Instant now);
+
+    @Update("UPDATE sys_user_session SET invalidated_at = NOW() "
+            + "WHERE token_hash = #{tokenHash} AND invalidated_at IS NULL AND expires_at > NOW()")
+    void invalidateToken(@Param("tokenHash") String tokenHash);
 }

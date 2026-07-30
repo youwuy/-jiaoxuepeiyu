@@ -12,4 +12,6 @@ public interface SessionRepository {
     void createSession(Long userId, String token, Portal portal, String loginIp, Instant expiresAt);
 
     Optional<AuthenticatedUser> findActiveUserByToken(String token, Instant now);
+
+    void invalidateToken(String token);
 }
