@@ -50,7 +50,7 @@ public class AdminTrainingArchiveController {
     }
 
     @GetMapping("/export")
-    @Operation(summary = "Export training archive rows", description = "Returns export-ready archive rows. Binary export generation is handled by deployment integration later.")
+    @Operation(summary = "Export training archive rows", description = "Returns export-ready archive rows for frontend-controlled export.")
     public ApiResponse<List<AdminTrainingArchive>> exportArchives(@ModelAttribute AdminTrainingArchiveQuery query) {
         return ApiResponse.ok(service.exportArchives(query));
     }
