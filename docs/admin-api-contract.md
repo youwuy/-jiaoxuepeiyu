@@ -1286,3 +1286,82 @@ Each item:
 - `usageMinutes`
 - `usageCount`
 - `utilizationRate`
+
+## Semester Score Management
+
+### `GET /api/admin/scores/semester`
+
+Query:
+
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `studentId` optional.
+- `keyword` optional fuzzy student name or student number.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of semester score rows.
+
+Each row includes:
+
+- student, class, major, semester, and academic term fields.
+- component scores and component weights.
+- `comprehensiveScore`; when the stored value is empty, the backend returns a calculated value from component scores and weights.
+
+### `GET /api/admin/scores/semester/statistics`
+
+Response `data`:
+
+- `studentCount`
+- `averageScore`
+- `maxScore`
+- `minScore`
+- `excellentCount`
+- `passCount`
+
+### `GET /api/admin/scores/semester/ranking`
+
+Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
+
+### `GET /api/admin/scores/semester/export`
+
+Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+
+## Training Archive Management
+
+### `GET /api/admin/archives`
+
+Query:
+
+- `trainingId` optional.
+- `studentId` optional.
+- `classId` optional.
+- `trainingMode` optional: `SINGLE` or `TEAM`.
+- `submitType` optional: `NORMAL`, `ABNORMAL_EXIT`, or `ROOM_DISSOLVED`.
+- `keyword` optional fuzzy training name, student name, or student number.
+- `submittedStartDate` optional `YYYY-MM-DD`.
+- `submittedEndDate` optional `YYYY-MM-DD`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of immutable training attempt archive rows.
+
+### `GET /api/admin/archives/{archiveId}`
+
+Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
+
+### `GET /api/admin/archives/statistics`
+
+Response `data`:
+
+- `archiveCount`
+- `normalSubmitCount`
+- `abnormalSubmitCount`
+- `roomDissolvedCount`
+- `averagePersonalScore`
+- `averageDurationSeconds`
+
+### `GET /api/admin/archives/export`
+
+Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
