@@ -24,6 +24,7 @@ export interface StudentTraining {
   countdown?: string;
   attempts?: number;
   bestScore?: number;
+  activeRoomId?: number;
   roles?: string[];
   steps?: StudentTrainingStep[];
 }
