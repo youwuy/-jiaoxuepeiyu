@@ -47,6 +47,7 @@
 - 2026-07-31: Deployment packaging now has both `deploy/package.sh` and `deploy/package.bat`; both require `JRE8_HOME` or `deploy/runtime/jre8` and generate `deploy/dist/runtime/jre8` so target users do not install Java manually.
 - 2026-07-31: Admin file export endpoints use dependency-free UTF-8 BOM CSV downloads (`/export/file`) for Excel compatibility while preserving existing JSON `/export` endpoints for frontend-controlled export.
 - 2026-07-31: Backend completion tracking now lives in `docs/backend-completion-audit.md`; completion remains unproven until Maven/JDK tests, MySQL 5.7 import, runtime smoke checks, static OpenAPI regeneration, deployment packaging, and PDF requirement audit are verified.
+- 2026-07-31: Admin training course export is being implemented as `/api/admin/trainings/export` JSON rows plus `/api/admin/trainings/export/file` UTF-8 BOM CSV, matching the existing admin export pattern.
 
 ## Operational Notes
 

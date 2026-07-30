@@ -1469,6 +1469,28 @@ Query:
 
 Response `data`: `PageResponse` of training courses with term, major, paper, class names, participant count, room count, and average score.
 
+### `GET /api/admin/trainings/export`
+
+Query: same filters as `GET /api/admin/trainings`.
+
+Response `data`: export-ready training course rows for frontend-controlled export.
+
+Behavior:
+
+- Returns rows matching the submitted filters.
+- Uses the same maximum export page size policy as other admin export endpoints.
+
+### `GET /api/admin/trainings/export/file`
+
+Query: same filters as `GET /api/admin/trainings`.
+
+Response: `text/csv;charset=UTF-8` attachment named `trainings.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filtered export rows as `GET /api/admin/trainings/export`.
+
 ### `GET /api/admin/trainings/{trainingId}`
 
 Response `data`: training detail with bound `classIds` and team `roles`.

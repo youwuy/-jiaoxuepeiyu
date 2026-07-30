@@ -51,6 +51,13 @@ public class AdminTrainingService {
                 repository.countTrainings(normalized));
     }
 
+    public List<AdminTraining> exportTrainings(AdminTrainingQuery query) {
+        AdminTrainingQuery normalized = normalizedQuery(query);
+        normalized.setPage(1);
+        normalized.setPageSize(MAX_PAGE_SIZE);
+        return repository.findTrainings(normalized);
+    }
+
     public AdminTraining getTraining(Long trainingId) {
         AdminTraining training = repository.findTraining(trainingId);
         if (training == null) {
