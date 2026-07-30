@@ -31,6 +31,21 @@ function getStoredToken(): string {
   return globalThis.localStorage?.getItem(authTokenKey) ?? '';
 }
 
+function getStoredUserId(): string {
+  const storedUser = globalThis.localStorage?.getItem(authUserKey);
+
+  if (!storedUser) {
+    return '';
+  }
+
+  try {
+    const user = JSON.parse(storedUser) as { id?: number | string; studentId?: number | string };
+    return String(user.id ?? user.studentId ?? '');
+  } catch {
+    return '';
+  }
+}
+
 function unwrapResponse<T>(payload: ApiEnvelope<T> | T): T {
   if (payload && typeof payload === 'object') {
     const envelope = payload as ApiEnvelope<T>;
@@ -72,6 +87,11 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const userId = getStoredUserId();
+  if (userId && !headers.has('X-User-Id')) {
+    headers.set('X-User-Id', userId);
   }
 
   const response = await fetch(buildUrl(path), {
