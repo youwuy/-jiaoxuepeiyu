@@ -46,6 +46,7 @@
 - 2026-07-31: Admin permission management reuses `sys_permission` as the menu/page/button source of truth; write APIs validate type, unique code, parent existence, self-parent prevention, and delete only unbound leaf permission nodes.
 - 2026-07-31: Deployment packaging now has both `deploy/package.sh` and `deploy/package.bat`; both require `JRE8_HOME` or `deploy/runtime/jre8` and generate `deploy/dist/runtime/jre8` so target users do not install Java manually.
 - 2026-07-31: Admin file export endpoints use dependency-free UTF-8 BOM CSV downloads (`/export/file`) for Excel compatibility while preserving existing JSON `/export` endpoints for frontend-controlled export.
+- 2026-07-31: Backend completion tracking now lives in `docs/backend-completion-audit.md`; completion remains unproven until Maven/JDK tests, MySQL 5.7 import, runtime smoke checks, static OpenAPI regeneration, deployment packaging, and PDF requirement audit are verified.
 
 ## Operational Notes
 
