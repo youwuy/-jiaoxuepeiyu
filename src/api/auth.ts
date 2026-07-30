@@ -1,4 +1,4 @@
-import { saveAuthSession, tryRequestJson } from './http';
+import { requestJson, saveAuthSession } from './http';
 import type { AdminLoginForm, StudentLoginForm, StudentLoginMode } from '../features/auth/validation';
 
 export interface LoginResult {
@@ -14,10 +14,10 @@ function normalizeToken(result: LoginResult): string {
 export async function loginStudent(mode: StudentLoginMode, form: StudentLoginForm): Promise<LoginResult> {
   const payload =
     mode === 'studentId'
-      ? { loginType: 'studentId', studentId: form.studentId, password: form.password }
-      : { loginType: 'phone', phone: form.phone, password: form.password };
+      ? { loginType: 'studentNo', account: form.studentId, password: form.password }
+      : { loginType: 'phone', account: form.phone, password: form.password };
 
-  const result = await tryRequestJson<LoginResult>(['/student/login', '/auth/student/login', '/login/student'], {
+  const result = await requestJson<LoginResult>('/auth/student/login', {
     method: 'POST',
     body: JSON.stringify(payload),
     fallbackLabel: '学员登录'
@@ -28,9 +28,10 @@ export async function loginStudent(mode: StudentLoginMode, form: StudentLoginFor
 }
 
 export async function loginAdmin(form: AdminLoginForm): Promise<LoginResult> {
-  const result = await tryRequestJson<LoginResult>(['/admin/login', '/auth/admin/login', '/login/admin'], {
+  const result = await requestJson<LoginResult>('/auth/admin/login', {
     method: 'POST',
     body: JSON.stringify({
+      loginType: 'username',
       account: form.account,
       password: form.password
     }),

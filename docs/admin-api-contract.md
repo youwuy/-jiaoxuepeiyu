@@ -807,3 +807,153 @@ Behavior:
 ### `GET /api/admin/papers/{paperId}/logs`
 
 Response `data`: paper operation logs sorted by newest first.
+
+## Teaching Courses
+
+Course publish status:
+
+- `DRAFT`
+- `PUBLISHED`
+- `OFFLINE`
+
+Learning modes:
+
+- `SELF_PACED`
+- `TEACHER_LED`
+
+Assignment completion rules:
+
+- `SUBMIT`
+- `PASS_SCORE`
+
+Course content item types:
+
+- `COURSEWARE`
+- `ASSIGNMENT`
+
+### `GET /api/admin/courses`
+
+Query:
+
+- `keyword` optional fuzzy course name.
+- `academicYearId` optional.
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `teacherId` optional.
+- `publishStatus` optional: `DRAFT`, `PUBLISHED`, or `OFFLINE`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of teaching courses.
+
+### `GET /api/admin/courses/{courseId}`
+
+Response `data`: course detail with teacher ids, class ids, chapters, and content nodes.
+
+### `POST /api/admin/courses`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Request body:
+
+```json
+{
+  "courseName": "Safety Course",
+  "academicYearId": 1,
+  "semesterId": 2,
+  "majorId": 3,
+  "coverUrl": "https://cdn.example/course.png",
+  "openStartTime": "2026-09-01T00:00:00",
+  "openEndTime": "2026-12-31T23:59:00",
+  "teacherIds": [9],
+  "classIds": [10, 11],
+  "learningMode": "SELF_PACED",
+  "assignmentCompletionRule": "SUBMIT",
+  "coursewareScoreCap": 100,
+  "chapters": [
+    {
+      "chapterTitle": "Chapter 1",
+      "sortOrder": 1,
+      "contents": [
+        {
+          "itemType": "COURSEWARE",
+          "title": "Intro courseware",
+          "resourceId": 1,
+          "requiredDurationSeconds": 60,
+          "sortOrder": 1
+        },
+        {
+          "itemType": "ASSIGNMENT",
+          "title": "Theory assignment",
+          "assignmentId": 2,
+          "sortOrder": 2
+        }
+      ]
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Creates a draft course.
+- At least one teacher and one teaching class are required.
+- Course open end time must be later than open start time.
+- Courseware nodes require `resourceId`.
+- Assignment nodes require `assignmentId`.
+- `coursewareCount` and `assignmentCount` are computed from submitted content nodes.
+- Multi-class bindings are stored in `course_class`; `course.class_id` keeps the first class for legacy student queries.
+
+### `PUT /api/admin/courses/{courseId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates course metadata.
+- Fully replaces submitted teacher, class, chapter, and content bindings.
+- Assignment content nodes update the linked assignment `course_id` and `content_id`.
+
+### `POST /api/admin/courses/{courseId}/publish`
+
+Behavior:
+
+- Rejects empty courses.
+- Marks the course `PUBLISHED`.
+- Sends a `COURSE` notification to enabled students in bound classes.
+
+### `POST /api/admin/courses/{courseId}/cancel-publish`
+
+Behavior:
+
+- Marks the course `OFFLINE`.
+
+### `POST /api/admin/courses/{courseId}/delete`
+
+Behavior:
+
+- Soft deletes the course and marks it `OFFLINE`.
+
+### `POST /api/admin/courses/{courseId}/copy`
+
+Behavior:
+
+- Copies the course metadata, teacher/class bindings, chapters, and content nodes into a new draft course.
+
+### `GET /api/admin/courses/{courseId}/statistics`
+
+Response `data`:
+
+- `studentCount`
+- `completedCount`
+- `studyingCount`
+- `notStartedCount`
+- `pendingReviewCount`
+- `averageScore`
+
+### `GET /api/admin/courses/{courseId}/logs`
+
+Response `data`: course operation logs sorted by newest first.
