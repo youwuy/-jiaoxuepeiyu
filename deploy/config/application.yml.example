@@ -1,0 +1,18 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:jiaoxuepeiyu}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:}
+
+app:
+  account:
+    initial-password: ${APP_ACCOUNT_INITIAL_PASSWORD:}
+  online:
+    heartbeat-interval-seconds: 30
+    offline-timeout-seconds: 120
+  rtsp:
+    max-cameras-per-room: 4

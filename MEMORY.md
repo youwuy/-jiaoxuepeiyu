@@ -30,6 +30,7 @@
 - 2026-07-30: Admin semester score APIs read `score_semester_summary` and calculate missing `comprehensive_score` values from stored component scores/weights at query time; admin training archive APIs read immutable `training_attempt` and `training_attempt_step` rows without mutating historical records.
 - 2026-07-30: Admin IAM role management reads permissions from `sys_permission` as a tree; stores role data scope on `sys_role.data_scope`; copies the same scope into `sys_role_permission`; and preserves `sys_user_role` rows when soft deleting roles for audit compatibility.
 - 2026-07-30: Auth now supports `Authorization: Bearer <token>` for current user resolution and logout; `AdminContext` and `StudentContext` prefer token-authenticated request users and keep `X-User-Id` as a temporary compatibility fallback.
+- 2026-07-30: Deployment packaging must be run on a release machine with `JRE8_HOME` or `deploy/runtime/jre8`; `deploy/package.sh` fails without a JRE 8 source and copies it into `deploy/dist/runtime/jre8` so target users do not install Java.
 
 ## Operational Notes
 
