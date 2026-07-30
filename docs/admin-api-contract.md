@@ -74,7 +74,70 @@ Header:
 
 - `Authorization: Bearer <token>`
 
-Invalidates the current token session. Response `data`: `null`.
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates `sys_user.last_heartbeat_time` and `sys_user.last_login_ip`.
+- Clients should call this every `30` seconds while active.
+- Users with no heartbeat for `120` seconds are treated as offline.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
+
+### `GET /api/admin/online/users`
+
+Query:
+
+- `userType` optional: `admin`, `teacher`, or `student`.
+- `keyword` optional fuzzy username, real name, or phone.
+- `onlineOnly` optional boolean.
+- `limit` optional, default `100`, maximum `500`.
+
+Response `data`:
+
+- `generatedAt`
+- `totalCount`
+- `onlineCount`
+- `offlineCount`
+- `heartbeatIntervalSeconds`
+- `offlineTimeoutSeconds`
+- `users`
+
+Each `users[]` item:
+
+- `userId`
+- `username`
+- `realName`
+- `userType`
+- `lastLoginIp`
+- `lastHeartbeatTime`
+- `online`
 
 ## Files
 
@@ -1271,7 +1334,7 @@ Response `data`:
 - `cameras`: classroom camera stream and online state.
 - `students`: student desk state, progress state, room state, role, and score.
 
-Monitor rows are read from `training_monitor_snapshot`; UE/device callbacks can update that table later without changing this query contract.
+Monitor rows are read from `training_monitor_snapshot`; UE callbacks update that table through `POST /api/ue/trainings/{trainingId}/status` and `POST /api/ue/trainings/{trainingId}/attempts`.
 
 ### `GET /api/admin/trainings/{trainingId}/logs`
 
@@ -1444,6 +1507,8 @@ Response `data`: `PageResponse` of immutable training attempt archive rows.
 ### `GET /api/admin/archives/{archiveId}`
 
 Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
+
+Archive rows are created by UE result callbacks documented in `docs/ue-api-contract.md`.
 
 ### `GET /api/admin/archives/statistics`
 

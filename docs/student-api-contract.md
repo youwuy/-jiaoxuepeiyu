@@ -56,7 +56,41 @@ Header:
 
 - `Authorization: Bearer <token>`
 
-Invalidates the current token session. Response `data`: `null`.
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates the current user's heartbeat time and IP address.
+- Student clients should call this every `30` seconds while active.
+- A student is treated as offline after `120` seconds without heartbeat or immediately after logout.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
 
 ## Course Learning
 
@@ -362,6 +396,13 @@ Behavior:
 - Only the owner can start.
 - Requires the room to be full and every member to have a role.
 - Changes room status to `STARTED`.
+
+UE launch and callback integration:
+
+- `GET /api/ue/trainings/{trainingId}/task` returns launch metadata for the current student.
+- `POST /api/ue/trainings/{trainingId}/status` reports live status.
+- `POST /api/ue/trainings/{trainingId}/attempts` submits scores, steps, and recording metadata.
+- Full callback contract is documented in `docs/ue-api-contract.md`.
 
 ## Training Archives
 

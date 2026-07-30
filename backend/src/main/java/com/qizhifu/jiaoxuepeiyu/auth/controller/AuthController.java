@@ -9,6 +9,7 @@ import com.qizhifu.jiaoxuepeiyu.auth.model.LoginIdentityType;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginResult;
 import com.qizhifu.jiaoxuepeiyu.auth.model.Portal;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
+import com.qizhifu.jiaoxuepeiyu.online.OnlinePresenceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.servlet.http.HttpServletRequest;
@@ -26,9 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final OnlinePresenceService onlinePresenceService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, OnlinePresenceService onlinePresenceService) {
         this.authService = authService;
+        this.onlinePresenceService = onlinePresenceService;
     }
 
     @PostMapping("/admin/login")
@@ -56,7 +59,10 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Logout", description = "Invalidates the current Authorization Bearer token session.")
     public ApiResponse<Void> logout(HttpServletRequest request) {
-        authService.logout(requireBearerToken(request));
+        String token = requireBearerToken(request);
+        AuthenticatedUser user = authService.currentUser(token);
+        authService.logout(token);
+        onlinePresenceService.markOffline(user.getId());
         return ApiResponse.ok(null);
     }
 
