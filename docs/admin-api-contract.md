@@ -560,3 +560,250 @@ Behavior:
 Query: same resource filters as `GET /api/admin/resources`.
 
 Response `data`: `PageResponse` of approved public resources. Only the latest approved version per source resource is returned.
+
+## Exam Management
+
+Question types:
+
+- `SINGLE`
+- `MULTIPLE`
+- `JUDGE`
+- `FILL_BLANK`
+- `SHORT_ANSWER`
+
+Paper compose modes:
+
+- `MANUAL`
+- `AUTO`
+
+Paper publish status:
+
+- `DRAFT`
+- `PUBLISHED`
+- `OFFLINE`
+
+### `GET /api/admin/questions`
+
+Query:
+
+- `keyword` optional fuzzy title.
+- `questionType` optional.
+- `enabled` optional boolean.
+- `creatorId` optional.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of question bank entries.
+
+### `GET /api/admin/questions/{questionId}`
+
+Response `data`: question detail with options.
+
+### `POST /api/admin/questions`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Request body:
+
+```json
+{
+  "questionType": "SINGLE",
+  "title": "Pick one",
+  "score": 10,
+  "options": [
+    {
+      "optionKey": "A",
+      "optionText": "Alpha",
+      "correct": true
+    },
+    {
+      "optionKey": "B",
+      "optionText": "Beta",
+      "correct": false
+    }
+  ]
+}
+```
+
+Behavior:
+
+- `SINGLE` and `MULTIPLE` answers are derived from option `correct` flags.
+- `SINGLE` must have exactly one correct option.
+- `MULTIPLE` must have at least two correct options.
+- `JUDGE` standard answer must be `TRUE` or `FALSE`.
+- `FILL_BLANK` and `SHORT_ANSWER` require `standardAnswer`.
+
+### `PUT /api/admin/questions/{questionId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates question content and replaces options.
+- Does not alter historical paper question snapshots.
+
+### `POST /api/admin/questions/{questionId}/enable`
+
+Enables a question for future paper assembly.
+
+### `POST /api/admin/questions/{questionId}/disable`
+
+Disables a question for future paper assembly without deleting historical references.
+
+### `POST /api/admin/questions/import/preview`
+
+Request body:
+
+```json
+{
+  "fileName": "questions.xlsx",
+  "fileSize": 1024,
+  "rows": [
+    {
+      "rowNumber": 2,
+      "questionType": "SINGLE",
+      "title": "Pick one",
+      "score": 10,
+      "options": [
+        {
+          "optionKey": "A",
+          "optionText": "Alpha",
+          "correct": true
+        },
+        {
+          "optionKey": "B",
+          "optionText": "Beta",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Validates already parsed Excel rows and returns `validCount`, `errorCount`, `validRows`, and row-level `errors`.
+- Binary Excel parsing is intentionally left outside this metadata-first endpoint.
+
+### `GET /api/admin/questions/{questionId}/logs`
+
+Response `data`: question operation logs sorted by newest first.
+
+### `GET /api/admin/papers`
+
+Query:
+
+- `keyword` optional fuzzy paper name.
+- `composeMode` optional: `MANUAL` or `AUTO`.
+- `publishStatus` optional: `DRAFT`, `PUBLISHED`, or `OFFLINE`.
+- `creatorId` optional.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of theory papers.
+
+### `GET /api/admin/papers/{paperId}`
+
+Response `data`: paper detail with stored question snapshots.
+
+### `POST /api/admin/papers`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Manual request body:
+
+```json
+{
+  "paperName": "Manual Paper",
+  "composeMode": "MANUAL",
+  "questions": [
+    {
+      "questionId": 1,
+      "score": 5
+    }
+  ]
+}
+```
+
+Auto request body:
+
+```json
+{
+  "paperName": "Auto Paper",
+  "composeMode": "AUTO",
+  "autoRules": [
+    {
+      "questionType": "SINGLE",
+      "questionCount": 10,
+      "scorePerQuestion": 5
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Manual papers reject duplicate, disabled, or missing questions.
+- Auto papers randomly select enabled questions by type.
+- Total score is computed from the submitted or generated paper questions.
+- Paper question snapshots are stored so later question edits do not rewrite historical papers.
+
+### `PUT /api/admin/papers/{paperId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Rebuilds paper question snapshots and total score.
+
+### `POST /api/admin/papers/{paperId}/publish`
+
+Behavior:
+
+- Publishes a paper only when it contains at least one question.
+
+### `POST /api/admin/papers/{paperId}/cancel-publish`
+
+Behavior:
+
+- Marks a paper as `OFFLINE`.
+
+### `POST /api/admin/papers/import/preview`
+
+Request body:
+
+```json
+{
+  "fileName": "papers.xlsx",
+  "fileSize": 2048,
+  "rows": [
+    {
+      "rowNumber": 2,
+      "paperName": "Manual Paper",
+      "composeMode": "MANUAL",
+      "questions": [
+        {
+          "questionId": 1,
+          "score": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Validates already parsed Excel rows and returns `validCount`, `errorCount`, `validRows`, and row-level `errors`.
+- Manual rows validate duplicate, missing, disabled, and invalid-score questions.
+- Auto rows validate question type, question count, score per question, and enabled question pool size.
+- Binary Excel parsing is intentionally left outside this metadata-first endpoint.
+
+### `GET /api/admin/papers/{paperId}/logs`
+
+Response `data`: paper operation logs sorted by newest first.
