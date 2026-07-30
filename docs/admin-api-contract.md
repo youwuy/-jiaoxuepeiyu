@@ -1182,3 +1182,186 @@ Monitor rows are read from `training_monitor_snapshot`; UE/device callbacks can 
 ### `GET /api/admin/trainings/{trainingId}/logs`
 
 Response `data`: training operation logs sorted by newest first.
+
+## Device Efficiency
+
+Device status:
+
+- `OFFLINE`
+- `IDLE`
+- `IN_USE`
+- `FAULT`
+
+Device type examples:
+
+- `TRAINING_TERMINAL`
+- `VR`
+- `CONTROL_DESK`
+- `OTHER`
+
+Common query:
+
+- `startDate` optional `YYYY-MM-DD`; defaults to the first day of the current month when both dates are omitted.
+- `endDate` optional `YYYY-MM-DD`; defaults to today when omitted.
+- `classroomId` optional.
+- `deviceType` optional.
+- `deviceStatus` optional.
+- `rankLimit` optional for ranking endpoints, default `10`, maximum `100`.
+
+Behavior:
+
+- Date ranges are inclusive.
+- The maximum query window is `366` days.
+- Real-time state is read from `device` and latest active `device_usage_event`.
+- Historical usage, utilization, monthly trend, and heat ranking are read from `device_usage_daily_summary`.
+
+### `GET /api/admin/devices/efficiency`
+
+Response `data`:
+
+- `summary`
+- `realtimeStates`
+- `monthlyTrends`
+- `heatRanking`
+
+This is the dashboard aggregate endpoint for the management device efficiency page.
+
+### `GET /api/admin/devices/efficiency/summary`
+
+Response `data`:
+
+- `totalDeviceCount`
+- `onlineDeviceCount`
+- `activeDeviceCount`
+- `faultDeviceCount`
+- `totalUsageMinutes`
+- `averageUtilizationRate`
+- `activeTrainingCount`
+
+### `GET /api/admin/devices/efficiency/realtime`
+
+Response `data`: list of device real-time states.
+
+Each item:
+
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `deviceStatus`
+- `classroomId`
+- `classroomName`
+- `currentTrainingId`
+- `currentTrainingName`
+- `currentStudentId`
+- `currentStudentName`
+- `currentStartedAt`
+- `currentUsageMinutes`
+- `lastHeartbeatAt`
+
+### `GET /api/admin/devices/efficiency/monthly-trends`
+
+Response `data`: list grouped by month.
+
+Each item:
+
+- `month`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
+
+### `GET /api/admin/devices/efficiency/heat-ranking`
+
+Response `data`: devices sorted by usage heat.
+
+Each item:
+
+- `rankNo`
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `classroomId`
+- `classroomName`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
+
+## Semester Score Management
+
+### `GET /api/admin/scores/semester`
+
+Query:
+
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `studentId` optional.
+- `keyword` optional fuzzy student name or student number.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of semester score rows.
+
+Each row includes:
+
+- student, class, major, semester, and academic term fields.
+- component scores and component weights.
+- `comprehensiveScore`; when the stored value is empty, the backend returns a calculated value from component scores and weights.
+
+### `GET /api/admin/scores/semester/statistics`
+
+Response `data`:
+
+- `studentCount`
+- `averageScore`
+- `maxScore`
+- `minScore`
+- `excellentCount`
+- `passCount`
+
+### `GET /api/admin/scores/semester/ranking`
+
+Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
+
+### `GET /api/admin/scores/semester/export`
+
+Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+
+## Training Archive Management
+
+### `GET /api/admin/archives`
+
+Query:
+
+- `trainingId` optional.
+- `studentId` optional.
+- `classId` optional.
+- `trainingMode` optional: `SINGLE` or `TEAM`.
+- `submitType` optional: `NORMAL`, `ABNORMAL_EXIT`, or `ROOM_DISSOLVED`.
+- `keyword` optional fuzzy training name, student name, or student number.
+- `submittedStartDate` optional `YYYY-MM-DD`.
+- `submittedEndDate` optional `YYYY-MM-DD`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of immutable training attempt archive rows.
+
+### `GET /api/admin/archives/{archiveId}`
+
+Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
+
+### `GET /api/admin/archives/statistics`
+
+Response `data`:
+
+- `archiveCount`
+- `normalSubmitCount`
+- `abnormalSubmitCount`
+- `roomDissolvedCount`
+- `averagePersonalScore`
+- `averageDurationSeconds`
+
+### `GET /api/admin/archives/export`
+
+Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
