@@ -25,6 +25,9 @@
 - 2026-07-30: Admin exam management keeps question bank records mutable but stores immutable paper question snapshots in `exam_paper_question`; disabled questions remain available to historical papers and are only excluded from future assembly.
 - 2026-07-30: Admin course management uses `course_teacher` and `course_class` for multi-teacher/multi-class bindings while maintaining `course.class_id` as the first class for legacy student-course compatibility; student course and assignment queries read through `course_class` with a `course.class_id` fallback.
 - 2026-07-30: Admin assignment review uses `assignment_attempt` as the review state source; reviewed attempts store reviewer metadata and per-question scores/comments in `assignment_answer`, then refresh course progress after review.
+- 2026-07-30: Frontend work branch is `zhan/frontend-test`; after major frontend modules are completed, push that branch and merge/sync to `main`.
+- 2026-07-30: Calicat student login source is design file `2077697084758810624`, login canvas `5743e413-27b0-4a99-9047-cd1a00e44a64`; actual frame IDs are `c96fafb2-b43e-4a55-8922-7f8b583f59f0` for `登录页-学号登录` and `50a840b5-34cc-4449-87a1-43eb76123929` for `登录页-手机号登录`.
+- 2026-07-30: Student login UI must match the Calicat 1200 x 800 frames: student-ID state keeps left brand content hidden with only the blue gradient/circles, while phone-login state shows the left brand panel and feature list.
 
 ## Operational Notes
 

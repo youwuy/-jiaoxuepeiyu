@@ -199,6 +199,264 @@ a {
   --el-color-primary-dark-2: #0e6658;
 }
 
+.calicat-login.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  background: #ffffff;
+}
+
+.calicat-login-visual {
+  position: relative;
+  min-height: 800px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #1e3a5f 0%, #2563eb 40%, #3b82f6 70%, #60a5fa 100%);
+}
+
+.calicat-orb {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.calicat-orb.orb-large {
+  left: 11.58%;
+  top: -10.5%;
+  width: 50.16%;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.calicat-orb.orb-medium {
+  left: 54.92%;
+  top: 39.5%;
+  width: 30.16%;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.calicat-orb.orb-small {
+  left: 73.25%;
+  top: 32%;
+  width: 20.16%;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.calicat-brand-content {
+  position: absolute;
+  top: 176px;
+  left: 50%;
+  width: 260px;
+  display: grid;
+  justify-items: center;
+  transform: translateX(-50%);
+  color: #ffffff;
+  text-align: center;
+}
+
+.calicat-brand-icon {
+  width: 80px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  font-size: 36px;
+}
+
+.calicat-brand-content h1 {
+  margin: 32px 0 0;
+  color: #ffffff;
+  font-size: 36px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.calicat-brand-content p {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.calicat-brand-content ul {
+  width: 212px;
+  display: grid;
+  gap: 16px;
+  margin: 46px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.calicat-brand-content li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 36px;
+}
+
+.calicat-brand-content li span {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.calicat-login-panel {
+  min-height: 800px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+}
+
+.calicat-login-form {
+  width: 420px;
+  margin-top: 4px;
+}
+
+.calicat-login-form h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.calicat-login-tabs {
+  height: 56px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 40px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+
+.calicat-login-tabs button {
+  min-width: 0;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calicat-login-tabs button.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.calicat-login-tabs .el-icon {
+  font-size: 18px;
+}
+
+.calicat-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.calicat-field + .calicat-field {
+  margin-top: 20px;
+}
+
+.calicat-field label {
+  color: #334155;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.calicat-input {
+  width: 100%;
+}
+
+.calicat-input .el-input__wrapper {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px #e5e7eb inset,
+    0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.calicat-input .el-input__wrapper.is-focus {
+  box-shadow:
+    0 0 0 1px #2563eb inset,
+    0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.calicat-input .el-input__prefix {
+  margin-right: 12px;
+  color: #9ca3af;
+  font-size: 18px;
+}
+
+.calicat-input .el-input__inner {
+  height: 48px;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.calicat-input .el-input__inner::placeholder {
+  color: #cbd5e1;
+}
+
+.calicat-input .el-input__suffix {
+  color: #9ca3af;
+  font-size: 18px;
+}
+
+.calicat-field-error {
+  min-height: 16px;
+  margin: -2px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.calicat-login-button.el-button {
+  width: 100%;
+  height: 48px;
+  margin-top: 28px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.calicat-login-button.el-button:hover,
+.calicat-login-button.el-button:focus {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+}
+
 @media (max-width: 900px) {
   .login-shell {
     min-height: 100vh;
