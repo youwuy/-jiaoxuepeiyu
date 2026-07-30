@@ -7,6 +7,8 @@
 - 2026-07-30: Repository remote is `https://github.com/youwuy/-jiaoxuepeiyu.git`.
 - 2026-07-30: Backend work branch is `chen/backend`.
 - 2026-07-30: Requirement analysis documents exist in the parent working directory as `PRD.md` and `Tech-Spec.md`.
+- 2026-07-30: User explicitly redirected backend implementation priority to the student-side backend first.
+- 2026-07-30: First student backend checkpoint covers course list, public resources, messages/read state, and profile updates with a temporary `X-User-Id` student identity header for frontend integration.
 
 ## Operational Notes
 
