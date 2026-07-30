@@ -29,6 +29,7 @@
 - 2026-07-30: Admin training monitor APIs read camera/student/progress/score state from `training_monitor_snapshot`; later UE/device callback work should update this snapshot table instead of changing the management query contract.
 - 2026-07-30: Admin device efficiency APIs use `device` for inventory/realtime status, `device_usage_event` for active/latest usage sessions, and `device_usage_daily_summary` for dashboard totals, monthly trends, utilization, and heat ranking; future device/UE callbacks should write events and rollups instead of changing the API contract.
 - 2026-07-30: Admin semester score APIs read `score_semester_summary` and calculate missing `comprehensive_score` values from stored component scores/weights at query time; admin training archive APIs read immutable `training_attempt` and `training_attempt_step` rows without mutating historical records.
+- 2026-07-30: Admin IAM role management reads permissions from `sys_permission` as a tree; stores role data scope on `sys_role.data_scope`; copies the same scope into `sys_role_permission`; and preserves `sys_user_role` rows when soft deleting roles for audit compatibility.
 
 ## Operational Notes
 
