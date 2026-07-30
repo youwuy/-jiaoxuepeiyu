@@ -1,0 +1,164 @@
+package com.qizhifu.jiaoxuepeiyu.admin.exam;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestion;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionImportPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionImportRow;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionOption;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestionQuery;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.port.AdminQuestionRepository;
+import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+class AdminQuestionServiceTests {
+
+    @Test
+    void createsSingleChoiceWithOneCorrectOption() {
+        FakeQuestions repository = new FakeQuestions();
+        AdminQuestionService service = new AdminQuestionService(repository);
+
+        Long questionId = service.createQuestion(singleChoice(), 9L);
+
+        assertEquals(11L, questionId.longValue());
+        assertEquals("SINGLE", repository.savedCommand.getQuestionType());
+        assertEquals("A", repository.savedCommand.getStandardAnswer());
+        assertEquals("CREATE", repository.lastLogAction);
+    }
+
+    @Test
+    void rejectsSingleChoiceWithoutExactlyOneCorrectOption() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionCommand command = singleChoice();
+        command.getOptions().get(1).setCorrect(true);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createQuestion(command, 9L);
+        });
+
+        assertEquals("Single choice must have exactly one correct option", exception.getMessage());
+    }
+
+    @Test
+    void rejectsInvalidJudgmentAnswer() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionCommand command = new AdminQuestionCommand();
+        command.setQuestionType("JUDGE");
+        command.setTitle("Is this valid?");
+        command.setScore(5);
+        command.setStandardAnswer("MAYBE");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createQuestion(command, 9L);
+        });
+
+        assertEquals("Judgment answer must be TRUE or FALSE", exception.getMessage());
+    }
+
+    @Test
+    void importPreviewReturnsValidRowsAndErrors() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionImportCommand command = new AdminQuestionImportCommand();
+        command.setFileName("questions.xlsx");
+        command.setFileSize(1024L);
+        command.setRows(Arrays.asList(importRow(2, "SINGLE", "Valid title", "A"), importRow(3, "BAD", "", "")));
+
+        AdminQuestionImportPreview preview = service.previewImport(command);
+
+        assertEquals(1, preview.getValidCount());
+        assertEquals(1, preview.getErrorCount());
+        assertEquals(3, preview.getErrors().get(0).getRowNumber());
+    }
+
+    @Test
+    void disablesQuestionWithoutRemovingHistoricalReferences() {
+        FakeQuestions repository = new FakeQuestions();
+        AdminQuestionService service = new AdminQuestionService(repository);
+
+        service.disableQuestion(11L, 9L);
+
+        assertEquals(11L, repository.statusQuestionId.longValue());
+        assertEquals(false, repository.statusEnabled.booleanValue());
+        assertEquals("DISABLE", repository.lastLogAction);
+    }
+
+    private AdminQuestionCommand singleChoice() {
+        AdminQuestionCommand command = new AdminQuestionCommand();
+        command.setQuestionType("SINGLE");
+        command.setTitle("Pick one");
+        command.setScore(10);
+        command.setOptions(Arrays.asList(option("A", "Alpha", true), option("B", "Beta", false)));
+        return command;
+    }
+
+    private AdminQuestionOption option(String key, String text, boolean correct) {
+        AdminQuestionOption option = new AdminQuestionOption();
+        option.setOptionKey(key);
+        option.setOptionText(text);
+        option.setCorrect(correct);
+        return option;
+    }
+
+    private AdminQuestionImportRow importRow(int rowNumber, String type, String title, String answer) {
+        AdminQuestionImportRow row = new AdminQuestionImportRow();
+        row.setRowNumber(rowNumber);
+        row.setQuestionType(type);
+        row.setTitle(title);
+        row.setScore(5);
+        row.setStandardAnswer(answer);
+        row.setOptions(Arrays.asList(option("A", "Alpha", "A".equals(answer)), option("B", "Beta", false)));
+        return row;
+    }
+
+    private static class FakeQuestions implements AdminQuestionRepository {
+        private AdminQuestionCommand savedCommand;
+        private Long statusQuestionId;
+        private Boolean statusEnabled;
+        private String lastLogAction;
+
+        @Override
+        public List<AdminQuestion> findQuestions(AdminQuestionQuery query) {
+            return new ArrayList<AdminQuestion>();
+        }
+
+        @Override
+        public long countQuestions(AdminQuestionQuery query) {
+            return 0;
+        }
+
+        @Override
+        public AdminQuestion findQuestion(Long questionId) {
+            AdminQuestion question = new AdminQuestion();
+            question.setQuestionId(questionId);
+            question.setEnabled(true);
+            return question;
+        }
+
+        @Override
+        public Long createQuestion(AdminQuestionCommand command, Long creatorId) {
+            this.savedCommand = command;
+            return 11L;
+        }
+
+        @Override
+        public void updateQuestion(Long questionId, AdminQuestionCommand command) {
+        }
+
+        @Override
+        public void updateQuestionStatus(Long questionId, boolean enabled) {
+            this.statusQuestionId = questionId;
+            this.statusEnabled = enabled;
+        }
+
+        @Override
+        public void appendQuestionLog(Long questionId, Long operatorId, String action, String content) {
+            this.lastLogAction = action;
+        }
+    }
+}
