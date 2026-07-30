@@ -10,10 +10,53 @@ All student APIs use the common response envelope:
 }
 ```
 
-Temporary integration identity:
+Compatibility identity fallback:
 
-- Frontend sends `X-User-Id: <studentId>` until token authentication is wired into a servlet filter.
+- Older frontend calls can still send `X-User-Id: <studentId>`.
 - Backend returns `401` business code when the header is missing or invalid.
+
+Preferred authenticated identity:
+
+- Send `Authorization: Bearer <token>` after `POST /api/auth/student/login`.
+- Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
+
+## Auth
+
+### `POST /api/auth/student/login`
+
+Request body:
+
+```json
+{
+  "loginType": "studentNo",
+  "account": "student001",
+  "password": "configured-password"
+}
+```
+
+`loginType` accepts `studentNo`, `username`, or `phone`.
+
+Response `data`:
+
+- `token`
+- `expiresAt`
+- `user`
+
+### `GET /api/auth/current`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Response `data`: current authenticated user.
+
+### `POST /api/auth/logout`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Invalidates the current token session. Response `data`: `null`.
 
 ## Course Learning
 

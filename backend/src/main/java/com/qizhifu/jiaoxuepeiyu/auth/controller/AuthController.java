@@ -1,6 +1,9 @@
 package com.qizhifu.jiaoxuepeiyu.auth.controller;
 
 import com.qizhifu.jiaoxuepeiyu.auth.AuthService;
+import com.qizhifu.jiaoxuepeiyu.auth.AuthenticationException;
+import com.qizhifu.jiaoxuepeiyu.auth.BearerTokenResolver;
+import com.qizhifu.jiaoxuepeiyu.auth.model.AuthenticatedUser;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginCommand;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginIdentityType;
 import com.qizhifu.jiaoxuepeiyu.auth.model.LoginResult;
@@ -11,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,6 +45,24 @@ public class AuthController {
                                                  HttpServletRequest servletRequest) {
         LoginCommand command = request.toCommand(Portal.STUDENT, servletRequest.getRemoteAddr());
         return ApiResponse.ok(authService.login(command));
+    }
+
+    @GetMapping("/current")
+    @Operation(summary = "Get current user", description = "Returns the authenticated user resolved from the Authorization Bearer token.")
+    public ApiResponse<AuthenticatedUser> currentUser(HttpServletRequest request) {
+        return ApiResponse.ok(authService.currentUser(requireBearerToken(request)));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout", description = "Invalidates the current Authorization Bearer token session.")
+    public ApiResponse<Void> logout(HttpServletRequest request) {
+        authService.logout(requireBearerToken(request));
+        return ApiResponse.ok(null);
+    }
+
+    private String requireBearerToken(HttpServletRequest request) {
+        return BearerTokenResolver.resolve(request.getHeader("Authorization"))
+                .orElseThrow(() -> new AuthenticationException("Missing token"));
     }
 
     public static class LoginRequest {

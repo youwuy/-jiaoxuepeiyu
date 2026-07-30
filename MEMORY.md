@@ -17,7 +17,7 @@
 - 2026-07-30: Admin account detail/list responses mask phone and ID card fields to avoid exposing raw sensitive identity data.
 - 2026-07-30: Admin facility configuration stores classroom rows in `training_room` and NVR camera metadata in extended `room_camera` columns; updates replace the submitted camera list for a classroom.
 - 2026-07-30: Admin score weights are append-only history rows in `edu_score_weight`; score grade rules are maintained as a full replacement set with non-overlapping ranges.
-- 2026-07-30: Backend integrates `springdoc-openapi-ui` for online API docs at `/v3/api-docs` and `/swagger-ui.html`; current APIs use the temporary `X-User-Id` header until token authentication is fully wired.
+- 2026-07-30: Backend integrates `springdoc-openapi-ui` for online API docs at `/v3/api-docs` and `/swagger-ui.html`; APIs now prefer `Authorization: Bearer <token>` and keep `X-User-Id` as a temporary compatibility fallback.
 - 2026-07-30: Codegraph is initialized locally for this repository; `.codegraph/` is ignored because it contains machine-local index data.
 - 2026-07-30: Admin resource management is being implemented as metadata-first resource records with version snapshots; approved public applications sync into `res_public_resource` so existing student public-resource APIs can read them.
 - 2026-07-30: User clarified Git workflow preference: do not push every small change; push `chen/backend` after completing a major backend module, then merge/sync to `main` after that module-level push.
@@ -29,6 +29,7 @@
 - 2026-07-30: Admin device efficiency APIs use `device` for inventory/realtime status, `device_usage_event` for active/latest usage sessions, and `device_usage_daily_summary` for dashboard totals, monthly trends, utilization, and heat ranking; future device/UE callbacks should write events and rollups instead of changing the API contract.
 - 2026-07-30: Admin semester score APIs read `score_semester_summary` and calculate missing `comprehensive_score` values from stored component scores/weights at query time; admin training archive APIs read immutable `training_attempt` and `training_attempt_step` rows without mutating historical records.
 - 2026-07-30: Admin IAM role management reads permissions from `sys_permission` as a tree; stores role data scope on `sys_role.data_scope`; copies the same scope into `sys_role_permission`; and preserves `sys_user_role` rows when soft deleting roles for audit compatibility.
+- 2026-07-30: Auth now supports `Authorization: Bearer <token>` for current user resolution and logout; `AdminContext` and `StudentContext` prefer token-authenticated request users and keep `X-User-Id` as a temporary compatibility fallback.
 
 ## Operational Notes
 
