@@ -10,10 +10,87 @@ All student APIs use the common response envelope:
 }
 ```
 
-Temporary integration identity:
+Compatibility identity fallback:
 
-- Frontend sends `X-User-Id: <studentId>` until token authentication is wired into a servlet filter.
+- Older frontend calls can still send `X-User-Id: <studentId>`.
 - Backend returns `401` business code when the header is missing or invalid.
+
+Preferred authenticated identity:
+
+- Send `Authorization: Bearer <token>` after `POST /api/auth/student/login`.
+- Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
+
+## Auth
+
+### `POST /api/auth/student/login`
+
+Request body:
+
+```json
+{
+  "loginType": "studentNo",
+  "account": "student001",
+  "password": "configured-password"
+}
+```
+
+`loginType` accepts `studentNo`, `username`, or `phone`.
+
+Response `data`:
+
+- `token`
+- `expiresAt`
+- `user`
+
+### `GET /api/auth/current`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Response `data`: current authenticated user.
+
+### `POST /api/auth/logout`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates the current user's heartbeat time and IP address.
+- Student clients should call this every `30` seconds while active.
+- A student is treated as offline after `120` seconds without heartbeat or immediately after logout.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
 
 ## Course Learning
 
@@ -319,6 +396,13 @@ Behavior:
 - Only the owner can start.
 - Requires the room to be full and every member to have a role.
 - Changes room status to `STARTED`.
+
+UE launch and callback integration:
+
+- `GET /api/ue/trainings/{trainingId}/task` returns launch metadata for the current student.
+- `POST /api/ue/trainings/{trainingId}/status` reports live status.
+- `POST /api/ue/trainings/{trainingId}/attempts` submits scores, steps, and recording metadata.
+- Full callback contract is documented in `docs/ue-api-contract.md`.
 
 ## Training Archives
 

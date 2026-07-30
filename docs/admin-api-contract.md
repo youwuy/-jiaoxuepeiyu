@@ -15,9 +15,165 @@ Online OpenAPI documentation is available after backend startup:
 - `GET /v3/api-docs`
 - `GET /swagger-ui.html`
 
-Temporary integration identity header:
+Compatibility identity fallback:
 
 - `X-User-Id`
+
+Preferred authenticated identity:
+
+- Send `Authorization: Bearer <token>` after login.
+- Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
+
+## Health
+
+### `GET /api/health`
+
+Public deployment smoke-check endpoint.
+
+Response `data`:
+
+- `status`: `OK`.
+- `service`: `jiaoxuepeiyu-backend`.
+- `javaVersion`: runtime Java version.
+- `databaseVersionTarget`: `MySQL 5.7.42.0`.
+- `time`: current server time.
+
+## Auth
+
+### `POST /api/auth/admin/login`
+
+Request body:
+
+```json
+{
+  "loginType": "username",
+  "account": "teacher001",
+  "password": "configured-password"
+}
+```
+
+`loginType` accepts `username`, `employeeNo`, or `phone`.
+
+Response `data`:
+
+- `token`
+- `expiresAt`
+- `user`
+
+### `GET /api/auth/current`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Response `data`: current authenticated user.
+
+### `POST /api/auth/logout`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates `sys_user.last_heartbeat_time` and `sys_user.last_login_ip`.
+- Clients should call this every `30` seconds while active.
+- Users with no heartbeat for `120` seconds are treated as offline.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
+
+### `GET /api/admin/online/users`
+
+Query:
+
+- `userType` optional: `admin`, `teacher`, or `student`.
+- `keyword` optional fuzzy username, real name, or phone.
+- `onlineOnly` optional boolean.
+- `limit` optional, default `100`, maximum `500`.
+
+Response `data`:
+
+- `generatedAt`
+- `totalCount`
+- `onlineCount`
+- `offlineCount`
+- `heartbeatIntervalSeconds`
+- `offlineTimeoutSeconds`
+- `users`
+
+Each `users[]` item:
+
+- `userId`
+- `username`
+- `realName`
+- `userType`
+- `lastLoginIp`
+- `lastHeartbeatTime`
+- `online`
+
+## Files
+
+### `POST /api/files`
+
+Consumes: `multipart/form-data`.
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Form fields:
+
+- `file` required multipart file.
+- `category` optional directory category. Accepted characters: letters, digits, `_`, and `-`. Blank defaults to `general`.
+
+Response `data`:
+
+```json
+{
+  "fileUrl": "/uploads/resources/5d41402abc4b2a76b9719d911017c592.pdf",
+  "fileName": "lesson.pdf",
+  "storedFileName": "5d41402abc4b2a76b9719d911017c592.pdf",
+  "fileSize": 1048576,
+  "contentType": "application/pdf",
+  "category": "resources"
+}
+```
+
+Behavior:
+
+- Stores the file under configurable `app.file.upload-root`.
+- Serves uploaded files from configurable `app.file.public-prefix`, default `/uploads`.
+- Rejects empty files, files larger than configured limits, and unsafe categories.
+- Requires an authenticated admin, teacher, or student token.
+- Use this endpoint before creating or updating resource metadata; copy `fileUrl`, `fileName`, and `fileSize` into `POST /api/admin/resources`.
 
 ## Organization
 
@@ -429,9 +585,9 @@ Request body:
 ```json
 {
   "resourceName": "Safety Training",
-  "coverUrl": "https://cdn.example/cover.png",
-  "fileUrl": "https://cdn.example/intro.mp4",
-  "previewUrl": "https://cdn.example/preview/intro.mp4",
+  "coverUrl": "/uploads/covers/0cc175b9c0f1b6a831c399e269772661.png",
+  "fileUrl": "/uploads/resources/92eb5ffee6ae2fec3ad71c777531578f.mp4",
+  "previewUrl": "/uploads/previews/4a8a08f09d37b73795649038408b5f33.mp4",
   "fileName": "intro.mp4",
   "fileSize": 1048576,
   "majorId": 1,
@@ -445,6 +601,7 @@ Behavior:
 - `resourceName` cannot exceed `20` characters; `courseName` cannot exceed `30` characters.
 - File size cannot exceed `200MB`.
 - File suffix determines resource type.
+- Upload file content with `POST /api/files` first; this API stores only metadata and version snapshots.
 - Initial public status is `NOT_APPLIED`.
 - Creates version `1` and a resource operation log.
 
@@ -957,3 +1114,537 @@ Response `data`:
 ### `GET /api/admin/courses/{courseId}/logs`
 
 Response `data`: course operation logs sorted by newest first.
+
+## Assignment Review
+
+Attempt status:
+
+- `SAVED`
+- `SUBMITTED`
+- `REVIEWED`
+
+### `GET /api/admin/assignment-attempts`
+
+Query:
+
+- `courseId` optional.
+- `assignmentId` optional.
+- `classId` optional.
+- `studentId` optional.
+- `status` optional: `SUBMITTED` or `REVIEWED`.
+- `keyword` optional fuzzy student name, student number, or assignment title.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of assignment attempts with student, class, course, assignment, score, and review state.
+
+### `GET /api/admin/assignment-attempts/{attemptId}`
+
+Response `data`: assignment attempt detail with question answers.
+
+Each answer includes:
+
+- `questionId`
+- `questionType`
+- `title`
+- `standardAnswer`
+- `answerContent`
+- `questionScore`
+- `score`
+- `reviewComment`
+
+### `POST /api/admin/assignment-attempts/{attemptId}/review`
+
+Header:
+
+- `X-User-Id`: current admin or teacher user id.
+
+Request body:
+
+```json
+{
+  "reviewComment": "Good work",
+  "answers": [
+    {
+      "questionId": 1,
+      "score": 8,
+      "comment": "Clear answer"
+    },
+    {
+      "questionId": 2,
+      "score": 10,
+      "comment": "OK"
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Only `SUBMITTED` or previously `REVIEWED` attempts can be reviewed.
+- Each answer score must be within `0` and its question score.
+- Reviewed total score cannot exceed assignment total score.
+- Marks the attempt `REVIEWED`, stores reviewer and review time, persists per-question score/comment, and refreshes course progress.
+
+### `GET /api/admin/assignment-attempts/{attemptId}/logs`
+
+Response `data`: review operation logs sorted by newest first.
+
+## Training Management
+
+Training type:
+
+- `PRACTICE`
+- `EXAM`
+
+Training mode:
+
+- `SINGLE`
+- `TEAM`
+
+Paper mode:
+
+- `MANUAL`
+- `AUTO`
+
+Publish status:
+
+- `DRAFT`
+- `PUBLISHED`
+- `OFFLINE`
+
+### `GET /api/admin/trainings`
+
+Query:
+
+- `keyword` optional fuzzy training name.
+- `academicYearId` optional.
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `trainingType` optional: `PRACTICE` or `EXAM`.
+- `trainingMode` optional: `SINGLE` or `TEAM`.
+- `publishStatus` optional: `DRAFT`, `PUBLISHED`, or `OFFLINE`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of training courses with term, major, paper, class names, participant count, room count, and average score.
+
+### `GET /api/admin/trainings/{trainingId}`
+
+Response `data`: training detail with bound `classIds` and team `roles`.
+
+### `POST /api/admin/trainings`
+
+Header:
+
+- `X-User-Id`: current admin or teacher user id.
+
+Request body:
+
+```json
+{
+  "trainingName": "Door Operation Drill",
+  "academicYearId": 1,
+  "semesterId": 2,
+  "majorId": 3,
+  "coverUrl": "https://cdn.example/training.png",
+  "trainingType": "PRACTICE",
+  "trainingMode": "TEAM",
+  "paperMode": "MANUAL",
+  "paperId": 5,
+  "openStartTime": "2026-09-01T00:00:00",
+  "openEndTime": "2026-12-31T23:59:00",
+  "teamSize": 2,
+  "appRequired": true,
+  "classIds": [10, 11],
+  "roles": [
+    {
+      "roleName": "Driver",
+      "sortOrder": 1
+    },
+    {
+      "roleName": "Dispatcher",
+      "sortOrder": 2
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Creates a draft training course.
+- Training name, academic year, semester, major, cover, open time range, and at least one class are required.
+- `trainingType` defaults to `PRACTICE`; `trainingMode` defaults to `SINGLE`; `paperMode` defaults to `MANUAL`.
+- Manual paper mode requires `paperId`; exam training also requires `paperId`.
+- Single training uses `teamSize = 1` and cannot configure team roles.
+- Team training requires `teamSize > 1`, and submitted role count must match `teamSize`.
+
+### `PUT /api/admin/trainings/{trainingId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates training metadata.
+- Fully replaces submitted class bindings and role definitions.
+
+### `POST /api/admin/trainings/{trainingId}/publish`
+
+Behavior:
+
+- Rejects publishing when bound classes have no enabled students.
+- Revalidates exam paper and team role constraints.
+- Rebuilds `training_participant` from enabled students in bound classes.
+- Marks the training `PUBLISHED`.
+- Sends a `TRAINING` notification to participants.
+
+### `POST /api/admin/trainings/{trainingId}/cancel-publish`
+
+Behavior:
+
+- Marks the training `OFFLINE`.
+- Preserves participants, rooms, monitor rows, and logs.
+
+### `POST /api/admin/trainings/{trainingId}/delete`
+
+Behavior:
+
+- Soft deletes the training and marks it `OFFLINE`.
+
+### `GET /api/admin/trainings/{trainingId}/statistics`
+
+Response `data`:
+
+- `participantCount`
+- `waitingRoomCount`
+- `startedRoomCount`
+- `dissolvedRoomCount`
+- `submittedAttemptCount`
+- `averageScore`
+- `maxScore`
+- `minScore`
+
+### `GET /api/admin/trainings/{trainingId}/monitor`
+
+Response `data`:
+
+- `generatedAt`
+- `statistics`
+- `cameras`: classroom camera stream and online state.
+- `students`: student desk state, progress state, room state, role, and score.
+
+Monitor rows are read from `training_monitor_snapshot`; UE callbacks update that table through `POST /api/ue/trainings/{trainingId}/status` and `POST /api/ue/trainings/{trainingId}/attempts`.
+
+### `GET /api/admin/trainings/{trainingId}/logs`
+
+Response `data`: training operation logs sorted by newest first.
+
+## Device Efficiency
+
+Device status:
+
+- `OFFLINE`
+- `IDLE`
+- `IN_USE`
+- `FAULT`
+
+Device type examples:
+
+- `TRAINING_TERMINAL`
+- `VR`
+- `CONTROL_DESK`
+- `OTHER`
+
+Common query:
+
+- `startDate` optional `YYYY-MM-DD`; defaults to the first day of the current month when both dates are omitted.
+- `endDate` optional `YYYY-MM-DD`; defaults to today when omitted.
+- `classroomId` optional.
+- `deviceType` optional.
+- `deviceStatus` optional.
+- `rankLimit` optional for ranking endpoints, default `10`, maximum `100`.
+
+Behavior:
+
+- Date ranges are inclusive.
+- The maximum query window is `366` days.
+- Real-time state is read from `device` and latest active `device_usage_event`.
+- Historical usage, utilization, monthly trend, and heat ranking are read from `device_usage_daily_summary`.
+
+### `GET /api/admin/devices/efficiency`
+
+Response `data`:
+
+- `summary`
+- `realtimeStates`
+- `monthlyTrends`
+- `heatRanking`
+
+This is the dashboard aggregate endpoint for the management device efficiency page.
+
+### `GET /api/admin/devices/efficiency/summary`
+
+Response `data`:
+
+- `totalDeviceCount`
+- `onlineDeviceCount`
+- `activeDeviceCount`
+- `faultDeviceCount`
+- `totalUsageMinutes`
+- `averageUtilizationRate`
+- `activeTrainingCount`
+
+### `GET /api/admin/devices/efficiency/realtime`
+
+Response `data`: list of device real-time states.
+
+Each item:
+
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `deviceStatus`
+- `classroomId`
+- `classroomName`
+- `currentTrainingId`
+- `currentTrainingName`
+- `currentStudentId`
+- `currentStudentName`
+- `currentStartedAt`
+- `currentUsageMinutes`
+- `lastHeartbeatAt`
+
+### `GET /api/admin/devices/efficiency/monthly-trends`
+
+Response `data`: list grouped by month.
+
+Each item:
+
+- `month`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
+
+### `GET /api/admin/devices/efficiency/heat-ranking`
+
+Response `data`: devices sorted by usage heat.
+
+Each item:
+
+- `rankNo`
+- `deviceId`
+- `deviceCode`
+- `deviceName`
+- `deviceType`
+- `classroomId`
+- `classroomName`
+- `usageMinutes`
+- `usageCount`
+- `utilizationRate`
+
+## Semester Score Management
+
+### `GET /api/admin/scores/semester`
+
+Query:
+
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `studentId` optional.
+- `keyword` optional fuzzy student name or student number.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of semester score rows.
+
+Each row includes:
+
+- student, class, major, semester, and academic term fields.
+- component scores and component weights.
+- `comprehensiveScore`; when the stored value is empty, the backend returns a calculated value from component scores and weights.
+
+### `GET /api/admin/scores/semester/statistics`
+
+Response `data`:
+
+- `studentCount`
+- `averageScore`
+- `maxScore`
+- `minScore`
+- `excellentCount`
+- `passCount`
+
+### `GET /api/admin/scores/semester/ranking`
+
+Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
+
+### `GET /api/admin/scores/semester/export`
+
+Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+
+## Training Archive Management
+
+### `GET /api/admin/archives`
+
+Query:
+
+- `trainingId` optional.
+- `studentId` optional.
+- `classId` optional.
+- `trainingMode` optional: `SINGLE` or `TEAM`.
+- `submitType` optional: `NORMAL`, `ABNORMAL_EXIT`, or `ROOM_DISSOLVED`.
+- `keyword` optional fuzzy training name, student name, or student number.
+- `submittedStartDate` optional `YYYY-MM-DD`.
+- `submittedEndDate` optional `YYYY-MM-DD`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of immutable training attempt archive rows.
+
+### `GET /api/admin/archives/{archiveId}`
+
+Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
+
+Archive rows are created by UE result callbacks documented in `docs/ue-api-contract.md`.
+
+### `GET /api/admin/archives/statistics`
+
+Response `data`:
+
+- `archiveCount`
+- `normalSubmitCount`
+- `abnormalSubmitCount`
+- `roomDissolvedCount`
+- `averagePersonalScore`
+- `averageDurationSeconds`
+
+### `GET /api/admin/archives/export`
+
+Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
+
+## IAM Role And Permission Management
+
+### `GET /api/admin/permissions/tree`
+
+Response `data`: permission tree assembled from `sys_permission`.
+
+Each node:
+
+- `permissionId`
+- `parentId`
+- `permissionName`
+- `permissionCode`
+- `permissionType`: `MENU`, `PAGE`, or `BUTTON`.
+- `routePath`
+- `visible`
+- `sortOrder`
+- `children`
+
+### `GET /api/admin/roles`
+
+Query:
+
+- `keyword` optional fuzzy role name or role code.
+- `enabled` optional boolean.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of role rows.
+
+Each row:
+
+- `roleId`
+- `roleName`
+- `roleCode`
+- `dataScope`: `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `remark`
+- `enabled`
+- `userCount`
+- `permissionIds`
+- `createdAt`
+- `updatedAt`
+
+### `GET /api/admin/roles/{roleId}`
+
+Response `data`: one role row with bound `permissionIds`.
+
+### `POST /api/admin/roles`
+
+Header:
+
+- `X-User-Id`: temporary admin operator id until token authentication is wired into a servlet filter.
+
+Request body:
+
+- `roleName` required.
+- `roleCode` required and unique.
+- `dataScope` optional, defaults to `PERSONAL`; accepts `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `remark` optional.
+- `permissionIds` optional list of permission ids.
+
+Response `data`: created role id.
+
+### `PUT /api/admin/roles/{roleId}`
+
+Header:
+
+- `X-User-Id`
+
+Request body: same as create role. The submitted permission list fully replaces existing bindings.
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/enable`
+
+Header:
+
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/disable`
+
+Header:
+
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/roles/{roleId}/delete`
+
+Header:
+
+- `X-User-Id`
+
+Soft deletes the role and disables it for future use. Existing `sys_user_role` rows are preserved for audit compatibility.
+
+Response `data`: `null`.
+
+### `PUT /api/admin/roles/{roleId}/permissions`
+
+Header:
+
+- `X-User-Id`
+
+Request body:
+
+- `permissionIds` optional list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Response `data`: `null`.
+
+### `GET /api/admin/roles/{roleId}/logs`
+
+Response `data`: list of role operation logs sorted by newest first.
+
+Each log:
+
+- `logId`
+- `roleId`
+- `operatorId`
+- `operatorName`
+- `action`
+- `content`
+- `createdAt`

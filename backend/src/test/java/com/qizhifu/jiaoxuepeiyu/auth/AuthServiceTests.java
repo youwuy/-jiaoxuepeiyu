@@ -85,6 +85,38 @@ class AuthServiceTests {
         assertEquals("Invalid account or password", exception.getMessage());
     }
 
+    @Test
+    void returnsCurrentUserForActiveToken() {
+        FakeSessions sessions = new FakeSessions();
+        sessions.activeUser = authenticatedUser(1L, "teacher");
+
+        AuthService service = service(new FakeUsers(), sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        AuthenticatedUser user = service.currentUser("token-1");
+
+        assertEquals(1L, user.getId().longValue());
+        assertEquals("teacher", user.getUserType());
+    }
+
+    @Test
+    void rejectsCurrentUserForExpiredToken() {
+        AuthService service = service(new FakeUsers(), new FakeSessions(), new PlainHasher(), new FixedTokenGenerator());
+
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> service.currentUser("expired"));
+
+        assertEquals("Invalid or expired token", exception.getMessage());
+    }
+
+    @Test
+    void logoutInvalidatesToken() {
+        FakeSessions sessions = new FakeSessions();
+        AuthService service = service(new FakeUsers(), sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        service.logout("token-1");
+
+        assertEquals("token-1", sessions.invalidatedToken);
+    }
+
     private AuthService service(UserAccountRepository users,
                                 SessionRepository sessions,
                                 PasswordHasher hasher,
@@ -104,6 +136,15 @@ class AuthServiceTests {
         return account;
     }
 
+    private AuthenticatedUser authenticatedUser(Long id, String userType) {
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setId(id);
+        user.setUsername("teacher001");
+        user.setRealName("Teacher One");
+        user.setUserType(userType);
+        return user;
+    }
+
     private static class FakeUsers implements UserAccountRepository {
         private UserAccount account;
 
@@ -115,8 +156,10 @@ class AuthServiceTests {
 
     private static class FakeSessions implements SessionRepository {
         private Long invalidatedUserId;
+        private String invalidatedToken;
         private String createdToken;
         private Instant expiresAt;
+        private AuthenticatedUser activeUser;
 
         @Override
         public void invalidateActiveSessions(Long userId) {
@@ -131,7 +174,12 @@ class AuthServiceTests {
 
         @Override
         public Optional<AuthenticatedUser> findActiveUserByToken(String token, Instant now) {
-            return Optional.empty();
+            return Optional.ofNullable(activeUser);
+        }
+
+        @Override
+        public void invalidateToken(String token) {
+            this.invalidatedToken = token;
         }
     }
 

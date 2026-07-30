@@ -1,0 +1,26 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:jiaoxuepeiyu}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: ${APP_FILE_MAX_SIZE:200MB}
+      max-request-size: ${APP_FILE_MAX_SIZE:200MB}
+
+app:
+  account:
+    initial-password: ${APP_ACCOUNT_INITIAL_PASSWORD:}
+  file:
+    upload-root: ${APP_FILE_UPLOAD_ROOT:uploads}
+    public-prefix: ${APP_FILE_PUBLIC_PREFIX:/uploads}
+    max-size-bytes: ${APP_FILE_MAX_SIZE_BYTES:209715200}
+  online:
+    heartbeat-interval-seconds: 30
+    offline-timeout-seconds: 120
+  rtsp:
+    max-cameras-per-room: 4

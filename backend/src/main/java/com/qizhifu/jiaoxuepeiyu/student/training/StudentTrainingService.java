@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class StudentTrainingService {
     private final StudentTrainingRepository repository;
     private final Clock clock;
 
+    @Autowired
     public StudentTrainingService(StudentTrainingRepository repository) {
         this(repository, Clock.systemDefaultZone());
     }
