@@ -639,10 +639,285 @@ a {
   font-weight: 700;
 }
 
-.training-grid {
+.training-filterbar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px 18px;
+  grid-template-columns: auto minmax(220px, 268px) 120px;
+  justify-content: end;
+  align-items: center;
+  gap: 10px;
+  margin: 30px 0 36px;
+}
+
+.training-segmented {
+  --el-segmented-bg-color: #f6f9ff;
+  --el-segmented-item-selected-bg-color: #2f6df6;
+  --el-segmented-item-selected-color: #ffffff;
+  --el-border-radius-base: 4px;
+  height: 34px;
+  padding: 2px;
+}
+
+.training-segmented .el-segmented__item {
+  min-width: 78px;
+  height: 30px;
+  border-radius: 4px;
+  color: #6f7f95;
+  font-size: 12px;
+}
+
+.training-segmented .el-segmented__item-label {
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.training-search .el-input__wrapper,
+.training-status-select .el-select__wrapper {
+  min-height: 34px;
+  border-radius: 5px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #edf1f7 inset;
+}
+
+.training-search .el-input__inner,
+.training-status-select .el-select__placeholder {
+  font-size: 12px;
+}
+
+.training-list-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.training-list-card {
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.training-list-card:not(.collapsed) {
+  border-color: #eef2f7;
+}
+
+.training-parent-row {
+  display: grid;
+  grid-template-columns: 34px minmax(180px, 1.35fr) 180px 54px 48px 160px 74px 112px;
+  align-items: center;
+  min-height: 58px;
+  padding: 0 18px;
+  gap: 12px;
+  color: #526176;
+  font-size: 12px;
+}
+
+.training-expand {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: #eef6ff;
+  color: #3d8dff;
+  cursor: pointer;
+}
+
+.training-title-cell strong {
+  display: block;
+  overflow: hidden;
+  color: #2d3b4f;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-date-cell,
+.training-countdown,
+.training-mode-pill,
+.training-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.training-date-cell {
+  color: #718197;
+}
+
+.training-type-pill,
+.training-state-pill,
+.training-countdown,
+.training-score-pill,
+.training-mode-pill {
+  justify-self: start;
+  min-height: 22px;
+  border-radius: 5px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 22px;
+}
+
+.training-type-pill.is-practice {
+  background: #eef5ff;
+  color: #3d8dff;
+}
+
+.training-type-pill.is-exam {
+  background: #fff2d8;
+  color: #e7a526;
+}
+
+.training-topic-count {
+  color: #344256;
+  font-size: 12px;
+}
+
+.training-term {
+  color: #667789;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.training-state-pill {
+  position: relative;
+  padding-left: 18px;
+}
+
+.training-state-pill::before {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.training-state-pill.is-available {
+  background: #e9fbf1;
+  color: #18bb63;
+}
+
+.training-state-pill.is-available::before {
+  background: #18bb63;
+}
+
+.training-state-pill.is-notStarted {
+  background: #fff4e4;
+  color: #f49b2f;
+}
+
+.training-state-pill.is-notStarted::before {
+  background: #f49b2f;
+}
+
+.training-state-pill.is-completed {
+  background: #f3f6fa;
+  color: #7f8ca0;
+}
+
+.training-state-pill.is-completed::before {
+  background: #9ca8b8;
+}
+
+.training-countdown.is-hot {
+  background: #fff2e7;
+  color: #ff852a;
+}
+
+.training-countdown.is-blue {
+  background: #edf5ff;
+  color: #3d82ff;
+}
+
+.training-countdown.is-muted {
+  background: #f4f6fa;
+  color: #8a97a8;
+}
+
+.training-score-pill {
+  background: #eafff0;
+  color: #18b961;
+}
+
+.training-step-list {
+  display: grid;
+  background: #fbfcfe;
+}
+
+.training-step-row {
+  display: grid;
+  grid-template-columns: 34px minmax(220px, 1fr) 150px 120px;
+  align-items: center;
+  min-height: 50px;
+  padding: 0 198px 0 72px;
+  column-gap: 14px;
+  border-top: 1px solid #f5f7fa;
+  color: #506176;
+  font-size: 12px;
+}
+
+.training-step-index {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 4px;
+  background: #edf4ff;
+  color: #7d91aa;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.training-step-title {
+  overflow: hidden;
+  color: #526176;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-mode-pill.is-single {
+  background: #ebfff4;
+  color: #18b961;
+}
+
+.training-mode-pill.is-team {
+  background: #eef5ff;
+  color: #3d82ff;
+}
+
+.training-row-action.el-button {
+  width: 112px;
+  height: 30px;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #11a455;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.training-row-action.el-button:hover {
+  background: #0b9349;
+  color: #ffffff;
+}
+
+.training-row-action.is-score.el-button {
+  border: 1px solid #dce5ef;
+  background: #ffffff;
+  color: #56687f;
+}
+
+.training-row-action.is-disabled.el-button,
+.training-row-action.is-disabled.el-button:hover {
+  background: #eef2f6;
+  color: #adb8c6;
 }
 
 .training-card,
@@ -1264,8 +1539,13 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .training-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .training-list-panel {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .training-list-card {
+    min-width: 920px;
   }
 
   .learn-workbench {
@@ -1314,10 +1594,51 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .training-grid,
   .profile-grid,
   .profile-columns {
     grid-template-columns: 1fr;
+  }
+
+  .training-filterbar {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    margin: 18px 0 16px;
+  }
+
+  .training-list-panel {
+    overflow-x: visible;
+  }
+
+  .training-list-card {
+    min-width: 0;
+  }
+
+  .training-parent-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: start;
+    padding: 14px;
+    gap: 8px 10px;
+  }
+
+  .training-date-cell,
+  .training-type-pill,
+  .training-topic-count,
+  .training-term,
+  .training-state-pill,
+  .training-countdown,
+  .training-score-pill {
+    grid-column: 2;
+  }
+
+  .training-step-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    padding: 12px 14px 12px 52px;
+    row-gap: 8px;
+  }
+
+  .training-mode-pill,
+  .training-row-action.el-button {
+    grid-column: 2;
   }
 
   .resource-row {
