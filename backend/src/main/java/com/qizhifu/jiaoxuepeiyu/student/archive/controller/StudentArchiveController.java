@@ -5,6 +5,8 @@ import com.qizhifu.jiaoxuepeiyu.student.StudentContext;
 import com.qizhifu.jiaoxuepeiyu.student.archive.StudentArchiveService;
 import com.qizhifu.jiaoxuepeiyu.student.archive.model.StudentTrainingArchive;
 import com.qizhifu.jiaoxuepeiyu.student.archive.model.StudentTrainingArchiveDetail;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/student/archives")
+@Tag(name = "Student Archives", description = "Student training archive query APIs. Header X-User-Id identifies the student.")
 public class StudentArchiveController {
 
     private final StudentArchiveService service;
@@ -24,6 +27,7 @@ public class StudentArchiveController {
     }
 
     @GetMapping
+    @Operation(summary = "List training archives", description = "Returns the current student's training archives filtered by mode or keyword.")
     public ApiResponse<List<StudentTrainingArchive>> list(
             @RequestParam(value = "mode", required = false) String mode,
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -32,6 +36,7 @@ public class StudentArchiveController {
     }
 
     @GetMapping("/{archiveId}")
+    @Operation(summary = "Get training archive detail", description = "Returns one training archive detail for the current student.")
     public ApiResponse<StudentTrainingArchiveDetail> get(@PathVariable Long archiveId, HttpServletRequest request) {
         return ApiResponse.ok(service.getArchiveDetail(StudentContext.requireStudentId(request), archiveId));
     }

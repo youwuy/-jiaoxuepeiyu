@@ -4,6 +4,8 @@ import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.student.StudentContext;
 import com.qizhifu.jiaoxuepeiyu.student.profile.StudentProfileService;
 import com.qizhifu.jiaoxuepeiyu.student.profile.model.StudentProfile;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/student/profile")
+@Tag(name = "Student Profile", description = "Student profile and password APIs. Header X-User-Id identifies the student.")
 public class StudentProfileController {
 
     private final StudentProfileService service;
@@ -24,23 +27,27 @@ public class StudentProfileController {
     }
 
     @GetMapping
+    @Operation(summary = "Get student profile", description = "Returns the current student's profile.")
     public ApiResponse<StudentProfile> get(HttpServletRequest request) {
         return ApiResponse.ok(service.getProfile(StudentContext.requireStudentId(request)));
     }
 
     @PutMapping("/phone")
+    @Operation(summary = "Update phone", description = "Updates the current student's phone number.")
     public ApiResponse<Void> updatePhone(@Valid @RequestBody PhoneRequest body, HttpServletRequest request) {
         service.updatePhone(StudentContext.requireStudentId(request), body.getPhone());
         return ApiResponse.ok(null);
     }
 
     @PutMapping("/id-card")
+    @Operation(summary = "Update ID card", description = "Updates the current student's ID card number.")
     public ApiResponse<Void> updateIdCard(@Valid @RequestBody IdCardRequest body, HttpServletRequest request) {
         service.updateIdCard(StudentContext.requireStudentId(request), body.getIdCard());
         return ApiResponse.ok(null);
     }
 
     @PutMapping("/password")
+    @Operation(summary = "Change password", description = "Changes the current student's password after validating the current password and password policy.")
     public ApiResponse<Void> changePassword(@Valid @RequestBody PasswordRequest body, HttpServletRequest request) {
         service.changePassword(
                 StudentContext.requireStudentId(request),

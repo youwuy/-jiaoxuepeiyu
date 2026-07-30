@@ -88,6 +88,33 @@ Behavior:
 - Stores the highest studied duration for the student/content pair.
 - Marks the content complete when `completed` is true or studied duration reaches the configured required duration.
 
+## Public Resources
+
+### `GET /api/student/resources/public`
+
+Query:
+
+- `keyword` optional resource name keyword.
+- `resourceType` optional: `DOCUMENT`, `PRESENTATION`, `IMAGE`, `VIDEO`, or `AUDIO`.
+- `majorId` optional.
+
+Response `data`: array of public resource cards.
+
+Each item:
+
+- `resourceId`
+- `resourceName`
+- `resourceType`
+- `coverUrl`
+- `previewUrl`
+- `fileUrl`
+- `fileName`
+- `fileSize`
+- `majorId`
+- `majorName`
+- `uploaderName`
+- `updatedAt`
+
 ## Assignments
 
 ### `GET /api/student/assignments/{assignmentId}`

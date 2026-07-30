@@ -20,7 +20,8 @@ public interface StudentAssignmentMapper {
             + "t.score, t.review_comment, t.submitted_at "
             + "FROM course_assignment a "
             + "JOIN course c ON c.id = a.course_id "
-            + "JOIN sys_user u ON u.class_id = c.class_id "
+            + "LEFT JOIN course_class cc ON cc.course_id = c.id "
+            + "JOIN sys_user u ON u.class_id = COALESCE(cc.class_id, c.class_id) "
             + "LEFT JOIN assignment_attempt t ON t.assignment_id = a.id AND t.student_id = u.id "
             + "WHERE u.id = #{studentId} AND a.id = #{assignmentId} "
             + "AND c.publish_status = 'PUBLISHED' AND a.publish_status = 'PUBLISHED' LIMIT 1")
