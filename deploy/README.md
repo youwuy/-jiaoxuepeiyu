@@ -1,51 +1,55 @@
-# 部署说明
+# Deployment
 
-## 运行环境
+## Runtime
 
-- 后端运行目标：Java 8。
-- 前端构建环境：Node 18+。
-- 数据库：MySQL 5.7.42。
-- 部署包需要携带 Java 运行库，客户服务器不需要额外安装 Java。
+- Backend runtime target: Java 8.
+- Frontend build target: Node.js 18+.
+- Database: MySQL 5.7.42.
+- The deployment package must carry a Java runtime so target users do not need to install Java manually.
 
-## Java 运行库携带方式
+## Java Runtime Layout
 
-正式交付时将 JRE 8 放入：
-
-```text
-deploy/runtime/jre8/
-```
-
-启动脚本默认使用：
+Place an approved JRE 8 distribution here before packaging or before starting from an unpacked release:
 
 ```text
-deploy/runtime/jre8/bin/java
+runtime/jre8/
 ```
 
-该目录不提交到 Git，避免把平台相关二进制文件放入源码仓库。交付部署包时由打包流程或人工放入对应服务器平台的 JRE 8。
+The startup scripts use:
 
-## 本地开发启动
-
-```bash
-docker compose up -d mysql
-./scripts/dev-backend.sh
-./scripts/dev-frontend.sh
+```text
+runtime/jre8/bin/java
+runtime\jre8\bin\java.exe
 ```
 
-访问：
+The runtime directory is not committed to Git. Add the correct platform runtime during release packaging.
 
-- 前端：http://localhost:5173
-- 后端健康检查：http://localhost:8080/api/health
+## Package Layout
 
-## 生产部署配置
+```text
+dist/
+  app/jiaoxuepeiyu-backend.jar
+  database/init/*.sql
+  logs/
+  runtime/jre8/
+  uploads/
+  web/
+  start-backend.sh
+  stop-backend.sh
+  start-backend.bat
+  stop-backend.bat
+```
 
-后端通过环境变量读取数据库配置：
+## Database Configuration
+
+The backend reads database settings from environment variables:
 
 ```bash
 MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_DATABASE=jiaoxuepeiyu
 MYSQL_USER=root
-MYSQL_PASSWORD=root123456
+MYSQL_PASSWORD=change-me
 ```
 
-生产环境密码需由部署方单独配置，不写入公开仓库。
+Do not write production passwords into the repository.
