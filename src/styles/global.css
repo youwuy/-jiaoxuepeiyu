@@ -1,0 +1,250 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    Inter,
+    "PingFang SC",
+    "Microsoft YaHei",
+    Arial,
+    sans-serif;
+  color: #172033;
+  background: #eef2f7;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(420px, 1.08fr) minmax(420px, 0.92fr);
+  background: #eef2f7;
+}
+
+.login-visual {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px clamp(48px, 7vw, 110px);
+  color: #ffffff;
+  isolation: isolate;
+}
+
+.admin-theme .login-visual {
+  background:
+    linear-gradient(145deg, rgba(7, 34, 67, 0.94), rgba(20, 91, 128, 0.88)),
+    url("data:image/svg+xml,%3Csvg width='900' height='900' viewBox='0 0 900 900' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M160 164h580v110H160zM160 352h580v110H160zM160 540h580v110H160z' fill='%23ffffff' fill-opacity='.08'/%3E%3Cpath d='M226 219h186M226 407h318M226 595h245' stroke='%23ffffff' stroke-opacity='.22' stroke-width='18' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: cover;
+}
+
+.student-theme .login-visual {
+  background:
+    linear-gradient(145deg, rgba(16, 61, 58, 0.94), rgba(35, 119, 105, 0.86)),
+    url("data:image/svg+xml,%3Csvg width='900' height='900' viewBox='0 0 900 900' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M214 608c92-170 200-254 324-254 86 0 155 36 207 108' fill='none' stroke='%23ffffff' stroke-opacity='.12' stroke-width='34' stroke-linecap='round'/%3E%3Cpath d='M188 238h412a70 70 0 0 1 70 70v264a70 70 0 0 1-70 70H188z' fill='%23ffffff' fill-opacity='.08'/%3E%3Ccircle cx='604' cy='286' r='58' fill='%23ffffff' fill-opacity='.16'/%3E%3C/svg%3E");
+  background-size: cover;
+}
+
+.brand-mark {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 30px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+.system-kicker {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 16px;
+}
+
+.login-visual h1 {
+  margin: 0;
+  font-size: 54px;
+  line-height: 1.08;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.system-copy {
+  max-width: 440px;
+  margin: 22px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.visual-grid {
+  position: absolute;
+  right: 54px;
+  bottom: 54px;
+  display: grid;
+  grid-template-columns: repeat(4, 42px);
+  gap: 12px;
+  opacity: 0.65;
+}
+
+.visual-grid span {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.progress-card {
+  width: min(360px, 100%);
+  margin-top: 58px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.13);
+  backdrop-filter: blur(10px);
+}
+
+.progress-card span {
+  display: block;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.progress-card strong {
+  display: block;
+  margin: 8px 0 14px;
+  font-size: 36px;
+}
+
+.progress-card div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.progress-card i {
+  display: block;
+  width: 76%;
+  height: 100%;
+  border-radius: inherit;
+  background: #ffffff;
+}
+
+.login-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding: 56px clamp(28px, 5vw, 64px);
+  background: #ffffff;
+}
+
+.panel-header {
+  margin-bottom: 34px;
+}
+
+.panel-header p {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 32px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.login-tabs {
+  margin-bottom: 18px;
+}
+
+.login-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.panel-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+  color: #4f6f9f;
+  font-size: 14px;
+}
+
+.student-theme .login-button {
+  --el-color-primary: #18826f;
+  --el-color-primary-light-3: #35a18e;
+  --el-color-primary-dark-2: #0e6658;
+}
+
+@media (max-width: 900px) {
+  .login-shell {
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+  }
+
+  .login-visual {
+    min-height: 290px;
+    padding: 40px 28px;
+  }
+
+  .brand-mark {
+    margin-bottom: 28px;
+  }
+
+  .login-visual h1 {
+    font-size: 38px;
+  }
+
+  .system-copy {
+    max-width: none;
+    font-size: 16px;
+  }
+
+  .visual-grid,
+  .progress-card {
+    display: none;
+  }
+
+  .login-panel {
+    width: 100%;
+    min-height: calc(100vh - 290px);
+  }
+}
+
+@media (max-width: 520px) {
+  .login-visual {
+    min-height: 230px;
+  }
+
+  .login-panel {
+    min-height: calc(100vh - 230px);
+    padding: 34px 20px 44px;
+  }
+
+  .panel-header h2 {
+    font-size: 26px;
+  }
+}
