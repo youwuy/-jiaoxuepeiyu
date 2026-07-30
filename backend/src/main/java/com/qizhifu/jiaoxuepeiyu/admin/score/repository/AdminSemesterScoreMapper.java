@@ -1,10 +1,13 @@
 package com.qizhifu.jiaoxuepeiyu.admin.score.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScore;
+import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreImportRow;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.score.model.AdminSemesterScoreStatistics;
 import java.util.List;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 @Mapper
@@ -91,4 +94,35 @@ public interface AdminSemesterScoreMapper {
             + "ORDER BY " + SCORE_EXPR + " DESC, ss.id ASC LIMIT #{pageSize} "
             + "</script>")
     List<AdminSemesterScore> findRanking(AdminSemesterScoreQuery query);
+
+    @Select("SELECT id FROM sys_user WHERE username = #{studentNo} AND user_type = 'student' AND status = 1 LIMIT 1")
+    Long findStudentIdByStudentNo(@Param("studentNo") String studentNo);
+
+    @Select("SELECT COUNT(*) FROM edu_semester WHERE id = #{semesterId}")
+    int countSemester(@Param("semesterId") Long semesterId);
+
+    @Insert("<script>"
+            + "INSERT INTO score_semester_summary "
+            + "(student_id, semester_id, courseware_learning_score, training_practice_score, "
+            + "course_assignment_score, exam_score, courseware_weight, training_practice_weight, "
+            + "assignment_weight, exam_weight, comprehensive_score, published_at, created_at, updated_at) VALUES "
+            + "<foreach collection='rows' item='row' separator=','>"
+            + "(#{row.studentId}, #{row.semesterId}, #{row.coursewareLearningScore}, #{row.trainingPracticeScore}, "
+            + "#{row.courseAssignmentScore}, #{row.examScore}, #{row.coursewareWeight}, #{row.trainingPracticeWeight}, "
+            + "#{row.assignmentWeight}, #{row.examWeight}, #{row.comprehensiveScore}, NOW(), NOW(), NOW())"
+            + "</foreach>"
+            + " ON DUPLICATE KEY UPDATE "
+            + "courseware_learning_score = VALUES(courseware_learning_score), "
+            + "training_practice_score = VALUES(training_practice_score), "
+            + "course_assignment_score = VALUES(course_assignment_score), "
+            + "exam_score = VALUES(exam_score), "
+            + "courseware_weight = VALUES(courseware_weight), "
+            + "training_practice_weight = VALUES(training_practice_weight), "
+            + "assignment_weight = VALUES(assignment_weight), "
+            + "exam_weight = VALUES(exam_weight), "
+            + "comprehensive_score = VALUES(comprehensive_score), "
+            + "published_at = VALUES(published_at), "
+            + "updated_at = NOW()"
+            + "</script>")
+    void upsertScores(@Param("rows") List<AdminSemesterScoreImportRow> rows);
 }

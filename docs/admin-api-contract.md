@@ -1621,6 +1621,63 @@ Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
 
 Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
 
+### `POST /api/admin/scores/semester/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "studentNo": "student001",
+      "semesterId": 1,
+      "coursewareLearningScore": 80,
+      "trainingPracticeScore": 90,
+      "courseAssignmentScore": 85,
+      "examScore": 88,
+      "coursewareWeight": 20,
+      "trainingPracticeWeight": 30,
+      "assignmentWeight": 20,
+      "examWeight": 30
+    }
+  ]
+}
+```
+
+Response `data`:
+
+- `totalCount`
+- `validCount`
+- `errorCount`
+- `rows`: normalized import rows with `studentId`, calculated `comprehensiveScore`, `valid`, and row-level `errors`.
+
+Behavior:
+
+- Validates already parsed offline score rows.
+- `studentNo` must belong to an enabled student account.
+- `semesterId` must exist.
+- Component scores and weights are required and must be between `0` and `100`.
+- The four weights must add up to `100`.
+- Duplicate `studentNo + semesterId` rows in the same import are rejected.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/scores/semester/import`
+
+Request body: same as import preview.
+
+Response `data`:
+
+- `importedCount`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Calculates `comprehensiveScore` on the backend using the submitted component scores and weights.
+- Upserts `score_semester_summary` by `student_id + semester_id`.
+- Sets `published_at` to the import time so imported scores are immediately visible in score lists and student score APIs.
+- Rejects the whole import when any row has validation errors.
+
 ## Training Archive Management
 
 ### `GET /api/admin/archives`
