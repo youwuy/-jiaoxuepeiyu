@@ -24,6 +24,20 @@ Preferred authenticated identity:
 - Send `Authorization: Bearer <token>` after login.
 - Token-authenticated requests no longer need `X-User-Id`; the header remains as a compatibility fallback while older frontend calls are migrated.
 
+## Health
+
+### `GET /api/health`
+
+Public deployment smoke-check endpoint.
+
+Response `data`:
+
+- `status`: `OK`.
+- `service`: `jiaoxuepeiyu-backend`.
+- `javaVersion`: runtime Java version.
+- `databaseVersionTarget`: `MySQL 5.7.42.0`.
+- `time`: current server time.
+
 ## Auth
 
 ### `POST /api/auth/admin/login`

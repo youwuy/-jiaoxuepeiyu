@@ -98,3 +98,13 @@ stop-backend.bat
 ```
 
 Logs are written to `logs/backend.log` and `logs/backend-error.log`.
+
+## Smoke Check
+
+After startup, verify the backend:
+
+```text
+GET http://127.0.0.1:8080/api/health
+```
+
+The response contains `status`, `service`, `javaVersion`, `databaseVersionTarget`, and `time`.

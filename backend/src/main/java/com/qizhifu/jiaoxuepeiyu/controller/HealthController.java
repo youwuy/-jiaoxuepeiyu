@@ -4,9 +4,6 @@ import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,12 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
     @GetMapping("/health")
-    @Operation(summary = "Health check", description = "Returns service status, service name, and current server time.")
-    public ApiResponse<Map<String, Object>> health() {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-        result.put("status", "OK");
-        result.put("service", "jiaoxuepeiyu-backend");
-        result.put("time", LocalDateTime.now().toString());
+    @Operation(summary = "Health check", description = "Returns service status, runtime version, database target, and current server time.")
+    public ApiResponse<HealthStatus> health() {
+        HealthStatus result = new HealthStatus();
+        result.setStatus("OK");
+        result.setService("jiaoxuepeiyu-backend");
+        result.setJavaVersion(System.getProperty("java.version"));
+        result.setDatabaseVersionTarget("MySQL 5.7.42.0");
+        result.setTime(LocalDateTime.now());
         return ApiResponse.ok(result);
     }
 }
