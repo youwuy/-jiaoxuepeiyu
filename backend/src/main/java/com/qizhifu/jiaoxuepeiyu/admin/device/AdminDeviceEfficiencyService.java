@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +25,7 @@ public class AdminDeviceEfficiencyService {
     private final AdminDeviceEfficiencyRepository repository;
     private final Clock clock;
 
+    @Autowired
     public AdminDeviceEfficiencyService(AdminDeviceEfficiencyRepository repository) {
         this(repository, Clock.systemDefaultZone());
     }
