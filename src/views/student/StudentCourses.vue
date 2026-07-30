@@ -12,10 +12,23 @@
       />
     </section>
 
-    <el-empty v-if="visibleCourses.length === 0" description="暂未找到课程" />
+    <div v-if="loading" class="student-loading">课程加载中...</div>
+
+    <el-empty v-else-if="visibleCourses.length === 0" description="暂未找到课程" />
 
     <section v-else class="course-grid">
-      <article v-for="course in visibleCourses" :key="course.id" class="course-card">
+      <article
+        v-for="course in visibleCourses"
+        :key="course.id"
+        class="course-card"
+        :class="{ 'is-clickable': course.status !== 'notStarted' }"
+        :tabindex="course.status === 'notStarted' ? -1 : 0"
+        :aria-disabled="course.status === 'notStarted'"
+        role="button"
+        @click="openCourse(course)"
+        @keyup.enter="openCourse(course)"
+        @keyup.space.prevent="openCourse(course)"
+      >
         <div class="course-card-head">
           <div class="course-labels">
             <span class="course-status-pill" :class="`is-${course.status}`">
@@ -53,7 +66,7 @@
           :class="{ 'is-muted': course.status === 'notStarted', 'is-plain': course.status === 'completed' }"
           :type="course.status === 'learning' ? 'primary' : 'default'"
           :disabled="course.status === 'notStarted'"
-          @click="openCourse(course)"
+          @click.stop="openCourse(course)"
         >
           {{ statusMeta[course.status].action }}
         </el-button>
@@ -63,9 +76,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import { Calendar, Document, DocumentChecked, Search, User } from '@element-plus/icons-vue';
+import { fetchStudentCourses } from '../../api/student';
 import StudentShell from '../../components/student/StudentShell.vue';
 import {
   buildCourseViews,
@@ -78,7 +93,9 @@ import {
 
 const router = useRouter();
 const keyword = ref('');
+const loading = ref(false);
 const currentTime = new Date('2025-04-10T08:00:00');
+const courses = ref(mockStudentCourses);
 
 const statusMeta: Record<CourseStatus, { label: string; action: string }> = {
   learning: {
@@ -95,8 +112,19 @@ const statusMeta: Record<CourseStatus, { label: string; action: string }> = {
   }
 };
 
-const courseViews = computed(() => buildCourseViews(mockStudentCourses, currentTime));
+const courseViews = computed(() => buildCourseViews(courses.value, currentTime));
 const visibleCourses = computed(() => filterCoursesByKeyword(courseViews.value, keyword.value));
+
+onMounted(async () => {
+  loading.value = true;
+  try {
+    courses.value = await fetchStudentCourses();
+  } catch {
+    ElMessage.warning('后端课程接口暂不可用，已展示本地示例数据');
+  } finally {
+    loading.value = false;
+  }
+});
 
 function openCourse(course: StudentCourseView) {
   if (course.status === 'notStarted') {

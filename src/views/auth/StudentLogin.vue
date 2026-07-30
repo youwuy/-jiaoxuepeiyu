@@ -57,12 +57,9 @@
           />
         </el-form-item>
 
-        <el-button class="login-button" type="primary" size="large" @click="submit">登录</el-button>
+        <el-button class="login-button" type="primary" size="large" :loading="loading" @click="submit">登录</el-button>
       </el-form>
 
-      <div class="panel-footer">
-        <RouterLink to="/admin/login">进入管理端</RouterLink>
-      </div>
     </main>
   </section>
 </template>
@@ -70,6 +67,8 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
+import { loginStudent } from '../../api/auth';
 import {
   normalizePasswordInput,
   normalizePhoneInput,
@@ -81,6 +80,7 @@ import {
 
 const router = useRouter();
 const mode = ref<StudentLoginMode>('studentId');
+const loading = ref(false);
 
 const form = reactive({
   studentId: '',
@@ -121,7 +121,7 @@ function onPasswordInput(value: string) {
   errors.password = undefined;
 }
 
-function submit() {
+async function submit() {
   clearErrors();
   Object.assign(errors, validateStudentLogin(mode.value, form));
 
@@ -129,6 +129,15 @@ function submit() {
     return;
   }
 
-  router.push('/student/courses');
+  loading.value = true;
+  try {
+    await loginStudent(mode.value, form);
+    ElMessage.success('登录成功');
+    router.push('/student/courses');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '登录失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

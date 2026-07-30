@@ -39,19 +39,17 @@
           />
         </el-form-item>
 
-        <el-button class="login-button" type="primary" size="large" @click="submit">登录</el-button>
+        <el-button class="login-button" type="primary" size="large" :loading="loading" @click="submit">登录</el-button>
       </el-form>
 
-      <div class="panel-footer">
-        <RouterLink to="/student/login">进入学员端</RouterLink>
-      </div>
     </main>
   </section>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
-import { ElMessageBox } from 'element-plus';
+import { reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import { loginAdmin } from '../../api/auth';
 import { normalizePasswordInput, validateAdminLogin, type AdminLoginErrors } from '../../features/auth/validation';
 
 const form = reactive({
@@ -60,21 +58,28 @@ const form = reactive({
 });
 
 const errors = reactive<AdminLoginErrors>({});
+const loading = ref(false);
 
 function onPasswordInput(value: string) {
   form.password = normalizePasswordInput(value);
   errors.password = undefined;
 }
 
-function submit() {
+async function submit() {
   Object.assign(errors, { account: undefined, password: undefined }, validateAdminLogin(form));
 
   if (Object.values(errors).some(Boolean)) {
     return;
   }
 
-  ElMessageBox.alert('登录接口待后端联调接入', '提示', {
-    confirmButtonText: '知道了'
-  });
+  loading.value = true;
+  try {
+    await loginAdmin(form);
+    ElMessage.success('登录成功');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '登录失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

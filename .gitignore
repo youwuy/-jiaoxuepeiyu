@@ -7,6 +7,7 @@
 # frontend
 node_modules/
 dist/
+.vite/
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
@@ -27,6 +28,8 @@ tmp/
 *.log
 
 # local visual QA artifacts
+.codegraph/
 design-qa.md
 design-qa-comparison.png
 student-courses-screenshot*.png
+student-learn-screenshot*.png

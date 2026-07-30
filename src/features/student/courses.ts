@@ -17,7 +17,9 @@ export interface CourseCatalogItem {
   type: CourseItemType;
   title: string;
   status: CourseItemStatus;
+  resourceType?: string;
   durationMinutes?: number;
+  learnedSeconds?: number;
   minDurationMinutes?: number;
   score?: number;
   deadline?: string;
@@ -130,8 +132,8 @@ export const mockStudentCourses: StudentCourse[] = [
     term: '2024-2025学年 下学期',
     startAt: '2025-03-11',
     endAt: '2025-06-20',
-    completedItems: 2,
-    totalItems: 10,
+    completedItems: 5,
+    totalItems: 11,
     resourceCount: 12,
     assignmentCount: 8,
     teachers: ['王建国', '李忠华'],
@@ -139,15 +141,27 @@ export const mockStudentCourses: StudentCourse[] = [
     chapters: [
       {
         id: 'chapter-1',
-        title: '第一章 城轨系统认知',
+        title: '第一章 城市轨道交通概述',
         status: 'completed',
         items: [
           {
             id: 'ware-1-1',
             type: 'courseware',
-            title: '1.1 城市轨道交通发展',
+            title: '1.1 城市轨道交通定义与分类',
             status: 'completed',
+            resourceType: 'PPT文档',
             durationMinutes: 18,
+            minDurationMinutes: 15,
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
+          },
+          {
+            id: 'ware-1-2',
+            type: 'courseware',
+            title: '1.2 国内外发展历程',
+            status: 'completed',
+            resourceType: 'PPT文档',
+            durationMinutes: 16,
             minDurationMinutes: 15,
             openStart: '2025-03-11',
             openEnd: '2025-06-20'
@@ -155,7 +169,7 @@ export const mockStudentCourses: StudentCourse[] = [
           {
             id: 'work-1-1',
             type: 'assignment',
-            title: '章节理论练习',
+            title: '第一章作业',
             status: 'completed',
             score: 92,
             deadline: '2025-04-20'
@@ -164,14 +178,15 @@ export const mockStudentCourses: StudentCourse[] = [
       },
       {
         id: 'chapter-2',
-        title: '第二章 车站类型与布局',
+        title: '第二章 线路与车站',
         status: 'learning',
         items: [
           {
             id: 'ware-2-1',
             type: 'courseware',
-            title: '2.1 岛式与侧式站台',
+            title: '2.1 线路分类与特点',
             status: 'completed',
+            resourceType: 'PPT文档',
             durationMinutes: 22,
             minDurationMinutes: 20,
             openStart: '2025-03-11',
@@ -182,23 +197,36 @@ export const mockStudentCourses: StudentCourse[] = [
             type: 'courseware',
             title: '2.2 车站类型与布局',
             status: 'current',
+            resourceType: 'PPT文档',
             durationMinutes: 12,
-            minDurationMinutes: 20,
+            learnedSeconds: 512,
+            minDurationMinutes: 15,
+            openStart: '2025-03-11',
+            openEnd: '2025-06-20'
+          },
+          {
+            id: 'ware-2-3',
+            type: 'courseware',
+            title: '2.3 换乘站设计',
+            status: 'pending',
+            resourceType: 'PPT文档',
+            durationMinutes: 0,
+            minDurationMinutes: 15,
             openStart: '2025-03-11',
             openEnd: '2025-06-20'
           },
           {
             id: 'work-2-1',
             type: 'assignment',
-            title: '车站布局实训作业',
-            status: 'pending',
-            deadline: '2025-05-15'
+            title: '第二章作业',
+            status: 'locked',
+            deadline: '2025-03-20'
           }
         ]
       },
       {
         id: 'chapter-3',
-        title: '第三章 运营组织基础',
+        title: '第三章 车辆系统',
         status: 'notStarted',
         items: [
           {
@@ -217,6 +245,42 @@ export const mockStudentCourses: StudentCourse[] = [
             title: '运营组织理论作业',
             status: 'locked',
             deadline: '2025-06-10'
+          }
+        ]
+      },
+      {
+        id: 'chapter-4',
+        title: '第四章 信号与通信系统',
+        status: 'notStarted',
+        items: [
+          {
+            id: 'ware-4-1',
+            type: 'courseware',
+            title: '4.1 信号系统认知',
+            status: 'locked',
+            resourceType: 'PPT文档',
+            durationMinutes: 0,
+            minDurationMinutes: 15,
+            openStart: '2025-03-20',
+            openEnd: '2025-06-20'
+          }
+        ]
+      },
+      {
+        id: 'chapter-5',
+        title: '第五章 供电系统',
+        status: 'notStarted',
+        items: [
+          {
+            id: 'ware-5-1',
+            type: 'courseware',
+            title: '5.1 牵引供电基础',
+            status: 'locked',
+            resourceType: 'PPT文档',
+            durationMinutes: 0,
+            minDurationMinutes: 15,
+            openStart: '2025-03-20',
+            openEnd: '2025-06-20'
           }
         ]
       }
