@@ -44,6 +44,15 @@ public final class AuthenticatedUserContext {
         return user.getId();
     }
 
+    public static Long requireUserId(HttpServletRequest request) {
+        AuthenticatedUser user = current(request);
+        if (user == null) {
+            throwAuthenticationError(request);
+            throw new BusinessException(401, "Missing authenticated identity");
+        }
+        return user.getId();
+    }
+
     private static AuthenticatedUser current(HttpServletRequest request) {
         Object value = request.getAttribute(REQUEST_ATTRIBUTE);
         if (value instanceof AuthenticatedUser) {

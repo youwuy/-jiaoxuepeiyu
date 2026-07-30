@@ -31,6 +31,16 @@ class AuthenticatedUserContextTests {
     }
 
     @Test
+    void returnsAnyAuthenticatedUserId() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(AuthenticatedUserContext.REQUEST_ATTRIBUTE, user(11L, "admin"));
+
+        Long userId = AuthenticatedUserContext.requireUserId(request);
+
+        assertEquals(11L, userId.longValue());
+    }
+
+    @Test
     void rejectsStudentTokenOnAdminContext() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setAttribute(AuthenticatedUserContext.REQUEST_ATTRIBUTE, user(7L, "student"));
@@ -52,6 +62,16 @@ class AuthenticatedUserContextTests {
                 () -> AuthenticatedUserContext.requireAdminId(request));
 
         assertEquals("Invalid or expired token", exception.getMessage());
+    }
+
+    @Test
+    void rejectsMissingAuthenticatedUserForGenericContext() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> AuthenticatedUserContext.requireUserId(request));
+
+        assertEquals("Missing authenticated identity", exception.getMessage());
     }
 
     private AuthenticatedUser user(Long id, String userType) {
