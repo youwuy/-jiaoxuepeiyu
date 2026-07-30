@@ -2,6 +2,11 @@ package com.qizhifu.jiaoxuepeiyu.admin.account;
 
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountExportRow;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportResult;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportRow;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.account.port.AdminAccountRepository;
 import com.qizhifu.jiaoxuepeiyu.auth.port.PasswordHasher;
@@ -9,6 +14,7 @@ import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.common.validation.InputValidator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -118,6 +124,41 @@ public class AdminAccountService {
         repository.replaceRoles(userId, normalizedRoleIds);
     }
 
+    public AdminAccountImportPreview previewImport(String userType, AdminAccountImportCommand command) {
+        return preview(normalizeUserType(userType), command);
+    }
+
+    @Transactional
+    public AdminAccountImportResult importAccounts(String userType, AdminAccountImportCommand command) {
+        String normalizedUserType = normalizeUserType(userType);
+        AdminAccountImportPreview preview = preview(normalizedUserType, command);
+        if (preview.getErrorCount().intValue() > 0) {
+            throw new BusinessException(400, "Import rows contain errors");
+        }
+        List<Long> userIds = new ArrayList<Long>();
+        for (AdminAccountImportRow row : preview.getRows()) {
+            AdminAccountCommand account = toCommand(row);
+            if ("teacher".equals(normalizedUserType)) {
+                userIds.add(createTeacher(account));
+            } else {
+                userIds.add(createStudent(account));
+            }
+        }
+        AdminAccountImportResult result = new AdminAccountImportResult();
+        result.setImportedCount(Integer.valueOf(userIds.size()));
+        result.setUserIds(userIds);
+        return result;
+    }
+
+    public List<AdminAccountExportRow> exportAccounts(String userType, AdminAccountQuery query) {
+        AdminAccountQuery normalized = normalizedQuery(query, normalizeUserType(userType));
+        List<AdminAccountExportRow> rows = new ArrayList<AdminAccountExportRow>();
+        for (AdminAccount account : repository.findAccountsForExport(normalized)) {
+            rows.add(toExportRow(account));
+        }
+        return rows;
+    }
+
     private PageResponse<AdminAccount> list(String userType, AdminAccountQuery query) {
         AdminAccountQuery normalized = normalizedQuery(query, userType);
         List<AdminAccount> accounts = repository.findAccounts(normalized);
@@ -184,6 +225,142 @@ public class AdminAccountService {
         normalized.setManagedOrgIds(unique(command.getManagedOrgIds()));
         normalized.setTeachingClassIds(unique(command.getTeachingClassIds()));
         return normalized;
+    }
+
+    private AdminAccountImportPreview preview(String userType, AdminAccountImportCommand command) {
+        if (command == null || command.getRows().isEmpty()) {
+            throw new BusinessException(400, "Import rows are required");
+        }
+        List<AdminAccountImportRow> rows = command.getRows();
+        Set<String> accountNos = new LinkedHashSet<String>();
+        Set<String> duplicateNos = duplicateAccountNos(rows);
+        for (AdminAccountImportRow row : rows) {
+            String accountNo = trimToNull(row == null ? null : row.getAccountNo());
+            if (accountNo != null) {
+                accountNos.add(accountNo);
+            }
+        }
+        Set<String> existingNos = new HashSet<String>(repository.findExistingAccountNos(new ArrayList<String>(accountNos)));
+
+        int validCount = 0;
+        List<AdminAccountImportRow> previewRows = new ArrayList<AdminAccountImportRow>();
+        for (int i = 0; i < rows.size(); i++) {
+            AdminAccountImportRow source = rows.get(i);
+            AdminAccountImportRow row = copyImportRow(source, i + 1);
+            List<String> errors = validateImportRow(row, userType);
+            String accountNo = trimToNull(row.getAccountNo());
+            if (accountNo != null && existingNos.contains(accountNo)) {
+                errors.add("Account number already exists");
+            }
+            if (accountNo != null && duplicateNos.contains(accountNo)) {
+                errors.add("Account number is duplicated in import rows");
+            }
+            row.setErrors(errors);
+            row.setValid(Boolean.valueOf(errors.isEmpty()));
+            if (errors.isEmpty()) {
+                validCount++;
+            }
+            previewRows.add(row);
+        }
+        AdminAccountImportPreview preview = new AdminAccountImportPreview();
+        preview.setTotalCount(Integer.valueOf(previewRows.size()));
+        preview.setValidCount(Integer.valueOf(validCount));
+        preview.setErrorCount(Integer.valueOf(previewRows.size() - validCount));
+        preview.setRows(previewRows);
+        return preview;
+    }
+
+    private List<String> validateImportRow(AdminAccountImportRow row, String userType) {
+        List<String> errors = new ArrayList<String>();
+        if (!InputValidator.hasText(row.getAccountNo())) {
+            errors.add("Account number is required");
+        }
+        if (!InputValidator.hasText(row.getRealName())) {
+            errors.add("Name is required");
+        }
+        if (!InputValidator.isPhone(row.getPhone())) {
+            errors.add("Phone format is invalid");
+        }
+        if (row.getOrgId() == null) {
+            errors.add("Organization is required");
+        }
+        if ("student".equals(userType) && row.getClassId() == null) {
+            errors.add("Class is required");
+        }
+        if (InputValidator.hasText(row.getIdCard()) && !InputValidator.isIdCard(row.getIdCard())) {
+            errors.add("ID card format is invalid");
+        }
+        return errors;
+    }
+
+    private Set<String> duplicateAccountNos(List<AdminAccountImportRow> rows) {
+        Set<String> seen = new HashSet<String>();
+        Set<String> duplicates = new HashSet<String>();
+        for (AdminAccountImportRow row : rows) {
+            String accountNo = trimToNull(row == null ? null : row.getAccountNo());
+            if (accountNo != null && !seen.add(accountNo)) {
+                duplicates.add(accountNo);
+            }
+        }
+        return duplicates;
+    }
+
+    private AdminAccountImportRow copyImportRow(AdminAccountImportRow source, int defaultRowNo) {
+        AdminAccountImportRow row = new AdminAccountImportRow();
+        if (source != null) {
+            row.setRowNo(source.getRowNo() == null ? Integer.valueOf(defaultRowNo) : source.getRowNo());
+            row.setAccountNo(trimToNull(source.getAccountNo()));
+            row.setRealName(trimToNull(source.getRealName()));
+            row.setPhone(trimToNull(source.getPhone()));
+            row.setIdCard(trimToNull(source.getIdCard()));
+            row.setJobTitle(trimToNull(source.getJobTitle()));
+            row.setOrgId(source.getOrgId());
+            row.setClassId(source.getClassId());
+            row.setRoleIds(unique(source.getRoleIds()));
+            row.setManagedOrgIds(unique(source.getManagedOrgIds()));
+            row.setTeachingClassIds(unique(source.getTeachingClassIds()));
+        } else {
+            row.setRowNo(Integer.valueOf(defaultRowNo));
+        }
+        return row;
+    }
+
+    private AdminAccountCommand toCommand(AdminAccountImportRow row) {
+        AdminAccountCommand command = new AdminAccountCommand();
+        command.setAccountNo(row.getAccountNo());
+        command.setRealName(row.getRealName());
+        command.setPhone(row.getPhone());
+        command.setIdCard(row.getIdCard());
+        command.setJobTitle(row.getJobTitle());
+        command.setOrgId(row.getOrgId());
+        command.setClassId(row.getClassId());
+        command.setRoleIds(row.getRoleIds());
+        command.setManagedOrgIds(row.getManagedOrgIds());
+        command.setTeachingClassIds(row.getTeachingClassIds());
+        return command;
+    }
+
+    private AdminAccountExportRow toExportRow(AdminAccount account) {
+        AdminAccountExportRow row = new AdminAccountExportRow();
+        row.setUserId(account.getUserId());
+        row.setAccountNo(account.getAccountNo());
+        row.setRealName(account.getRealName());
+        row.setMaskedPhone(maskPhone(account.getPhone()));
+        row.setMaskedIdCard(maskIdCard(account.getMaskedIdCard()));
+        row.setUserType(account.getUserType());
+        row.setOrgName(account.getOrgName());
+        row.setClassName(account.getClassName());
+        row.setJobTitle(account.getJobTitle());
+        row.setEnabled(Boolean.valueOf(account.isEnabled()));
+        row.setCreatedAt(account.getCreatedAt());
+        return row;
+    }
+
+    private String normalizeUserType(String userType) {
+        if (!"teacher".equals(userType) && !"student".equals(userType)) {
+            throw new BusinessException(400, "Account type is invalid");
+        }
+        return userType;
     }
 
     private String requireInitialPassword() {

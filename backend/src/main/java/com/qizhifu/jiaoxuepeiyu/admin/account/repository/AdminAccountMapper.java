@@ -37,6 +37,27 @@ public interface AdminAccountMapper {
     List<AdminAccount> findAccounts(AdminAccountQuery query);
 
     @Select("<script>"
+            + "SELECT u.id AS user_id, u.username AS account_no, u.real_name, u.phone, "
+            + "u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
+            + "u.class_id, c.class_name, CASE WHEN u.status = 1 THEN TRUE ELSE FALSE END AS enabled, "
+            + "CASE WHEN u.face_file_id IS NULL THEN FALSE ELSE TRUE END AS face_recorded, "
+            + "CASE WHEN u.fingerprint_file_id IS NULL THEN FALSE ELSE TRUE END AS fingerprint_recorded, "
+            + "u.created_at "
+            + "FROM sys_user u "
+            + "LEFT JOIN sys_org o ON o.id = u.org_id "
+            + "LEFT JOIN edu_class c ON c.id = u.class_id "
+            + "WHERE u.user_type = #{userType} "
+            + "<if test='orgId != null'>AND u.org_id = #{orgId}</if> "
+            + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
+            + "<if test='enabled != null'>AND u.status = <choose><when test='enabled'>1</when><otherwise>0</otherwise></choose></if> "
+            + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
+            + "<if test='accountNo != null'>AND u.username LIKE #{accountNo}</if> "
+            + "<if test='phone != null'>AND u.phone LIKE #{phone}</if> "
+            + "ORDER BY u.created_at DESC, u.id DESC "
+            + "</script>")
+    List<AdminAccount> findAccountsForExport(AdminAccountQuery query);
+
+    @Select("<script>"
             + "SELECT COUNT(*) FROM sys_user u WHERE u.user_type = #{userType} "
             + "<if test='orgId != null'>AND u.org_id = #{orgId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
@@ -58,6 +79,12 @@ public interface AdminAccountMapper {
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
             + "WHERE u.id = #{userId} LIMIT 1")
     AdminAccount findById(@Param("userId") Long userId);
+
+    @Select("<script>"
+            + "SELECT username FROM sys_user WHERE username IN "
+            + "<foreach collection='accountNos' item='accountNo' open='(' separator=',' close=')'>#{accountNo}</foreach>"
+            + "</script>")
+    List<String> findExistingAccountNos(@Param("accountNos") List<String> accountNos);
 
     @Insert("INSERT INTO sys_user "
             + "(username, real_name, phone, user_type, status, password_hash, org_id, class_id, "
