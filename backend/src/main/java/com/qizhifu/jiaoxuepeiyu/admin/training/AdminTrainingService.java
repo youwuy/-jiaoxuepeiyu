@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class AdminTrainingService {
     private final AdminTrainingRepository repository;
     private final Clock clock;
 
+    @Autowired
     public AdminTrainingService(AdminTrainingRepository repository) {
         this(repository, Clock.systemDefaultZone());
     }
