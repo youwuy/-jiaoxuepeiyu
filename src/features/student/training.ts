@@ -54,7 +54,7 @@ export function filterTrainings<T extends Pick<StudentTraining, 'mode' | 'status
 export const mockTrainings: StudentTraining[] = [
   {
     id: 3001,
-    title: '自动扶梯伤害任务演练',
+    title: '自动扶梯伤客任务演练',
     mode: 'single',
     status: 'available',
     category: 'practice',

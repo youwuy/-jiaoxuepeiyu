@@ -59,8 +59,11 @@
 
         <div v-if="expandedIds.includes(training.id)" class="training-step-list">
           <div v-for="(step, index) in training.steps ?? []" :key="step.id" class="training-step-row">
-            <span class="training-step-index">{{ index + 1 }}</span>
-            <span class="training-step-title">{{ step.title }}</span>
+            <span class="training-step-indent" aria-hidden="true"></span>
+            <span class="training-step-title-cell">
+              <span class="training-step-index">{{ index + 1 }}</span>
+              <span class="training-step-title">{{ step.title }}</span>
+            </span>
             <span class="training-mode-pill" :class="step.mode === 'team' ? 'is-team' : 'is-single'">
               <el-icon><User /></el-icon>
               {{ step.mode === 'team' ? '多人实训' : '单人实训' }}
@@ -72,7 +75,10 @@
               :loading="actionLoadingIds.includes(step.id)"
               @click="handleTrainingAction(training, step)"
             >
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document v-if="training.status === 'completed' || step.action === 'score'" />
+                <Right v-else />
+              </el-icon>
               {{ actionText(training, step) }}
             </el-button>
           </div>
@@ -83,9 +89,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, ArrowRight, Calendar, Clock, Document, Search, Trophy, User } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowRight, Calendar, Clock, Document, Right, Search, Trophy, User } from '@element-plus/icons-vue';
 import {
   createTrainingRoom,
   fetchStudentTrainings,
@@ -110,6 +116,7 @@ const loading = ref(false);
 const actionLoadingIds = ref<number[]>([]);
 const trainings = ref(mockTrainings);
 const expandedIds = ref<number[]>(mockTrainings.map((item) => item.id));
+let trainingRequestId = 0;
 const modeOptions = [
   { label: '全部', value: 'all' },
   { label: '单人实训', value: 'single' },
@@ -117,9 +124,9 @@ const modeOptions = [
 ];
 
 const statusText: Record<TrainingStatus, string> = {
-  available: '可进入',
+  available: '进行中',
   notStarted: '未开始',
-  completed: '已完成'
+  completed: '已结束'
 };
 
 const visibleTrainings = computed(() =>
@@ -129,6 +136,34 @@ const visibleTrainings = computed(() =>
     keyword: keyword.value
   })
 );
+
+async function loadTrainings() {
+  const requestId = ++trainingRequestId;
+  loading.value = true;
+
+  try {
+    const remoteTrainings = await fetchStudentTrainings({
+      mode: mode.value === 'all' ? undefined : mode.value,
+      keyword: keyword.value.trim() || undefined
+    });
+
+    if (requestId !== trainingRequestId) {
+      return;
+    }
+
+    trainings.value = remoteTrainings.length > 0 ? remoteTrainings : mockTrainings;
+    expandedIds.value = trainings.value.map((item) => item.id);
+  } catch {
+    if (requestId === trainingRequestId) {
+      trainings.value = mockTrainings;
+      expandedIds.value = mockTrainings.map((item) => item.id);
+    }
+  } finally {
+    if (requestId === trainingRequestId) {
+      loading.value = false;
+    }
+  }
+}
 
 function toggleTraining(id: number) {
   expandedIds.value = expandedIds.value.includes(id)
@@ -189,17 +224,11 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
   }
 }
 
-onMounted(async () => {
-  loading.value = true;
-  try {
-    const remoteTrainings = await fetchStudentTrainings();
-    trainings.value = remoteTrainings;
-    expandedIds.value = remoteTrainings.map((item) => item.id);
-  } catch {
-    trainings.value = mockTrainings;
-    expandedIds.value = mockTrainings.map((item) => item.id);
-  } finally {
-    loading.value = false;
-  }
+watch([mode, keyword], () => {
+  void loadTrainings();
+});
+
+onMounted(() => {
+  void loadTrainings();
 });
 </script>

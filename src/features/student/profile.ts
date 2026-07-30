@@ -4,11 +4,25 @@ export interface ScorePart {
   weight: number;
 }
 
+export interface SemesterScore {
+  academicTerm: string;
+  coursewareLearningScore: number;
+  trainingPracticeScore: number;
+  courseAssignmentScore: number;
+  examScore: number;
+  coursewareWeight: number;
+  trainingPracticeWeight: number;
+  assignmentWeight: number;
+  examWeight: number;
+  comprehensiveScore: number;
+}
+
 export interface StudentMessage {
   id: number;
   title: string;
   unread: boolean;
   type?: string;
+  content?: string;
   time?: string;
 }
 
@@ -18,6 +32,28 @@ export interface TrainingArchive {
   score: number;
   duration: string;
   finishedAt: string;
+  mode?: string;
+  role?: string;
+  submitType?: string;
+  teamScore?: number;
+}
+
+export interface TrainingArchiveStep {
+  id: number;
+  name: string;
+  expected: string;
+  actual: string;
+  score: number;
+  durationSeconds: number;
+  videoStartSecond?: number;
+}
+
+export interface TrainingArchiveDetail extends TrainingArchive {
+  studentName?: string;
+  studentNo?: string;
+  className?: string;
+  recordingUrl?: string;
+  steps: TrainingArchiveStep[];
 }
 
 export function calculateWeightedScore(parts: ScorePart[]): number {
