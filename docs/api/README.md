@@ -11,9 +11,18 @@
 
 ## 仓库文件
 
+- `index.html`: GitHub Pages 使用的静态 Swagger UI 页面。
 - `openapi.json`: 当前后端自动生成的 OpenAPI 3.0 接口定义。
 
 可以将 `openapi.json` 导入 Apifox、Postman、Swagger Editor 等工具查看和调试。
+
+## GitHub Pages
+
+推送到 `main` 后，GitHub Actions 会自动发布 `docs/api` 目录。
+
+发布后访问：
+
+- https://youwuy.github.io/-jiaoxuepeiyu/
 
 ## 更新方式
 
