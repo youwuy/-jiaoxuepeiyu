@@ -74,7 +74,70 @@ Header:
 
 - `Authorization: Bearer <token>`
 
-Invalidates the current token session. Response `data`: `null`.
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates `sys_user.last_heartbeat_time` and `sys_user.last_login_ip`.
+- Clients should call this every `30` seconds while active.
+- Users with no heartbeat for `120` seconds are treated as offline.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
+
+### `GET /api/admin/online/users`
+
+Query:
+
+- `userType` optional: `admin`, `teacher`, or `student`.
+- `keyword` optional fuzzy username, real name, or phone.
+- `onlineOnly` optional boolean.
+- `limit` optional, default `100`, maximum `500`.
+
+Response `data`:
+
+- `generatedAt`
+- `totalCount`
+- `onlineCount`
+- `offlineCount`
+- `heartbeatIntervalSeconds`
+- `offlineTimeoutSeconds`
+- `users`
+
+Each `users[]` item:
+
+- `userId`
+- `username`
+- `realName`
+- `userType`
+- `lastLoginIp`
+- `lastHeartbeatTime`
+- `online`
 
 ## Files
 

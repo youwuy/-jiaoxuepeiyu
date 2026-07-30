@@ -56,7 +56,41 @@ Header:
 
 - `Authorization: Bearer <token>`
 
-Invalidates the current token session. Response `data`: `null`.
+Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+## Online Presence
+
+### `POST /api/online/heartbeat`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+```json
+{
+  "heartbeatAt": "2026-07-30T18:00:00",
+  "heartbeatIntervalSeconds": 30,
+  "offlineTimeoutSeconds": 120
+}
+```
+
+Behavior:
+
+- Updates the current user's heartbeat time and IP address.
+- Student clients should call this every `30` seconds while active.
+- A student is treated as offline after `120` seconds without heartbeat or immediately after logout.
+
+### `POST /api/online/offline`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Clears the current user's heartbeat immediately. Response `data`: `null`.
 
 ## Course Learning
 
