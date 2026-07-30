@@ -22,7 +22,7 @@ These items have code-level evidence in the repository:
 
 - Common API envelope, paging response, exception handling, validation helpers, score/progress calculators, and health endpoint.
 - Admin and student login APIs, bearer token sessions, current user lookup, logout, and authenticated password change.
-- Student APIs for courses, courseware progress, public resources, messages, profile, assignments, semester scores, training center rooms, and training archives.
+- Student APIs for courses, courseware progress, public resources, messages, profile, assignments, semester scores, training center rooms, role claim/release, training attempt submission, score sheets, and training archives.
 - UE training APIs for launch metadata, live status callback, and immutable result callback.
 - Admin APIs for organization tree, education configuration, classroom/NVR metadata, score weights, score grade rules, account management, resource management, question bank, paper management, course management, assignment review, training management, training monitor, device efficiency, semester scores, training archives, profile, permission/menu management, and IAM role management.
 - Swagger annotations are present on controller methods, and `springdoc-openapi-ui` exposes runtime docs at `/v3/api-docs` and `/swagger-ui.html` after backend startup.
@@ -32,6 +32,8 @@ These items have code-level evidence in the repository:
 - First-admin bootstrap code creates an optional environment-configured admin at startup only when no admin exists, stores only the hashed password, and documents the one-time deployment variables.
 - Static backend and deployment verification scripts can check Java 8 compiler settings, OpenAPI dependency presence, MySQL target metadata, bundled JRE packaging rules, first-admin bootstrap configuration, and the absence of seeded `sys_user` rows in SQL init scripts without starting the service.
 - GitHub CI now has a packaged-backend smoke script that starts the jar, verifies `/api/health`, logs in through the bootstrap admin, checks `/api/auth/current`, and logs out against MySQL 5.7.42.
+- Student training attempt APIs now expose `/api/student/training-attempts` and `/api/student/training-attempts/{attemptId}/score-sheet` while reusing the UE result callback and archive score-sheet pipeline.
+- Student training room APIs now include role release for waiting rooms, constrained to the current student's own claimed role.
 
 ## Not Yet Proven
 

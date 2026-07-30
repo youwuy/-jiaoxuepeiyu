@@ -95,6 +95,35 @@ class StudentTrainingServiceTests {
     }
 
     @Test
+    void releasesCurrentStudentsClaimedRole() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.room.getMembers().get(0).setRoleId(501L);
+        repository.room.getRoles().get(0).setClaimed(true);
+        repository.room.getRoles().get(0).setClaimedByStudentId(7L);
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        TrainingRoom room = service.releaseRole(7L, 101L, 501L);
+
+        assertEquals(101L, room.getRoomId().longValue());
+        assertEquals(501L, repository.releasedRoleId.longValue());
+        assertEquals(null, room.getMembers().get(0).getRoleId());
+    }
+
+    @Test
+    void rejectsReleasingRoleClaimedByAnotherMember() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.room.getRoles().get(0).setClaimed(true);
+        repository.room.getRoles().get(0).setClaimedByStudentId(8L);
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.releaseRole(7L, 101L, 501L);
+        });
+
+        assertEquals("Training role is claimed by another member", exception.getMessage());
+    }
+
+    @Test
     void startsRoomWhenOwnerHasFullTeamAndRoles() {
         FakeTrainings repository = new FakeTrainings();
         repository.room.getMembers().clear();
@@ -115,6 +144,7 @@ class StudentTrainingServiceTests {
     private static class FakeTrainings implements StudentTrainingRepository {
         private Long activeRoomId = 99L;
         private Long addedMemberStudentId;
+        private Long releasedRoleId;
         private Long startedRoomId;
         private TrainingRoom room = room();
 
@@ -162,6 +192,14 @@ class StudentTrainingServiceTests {
             room.getMembers().get(0).setRoleId(roleId);
             room.getRoles().get(0).setClaimed(true);
             room.getRoles().get(0).setClaimedByStudentId(studentId);
+        }
+
+        @Override
+        public void releaseRole(Long roomId, Long studentId, Long roleId) {
+            releasedRoleId = roleId;
+            room.getMembers().get(0).setRoleId(null);
+            room.getRoles().get(0).setClaimed(false);
+            room.getRoles().get(0).setClaimedByStudentId(null);
         }
 
         @Override

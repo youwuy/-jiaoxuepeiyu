@@ -53,6 +53,8 @@
 - 2026-07-31: PowerShell verification scripts should use segment-based `Join-Path` helpers instead of backslash-delimited paths so they run on both Windows and GitHub Ubuntu runners.
 - 2026-07-31: CI backend smoke verification starts the packaged jar against MySQL 5.7.42, uses bootstrap admin env vars for first admin creation, checks `/api/health`, admin login, `/api/auth/current`, and logout.
 - 2026-07-31: GitHub Actions runs at commit `17b14b3` failed with zero jobs; avoid job-level `hashFiles(...)` guards and embedded string expressions in CI YAML, then re-check workflow creation after push.
+- 2026-07-31: Student training backend now includes waiting-room role release plus `/api/student/training-attempts` submission and `/api/student/training-attempts/{attemptId}/score-sheet`; these reuse the UE training callback persistence and student archive detail pipeline instead of creating a second score-storage path.
+- 2026-07-31: MySQL init scripts should not duplicate `sys_user.id_card` or `idx_sys_user_class`; those are created by `004_student_portal.sql`, while `008_admin_account_profile.sql` only adds `job_title` and `idx_sys_user_org`.
 
 ## Operational Notes
 
