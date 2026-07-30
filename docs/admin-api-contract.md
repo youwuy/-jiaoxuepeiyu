@@ -1032,3 +1032,153 @@ Behavior:
 ### `GET /api/admin/assignment-attempts/{attemptId}/logs`
 
 Response `data`: review operation logs sorted by newest first.
+
+## Training Management
+
+Training type:
+
+- `PRACTICE`
+- `EXAM`
+
+Training mode:
+
+- `SINGLE`
+- `TEAM`
+
+Paper mode:
+
+- `MANUAL`
+- `AUTO`
+
+Publish status:
+
+- `DRAFT`
+- `PUBLISHED`
+- `OFFLINE`
+
+### `GET /api/admin/trainings`
+
+Query:
+
+- `keyword` optional fuzzy training name.
+- `academicYearId` optional.
+- `semesterId` optional.
+- `majorId` optional.
+- `classId` optional.
+- `trainingType` optional: `PRACTICE` or `EXAM`.
+- `trainingMode` optional: `SINGLE` or `TEAM`.
+- `publishStatus` optional: `DRAFT`, `PUBLISHED`, or `OFFLINE`.
+- `page` default `1`.
+- `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of training courses with term, major, paper, class names, participant count, room count, and average score.
+
+### `GET /api/admin/trainings/{trainingId}`
+
+Response `data`: training detail with bound `classIds` and team `roles`.
+
+### `POST /api/admin/trainings`
+
+Header:
+
+- `X-User-Id`: current admin or teacher user id.
+
+Request body:
+
+```json
+{
+  "trainingName": "Door Operation Drill",
+  "academicYearId": 1,
+  "semesterId": 2,
+  "majorId": 3,
+  "coverUrl": "https://cdn.example/training.png",
+  "trainingType": "PRACTICE",
+  "trainingMode": "TEAM",
+  "paperMode": "MANUAL",
+  "paperId": 5,
+  "openStartTime": "2026-09-01T00:00:00",
+  "openEndTime": "2026-12-31T23:59:00",
+  "teamSize": 2,
+  "appRequired": true,
+  "classIds": [10, 11],
+  "roles": [
+    {
+      "roleName": "Driver",
+      "sortOrder": 1
+    },
+    {
+      "roleName": "Dispatcher",
+      "sortOrder": 2
+    }
+  ]
+}
+```
+
+Behavior:
+
+- Creates a draft training course.
+- Training name, academic year, semester, major, cover, open time range, and at least one class are required.
+- `trainingType` defaults to `PRACTICE`; `trainingMode` defaults to `SINGLE`; `paperMode` defaults to `MANUAL`.
+- Manual paper mode requires `paperId`; exam training also requires `paperId`.
+- Single training uses `teamSize = 1` and cannot configure team roles.
+- Team training requires `teamSize > 1`, and submitted role count must match `teamSize`.
+
+### `PUT /api/admin/trainings/{trainingId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates training metadata.
+- Fully replaces submitted class bindings and role definitions.
+
+### `POST /api/admin/trainings/{trainingId}/publish`
+
+Behavior:
+
+- Rejects publishing when bound classes have no enabled students.
+- Revalidates exam paper and team role constraints.
+- Rebuilds `training_participant` from enabled students in bound classes.
+- Marks the training `PUBLISHED`.
+- Sends a `TRAINING` notification to participants.
+
+### `POST /api/admin/trainings/{trainingId}/cancel-publish`
+
+Behavior:
+
+- Marks the training `OFFLINE`.
+- Preserves participants, rooms, monitor rows, and logs.
+
+### `POST /api/admin/trainings/{trainingId}/delete`
+
+Behavior:
+
+- Soft deletes the training and marks it `OFFLINE`.
+
+### `GET /api/admin/trainings/{trainingId}/statistics`
+
+Response `data`:
+
+- `participantCount`
+- `waitingRoomCount`
+- `startedRoomCount`
+- `dissolvedRoomCount`
+- `submittedAttemptCount`
+- `averageScore`
+- `maxScore`
+- `minScore`
+
+### `GET /api/admin/trainings/{trainingId}/monitor`
+
+Response `data`:
+
+- `generatedAt`
+- `statistics`
+- `cameras`: classroom camera stream and online state.
+- `students`: student desk state, progress state, room state, role, and score.
+
+Monitor rows are read from `training_monitor_snapshot`; UE/device callbacks can update that table later without changing this query contract.
+
+### `GET /api/admin/trainings/{trainingId}/logs`
+
+Response `data`: training operation logs sorted by newest first.

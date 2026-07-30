@@ -24,6 +24,8 @@
 - 2026-07-30: Admin exam management keeps question bank records mutable but stores immutable paper question snapshots in `exam_paper_question`; disabled questions remain available to historical papers and are only excluded from future assembly.
 - 2026-07-30: Admin course management uses `course_teacher` and `course_class` for multi-teacher/multi-class bindings while maintaining `course.class_id` as the first class for legacy student-course compatibility; student course and assignment queries read through `course_class` with a `course.class_id` fallback.
 - 2026-07-30: Admin assignment review uses `assignment_attempt` as the review state source; reviewed attempts store reviewer metadata and per-question scores/comments in `assignment_answer`, then refresh course progress after review.
+- 2026-07-30: Admin training management stores management metadata on `training_course`, class bindings in `training_class`, and team roles in existing `training_role`; publishing rebuilds `training_participant` from enabled students in bound classes so existing student training APIs can see newly published trainings.
+- 2026-07-30: Admin training monitor APIs read camera/student/progress/score state from `training_monitor_snapshot`; later UE/device callback work should update this snapshot table instead of changing the management query contract.
 
 ## Operational Notes
 
