@@ -16,7 +16,6 @@ jobs:
   backend:
     name: Backend Java 8
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
 
     services:
       mysql:
@@ -99,16 +98,15 @@ jobs:
           MYSQL_DATABASE: jiaoxuepeiyu
           MYSQL_USER: root
           MYSQL_PASSWORD: root123456
-          APP_ACCOUNT_INITIAL_PASSWORD: InitPass${{ github.run_number }}
+          APP_ACCOUNT_INITIAL_PASSWORD: ${{ format('InitPass{0}', github.run_number) }}
           APP_BOOTSTRAP_ADMIN_USERNAME: ciadmin
-          APP_BOOTSTRAP_ADMIN_PASSWORD: CiAdmin${{ github.run_number }}
+          APP_BOOTSTRAP_ADMIN_PASSWORD: ${{ format('CiAdmin{0}', github.run_number) }}
           APP_BOOTSTRAP_ADMIN_REAL_NAME: CI Administrator
         run: bash scripts/ci-backend-smoke.sh
 
   frontend:
     name: Frontend Node 18
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('frontend/package.json') != '' }}
 
     defaults:
       run:
@@ -134,7 +132,6 @@ jobs:
   root-frontend:
     name: Root Frontend Node 18
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('package.json') != '' }}
 
     steps:
       - name: Checkout

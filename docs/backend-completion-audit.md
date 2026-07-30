@@ -41,7 +41,7 @@ These items are not complete until stronger evidence is collected:
 - `mvn package` has not run successfully in this workspace because Maven and a JDK are not available on `PATH`.
 - `BootstrapAdminServiceTests` has not run successfully in this workspace because `mvn` is not installed.
 - `scripts/ci-backend-smoke.sh` has not been shell-syntax checked locally because `bash` is not installed in this workspace; GitHub CI runs it on Ubuntu.
-- GitHub CI is configured to run backend static checks, deployment layout checks, MySQL 5.7.42 schema import, `mvn test`, package checks, and packaged-jar smoke checks; remote CI results still need to be inspected after push.
+- GitHub CI is configured to run backend static checks, deployment layout checks, MySQL 5.7.42 schema import, `mvn test`, package checks, and packaged-jar smoke checks; the previous workflow runs failed before jobs were created, so the workflow expression syntax needs re-verification after the next push.
 - The Spring Boot service has not been started locally, so runtime Swagger pages, `/api/health`, login, current user, and representative module smoke tests have not been verified.
 - MySQL 5.7.42.0 schema import has not been tested against a real MySQL 5.7.42.0 instance.
 - A final deployment package has not been generated because no JRE 8 source directory is available in this workspace.
