@@ -57,3 +57,14 @@ git checkout zhan/frontend-test
 ```bash
 git checkout chen/backend
 ```
+
+## Static Backend Verification
+
+When the backend service is not started locally, run these checks from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-backend-static.ps1
+powershell -ExecutionPolicy Bypass -File scripts\verify-deploy-layout.ps1
+```
+
+These checks verify the Java 8 build settings, OpenAPI dependency, MySQL target metadata, deployment runtime layout, bootstrap admin configuration, and the rule that database init scripts must not seed default users.

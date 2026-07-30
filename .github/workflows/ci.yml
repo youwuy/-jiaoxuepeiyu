@@ -48,6 +48,40 @@ jobs:
           java-version: "8"
           cache: maven
 
+      - name: Static backend verification
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/verify-backend-static.ps1
+
+      - name: Static deployment layout verification
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/verify-deploy-layout.ps1
+
+      - name: Install MySQL client
+        working-directory: ${{ github.workspace }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: Verify MySQL 5.7 schema import
+        working-directory: ${{ github.workspace }}
+        env:
+          MYSQL_PWD: root123456
+        run: |
+          for file in database/init/*.sql; do
+            mysql -h 127.0.0.1 -P 3306 -uroot jiaoxuepeiyu < "$file"
+          done
+
+      - name: Run backend tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: jiaoxuepeiyu
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root123456
+        run: mvn -B clean test
+
       - name: Package backend
         env:
           MYSQL_HOST: 127.0.0.1
@@ -55,7 +89,7 @@ jobs:
           MYSQL_DATABASE: jiaoxuepeiyu
           MYSQL_USER: root
           MYSQL_PASSWORD: root123456
-        run: mvn -B clean package -Dmaven.test.skip=true
+        run: mvn -B package -DskipTests
 
   frontend:
     name: Frontend Node 18

@@ -30,6 +30,7 @@ These items have code-level evidence in the repository:
 - Admin file export endpoints now provide Excel-compatible UTF-8 BOM CSV downloads at `/export/file` while preserving JSON export endpoints.
 - The latest completed backend module has been pushed to `origin/chen/backend` and fast-forwarded to `origin/main`.
 - First-admin bootstrap code creates an optional environment-configured admin at startup only when no admin exists, stores only the hashed password, and documents the one-time deployment variables.
+- Static backend and deployment verification scripts can check Java 8 compiler settings, OpenAPI dependency presence, MySQL target metadata, bundled JRE packaging rules, first-admin bootstrap configuration, and the absence of seeded `sys_user` rows in SQL init scripts without starting the service.
 
 ## Not Yet Proven
 
@@ -38,6 +39,7 @@ These items are not complete until stronger evidence is collected:
 - `mvn test` has not run successfully in this workspace because `mvn` is not installed.
 - `mvn package` has not run successfully in this workspace because Maven and a JDK are not available on `PATH`.
 - `BootstrapAdminServiceTests` has not run successfully in this workspace because `mvn` is not installed.
+- GitHub CI is configured to run backend static checks, deployment layout checks, MySQL 5.7.42 schema import, `mvn test`, and package checks; remote CI results still need to be inspected after push.
 - The Spring Boot service has not been started locally, so runtime Swagger pages, `/api/health`, login, current user, and representative module smoke tests have not been verified.
 - MySQL 5.7.42.0 schema import has not been tested against a real MySQL 5.7.42.0 instance.
 - A final deployment package has not been generated because no JRE 8 source directory is available in this workspace.
