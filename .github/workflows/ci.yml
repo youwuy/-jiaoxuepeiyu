@@ -55,7 +55,7 @@ jobs:
           MYSQL_DATABASE: jiaoxuepeiyu
           MYSQL_USER: root
           MYSQL_PASSWORD: root123456
-        run: mvn -B clean package -DskipTests
+        run: mvn -B clean package -Dmaven.test.skip=true
 
   frontend:
     name: Frontend Node 18
