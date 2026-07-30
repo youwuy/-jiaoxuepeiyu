@@ -1,0 +1,176 @@
+package com.qizhifu.jiaoxuepeiyu.admin.training.repository;
+
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTraining;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingCameraState;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingLog;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapshot;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRole;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRoleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStudentState;
+import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
+
+    private final AdminTrainingMapper mapper;
+
+    public MyBatisAdminTrainingRepository(AdminTrainingMapper mapper) {
+        this.mapper = mapper;
+    }
+
+    @Override
+    public List<AdminTraining> findTrainings(AdminTrainingQuery query) {
+        return mapper.findTrainings(likeQuery(query));
+    }
+
+    @Override
+    public long countTrainings(AdminTrainingQuery query) {
+        return mapper.countTrainings(likeQuery(query));
+    }
+
+    @Override
+    public AdminTraining findTraining(Long trainingId) {
+        return mapper.findTraining(trainingId);
+    }
+
+    @Override
+    public Long createTraining(AdminTrainingCommand command, Long creatorId) {
+        AdminTraining training = toTraining(null, command, creatorId);
+        mapper.insertTraining(training);
+        replaceBindings(training.getTrainingId(), command);
+        return training.getTrainingId();
+    }
+
+    @Override
+    public void updateTraining(Long trainingId, AdminTrainingCommand command) {
+        AdminTraining existing = mapper.findTraining(trainingId);
+        Long creatorId = existing == null ? null : existing.getCreatedBy();
+        mapper.updateTraining(toTraining(trainingId, command, creatorId));
+        replaceBindings(trainingId, command);
+    }
+
+    @Override
+    public int countEnabledStudentsByTrainingClasses(Long trainingId) {
+        return mapper.countEnabledStudentsByTrainingClasses(trainingId);
+    }
+
+    @Override
+    public void syncParticipants(Long trainingId) {
+        mapper.deleteParticipants(trainingId);
+        mapper.insertParticipantsFromClasses(trainingId);
+    }
+
+    @Override
+    public void updatePublishStatus(Long trainingId, String publishStatus) {
+        mapper.updatePublishStatus(trainingId, publishStatus);
+    }
+
+    @Override
+    public void deleteTraining(Long trainingId) {
+        mapper.deleteTraining(trainingId);
+    }
+
+    @Override
+    public void notifyParticipants(Long trainingId, String title, String content) {
+        AdminTrainingNotification notification = new AdminTrainingNotification();
+        notification.setTitle(title);
+        notification.setContent(content);
+        notification.setSourceId(trainingId);
+        mapper.insertNotification(notification);
+        mapper.notifyParticipants(trainingId, notification.getNotificationId());
+    }
+
+    @Override
+    public AdminTrainingStatistics calculateStatistics(Long trainingId) {
+        return mapper.calculateStatistics(trainingId);
+    }
+
+    @Override
+    public AdminTrainingMonitorSnapshot getMonitorSnapshot(Long trainingId) {
+        AdminTrainingMonitorSnapshot snapshot = new AdminTrainingMonitorSnapshot();
+        snapshot.setTrainingId(trainingId);
+        snapshot.setGeneratedAt(LocalDateTime.now());
+        List<AdminTrainingCameraState> cameras = mapper.findMonitorCameras(trainingId);
+        List<AdminTrainingStudentState> students = mapper.findMonitorStudents(trainingId);
+        snapshot.setCameras(cameras);
+        snapshot.setStudents(students);
+        snapshot.setStatistics(calculateStatistics(trainingId));
+        return snapshot;
+    }
+
+    @Override
+    public void appendTrainingLog(Long trainingId, Long operatorId, String action, String content) {
+        mapper.insertTrainingLog(trainingId, operatorId, action, content);
+    }
+
+    @Override
+    public List<AdminTrainingLog> findTrainingLogs(Long trainingId) {
+        return mapper.findTrainingLogs(trainingId);
+    }
+
+    private void replaceBindings(Long trainingId, AdminTrainingCommand command) {
+        mapper.deleteClasses(trainingId);
+        int classSort = 1;
+        for (Long classId : command.getClassIds()) {
+            mapper.insertClass(trainingId, classId, classSort++);
+        }
+        mapper.deleteRoles(trainingId);
+        for (AdminTrainingRoleCommand roleCommand : command.getRoles()) {
+            mapper.insertRole(trainingId, toRole(roleCommand));
+        }
+    }
+
+    private AdminTraining toTraining(Long trainingId, AdminTrainingCommand command, Long creatorId) {
+        AdminTraining training = new AdminTraining();
+        training.setTrainingId(trainingId);
+        training.setTrainingName(command.getTrainingName());
+        training.setAcademicYearId(command.getAcademicYearId());
+        training.setSemesterId(command.getSemesterId());
+        training.setMajorId(command.getMajorId());
+        training.setCoverUrl(command.getCoverUrl());
+        training.setTrainingType(command.getTrainingType());
+        training.setTrainingMode(command.getTrainingMode());
+        training.setPaperMode(command.getPaperMode());
+        training.setPaperId(command.getPaperId());
+        training.setPublishStatus(command.getPublishStatus());
+        training.setOpenStartTime(command.getOpenStartTime());
+        training.setOpenEndTime(command.getOpenEndTime());
+        training.setTeamSize(command.getTeamSize());
+        training.setAppRequired(command.getAppRequired());
+        training.setClassNames(mapper.findClassNamesByIds(command.getClassIds()));
+        training.setCreatedBy(creatorId);
+        return training;
+    }
+
+    private AdminTrainingRole toRole(AdminTrainingRoleCommand command) {
+        AdminTrainingRole role = new AdminTrainingRole();
+        role.setRoleName(command.getRoleName());
+        role.setSortOrder(command.getSortOrder());
+        return role;
+    }
+
+    private AdminTrainingQuery likeQuery(AdminTrainingQuery source) {
+        AdminTrainingQuery query = new AdminTrainingQuery();
+        query.setKeyword(like(source.getKeyword()));
+        query.setAcademicYearId(source.getAcademicYearId());
+        query.setSemesterId(source.getSemesterId());
+        query.setMajorId(source.getMajorId());
+        query.setClassId(source.getClassId());
+        query.setTrainingType(source.getTrainingType());
+        query.setTrainingMode(source.getTrainingMode());
+        query.setPublishStatus(source.getPublishStatus());
+        query.setPage(source.getPage());
+        query.setPageSize(source.getPageSize());
+        return query;
+    }
+
+    private String like(String value) {
+        return value == null ? null : "%" + value + "%";
+    }
+}
