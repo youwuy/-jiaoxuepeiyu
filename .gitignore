@@ -24,3 +24,8 @@ logs/
 tmp/
 *.local
 *.log
+
+# local visual QA artifacts
+design-qa.md
+design-qa-comparison.png
+student-courses-screenshot*.png
