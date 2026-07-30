@@ -1,21 +1,28 @@
-package com.qizhifu.jiaoxuepeiyu.student.resource.model;
+package com.qizhifu.jiaoxuepeiyu.admin.resource.model;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
-public class PublicResourceCard {
+public class AdminResource {
 
     private Long resourceId;
+    private Long sourceResourceId;
     private String resourceName;
     private String resourceType;
     private String coverUrl;
-    private String previewUrl;
     private String fileUrl;
+    private String previewUrl;
     private String fileName;
     private Long fileSize;
     private Long majorId;
     private String majorName;
+    private String courseName;
+    private Long uploaderId;
     private String uploaderName;
-    private LocalDateTime updatedAt;
+    private String publicStatus;
+    private Integer currentVersion;
+    private Integer publicVersion;
+    private Date createdAt;
+    private Date updatedAt;
 
     public Long getResourceId() {
         return resourceId;
@@ -23,6 +30,14 @@ public class PublicResourceCard {
 
     public void setResourceId(Long resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public Long getSourceResourceId() {
+        return sourceResourceId;
+    }
+
+    public void setSourceResourceId(Long sourceResourceId) {
+        this.sourceResourceId = sourceResourceId;
     }
 
     public String getResourceName() {
@@ -49,20 +64,20 @@ public class PublicResourceCard {
         this.coverUrl = coverUrl;
     }
 
-    public String getPreviewUrl() {
-        return previewUrl;
-    }
-
-    public void setPreviewUrl(String previewUrl) {
-        this.previewUrl = previewUrl;
-    }
-
     public String getFileUrl() {
         return fileUrl;
     }
 
     public void setFileUrl(String fileUrl) {
         this.fileUrl = fileUrl;
+    }
+
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
+
+    public void setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
     }
 
     public String getFileName() {
@@ -97,6 +112,22 @@ public class PublicResourceCard {
         this.majorName = majorName;
     }
 
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
+    }
+
+    public Long getUploaderId() {
+        return uploaderId;
+    }
+
+    public void setUploaderId(Long uploaderId) {
+        this.uploaderId = uploaderId;
+    }
+
     public String getUploaderName() {
         return uploaderName;
     }
@@ -105,11 +136,43 @@ public class PublicResourceCard {
         this.uploaderName = uploaderName;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public String getPublicStatus() {
+        return publicStatus;
+    }
+
+    public void setPublicStatus(String publicStatus) {
+        this.publicStatus = publicStatus;
+    }
+
+    public Integer getCurrentVersion() {
+        return currentVersion;
+    }
+
+    public void setCurrentVersion(Integer currentVersion) {
+        this.currentVersion = currentVersion;
+    }
+
+    public Integer getPublicVersion() {
+        return publicVersion;
+    }
+
+    public void setPublicVersion(Integer publicVersion) {
+        this.publicVersion = publicVersion;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

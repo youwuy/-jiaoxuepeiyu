@@ -400,3 +400,163 @@ Behavior:
 - Replaces all score grade rules.
 - Ranges must stay within `0` to `100`.
 - Ranges cannot overlap.
+
+## Resource Management
+
+### `GET /api/admin/resources`
+
+Query:
+
+- `keyword` optional fuzzy resource name.
+- `resourceType` optional: `DOCUMENT`, `PRESENTATION`, `IMAGE`, `VIDEO`, `AUDIO`.
+- `majorId` optional.
+- `courseName` optional fuzzy course text.
+- `uploaderId` optional.
+- `publicStatus` optional: `NOT_APPLIED`, `PENDING`, `PUBLIC`, `REJECTED`.
+- `uploadStartDate` / `uploadEndDate` optional `YYYY-MM-DD`.
+- `page` default `1`, `pageSize` default `20`, maximum `100`.
+
+Response `data`: `PageResponse` of resource metadata.
+
+### `POST /api/admin/resources`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Request body:
+
+```json
+{
+  "resourceName": "Safety Training",
+  "coverUrl": "https://cdn.example/cover.png",
+  "fileUrl": "https://cdn.example/intro.mp4",
+  "previewUrl": "https://cdn.example/preview/intro.mp4",
+  "fileName": "intro.mp4",
+  "fileSize": 1048576,
+  "majorId": 1,
+  "courseName": "Train Ops"
+}
+```
+
+Behavior:
+
+- `resourceName`, `coverUrl`, `fileUrl`, `fileName`, `fileSize`, and `majorId` are required.
+- `resourceName` cannot exceed `20` characters; `courseName` cannot exceed `30` characters.
+- File size cannot exceed `200MB`.
+- File suffix determines resource type.
+- Initial public status is `NOT_APPLIED`.
+- Creates version `1` and a resource operation log.
+
+### `PUT /api/admin/resources/{resourceId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates metadata and creates the next resource version.
+- If an older version is already public, the old public version remains visible until the new version is approved.
+
+### `PUT /api/admin/resources/batch`
+
+Request body:
+
+```json
+{
+  "resourceIds": [1, 2],
+  "coverUrl": "https://cdn.example/cover.png",
+  "majorId": 3,
+  "courseName": "Train Ops"
+}
+```
+
+Behavior:
+
+- At least one resource id is required.
+- At least one of `coverUrl`, `majorId`, or `courseName` must be provided.
+- Empty fields are ignored instead of clearing existing values.
+
+### `POST /api/admin/resources/batch/delete`
+
+Request body:
+
+```json
+{
+  "resourceIds": [1, 2]
+}
+```
+
+Behavior:
+
+- Rejects deletion when any selected resource is already bound to a course.
+- Uses soft delete for personal resources.
+- Public resource rows remain available after personal resource deletion.
+
+### `POST /api/admin/resources/{resourceId}/public-applications`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Behavior:
+
+- Submits the current resource version for public review.
+- Rejects duplicate pending applications for the same resource.
+- Marks the personal resource public status as `PENDING`.
+
+### `GET /api/admin/resources/{resourceId}/logs`
+
+Response `data`: resource operation logs sorted by newest first.
+
+### `GET /api/admin/public-applications`
+
+Query: same resource filters as `GET /api/admin/resources`; `publicStatus` means review status: `PENDING`, `APPROVED`, or `REJECTED`.
+
+Response `data`: `PageResponse` of public review applications.
+
+### `GET /api/admin/public-applications/{applicationId}`
+
+Response `data`: public review application detail with submitted version snapshot.
+
+### `POST /api/admin/public-applications/{applicationId}/approve`
+
+Header:
+
+- `X-User-Id`: current admin user id.
+
+Request body:
+
+```json
+{
+  "reviewComment": "OK"
+}
+```
+
+Behavior:
+
+- Only pending applications can be reviewed.
+- Publishes the submitted version to `res_public_resource`.
+- Replaces the previously public version for the same source resource.
+- Sends a `RESOURCE` notification to all enabled students.
+
+### `POST /api/admin/public-applications/{applicationId}/reject`
+
+Request body:
+
+```json
+{
+  "reviewComment": "Cover is unclear"
+}
+```
+
+Behavior:
+
+- Review comment is required.
+- Marks the application as `REJECTED`.
+- Keeps any older approved public version available.
+
+### `GET /api/admin/public-resources`
+
+Query: same resource filters as `GET /api/admin/resources`.
+
+Response `data`: `PageResponse` of approved public resources. Only the latest approved version per source resource is returned.

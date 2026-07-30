@@ -11,6 +11,7 @@ public interface StudentResourceMapper {
 
     @Select("<script>"
             + "SELECT r.id AS resource_id, r.resource_name, r.resource_type, r.cover_url, r.preview_url, "
+            + "r.file_url, r.file_name, r.file_size, "
             + "r.major_id, m.major_name, u.real_name AS uploader_name, r.updated_at "
             + "FROM res_public_resource r "
             + "LEFT JOIN edu_major m ON m.id = r.major_id "
