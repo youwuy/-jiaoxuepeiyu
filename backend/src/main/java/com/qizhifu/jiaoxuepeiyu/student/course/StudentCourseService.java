@@ -1,7 +1,12 @@
 package com.qizhifu.jiaoxuepeiyu.student.course;
 
+import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.domain.course.CourseProgressCalculator;
+import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseChapter;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseCard;
+import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseContentRecord;
+import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseDetail;
+import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseItem;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseRecord;
 import com.qizhifu.jiaoxuepeiyu.student.course.port.StudentCourseRepository;
 import java.time.Clock;
@@ -38,6 +43,42 @@ public class StudentCourseService {
         return cards;
     }
 
+    public StudentCourseDetail getCourseDetail(Long studentId, Long courseId) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        StudentCourseRecord course = repository.findPublishedCourse(studentId, courseId)
+                .orElseThrow(() -> new BusinessException(404, "Course not found"));
+
+        StudentCourseDetail detail = new StudentCourseDetail();
+        detail.setCourseId(course.getCourseId());
+        detail.setCourseName(course.getCourseName());
+        detail.setAcademicTerm(course.getAcademicTerm());
+        detail.setTeacherNames(course.getTeacherNames());
+        detail.setOpenStartTime(course.getOpenStartTime());
+        detail.setOpenEndTime(course.getOpenEndTime());
+        detail.setProgressPercent(CourseProgressCalculator.calculatePercent(
+                course.getCompletedItems(), course.getTotalItems()));
+        detail.setStatus(status(course, now));
+        detail.setLastContentId(repository.findLastContentId(studentId, courseId).orElse(null));
+        detail.setChapters(toChapters(repository.findCourseContents(studentId, courseId)));
+        return detail;
+    }
+
+    public void updateCoursewareProgress(Long studentId,
+                                         Long courseId,
+                                         Long contentId,
+                                         int studiedSeconds,
+                                         boolean completed) {
+        if (studiedSeconds < 0) {
+            throw new BusinessException(400, "Studied seconds cannot be negative");
+        }
+        StudentCourseContentRecord content = repository.findCoursewareContent(studentId, courseId, contentId)
+                .orElseThrow(() -> new BusinessException(404, "Courseware content not found"));
+        boolean effectiveCompleted = completed
+                || content.getRequiredDurationSeconds() > 0
+                && studiedSeconds >= content.getRequiredDurationSeconds();
+        repository.saveCoursewareProgress(studentId, courseId, contentId, studiedSeconds, effectiveCompleted);
+    }
+
     private StudentCourseCard toCard(StudentCourseRecord record, LocalDateTime now) {
         StudentCourseCard card = new StudentCourseCard();
         card.setCourseId(record.getCourseId());
@@ -52,6 +93,38 @@ public class StudentCourseService {
                 record.getCompletedItems(), record.getTotalItems()));
         card.setStatus(status(record, now));
         return card;
+    }
+
+    private List<StudentCourseChapter> toChapters(List<StudentCourseContentRecord> records) {
+        List<StudentCourseChapter> chapters = new ArrayList<StudentCourseChapter>();
+        Long currentChapterId = null;
+        StudentCourseChapter currentChapter = null;
+        for (StudentCourseContentRecord record : records) {
+            if (!record.getChapterId().equals(currentChapterId)) {
+                currentChapter = new StudentCourseChapter();
+                currentChapter.setChapterId(record.getChapterId());
+                currentChapter.setChapterTitle(record.getChapterTitle());
+                currentChapter.setSortOrder(record.getChapterSortOrder());
+                chapters.add(currentChapter);
+                currentChapterId = record.getChapterId();
+            }
+            currentChapter.getItems().add(toItem(record));
+        }
+        return chapters;
+    }
+
+    private StudentCourseItem toItem(StudentCourseContentRecord record) {
+        StudentCourseItem item = new StudentCourseItem();
+        item.setContentId(record.getContentId());
+        item.setItemType(record.getItemType());
+        item.setTitle(record.getTitle());
+        item.setResourceId(record.getResourceId());
+        item.setAssignmentId(record.getAssignmentId());
+        item.setRequiredDurationSeconds(record.getRequiredDurationSeconds());
+        item.setStudiedSeconds(record.getStudiedSeconds());
+        item.setCompleted(record.isCompleted());
+        item.setSortOrder(record.getSortOrder());
+        return item;
     }
 
     private String status(StudentCourseRecord record, LocalDateTime now) {

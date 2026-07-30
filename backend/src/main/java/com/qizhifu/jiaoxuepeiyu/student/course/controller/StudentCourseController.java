@@ -4,9 +4,15 @@ import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.student.StudentContext;
 import com.qizhifu.jiaoxuepeiyu.student.course.StudentCourseService;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseCard;
+import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseDetail;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,5 +31,54 @@ public class StudentCourseController {
     public ApiResponse<List<StudentCourseCard>> list(@RequestParam(value = "keyword", required = false) String keyword,
                                                      HttpServletRequest request) {
         return ApiResponse.ok(service.listCourses(StudentContext.requireStudentId(request), keyword));
+    }
+
+    @GetMapping("/{courseId}")
+    public ApiResponse<StudentCourseDetail> get(@PathVariable Long courseId, HttpServletRequest request) {
+        return ApiResponse.ok(service.getCourseDetail(StudentContext.requireStudentId(request), courseId));
+    }
+
+    @PostMapping("/{courseId}/progress")
+    public ApiResponse<Void> updateProgress(@PathVariable Long courseId,
+                                            @Valid @RequestBody ProgressRequest body,
+                                            HttpServletRequest request) {
+        service.updateCoursewareProgress(
+                StudentContext.requireStudentId(request),
+                courseId,
+                body.getContentId(),
+                body.getStudiedSeconds(),
+                body.isCompleted());
+        return ApiResponse.ok(null);
+    }
+
+    public static class ProgressRequest {
+        @NotNull
+        private Long contentId;
+        private int studiedSeconds;
+        private boolean completed;
+
+        public Long getContentId() {
+            return contentId;
+        }
+
+        public void setContentId(Long contentId) {
+            this.contentId = contentId;
+        }
+
+        public int getStudiedSeconds() {
+            return studiedSeconds;
+        }
+
+        public void setStudiedSeconds(int studiedSeconds) {
+            this.studiedSeconds = studiedSeconds;
+        }
+
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        public void setCompleted(boolean completed) {
+            this.completed = completed;
+        }
     }
 }
