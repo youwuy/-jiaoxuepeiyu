@@ -7,6 +7,7 @@ import {
   fetchAdminCourses,
   publishAdminCourse
 } from '../src/api/admin-course';
+import { createAdminOrg, disableAdminOrg, enableAdminOrg, fetchAdminOrgTree, updateAdminOrg } from '../src/api/admin-org';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -148,6 +149,50 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/courses/3/cancel-publish', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/courses/3/logs', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/courses/3/statistics', expect.any(Object));
+  });
+
+  it('uses the documented admin organization endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: [
+            {
+              orgId: 1,
+              parentId: null,
+              orgName: '交通与车辆工程学院',
+              sortOrder: 1,
+              enabled: true,
+              children: []
+            }
+          ]
+        })
+      )
+      .mockImplementationOnce(() => mockJsonResponse({ data: 9 }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminOrgTree()).resolves.toMatchObject([{ orgId: 1, orgName: '交通与车辆工程学院' }]);
+    await expect(createAdminOrg({ parentId: null, orgName: '城轨学院', sortOrder: 2 })).resolves.toEqual({ orgId: 9 });
+    await updateAdminOrg(9, { parentId: null, orgName: '城轨学院', sortOrder: 2 });
+    await disableAdminOrg(9);
+    await enableAdminOrg(9);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/org/tree', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/org',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ parentId: null, orgName: '城轨学院', sortOrder: 2 }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/org/9',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ parentId: null, orgName: '城轨学院', sortOrder: 2 }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/org/9/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/org/9/enable', expect.objectContaining({ method: 'POST' }));
   });
 
   it('maps backend student course cards into the existing course UI model', async () => {

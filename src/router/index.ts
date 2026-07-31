@@ -5,6 +5,7 @@ import AdminCourseTheoryReview from '../views/admin/AdminCourseTheoryReview.vue'
 import AdminCourseReviews from '../views/admin/AdminCourseReviews.vue';
 import AdminCourseStatistics from '../views/admin/AdminCourseStatistics.vue';
 import AdminCourses from '../views/admin/AdminCourses.vue';
+import AdminOrganization from '../views/admin/AdminOrganization.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import StudentLogin from '../views/auth/StudentLogin.vue';
 import StudentCourseLearn from '../views/student/StudentCourseLearn.vue';
@@ -57,7 +58,12 @@ export const router = createRouter({
     },
     {
       path: '/admin',
-      redirect: '/admin/courses'
+      redirect: '/admin/organization'
+    },
+    {
+      path: '/admin/organization',
+      name: 'admin-organization',
+      component: AdminOrganization
     },
     {
       path: '/admin/courses',

@@ -72,21 +72,21 @@ const navGroups = [
   {
     title: '系统基础设置',
     items: [
-      { key: 'organization', label: '组织管理', path: 'organization', icon: Operation },
-      { key: 'users', label: '用户管理', path: 'users', icon: User },
-      { key: 'permissions', label: '功能管理', path: 'permissions', icon: Menu },
-      { key: 'roles', label: '角色管理', path: 'roles', icon: Folder },
-      { key: 'settings', label: '配置管理', path: 'settings', icon: Setting }
+      { key: 'organization', label: '组织管理', path: '/admin/organization', icon: Operation },
+      { key: 'users', label: '用户管理', path: '/admin/users', icon: User },
+      { key: 'permissions', label: '功能管理', path: '/admin/permissions', icon: Menu },
+      { key: 'roles', label: '角色管理', path: '/admin/roles', icon: Folder },
+      { key: 'settings', label: '配置管理', path: '/admin/settings', icon: Setting }
     ]
   },
   {
     title: '资源管理',
     items: [
-      { key: 'personal-resource', label: '个人资源库', path: 'personal-resource', icon: Files },
-      { key: 'public-application', label: '资源公开申请', path: 'public-application', icon: Collection },
-      { key: 'public-resource', label: '公开资源库', path: 'public-resource', icon: Notebook },
-      { key: 'theory-question', label: '理论试题', path: 'theory-question', icon: Notebook },
-      { key: 'theory-paper', label: '理论试卷', path: 'theory-paper', icon: Notebook }
+      { key: 'personal-resource', label: '个人资源库', path: '/admin/personal-resource', icon: Files },
+      { key: 'public-application', label: '资源公开申请', path: '/admin/public-application', icon: Collection },
+      { key: 'public-resource', label: '公开资源库', path: '/admin/public-resource', icon: Notebook },
+      { key: 'theory-question', label: '理论试题', path: '/admin/theory-question', icon: Notebook },
+      { key: 'theory-paper', label: '理论试卷', path: '/admin/theory-paper', icon: Notebook }
     ]
   },
   {
@@ -99,9 +99,9 @@ const navGroups = [
   {
     title: '成绩统计',
     items: [
-      { key: 'semester-score', label: '综合成绩', path: 'semester-score', icon: DataAnalysis },
-      { key: 'training-archive', label: '实训档案', path: 'training-archive', icon: Collection },
-      { key: 'device-efficiency', label: '设备效能分析', path: 'device-efficiency', icon: Folder }
+      { key: 'semester-score', label: '综合成绩', path: '/admin/semester-score', icon: DataAnalysis },
+      { key: 'training-archive', label: '实训档案', path: '/admin/training-archive', icon: Collection },
+      { key: 'device-efficiency', label: '设备效能分析', path: '/admin/device-efficiency', icon: Folder }
     ]
   }
 ];
