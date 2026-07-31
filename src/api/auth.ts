@@ -27,11 +27,11 @@ export async function loginStudent(mode: StudentLoginMode, form: StudentLoginFor
   return result;
 }
 
-export async function loginAdmin(form: AdminLoginForm): Promise<LoginResult> {
+export async function loginAdmin(form: AdminLoginForm, loginType = 'username'): Promise<LoginResult> {
   const result = await requestJson<LoginResult>('/auth/admin/login', {
     method: 'POST',
     body: JSON.stringify({
-      loginType: 'username',
+      loginType,
       account: form.account,
       password: form.password
     }),

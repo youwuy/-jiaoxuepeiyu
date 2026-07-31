@@ -47,6 +47,10 @@
 - 2026-07-31: Student personal center UI should match the Calicat shell with a 220 px left sidebar, breadcrumb content area, personal info field grid, score table, message cards, training archive table, and in-page archive detail view.
 - 2026-07-31: Current remote API documentation for frontend integration is `http://8.130.35.250/swagger-ui/index.html`, with OpenAPI JSON available at `http://8.130.35.250/v3/api-docs`.
 - 2026-07-31: Student frontend local development proxies `/api` to `http://8.130.35.250`; the existing `requestJson('/student/...')` calls resolve to backend `/api/student/...` endpoints through the Vite proxy.
+- 2026-07-31: Calicat admin login source is design file `2077681918571450368`, login canvas `ffb400ed-7fdd-4662-b39a-27c3e039f70e`; frame IDs are `5d8bdf11-2533-42c8-8010-925d43496c23` for `登录页-工号登录` and `16354727-a3c5-4bfe-b96f-24450dd0bf84` for `登录页-手机号登录`.
+- 2026-07-31: Admin login UI should match the Calicat 1440 x 800 dark split screen: 600 px metro carriage image, near-black right stage, 440 px dark slate login card, work-number/phone tabs, 48 px inputs, and 48 px blue submit button.
+- 2026-07-31: Calicat admin teaching-course source is design file `2077681918571450368`, canvas `5f1d775a-5e0d-4d3e-bf8d-032f5b13e6f4`; the management course page uses the 240 px left sidebar, breadcrumb `教学实训 / 教学课程`, filter row, 9-column course table, and drawer/dialog patterns for course detail, statistics, and logs.
+- 2026-07-31: Frontend admin course integration uses `GET /api/admin/courses`, `GET /api/admin/courses/{courseId}`, `POST /api/admin/courses/{courseId}/publish`, `POST /api/admin/courses/{courseId}/cancel-publish`, `POST /api/admin/courses/{courseId}/delete`, `POST /api/admin/courses/{courseId}/copy`, `GET /api/admin/courses/{courseId}/statistics`, and `GET /api/admin/courses/{courseId}/logs`; the page falls back to local mock data when the backend is unavailable.
 
 ## Operational Notes
 

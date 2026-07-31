@@ -1,4 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loginAdmin } from '../src/api/auth';
+import {
+  cancelPublishAdminCourse,
+  fetchAdminCourseLogs,
+  fetchAdminCourseStatistics,
+  fetchAdminCourses,
+  publishAdminCourse
+} from '../src/api/admin-course';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -54,6 +62,92 @@ describe('api http client', () => {
     await expect(tryRequestJson<string[]>(['/missing', '/student/courses'])).resolves.toEqual(['课程']);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/courses', expect.any(Object));
+  });
+
+  it('passes the selected admin login type to the documented auth endpoint', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ data: { token: 'test-token' } }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await loginAdmin({ account: '13800138000', password: 'abc123' }, 'phone');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/admin/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ loginType: 'phone', account: '13800138000', password: 'abc123' })
+      })
+    );
+  });
+
+  it('loads the documented admin course list endpoint and query string', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: {
+          records: [
+            {
+              courseId: 1,
+              courseName: '城市轨道交通信号系统原理',
+              publishStatus: 'PUBLISHED'
+            }
+          ],
+          total: 15,
+          page: 1,
+          pageSize: 100
+        }
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminCourses({ keyword: '信号', publishStatus: 'PUBLISHED', page: 1, pageSize: 100 })).resolves.toMatchObject({
+      records: [{ courseId: 1, courseName: '城市轨道交通信号系统原理' }],
+      total: 15,
+      pageSize: 100
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/courses?keyword=%E4%BF%A1%E5%8F%B7&publishStatus=PUBLISHED&page=1&pageSize=100',
+      expect.any(Object)
+    );
+  });
+
+  it('uses the documented admin course mutation endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: [
+            {
+              logId: 99,
+              courseId: 3,
+              operatorName: '李教师',
+              action: 'UPDATE',
+              content: 'Update course',
+              createdAt: '2026-07-31T10:00:00'
+            }
+          ]
+        })
+      )
+      .mockImplementationOnce(() =>
+        mockJsonResponse({ data: { courseId: 3, studentCount: 20, completedCount: 12, studyingCount: 5, notStartedCount: 3, pendingReviewCount: 4, averageScore: 88.5 } })
+      );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await publishAdminCourse(3);
+    await cancelPublishAdminCourse(3);
+    await expect(fetchAdminCourseLogs(3)).resolves.toMatchObject([
+      { logId: 99, action: 'UPDATE', operatorName: '李教师' }
+    ]);
+    await expect(fetchAdminCourseStatistics(3)).resolves.toMatchObject({
+      courseId: 3,
+      averageScore: 88.5
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/courses/3/publish', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/courses/3/cancel-publish', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/courses/3/logs', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/courses/3/statistics', expect.any(Object));
   });
 
   it('maps backend student course cards into the existing course UI model', async () => {

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AdminLogin from '../views/auth/AdminLogin.vue';
+import AdminCourses from '../views/admin/AdminCourses.vue';
 import StudentLogin from '../views/auth/StudentLogin.vue';
 import StudentCourseLearn from '../views/student/StudentCourseLearn.vue';
 import StudentCourses from '../views/student/StudentCourses.vue';
@@ -48,6 +49,15 @@ export const router = createRouter({
       path: '/admin/login',
       name: 'admin-login',
       component: AdminLogin
+    },
+    {
+      path: '/admin',
+      redirect: '/admin/courses'
+    },
+    {
+      path: '/admin/courses',
+      name: 'admin-courses',
+      component: AdminCourses
     }
   ]
 });
