@@ -113,15 +113,23 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         mapper.deleteContents(courseId);
         mapper.deleteChapters(courseId);
         for (AdminCourseChapterCommand chapterCommand : command.getChapters()) {
-            AdminCourseChapter chapter = toChapter(chapterCommand);
-            mapper.insertChapter(courseId, chapter);
-            for (AdminCourseContentCommand contentCommand : chapterCommand.getContents()) {
-                AdminCourseContent content = toContent(contentCommand);
-                mapper.insertContent(courseId, chapter.getChapterId(), content);
-                if ("ASSIGNMENT".equals(content.getItemType()) && content.getAssignmentId() != null) {
-                    mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId());
-                }
+            insertChapterTree(courseId, null, chapterCommand);
+        }
+    }
+
+    private void insertChapterTree(Long courseId, Long parentChapterId, AdminCourseChapterCommand chapterCommand) {
+        AdminCourseChapter chapter = toChapter(chapterCommand);
+        chapter.setParentChapterId(parentChapterId);
+        mapper.insertChapter(courseId, chapter);
+        for (AdminCourseContentCommand contentCommand : chapterCommand.getContents()) {
+            AdminCourseContent content = toContent(contentCommand);
+            mapper.insertContent(courseId, chapter.getChapterId(), content);
+            if ("ASSIGNMENT".equals(content.getItemType()) && content.getAssignmentId() != null) {
+                mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId(), content);
             }
+        }
+        for (AdminCourseChapterCommand childCommand : chapterCommand.getChildren()) {
+            insertChapterTree(courseId, chapter.getChapterId(), childCommand);
         }
     }
 
@@ -177,6 +185,14 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         content.setResourceId(command.getResourceId());
         content.setAssignmentId(command.getAssignmentId());
         content.setRequiredDurationSeconds(command.getRequiredDurationSeconds());
+        content.setLearningStartTime(command.getLearningStartTime());
+        content.setLearningEndTime(command.getLearningEndTime());
+        content.setAssignmentCompletionRule(command.getAssignmentCompletionRule());
+        content.setPassScore(command.getPassScore());
+        content.setAssignmentPublishMode(command.getAssignmentPublishMode());
+        content.setAnswerStartTime(command.getAnswerStartTime());
+        content.setAnswerEndTime(command.getAnswerEndTime());
+        content.setAssignmentTotalScore(command.getAssignmentTotalScore());
         content.setSortOrder(command.getSortOrder());
         return content;
     }
@@ -225,6 +241,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             command.setChapterTitle(chapter.getChapterTitle());
             command.setSortOrder(chapter.getSortOrder());
             command.setContents(contentCommands(chapter.getContents()));
+            command.setChildren(chapterCommands(chapter.getChildren()));
             commands.add(command);
         }
         return commands;
@@ -242,6 +259,14 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             command.setResourceId(content.getResourceId());
             command.setAssignmentId(content.getAssignmentId());
             command.setRequiredDurationSeconds(content.getRequiredDurationSeconds());
+            command.setLearningStartTime(content.getLearningStartTime());
+            command.setLearningEndTime(content.getLearningEndTime());
+            command.setAssignmentCompletionRule(content.getAssignmentCompletionRule());
+            command.setPassScore(content.getPassScore());
+            command.setAssignmentPublishMode(content.getAssignmentPublishMode());
+            command.setAnswerStartTime(content.getAnswerStartTime());
+            command.setAnswerEndTime(content.getAnswerEndTime());
+            command.setAssignmentTotalScore(content.getAssignmentTotalScore());
             command.setSortOrder(content.getSortOrder());
             commands.add(command);
         }
@@ -256,6 +281,8 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         query.setMajorId(source.getMajorId());
         query.setClassId(source.getClassId());
         query.setTeacherId(source.getTeacherId());
+        query.setTeachingStartTime(source.getTeachingStartTime());
+        query.setTeachingEndTime(source.getTeachingEndTime());
         query.setPublishStatus(source.getPublishStatus());
         query.setPage(source.getPage());
         query.setPageSize(source.getPageSize());

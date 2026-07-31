@@ -73,8 +73,15 @@ public class StudentCourseService {
         if (studiedSeconds < 0) {
             throw new BusinessException(400, "Studied seconds cannot be negative");
         }
+        StudentCourseRecord course = repository.findPublishedCourse(studentId, courseId)
+                .orElseThrow(() -> new BusinessException(404, "Course not found"));
         StudentCourseContentRecord content = repository.findCoursewareContent(studentId, courseId, contentId)
                 .orElseThrow(() -> new BusinessException(404, "Courseware content not found"));
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!isOpen(now, course.getOpenStartTime(), course.getOpenEndTime())
+                || !isOpen(now, content.getLearningStartTime(), content.getLearningEndTime())) {
+            throw new BusinessException(400, "Courseware is not open for learning");
+        }
         boolean effectiveCompleted = completed
                 || content.getRequiredDurationSeconds() > 0
                 && studiedSeconds >= content.getRequiredDurationSeconds();
@@ -123,6 +130,8 @@ public class StudentCourseService {
         item.setResourceId(record.getResourceId());
         item.setAssignmentId(record.getAssignmentId());
         item.setRequiredDurationSeconds(record.getRequiredDurationSeconds());
+        item.setLearningStartTime(record.getLearningStartTime());
+        item.setLearningEndTime(record.getLearningEndTime());
         item.setStudiedSeconds(record.getStudiedSeconds());
         item.setCompleted(record.isCompleted());
         item.setSortOrder(record.getSortOrder());
@@ -137,6 +146,13 @@ public class StudentCourseService {
             return "FINISHED";
         }
         return "STUDYING";
+    }
+
+    private boolean isOpen(LocalDateTime now, LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime != null && now.isBefore(startTime)) {
+            return false;
+        }
+        return endTime == null || !now.isAfter(endTime);
     }
 
     private static class StudentCourseCardComparator implements Comparator<StudentCourseCard> {

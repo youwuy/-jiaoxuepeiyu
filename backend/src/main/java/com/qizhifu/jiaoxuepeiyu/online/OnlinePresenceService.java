@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ public class OnlinePresenceService {
     private final int heartbeatIntervalSeconds;
     private final int offlineTimeoutSeconds;
 
+    @Autowired
     public OnlinePresenceService(OnlinePresenceRepository repository,
                                  @Value("${app.online.heartbeat-interval-seconds:30}") int heartbeatIntervalSeconds,
                                  @Value("${app.online.offline-timeout-seconds:120}") int offlineTimeoutSeconds) {

@@ -40,6 +40,27 @@ Response `data`:
 
 ## Auth
 
+### First Admin Bootstrap
+
+There is no committed default administrator password.
+
+For the first deployment startup only, configure:
+
+- `APP_BOOTSTRAP_ADMIN_USERNAME`
+- `APP_BOOTSTRAP_ADMIN_PASSWORD`
+- Optional: `APP_BOOTSTRAP_ADMIN_REAL_NAME`
+- Optional: `APP_BOOTSTRAP_ADMIN_PHONE`
+
+Behavior:
+
+- The backend creates one `admin` user only when both username and password are configured and no admin user exists.
+- If only username or only password is configured, startup fails.
+- If an admin already exists, bootstrap is skipped and existing users are not changed.
+- The password must be `8-20` characters and contain letters and digits.
+- Only the hashed password is stored.
+
+Remove the bootstrap username and password environment variables after the first successful startup. Student and teacher initial passwords are still controlled by `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+
 ### `POST /api/auth/admin/login`
 
 Request body:
@@ -75,6 +96,89 @@ Header:
 - `Authorization: Bearer <token>`
 
 Invalidates the current token session and marks the user offline. Response `data`: `null`.
+
+### `PUT /api/auth/password`
+
+Header:
+
+- `Authorization: Bearer <token>`
+
+Request body:
+
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword123",
+  "confirmPassword": "newPassword123"
+}
+```
+
+Behavior:
+
+- Validates the current password before updating.
+- New password must be `8-20` characters and contain letters and digits.
+- New password cannot equal the current password.
+- Stores only the new password hash and never returns plaintext passwords or password hashes.
+
+## Admin Profile
+
+### `GET /api/admin/profile`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Response `data`:
+
+- `userId`
+- `accountNo`
+- `realName`
+- `userType`: `admin` or `teacher`.
+- `phone`: masked phone number.
+- `idCard`: masked ID card number.
+- `orgName`
+- `jobTitle`
+
+### `PUT /api/admin/profile/phone`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Request body:
+
+```json
+{
+  "phone": "13812345678"
+}
+```
+
+Behavior:
+
+- Updates the current admin or teacher phone number.
+- Phone must be an 11-digit number.
+
+### `PUT /api/admin/profile/id-card`
+
+Header:
+
+- `Authorization: Bearer <token>`
+- Compatibility fallback: `X-User-Id`
+
+Request body:
+
+```json
+{
+  "idCard": "110101199001011234"
+}
+```
+
+Behavior:
+
+- Updates the current admin or teacher ID card number.
+- ID card must match the configured 18-character ID format.
 
 ## Online Presence
 
@@ -303,6 +407,162 @@ Behavior:
 - `classId` is required.
 - Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password` to create the password hash.
 
+### `POST /api/admin/accounts/teachers/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "accountNo": "teacher001",
+      "realName": "Teacher One",
+      "phone": "13812345678",
+      "idCard": "110101199001011234",
+      "jobTitle": "Teacher",
+      "orgId": 1,
+      "roleIds": [4],
+      "managedOrgIds": [1, 2],
+      "teachingClassIds": [3]
+    }
+  ]
+}
+```
+
+Response `data`:
+
+- `totalCount`
+- `validCount`
+- `errorCount`
+- `rows`: normalized import rows with `valid` and row-level `errors`.
+
+Behavior:
+
+- Validates already parsed teacher account rows.
+- Checks required account number, name, valid phone, organization, optional ID card format, existing account number, and duplicate account numbers within submitted rows.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/accounts/teachers/import`
+
+Request body: same as teacher import preview.
+
+Response `data`:
+
+- `importedCount`
+- `userIds`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Creates teacher accounts through the same validation, role binding, organization scope binding, and initial-password hashing path as `POST /api/admin/accounts/teachers`.
+- Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+- Does not return plaintext initial passwords.
+- Rejects the whole import when any row has validation errors.
+
+### `GET /api/admin/accounts/teachers/export`
+
+Query: same filters as `GET /api/admin/accounts/teachers`.
+
+Response `data`: array of export-ready teacher account rows.
+
+Each row:
+
+- `userId`
+- `accountNo`
+- `realName`
+- `maskedPhone`
+- `maskedIdCard`
+- `userType`
+- `orgName`
+- `className`
+- `jobTitle`
+- `enabled`
+- `createdAt`
+
+Behavior:
+
+- Returns all rows matching filters, ordered by newest account first.
+- Sensitive phone and ID card fields are masked.
+
+### `GET /api/admin/accounts/teachers/export/file`
+
+Query: same filters as `GET /api/admin/accounts/teachers`.
+
+Response: `text/csv;charset=UTF-8` attachment named `teacher-accounts.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same masked export rows as `GET /api/admin/accounts/teachers/export`.
+
+### `POST /api/admin/accounts/students/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "accountNo": "student001",
+      "realName": "Student One",
+      "phone": "13812345678",
+      "idCard": "110101199001011234",
+      "orgId": 1,
+      "classId": 3
+    }
+  ]
+}
+```
+
+Response `data`: same shape as teacher import preview.
+
+Behavior:
+
+- Validates already parsed student account rows.
+- Checks required account number, name, valid phone, organization, class, optional ID card format, existing account number, and duplicate account numbers within submitted rows.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/accounts/students/import`
+
+Request body: same as student import preview.
+
+Response `data`:
+
+- `importedCount`
+- `userIds`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Creates student accounts through the same validation and initial-password hashing path as `POST /api/admin/accounts/students`.
+- Uses `APP_ACCOUNT_INITIAL_PASSWORD` / `app.account.initial-password`.
+- Does not return plaintext initial passwords.
+- Rejects the whole import when any row has validation errors.
+
+### `GET /api/admin/accounts/students/export`
+
+Query: same filters as `GET /api/admin/accounts/students`.
+
+Response `data`: array of export-ready student account rows.
+
+Behavior:
+
+- Returns all rows matching filters, ordered by newest account first.
+- Sensitive phone and ID card fields are masked.
+
+### `GET /api/admin/accounts/students/export/file`
+
+Query: same filters as `GET /api/admin/accounts/students`.
+
+Response: `text/csv;charset=UTF-8` attachment named `student-accounts.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same masked export rows as `GET /api/admin/accounts/students/export`.
+
 ### `PUT /api/admin/accounts/teachers/{userId}`
 
 Request body: same as teacher create.
@@ -444,6 +704,52 @@ Request body:
   "className": "Class 2026-01"
 }
 ```
+
+### `GET /api/admin/job-roles`
+
+Response `data`: array of subway job role dictionary rows.
+
+Each item:
+
+- `jobRoleId`
+- `roleName`
+- `sortOrder`
+- `enabled`
+
+### `POST /api/admin/job-roles`
+
+Request body:
+
+```json
+{
+  "roleName": "Driver",
+  "sortOrder": 1
+}
+```
+
+Behavior:
+
+- `roleName` is required, trimmed, and limited to `20` characters.
+- `sortOrder` defaults to `0` when omitted.
+- New job roles are enabled by default.
+- `roleName` is unique.
+
+### `PUT /api/admin/job-roles/{jobRoleId}`
+
+Request body: same as create.
+
+Behavior:
+
+- Updates the subway job role name and sort order.
+- Historical account and training data are preserved.
+
+### `POST /api/admin/job-roles/{jobRoleId}/enable`
+
+Enables a subway job role for future selection.
+
+### `POST /api/admin/job-roles/{jobRoleId}/disable`
+
+Disables a subway job role while preserving historical records.
 
 ## Facility Configuration
 
@@ -1230,6 +1536,28 @@ Query:
 
 Response `data`: `PageResponse` of training courses with term, major, paper, class names, participant count, room count, and average score.
 
+### `GET /api/admin/trainings/export`
+
+Query: same filters as `GET /api/admin/trainings`.
+
+Response `data`: export-ready training course rows for frontend-controlled export.
+
+Behavior:
+
+- Returns rows matching the submitted filters.
+- Uses the same maximum export page size policy as other admin export endpoints.
+
+### `GET /api/admin/trainings/export/file`
+
+Query: same filters as `GET /api/admin/trainings`.
+
+Response: `text/csv;charset=UTF-8` attachment named `trainings.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filtered export rows as `GET /api/admin/trainings/export`.
+
 ### `GET /api/admin/trainings/{trainingId}`
 
 Response `data`: training detail with bound `classIds` and team `roles`.
@@ -1483,7 +1811,73 @@ Response `data`: score rows sorted by comprehensive score, each with `rankNo`.
 
 ### `GET /api/admin/scores/semester/export`
 
-Response `data`: export-ready score rows. Binary Excel generation is handled by deployment integration later.
+Response `data`: export-ready score rows for frontend-controlled export.
+
+### `GET /api/admin/scores/semester/export/file`
+
+Response: `text/csv;charset=UTF-8` attachment named `semester-scores.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filters as `GET /api/admin/scores/semester`.
+
+### `POST /api/admin/scores/semester/import/preview`
+
+Request body:
+
+```json
+{
+  "rows": [
+    {
+      "rowNo": 2,
+      "studentNo": "student001",
+      "semesterId": 1,
+      "coursewareLearningScore": 80,
+      "trainingPracticeScore": 90,
+      "courseAssignmentScore": 85,
+      "examScore": 88,
+      "coursewareWeight": 20,
+      "trainingPracticeWeight": 30,
+      "assignmentWeight": 20,
+      "examWeight": 30
+    }
+  ]
+}
+```
+
+Response `data`:
+
+- `totalCount`
+- `validCount`
+- `errorCount`
+- `rows`: normalized import rows with `studentId`, calculated `comprehensiveScore`, `valid`, and row-level `errors`.
+
+Behavior:
+
+- Validates already parsed offline score rows.
+- `studentNo` must belong to an enabled student account.
+- `semesterId` must exist.
+- Component scores and weights are required and must be between `0` and `100`.
+- The four weights must add up to `100`.
+- Duplicate `studentNo + semesterId` rows in the same import are rejected.
+- Binary Excel parsing is intentionally outside this endpoint; frontend or import adapters submit parsed rows as JSON.
+
+### `POST /api/admin/scores/semester/import`
+
+Request body: same as import preview.
+
+Response `data`:
+
+- `importedCount`
+
+Behavior:
+
+- Re-validates all rows before writing.
+- Calculates `comprehensiveScore` on the backend using the submitted component scores and weights.
+- Upserts `score_semester_summary` by `student_id + semester_id`.
+- Sets `published_at` to the import time so imported scores are immediately visible in score lists and student score APIs.
+- Rejects the whole import when any row has validation errors.
 
 ## Training Archive Management
 
@@ -1523,7 +1917,16 @@ Response `data`:
 
 ### `GET /api/admin/archives/export`
 
-Response `data`: export-ready archive rows. Binary Excel generation is handled by deployment integration later.
+Response `data`: export-ready archive rows for frontend-controlled export.
+
+### `GET /api/admin/archives/export/file`
+
+Response: `text/csv;charset=UTF-8` attachment named `training-archives.csv`.
+
+Behavior:
+
+- Generates an Excel-compatible UTF-8 BOM CSV file.
+- Uses the same filters as `GET /api/admin/archives`.
 
 ## IAM Role And Permission Management
 
@@ -1542,6 +1945,74 @@ Each node:
 - `visible`
 - `sortOrder`
 - `children`
+
+### `POST /api/admin/permissions`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`: temporary admin operator id fallback.
+
+Request body:
+
+- `parentId` optional parent permission id.
+- `permissionName` required.
+- `permissionCode` required and unique.
+- `permissionType` required; accepts `MENU`, `PAGE`, or `BUTTON`.
+- `routePath` optional frontend route path.
+- `visible` optional boolean, defaults to `true`.
+- `sortOrder` optional integer, defaults to `0`.
+
+Response `data`: created permission id.
+
+### `PUT /api/admin/permissions/{permissionId}`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Request body: same as permission create.
+
+Rules:
+
+- `permissionCode` must stay unique.
+- A permission cannot use itself as parent.
+- Role permission bindings are preserved.
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/enable`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/disable`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Response `data`: `null`.
+
+### `POST /api/admin/permissions/{permissionId}/delete`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Rules:
+
+- Deletes only leaf permission nodes.
+- Rejects deletion when the permission is bound to any role.
+
+Response `data`: `null`.
 
 ### `GET /api/admin/roles`
 

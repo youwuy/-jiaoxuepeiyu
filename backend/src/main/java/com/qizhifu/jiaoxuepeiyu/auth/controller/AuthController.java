@@ -17,6 +17,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -66,6 +67,17 @@ public class AuthController {
         return ApiResponse.ok(null);
     }
 
+    @PutMapping("/password")
+    @Operation(summary = "Change password", description = "Changes the current user's password after validating the current password and password policy.")
+    public ApiResponse<Void> changePassword(@Valid @RequestBody PasswordRequest body, HttpServletRequest request) {
+        authService.changePassword(
+                requireBearerToken(request),
+                body.getCurrentPassword(),
+                body.getNewPassword(),
+                body.getConfirmPassword());
+        return ApiResponse.ok(null);
+    }
+
     private String requireBearerToken(HttpServletRequest request) {
         return BearerTokenResolver.resolve(request.getHeader("Authorization"))
                 .orElseThrow(() -> new AuthenticationException("Missing token"));
@@ -105,6 +117,39 @@ public class AuthController {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+    }
+
+    public static class PasswordRequest {
+        @NotBlank
+        private String currentPassword;
+        @NotBlank
+        private String newPassword;
+        @NotBlank
+        private String confirmPassword;
+
+        public String getCurrentPassword() {
+            return currentPassword;
+        }
+
+        public void setCurrentPassword(String currentPassword) {
+            this.currentPassword = currentPassword;
+        }
+
+        public String getNewPassword() {
+            return newPassword;
+        }
+
+        public void setNewPassword(String newPassword) {
+            this.newPassword = newPassword;
+        }
+
+        public String getConfirmPassword() {
+            return confirmPassword;
+        }
+
+        public void setConfirmPassword(String confirmPassword) {
+            this.confirmPassword = confirmPassword;
         }
     }
 }

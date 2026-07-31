@@ -3,12 +3,14 @@ USE `jiaoxuepeiyu`;
 CREATE TABLE IF NOT EXISTS `course_chapter` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `course_id` BIGINT NOT NULL,
+  `parent_chapter_id` BIGINT DEFAULT NULL,
   `chapter_title` VARCHAR(128) NOT NULL,
   `sort_order` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_course_chapter_course` (`course_id`, `sort_order`)
+  KEY `idx_course_chapter_course` (`course_id`, `parent_chapter_id`, `sort_order`),
+  KEY `idx_course_chapter_parent` (`parent_chapter_id`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='course chapters';
 
 CREATE TABLE IF NOT EXISTS `course_content` (
@@ -20,6 +22,8 @@ CREATE TABLE IF NOT EXISTS `course_content` (
   `resource_id` BIGINT DEFAULT NULL,
   `assignment_id` BIGINT DEFAULT NULL,
   `required_duration_seconds` INT NOT NULL DEFAULT 0,
+  `learning_start_time` DATETIME DEFAULT NULL,
+  `learning_end_time` DATETIME DEFAULT NULL,
   `sort_order` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -49,6 +53,11 @@ CREATE TABLE IF NOT EXISTS `course_assignment` (
   `assignment_title` VARCHAR(128) NOT NULL,
   `assignment_type` VARCHAR(16) NOT NULL COMMENT 'THEORY/TRAINING',
   `deadline` DATETIME DEFAULT NULL,
+  `answer_start_time` DATETIME DEFAULT NULL,
+  `answer_end_time` DATETIME DEFAULT NULL,
+  `completion_rule` VARCHAR(32) NOT NULL DEFAULT 'SUBMIT' COMMENT 'SUBMIT/PASS_SCORE',
+  `pass_score` INT DEFAULT NULL,
+  `publish_mode` VARCHAR(16) NOT NULL DEFAULT 'PRACTICE' COMMENT 'PRACTICE/EXAM',
   `total_score` INT NOT NULL DEFAULT 0,
   `publish_status` VARCHAR(16) NOT NULL DEFAULT 'DRAFT' COMMENT 'DRAFT/PUBLISHED/OFFLINE',
   `created_by` BIGINT DEFAULT NULL,

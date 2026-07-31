@@ -3,11 +3,18 @@ package com.qizhifu.jiaoxuepeiyu.admin.account;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountExportRow;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportResult;
+import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountImportRow;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.account.port.AdminAccountRepository;
 import com.qizhifu.jiaoxuepeiyu.auth.port.PasswordHasher;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -108,6 +115,54 @@ class AdminAccountServiceTests {
         assertEquals("Initial password is not configured", exception.getMessage());
     }
 
+    @Test
+    void previewsImportRowsWithExistingAccountAndValidationErrors() {
+        FakeAccounts repository = new FakeAccounts();
+        repository.existingAccountNos = Arrays.asList("teacher001");
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+        AdminAccountImportCommand command = new AdminAccountImportCommand();
+        command.setRows(Arrays.asList(importRow(1, "teacher001", "Teacher One", "13812345678", 1L, null),
+                importRow(2, "teacher003", "", "12345", 1L, null),
+                importRow(3, "teacher002", "Teacher Two", "13812345679", 1L, null)));
+
+        AdminAccountImportPreview preview = service.previewImport("teacher", command);
+
+        assertEquals(1, preview.getValidCount().intValue());
+        assertEquals(2, preview.getErrorCount().intValue());
+        assertEquals("Account number already exists", preview.getRows().get(0).getErrors().get(0));
+        assertEquals("Name is required", preview.getRows().get(1).getErrors().get(0));
+    }
+
+    @Test
+    void importsValidStudentRowsThroughCreatePath() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+        AdminAccountImportCommand command = new AdminAccountImportCommand();
+        command.setRows(Arrays.asList(importRow(1, "student101", "Student A", "13812345678", 1L, 3L),
+                importRow(2, "student102", "Student B", "13812345679", 1L, 3L)));
+
+        AdminAccountImportResult result = service.importAccounts("student", command);
+
+        assertEquals(2, result.getImportedCount().intValue());
+        assertEquals(Arrays.asList(10L, 11L), result.getUserIds());
+        assertEquals("student102", repository.createdCommands.get(1).getAccountNo());
+        assertEquals("hashed:InitPass123", repository.createdPasswordHashes.get(1));
+    }
+
+    @Test
+    void exportsMaskedAccountRows() {
+        FakeAccounts repository = new FakeAccounts();
+        repository.exportAccounts = Arrays.asList(account(10L, "teacher001", "Teacher One", "13812345678", "110101199001011234"));
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        List<AdminAccountExportRow> rows = service.exportAccounts("teacher", new AdminAccountQuery());
+
+        assertEquals(1, rows.size());
+        assertEquals("teacher001", rows.get(0).getAccountNo());
+        assertEquals("138****5678", rows.get(0).getMaskedPhone());
+        assertEquals("1101**********1234", rows.get(0).getMaskedIdCard());
+    }
+
     private AdminAccountCommand teacher() {
         AdminAccountCommand command = new AdminAccountCommand();
         command.setRealName("Teacher One");
@@ -133,19 +188,52 @@ class AdminAccountServiceTests {
         return command;
     }
 
+    private AdminAccountImportRow importRow(int rowNo, String accountNo, String realName, String phone, Long orgId, Long classId) {
+        AdminAccountImportRow row = new AdminAccountImportRow();
+        row.setRowNo(Integer.valueOf(rowNo));
+        row.setAccountNo(accountNo);
+        row.setRealName(realName);
+        row.setPhone(phone);
+        row.setOrgId(orgId);
+        row.setClassId(classId);
+        return row;
+    }
+
+    private AdminAccount account(Long userId, String accountNo, String realName, String phone, String idCard) {
+        AdminAccount account = new AdminAccount();
+        account.setUserId(userId);
+        account.setAccountNo(accountNo);
+        account.setRealName(realName);
+        account.setPhone(phone);
+        account.setMaskedIdCard(idCard);
+        account.setUserType("teacher");
+        account.setOrgName("Org");
+        account.setEnabled(true);
+        return account;
+    }
+
     private static class FakeAccounts implements AdminAccountRepository {
         private AdminAccountCommand createdCommand;
         private String createdPasswordHash;
+        private final List<AdminAccountCommand> createdCommands = new ArrayList<AdminAccountCommand>();
+        private final List<String> createdPasswordHashes = new ArrayList<String>();
         private Long updatedUserId;
         private AdminAccountCommand updatedCommand;
         private List<Long> roleUserIds;
         private List<Long> managedOrgIds;
         private List<Long> resetUserIds;
         private String resetPasswordHash;
+        private List<String> existingAccountNos = new ArrayList<String>();
+        private List<AdminAccount> exportAccounts = new ArrayList<AdminAccount>();
 
         @Override
-        public List<com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount> findAccounts(AdminAccountQuery query) {
+        public List<AdminAccount> findAccounts(AdminAccountQuery query) {
             return Arrays.asList();
+        }
+
+        @Override
+        public List<AdminAccount> findAccountsForExport(AdminAccountQuery query) {
+            return exportAccounts;
         }
 
         @Override
@@ -154,15 +242,22 @@ class AdminAccountServiceTests {
         }
 
         @Override
-        public com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount findById(Long userId) {
+        public AdminAccount findById(Long userId) {
             return null;
+        }
+
+        @Override
+        public List<String> findExistingAccountNos(List<String> accountNos) {
+            return existingAccountNos;
         }
 
         @Override
         public Long create(AdminAccountCommand command, String passwordHash) {
             this.createdCommand = command;
             this.createdPasswordHash = passwordHash;
-            return 10L;
+            this.createdCommands.add(command);
+            this.createdPasswordHashes.add(passwordHash);
+            return Long.valueOf(9L + createdCommands.size());
         }
 
         @Override

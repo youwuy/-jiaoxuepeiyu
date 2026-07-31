@@ -75,6 +75,14 @@ public class StudentTrainingController {
         return ApiResponse.ok(service.claimRole(StudentContext.requireStudentId(request), roomId, roleId));
     }
 
+    @PostMapping("/training-rooms/{roomId}/roles/{roleId}/release")
+    @Operation(summary = "Release training role", description = "Releases a room role claimed by the current student and returns updated room state.")
+    public ApiResponse<TrainingRoom> releaseRole(@PathVariable Long roomId,
+                                                 @PathVariable Long roleId,
+                                                 HttpServletRequest request) {
+        return ApiResponse.ok(service.releaseRole(StudentContext.requireStudentId(request), roomId, roleId));
+    }
+
     @PostMapping("/training-rooms/{roomId}/start")
     @Operation(summary = "Start training room", description = "Starts a waiting team room after owner, capacity, and role completion checks.")
     public ApiResponse<TrainingRoom> startRoom(@PathVariable Long roomId, HttpServletRequest request) {

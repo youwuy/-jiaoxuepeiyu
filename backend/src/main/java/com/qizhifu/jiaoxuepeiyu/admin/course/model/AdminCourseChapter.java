@@ -7,9 +7,11 @@ public class AdminCourseChapter {
 
     private Long chapterId;
     private Long courseId;
+    private Long parentChapterId;
     private String chapterTitle;
     private Integer sortOrder;
     private List<AdminCourseContent> contents = new ArrayList<AdminCourseContent>();
+    private List<AdminCourseChapter> children = new ArrayList<AdminCourseChapter>();
 
     public Long getChapterId() {
         return chapterId;
@@ -25,6 +27,14 @@ public class AdminCourseChapter {
 
     public void setCourseId(Long courseId) {
         this.courseId = courseId;
+    }
+
+    public Long getParentChapterId() {
+        return parentChapterId;
+    }
+
+    public void setParentChapterId(Long parentChapterId) {
+        this.parentChapterId = parentChapterId;
     }
 
     public String getChapterTitle() {
@@ -49,5 +59,13 @@ public class AdminCourseChapter {
 
     public void setContents(List<AdminCourseContent> contents) {
         this.contents = contents;
+    }
+
+    public List<AdminCourseChapter> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<AdminCourseChapter> children) {
+        this.children = children;
     }
 }

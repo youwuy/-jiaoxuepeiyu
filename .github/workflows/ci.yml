@@ -16,7 +16,6 @@ jobs:
   backend:
     name: Backend Java 8
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
 
     services:
       mysql:
@@ -48,6 +47,40 @@ jobs:
           java-version: "8"
           cache: maven
 
+      - name: Static backend verification
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/verify-backend-static.ps1
+
+      - name: Static deployment layout verification
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: ./scripts/verify-deploy-layout.ps1
+
+      - name: Install MySQL client
+        working-directory: ${{ github.workspace }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: Verify MySQL 5.7 schema import
+        working-directory: ${{ github.workspace }}
+        env:
+          MYSQL_PWD: root123456
+        run: |
+          for file in database/init/*.sql; do
+            mysql -h 127.0.0.1 -P 3306 -uroot jiaoxuepeiyu < "$file"
+          done
+
+      - name: Run backend tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: jiaoxuepeiyu
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root123456
+        run: mvn -B clean test
+
       - name: Package backend
         env:
           MYSQL_HOST: 127.0.0.1
@@ -55,12 +88,25 @@ jobs:
           MYSQL_DATABASE: jiaoxuepeiyu
           MYSQL_USER: root
           MYSQL_PASSWORD: root123456
-        run: mvn -B clean package -Dmaven.test.skip=true
+        run: mvn -B package -DskipTests
+
+      - name: Smoke test packaged backend
+        working-directory: ${{ github.workspace }}
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: jiaoxuepeiyu
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root123456
+          APP_ACCOUNT_INITIAL_PASSWORD: ${{ format('InitPass{0}', github.run_number) }}
+          APP_BOOTSTRAP_ADMIN_USERNAME: ciadmin
+          APP_BOOTSTRAP_ADMIN_PASSWORD: ${{ format('CiAdmin{0}', github.run_number) }}
+          APP_BOOTSTRAP_ADMIN_REAL_NAME: CI Administrator
+        run: bash scripts/ci-backend-smoke.sh
 
   frontend:
     name: Frontend Node 18
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('frontend/package.json') != '' }}
 
     defaults:
       run:
@@ -86,7 +132,6 @@ jobs:
   root-frontend:
     name: Root Frontend Node 18
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('package.json') != '' }}
 
     steps:
       - name: Checkout

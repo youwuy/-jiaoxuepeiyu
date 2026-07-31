@@ -14,6 +14,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -25,7 +26,11 @@ public interface AdminCourseMapper {
             + "SELECT DISTINCT c.id AS course_id, c.course_name, c.academic_year_id, ay.year_name AS academic_year_name, "
             + "c.semester_id, s.semester_name, c.academic_term, c.major_id, m.major_name, c.class_id, "
             + "c.cover_url, c.teacher_names, c.class_names, c.learning_mode, c.assignment_completion_rule, "
-            + "c.courseware_score_cap, c.courseware_count, c.assignment_count, c.publish_status, "
+            + "c.courseware_score_cap, c.courseware_count, c.assignment_count, "
+            + "(SELECT COUNT(*) FROM assignment_attempt aa "
+            + "JOIN course_assignment ca_pending ON ca_pending.id = aa.assignment_id "
+            + "WHERE ca_pending.course_id = c.id AND aa.status = 'SUBMITTED') AS pending_review_count, "
+            + "c.publish_status, "
             + "c.open_start_time, c.open_end_time, c.created_by, u.real_name AS creator_name, c.created_at, c.updated_at "
             + "FROM course c "
             + "LEFT JOIN edu_academic_year ay ON ay.id = c.academic_year_id "
@@ -39,7 +44,11 @@ public interface AdminCourseMapper {
             + "<if test='academicYearId != null'>AND c.academic_year_id = #{academicYearId}</if> "
             + "<if test='semesterId != null'>AND c.semester_id = #{semesterId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
-            + "<if test='publishStatus != null'>AND c.publish_status = #{publishStatus}</if> "
+            + "<if test='teachingStartTime != null'>AND c.open_end_time &gt;= #{teachingStartTime}</if> "
+            + "<if test='teachingEndTime != null'>AND c.open_start_time &lt;= #{teachingEndTime}</if> "
+            + "<if test='publishStatus != null and publishStatus == \"PUBLISHED\"'>AND c.publish_status = 'PUBLISHED'</if> "
+            + "<if test='publishStatus != null and publishStatus == \"NOT_PUBLISHED\"'>AND c.publish_status &lt;&gt; 'PUBLISHED'</if> "
+            + "<if test='publishStatus != null and publishStatus != \"PUBLISHED\" and publishStatus != \"NOT_PUBLISHED\"'>AND c.publish_status = #{publishStatus}</if> "
             + "ORDER BY c.updated_at DESC, c.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     @Results(id = "courseMap", value = {
@@ -61,6 +70,7 @@ public interface AdminCourseMapper {
             @Result(column = "courseware_score_cap", property = "coursewareScoreCap"),
             @Result(column = "courseware_count", property = "coursewareCount"),
             @Result(column = "assignment_count", property = "assignmentCount"),
+            @Result(column = "pending_review_count", property = "pendingReviewCount"),
             @Result(column = "publish_status", property = "publishStatus"),
             @Result(column = "open_start_time", property = "openStartTime"),
             @Result(column = "open_end_time", property = "openEndTime"),
@@ -83,7 +93,11 @@ public interface AdminCourseMapper {
             + "<if test='academicYearId != null'>AND c.academic_year_id = #{academicYearId}</if> "
             + "<if test='semesterId != null'>AND c.semester_id = #{semesterId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
-            + "<if test='publishStatus != null'>AND c.publish_status = #{publishStatus}</if> "
+            + "<if test='teachingStartTime != null'>AND c.open_end_time &gt;= #{teachingStartTime}</if> "
+            + "<if test='teachingEndTime != null'>AND c.open_start_time &lt;= #{teachingEndTime}</if> "
+            + "<if test='publishStatus != null and publishStatus == \"PUBLISHED\"'>AND c.publish_status = 'PUBLISHED'</if> "
+            + "<if test='publishStatus != null and publishStatus == \"NOT_PUBLISHED\"'>AND c.publish_status &lt;&gt; 'PUBLISHED'</if> "
+            + "<if test='publishStatus != null and publishStatus != \"PUBLISHED\" and publishStatus != \"NOT_PUBLISHED\"'>AND c.publish_status = #{publishStatus}</if> "
             + "</script>")
     long countCourses(AdminCourseQuery query);
 
@@ -136,20 +150,34 @@ public interface AdminCourseMapper {
     @Select("SELECT class_id FROM course_class WHERE course_id = #{courseId} ORDER BY sort_order ASC, id ASC")
     List<Long> findClassIds(@Param("courseId") Long courseId);
 
-    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.chapter_title, ch.sort_order "
-            + "FROM course_chapter ch WHERE ch.course_id = #{courseId} ORDER BY ch.sort_order ASC, ch.id ASC")
+    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
+            + "FROM course_chapter ch WHERE ch.course_id = #{courseId} "
+            + "AND ch.parent_chapter_id IS NULL ORDER BY ch.sort_order ASC, ch.id ASC")
     @Results(id = "courseChapterMap", value = {
             @Result(column = "chapter_id", property = "chapterId", id = true),
             @Result(column = "course_id", property = "courseId"),
+            @Result(column = "parent_chapter_id", property = "parentChapterId"),
             @Result(column = "chapter_title", property = "chapterTitle"),
             @Result(column = "sort_order", property = "sortOrder"),
-            @Result(column = "chapter_id", property = "contents", many = @Many(select = "findContents"))
+            @Result(column = "chapter_id", property = "contents", many = @Many(select = "findContents")),
+            @Result(column = "chapter_id", property = "children", many = @Many(select = "findChildChapters"))
     })
     List<AdminCourseChapter> findChapters(@Param("courseId") Long courseId);
 
-    @Select("SELECT id AS content_id, chapter_id, item_type, title, resource_id, assignment_id, "
-            + "required_duration_seconds, sort_order "
-            + "FROM course_content WHERE chapter_id = #{chapterId} ORDER BY sort_order ASC, id ASC")
+    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
+            + "FROM course_chapter ch WHERE ch.parent_chapter_id = #{parentChapterId} "
+            + "ORDER BY ch.sort_order ASC, ch.id ASC")
+    @ResultMap("courseChapterMap")
+    List<AdminCourseChapter> findChildChapters(@Param("parentChapterId") Long parentChapterId);
+
+    @Select("SELECT ct.id AS content_id, ct.chapter_id, ct.item_type, ct.title, ct.resource_id, ct.assignment_id, "
+            + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
+            + "a.completion_rule AS assignment_completion_rule, a.pass_score, "
+            + "a.publish_mode AS assignment_publish_mode, a.answer_start_time, a.answer_end_time, "
+            + "a.total_score AS assignment_total_score, ct.sort_order "
+            + "FROM course_content ct "
+            + "LEFT JOIN course_assignment a ON a.id = ct.assignment_id "
+            + "WHERE ct.chapter_id = #{chapterId} ORDER BY ct.sort_order ASC, ct.id ASC")
     List<AdminCourseContent> findContents(@Param("chapterId") Long chapterId);
 
     @Insert("INSERT INTO course "
@@ -194,26 +222,32 @@ public interface AdminCourseMapper {
     @Delete("DELETE FROM course_chapter WHERE course_id = #{courseId}")
     void deleteChapters(@Param("courseId") Long courseId);
 
-    @Insert("INSERT INTO course_chapter (course_id, chapter_title, sort_order, created_at, updated_at) "
-            + "VALUES (#{courseId}, #{chapter.chapterTitle}, #{chapter.sortOrder}, NOW(), NOW())")
+    @Insert("INSERT INTO course_chapter (course_id, parent_chapter_id, chapter_title, sort_order, created_at, updated_at) "
+            + "VALUES (#{courseId}, #{chapter.parentChapterId}, #{chapter.chapterTitle}, #{chapter.sortOrder}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "chapter.chapterId")
     void insertChapter(@Param("courseId") Long courseId, @Param("chapter") AdminCourseChapter chapter);
 
     @Insert("INSERT INTO course_content "
             + "(course_id, chapter_id, item_type, title, resource_id, assignment_id, required_duration_seconds, "
-            + "sort_order, created_at, updated_at) "
+            + "learning_start_time, learning_end_time, sort_order, created_at, updated_at) "
             + "VALUES (#{courseId}, #{chapterId}, #{content.itemType}, #{content.title}, #{content.resourceId}, "
-            + "#{content.assignmentId}, #{content.requiredDurationSeconds}, #{content.sortOrder}, NOW(), NOW())")
+            + "#{content.assignmentId}, #{content.requiredDurationSeconds}, #{content.learningStartTime}, "
+            + "#{content.learningEndTime}, #{content.sortOrder}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "content.contentId")
     void insertContent(@Param("courseId") Long courseId,
                        @Param("chapterId") Long chapterId,
                        @Param("content") AdminCourseContent content);
 
-    @Update("UPDATE course_assignment SET course_id = #{courseId}, content_id = #{contentId}, updated_at = NOW() "
+    @Update("UPDATE course_assignment SET course_id = #{courseId}, content_id = #{contentId}, "
+            + "completion_rule = #{content.assignmentCompletionRule}, pass_score = #{content.passScore}, "
+            + "publish_mode = #{content.assignmentPublishMode}, "
+            + "answer_start_time = #{content.answerStartTime}, answer_end_time = #{content.answerEndTime}, "
+            + "deadline = #{content.answerEndTime}, updated_at = NOW() "
             + "WHERE id = #{assignmentId}")
     void updateAssignmentContent(@Param("assignmentId") Long assignmentId,
                                  @Param("courseId") Long courseId,
-                                 @Param("contentId") Long contentId);
+                                 @Param("contentId") Long contentId,
+                                 @Param("content") AdminCourseContent content);
 
     @Update("UPDATE course SET publish_status = #{publishStatus}, updated_at = NOW() "
             + "WHERE id = #{courseId} AND deleted_flag = 0")

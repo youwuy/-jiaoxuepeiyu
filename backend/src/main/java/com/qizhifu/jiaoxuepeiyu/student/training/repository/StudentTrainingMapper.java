@@ -105,6 +105,13 @@ public interface StudentTrainingMapper {
                    @Param("studentId") Long studentId,
                    @Param("roleId") Long roleId);
 
+    @Update("UPDATE training_team_room_member SET role_id = NULL, updated_at = NOW() "
+            + "WHERE room_id = #{roomId} AND student_id = #{studentId} "
+            + "AND role_id = #{roleId} AND member_status = 'ACTIVE'")
+    void releaseRole(@Param("roomId") Long roomId,
+                     @Param("studentId") Long studentId,
+                     @Param("roleId") Long roleId);
+
     @Update("UPDATE training_team_room_member SET member_status = 'LEFT', role_id = NULL, "
             + "left_at = NOW(), updated_at = NOW() "
             + "WHERE room_id = #{roomId} AND student_id = #{studentId} AND member_status = 'ACTIVE'")

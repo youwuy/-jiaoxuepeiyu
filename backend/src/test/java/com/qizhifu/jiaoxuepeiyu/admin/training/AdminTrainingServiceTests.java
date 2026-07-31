@@ -117,6 +117,26 @@ class AdminTrainingServiceTests {
         assertEquals(0, statistics.getAverageScore().doubleValue(), 0.001);
     }
 
+    @Test
+    void exportsTrainingsWithFilterAndMaximumPageSize() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.trainings = Arrays.asList(existingTraining(71L));
+        AdminTrainingService service = new AdminTrainingService(repository);
+        AdminTrainingQuery query = new AdminTrainingQuery();
+        query.setKeyword("Door");
+        query.setPage(3);
+        query.setPageSize(10);
+
+        List<AdminTraining> trainings = service.exportTrainings(query);
+
+        assertEquals(1, trainings.size());
+        assertEquals(1, repository.findTrainingsCalls);
+        assertEquals(0, repository.countTrainingsCalls);
+        assertEquals(1, repository.lastQuery.getPage());
+        assertEquals(100, repository.lastQuery.getPageSize());
+        assertEquals("Door", repository.lastQuery.getKeyword());
+    }
+
     private AdminTrainingCommand trainingCommand() {
         AdminTrainingCommand command = new AdminTrainingCommand();
         command.setTrainingName("Door Operation Drill");
@@ -165,14 +185,22 @@ class AdminTrainingServiceTests {
         private String publishStatus;
         private Long notificationTrainingId;
         private String lastLogAction;
+        private List<AdminTraining> trainings = new ArrayList<AdminTraining>();
+        private AdminTrainingQuery lastQuery;
+        private int findTrainingsCalls;
+        private int countTrainingsCalls;
 
         @Override
         public List<AdminTraining> findTrainings(AdminTrainingQuery query) {
-            return new ArrayList<AdminTraining>();
+            this.lastQuery = query;
+            this.findTrainingsCalls++;
+            return trainings;
         }
 
         @Override
         public long countTrainings(AdminTrainingQuery query) {
+            this.lastQuery = query;
+            this.countTrainingsCalls++;
             return 0;
         }
 

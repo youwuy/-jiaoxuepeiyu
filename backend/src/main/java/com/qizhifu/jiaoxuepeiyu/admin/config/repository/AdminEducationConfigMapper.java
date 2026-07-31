@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.config.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYear;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClass;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRole;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajor;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminSemester;
 import java.util.List;
@@ -64,4 +65,21 @@ public interface AdminEducationConfigMapper {
             + "VALUES (#{majorId}, #{className}, 1, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "classId")
     void insertClass(AdminClass adminClass);
+
+    @Select("SELECT id AS job_role_id, role_name, sort_order, "
+            + "CASE WHEN status = 1 THEN TRUE ELSE FALSE END AS enabled "
+            + "FROM edu_job_role ORDER BY sort_order ASC, role_name ASC, id ASC")
+    List<AdminJobRole> findJobRoles();
+
+    @Insert("INSERT INTO edu_job_role (role_name, sort_order, status, created_at, updated_at) "
+            + "VALUES (#{roleName}, #{sortOrder}, 1, NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "jobRoleId")
+    void insertJobRole(AdminJobRole jobRole);
+
+    @Update("UPDATE edu_job_role SET role_name = #{role.roleName}, sort_order = #{role.sortOrder}, "
+            + "updated_at = NOW() WHERE id = #{jobRoleId}")
+    void updateJobRole(@Param("jobRoleId") Long jobRoleId, @Param("role") AdminJobRole jobRole);
+
+    @Update("UPDATE edu_job_role SET status = #{status}, updated_at = NOW() WHERE id = #{jobRoleId}")
+    void updateJobRoleStatus(@Param("jobRoleId") Long jobRoleId, @Param("status") int status);
 }

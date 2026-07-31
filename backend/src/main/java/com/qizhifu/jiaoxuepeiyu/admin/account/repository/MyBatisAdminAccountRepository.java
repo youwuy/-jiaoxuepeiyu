@@ -4,6 +4,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccount;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.account.model.AdminAccountQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.account.port.AdminAccountRepository;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
@@ -29,6 +30,11 @@ public class MyBatisAdminAccountRepository implements AdminAccountRepository {
     }
 
     @Override
+    public List<AdminAccount> findAccountsForExport(AdminAccountQuery query) {
+        return mapper.findAccountsForExport(query);
+    }
+
+    @Override
     public long countAccounts(AdminAccountQuery query) {
         return mapper.countAccounts(query);
     }
@@ -40,6 +46,14 @@ public class MyBatisAdminAccountRepository implements AdminAccountRepository {
             enrich(account);
         }
         return account;
+    }
+
+    @Override
+    public List<String> findExistingAccountNos(List<String> accountNos) {
+        if (accountNos == null || accountNos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return mapper.findExistingAccountNos(accountNos);
     }
 
     @Override

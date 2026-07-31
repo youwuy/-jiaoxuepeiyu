@@ -24,6 +24,8 @@ public interface StudentTrainingRepository {
 
     void claimRole(Long roomId, Long studentId, Long roleId);
 
+    void releaseRole(Long roomId, Long studentId, Long roleId);
+
     void leaveRoom(Long roomId, Long studentId);
 
     void dissolveRoom(Long roomId);

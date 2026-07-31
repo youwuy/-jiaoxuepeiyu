@@ -7,4 +7,8 @@ import java.util.Optional;
 public interface UserAccountRepository {
 
     Optional<UserAccount> findByIdentity(LoginIdentityType identityType, String account);
+
+    Optional<UserAccount> findById(Long userId);
+
+    void updatePasswordHash(Long userId, String passwordHash);
 }

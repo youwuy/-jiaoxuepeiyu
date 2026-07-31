@@ -1,5 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.student.course.model;
 
+import java.time.LocalDateTime;
+
 public class StudentCourseContentRecord {
 
     private Long chapterId;
@@ -11,6 +13,8 @@ public class StudentCourseContentRecord {
     private Long assignmentId;
     private Long resourceId;
     private int requiredDurationSeconds;
+    private LocalDateTime learningStartTime;
+    private LocalDateTime learningEndTime;
     private int studiedSeconds;
     private boolean completed;
     private int sortOrder;
@@ -85,6 +89,22 @@ public class StudentCourseContentRecord {
 
     public void setRequiredDurationSeconds(int requiredDurationSeconds) {
         this.requiredDurationSeconds = requiredDurationSeconds;
+    }
+
+    public LocalDateTime getLearningStartTime() {
+        return learningStartTime;
+    }
+
+    public void setLearningStartTime(LocalDateTime learningStartTime) {
+        this.learningStartTime = learningStartTime;
+    }
+
+    public LocalDateTime getLearningEndTime() {
+        return learningEndTime;
+    }
+
+    public void setLearningEndTime(LocalDateTime learningEndTime) {
+        this.learningEndTime = learningEndTime;
     }
 
     public int getStudiedSeconds() {

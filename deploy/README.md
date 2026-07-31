@@ -53,11 +53,39 @@ dist/
 
 ## Database Configuration
 
-The generated package contains `config/application.yml`. It reads database settings from environment variables:
+The generated package contains `config/application.yml`. It reads database and account settings from environment variables:
 
 Set `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `APP_ACCOUNT_INITIAL_PASSWORD` in the deployment environment.
 
 Do not write production passwords into the repository.
+
+## First Admin Bootstrap
+
+The database scripts intentionally do not seed a default administrator or plaintext password.
+
+For the first startup only, set both variables:
+
+```bash
+APP_BOOTSTRAP_ADMIN_USERNAME=admin
+APP_BOOTSTRAP_ADMIN_PASSWORD=<strong temporary password>
+```
+
+Optional profile fields:
+
+```bash
+APP_BOOTSTRAP_ADMIN_REAL_NAME=System Administrator
+APP_BOOTSTRAP_ADMIN_PHONE=13812345678
+```
+
+Bootstrap behavior:
+
+- If both username and password are empty, startup skips bootstrap.
+- If only one of username or password is set, startup fails so the deployment is corrected.
+- If any `admin` user already exists, startup skips bootstrap and never resets existing accounts.
+- Passwords must be `8-20` characters and contain letters and digits.
+- The backend stores only the hashed password.
+
+After the first successful startup and login, remove `APP_BOOTSTRAP_ADMIN_USERNAME` and `APP_BOOTSTRAP_ADMIN_PASSWORD` from the environment. Use the admin account to create or reset teacher and student accounts; those account passwords use `APP_ACCOUNT_INITIAL_PASSWORD`.
 
 ## File Storage
 
@@ -94,7 +122,22 @@ Create the deployment package:
 JRE8_HOME=/path/to/jre8 deploy/package.sh
 ```
 
+Windows release machines can use the native batch packager:
+
+```bat
+set JRE8_HOME=C:\path\to\jre8
+deploy\package.bat
+```
+
+If `JRE8_HOME` is not set, both packagers read the runtime from `deploy/runtime/jre8`.
+
 The command fails when the backend jar or JRE 8 runtime is missing. This is intentional: the final package must be runnable without asking users to install Java.
+
+Before release, run the static deployment layout check:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-deploy-layout.ps1
+```
 
 ## Start And Stop
 

@@ -11,6 +11,11 @@ public class StudentAssignmentDetail {
     private String assignmentTitle;
     private String assignmentType;
     private LocalDateTime deadline;
+    private LocalDateTime answerStartTime;
+    private LocalDateTime answerEndTime;
+    private String completionRule;
+    private Integer passScore;
+    private String publishMode;
     private int totalScore;
     private String status;
     private LocalDateTime submittedAt;
@@ -54,6 +59,46 @@ public class StudentAssignmentDetail {
 
     public void setDeadline(LocalDateTime deadline) {
         this.deadline = deadline;
+    }
+
+    public LocalDateTime getAnswerStartTime() {
+        return answerStartTime;
+    }
+
+    public void setAnswerStartTime(LocalDateTime answerStartTime) {
+        this.answerStartTime = answerStartTime;
+    }
+
+    public LocalDateTime getAnswerEndTime() {
+        return answerEndTime;
+    }
+
+    public void setAnswerEndTime(LocalDateTime answerEndTime) {
+        this.answerEndTime = answerEndTime;
+    }
+
+    public String getCompletionRule() {
+        return completionRule;
+    }
+
+    public void setCompletionRule(String completionRule) {
+        this.completionRule = completionRule;
+    }
+
+    public Integer getPassScore() {
+        return passScore;
+    }
+
+    public void setPassScore(Integer passScore) {
+        this.passScore = passScore;
+    }
+
+    public String getPublishMode() {
+        return publishMode;
+    }
+
+    public void setPublishMode(String publishMode) {
+        this.publishMode = publishMode;
     }
 
     public int getTotalScore() {

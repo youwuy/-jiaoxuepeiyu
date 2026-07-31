@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class AdminTrainingService {
     private final AdminTrainingRepository repository;
     private final Clock clock;
 
+    @Autowired
     public AdminTrainingService(AdminTrainingRepository repository) {
         this(repository, Clock.systemDefaultZone());
     }
@@ -47,6 +49,13 @@ public class AdminTrainingService {
                 normalized.getPage(),
                 normalized.getPageSize(),
                 repository.countTrainings(normalized));
+    }
+
+    public List<AdminTraining> exportTrainings(AdminTrainingQuery query) {
+        AdminTrainingQuery normalized = normalizedQuery(query);
+        normalized.setPage(1);
+        normalized.setPageSize(MAX_PAGE_SIZE);
+        return repository.findTrainings(normalized);
     }
 
     public AdminTraining getTraining(Long trainingId) {

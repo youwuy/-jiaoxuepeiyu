@@ -77,6 +77,11 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     }
 
     @Override
+    public void releaseRole(Long roomId, Long studentId, Long roleId) {
+        mapper.releaseRole(roomId, studentId, roleId);
+    }
+
+    @Override
     public void leaveRoom(Long roomId, Long studentId) {
         mapper.leaveRoom(roomId, studentId);
     }

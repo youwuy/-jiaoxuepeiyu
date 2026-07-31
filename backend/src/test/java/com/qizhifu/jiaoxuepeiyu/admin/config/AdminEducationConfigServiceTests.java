@@ -7,6 +7,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYear;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYearCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClass;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClassCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRole;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajor;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajorCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminSemester;
@@ -75,12 +77,55 @@ class AdminEducationConfigServiceTests {
         assertEquals(true, repository.majorEnabled);
     }
 
+    @Test
+    void createsJobRoleWithTrimmedNameAndDefaultSortOrder() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        Long jobRoleId = service.createJobRole(new AdminJobRoleCommand(" Driver ", null));
+
+        assertEquals(400L, jobRoleId.longValue());
+        assertEquals("Driver", repository.savedJobRole.getRoleName());
+        assertEquals(0, repository.savedJobRole.getSortOrder().intValue());
+    }
+
+    @Test
+    void rejectsBlankJobRoleName() {
+        AdminEducationConfigService service = new AdminEducationConfigService(new FakeEducationConfig());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createJobRole(new AdminJobRoleCommand(" ", 1));
+        });
+
+        assertEquals("Job role name is required", exception.getMessage());
+    }
+
+    @Test
+    void updatesJobRoleAndStatus() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        service.updateJobRole(4L, new AdminJobRoleCommand("Dispatcher", 2));
+        service.disableJobRole(4L);
+        service.enableJobRole(4L);
+
+        assertEquals(4L, repository.updatedJobRoleId.longValue());
+        assertEquals("Dispatcher", repository.savedJobRole.getRoleName());
+        assertEquals(2, repository.savedJobRole.getSortOrder().intValue());
+        assertEquals(4L, repository.statusJobRoleId.longValue());
+        assertEquals(true, repository.jobRoleEnabled);
+    }
+
     private static class FakeEducationConfig implements AdminEducationConfigRepository {
         private final List<String> semesters = new ArrayList<String>();
         private boolean clearedCurrent;
         private Long currentSemesterId;
         private Long statusMajorId;
         private boolean majorEnabled;
+        private AdminJobRoleCommand savedJobRole;
+        private Long updatedJobRoleId;
+        private Long statusJobRoleId;
+        private boolean jobRoleEnabled;
 
         @Override
         public List<AdminAcademicYear> findAcademicYears() {
@@ -143,6 +188,29 @@ class AdminEducationConfigServiceTests {
         @Override
         public Long createClass(AdminClassCommand command) {
             return 300L;
+        }
+
+        @Override
+        public List<AdminJobRole> findJobRoles() {
+            return new ArrayList<AdminJobRole>();
+        }
+
+        @Override
+        public Long createJobRole(AdminJobRoleCommand command) {
+            this.savedJobRole = command;
+            return 400L;
+        }
+
+        @Override
+        public void updateJobRole(Long jobRoleId, AdminJobRoleCommand command) {
+            this.updatedJobRoleId = jobRoleId;
+            this.savedJobRole = command;
+        }
+
+        @Override
+        public void updateJobRoleStatus(Long jobRoleId, boolean enabled) {
+            this.statusJobRoleId = jobRoleId;
+            this.jobRoleEnabled = enabled;
         }
     }
 }

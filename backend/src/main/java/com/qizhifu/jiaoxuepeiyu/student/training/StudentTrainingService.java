@@ -108,6 +108,21 @@ public class StudentTrainingService {
     }
 
     @Transactional
+    public TrainingRoom releaseRole(Long studentId, Long roomId, Long roleId) {
+        TrainingRoom room = requireRoom(roomId);
+        assertWaiting(room);
+        assertMember(room, studentId);
+        TrainingRoomRole role = findRole(room, roleId);
+        if (role.isClaimed() && !studentId.equals(role.getClaimedByStudentId())) {
+            throw new BusinessException(400, "Training role is claimed by another member");
+        }
+        if (role.isClaimed()) {
+            repository.releaseRole(roomId, studentId, roleId);
+        }
+        return requireRoom(roomId);
+    }
+
+    @Transactional
     public TrainingRoom startRoom(Long studentId, Long roomId) {
         TrainingRoom room = requireRoom(roomId);
         assertWaiting(room);

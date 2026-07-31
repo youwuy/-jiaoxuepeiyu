@@ -10,10 +10,14 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
+import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +42,64 @@ public class AdminTrainingController {
     @Operation(summary = "List trainings", description = "Returns paged training courses filtered by name, term, major, class, type, mode, or publish status.")
     public ApiResponse<PageResponse<AdminTraining>> listTrainings(@ModelAttribute AdminTrainingQuery query) {
         return ApiResponse.ok(service.listTrainings(query));
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "Export training rows", description = "Returns export-ready training course rows for frontend-controlled export.")
+    public ApiResponse<List<AdminTraining>> exportTrainings(@ModelAttribute AdminTrainingQuery query) {
+        return ApiResponse.ok(service.exportTrainings(query));
+    }
+
+    @GetMapping("/export/file")
+    @Operation(summary = "Download training CSV", description = "Downloads filtered training course rows as an Excel-compatible CSV file.")
+    public ResponseEntity<byte[]> exportTrainingFile(@ModelAttribute AdminTrainingQuery query) {
+        List<List<String>> csvRows = new ArrayList<List<String>>();
+        for (AdminTraining training : service.exportTrainings(query)) {
+            csvRows.add(Arrays.asList(
+                    value(training.getTrainingId()),
+                    value(training.getTrainingName()),
+                    value(training.getAcademicYearName()),
+                    value(training.getSemesterName()),
+                    value(training.getMajorName()),
+                    value(training.getTrainingType()),
+                    value(training.getTrainingMode()),
+                    value(training.getPaperMode()),
+                    value(training.getPaperName()),
+                    value(training.getPublishStatus()),
+                    value(training.getOpenStartTime()),
+                    value(training.getOpenEndTime()),
+                    value(training.getTeamSize()),
+                    value(training.getAppRequired()),
+                    value(training.getClassNames()),
+                    value(training.getParticipantCount()),
+                    value(training.getRoomCount()),
+                    value(training.getStartedRoomCount()),
+                    value(training.getAverageScore()),
+                    value(training.getCreatorName()),
+                    value(training.getCreatedAt())));
+        }
+        return CsvExporter.toAttachment("trainings.csv", Arrays.asList(
+                "Training ID",
+                "Training Name",
+                "Academic Year",
+                "Semester",
+                "Major",
+                "Training Type",
+                "Training Mode",
+                "Paper Mode",
+                "Paper",
+                "Publish Status",
+                "Open Start Time",
+                "Open End Time",
+                "Team Size",
+                "App Required",
+                "Classes",
+                "Participant Count",
+                "Room Count",
+                "Started Room Count",
+                "Average Score",
+                "Creator",
+                "Created At"), csvRows);
     }
 
     @GetMapping("/{trainingId}")
@@ -98,5 +160,9 @@ public class AdminTrainingController {
     @Operation(summary = "List training logs", description = "Returns operation logs for one training course sorted by newest first.")
     public ApiResponse<List<AdminTrainingLog>> listTrainingLogs(@PathVariable Long trainingId) {
         return ApiResponse.ok(service.listTrainingLogs(trainingId));
+    }
+
+    private String value(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

@@ -28,6 +28,14 @@ springdoc:
     tags-sorter: alpha
 
 app:
+  account:
+    initial-password: ${APP_ACCOUNT_INITIAL_PASSWORD:}
+  bootstrap:
+    admin:
+      username: ${APP_BOOTSTRAP_ADMIN_USERNAME:}
+      password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+      real-name: ${APP_BOOTSTRAP_ADMIN_REAL_NAME:}
+      phone: ${APP_BOOTSTRAP_ADMIN_PHONE:}
   file:
     upload-root: ${APP_FILE_UPLOAD_ROOT:uploads}
     public-prefix: ${APP_FILE_PUBLIC_PREFIX:/uploads}

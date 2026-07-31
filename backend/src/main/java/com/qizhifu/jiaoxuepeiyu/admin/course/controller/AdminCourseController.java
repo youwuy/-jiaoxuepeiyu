@@ -34,7 +34,7 @@ public class AdminCourseController {
     }
 
     @GetMapping
-    @Operation(summary = "List courses", description = "Returns paged teaching courses filtered by name, term, major, class, teacher, or publish status.")
+    @Operation(summary = "List courses", description = "Returns paged teaching courses filtered by name, term, major, class, teacher, teaching-time overlap, or publish status.")
     public ApiResponse<PageResponse<AdminCourse>> listCourses(@ModelAttribute AdminCourseQuery query) {
         return ApiResponse.ok(service.listCourses(query));
     }
@@ -46,7 +46,7 @@ public class AdminCourseController {
     }
 
     @PostMapping
-    @Operation(summary = "Create course", description = "Creates a draft teaching course with teachers, classes, chapters, courseware, and assignment nodes.")
+    @Operation(summary = "Create course", description = "Creates a draft teaching course with teachers, classes, chapters, courseware learning rules, and assignment nodes.")
     public ApiResponse<Long> createCourse(@RequestBody AdminCourseCommand body, HttpServletRequest request) {
         return ApiResponse.ok(service.createCourse(body, AdminContext.requireAdminId(request)));
     }
