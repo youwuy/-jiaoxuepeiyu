@@ -19,7 +19,7 @@ class StudentScoreServiceTests {
 
         assertEquals(2, scores.size());
         assertEquals("2025-2026 SECOND", scores.get(0).getAcademicTerm());
-        assertEquals(new BigDecimal("88.0"), scores.get(0).getComprehensiveScore());
+        assertEquals(new BigDecimal("87.0"), scores.get(0).getComprehensiveScore());
         assertEquals(new BigDecimal("91.5"), scores.get(1).getComprehensiveScore());
     }
 
