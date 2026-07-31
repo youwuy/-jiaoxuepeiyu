@@ -61,6 +61,66 @@ class AdminCourseServiceTests {
     }
 
     @Test
+    void rejectsCourseNameLongerThanTwentyCharacters() {
+        AdminCourseService service = new AdminCourseService(new FakeCourses());
+        AdminCourseCommand command = courseCommand();
+        command.setCourseName("123456789012345678901");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createCourse(command, 9L);
+        });
+
+        assertEquals("Course name cannot exceed 20 characters", exception.getMessage());
+    }
+
+    @Test
+    void rejectsCoursewareLearningEndBeforeStart() {
+        AdminCourseService service = new AdminCourseService(new FakeCourses());
+        AdminCourseCommand command = courseCommand();
+        AdminCourseContentCommand content = command.getChapters().get(0).getContents().get(0);
+        content.setLearningStartTime(LocalDateTime.of(2026, 9, 2, 0, 0));
+        content.setLearningEndTime(LocalDateTime.of(2026, 9, 1, 0, 0));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createCourse(command, 9L);
+        });
+
+        assertEquals("Courseware learning end time must be after start time", exception.getMessage());
+    }
+
+    @Test
+    void rejectsAssignmentPassScoreOutsideTotalScore() {
+        AdminCourseService service = new AdminCourseService(new FakeCourses());
+        AdminCourseCommand command = courseCommand();
+        AdminCourseContentCommand content = command.getChapters().get(0).getContents().get(1);
+        content.setAssignmentCompletionRule("PASS_SCORE");
+        content.setPassScore(101);
+        content.setAssignmentTotalScore(100);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createCourse(command, 9L);
+        });
+
+        assertEquals("Assignment pass score must be between 0 and total score", exception.getMessage());
+    }
+
+    @Test
+    void normalizesCourseListTeachingTimeOverlapAndUnpublishedStatus() {
+        FakeCourses repository = new FakeCourses();
+        AdminCourseService service = new AdminCourseService(repository);
+        AdminCourseQuery query = new AdminCourseQuery();
+        query.setTeachingStartTime(LocalDateTime.of(2026, 9, 1, 0, 0));
+        query.setTeachingEndTime(LocalDateTime.of(2026, 9, 30, 23, 59));
+        query.setPublishStatus("UNPUBLISHED");
+
+        service.listCourses(query);
+
+        assertEquals(LocalDateTime.of(2026, 9, 1, 0, 0), repository.lastQuery.getTeachingStartTime());
+        assertEquals(LocalDateTime.of(2026, 9, 30, 23, 59), repository.lastQuery.getTeachingEndTime());
+        assertEquals("NOT_PUBLISHED", repository.lastQuery.getPublishStatus());
+    }
+
+    @Test
     void publishesCourseAndNotifiesBoundStudents() {
         FakeCourses repository = new FakeCourses();
         repository.course = existingCourse(31L, 2);
@@ -149,6 +209,13 @@ class AdminCourseServiceTests {
         content.setResourceId("COURSEWARE".equals(itemType) ? 1L : null);
         content.setAssignmentId("ASSIGNMENT".equals(itemType) ? 2L : null);
         content.setRequiredDurationSeconds("COURSEWARE".equals(itemType) ? 60 : 0);
+        content.setLearningStartTime("COURSEWARE".equals(itemType) ? LocalDateTime.of(2026, 9, 1, 0, 0) : null);
+        content.setLearningEndTime("COURSEWARE".equals(itemType) ? LocalDateTime.of(2026, 12, 31, 23, 59) : null);
+        content.setAssignmentCompletionRule("ASSIGNMENT".equals(itemType) ? "SUBMIT" : null);
+        content.setAssignmentPublishMode("ASSIGNMENT".equals(itemType) ? "PRACTICE" : null);
+        content.setAnswerStartTime("ASSIGNMENT".equals(itemType) ? LocalDateTime.of(2026, 9, 1, 0, 0) : null);
+        content.setAnswerEndTime("ASSIGNMENT".equals(itemType) ? LocalDateTime.of(2026, 12, 31, 23, 59) : null);
+        content.setAssignmentTotalScore("ASSIGNMENT".equals(itemType) ? 100 : null);
         content.setSortOrder("COURSEWARE".equals(itemType) ? 1 : 2);
         return content;
     }
@@ -172,9 +239,11 @@ class AdminCourseServiceTests {
         private Long copiedSourceCourseId;
         private Long copiedCreatorId;
         private String lastLogAction;
+        private AdminCourseQuery lastQuery;
 
         @Override
         public List<AdminCourse> findCourses(AdminCourseQuery query) {
+            this.lastQuery = query;
             return new ArrayList<AdminCourse>();
         }
 

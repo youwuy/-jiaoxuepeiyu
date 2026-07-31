@@ -1,7 +1,9 @@
 package com.qizhifu.jiaoxuepeiyu.student.course;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseContentRecord;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseDetail;
 import com.qizhifu.jiaoxuepeiyu.student.course.model.StudentCourseCard;
@@ -78,12 +80,28 @@ class StudentCourseServiceTests {
         assertEquals(true, repository.progressCompleted);
     }
 
+    @Test
+    void rejectsCoursewareProgressOutsideContentLearningWindow() {
+        FakeCourses repository = new FakeCourses();
+        repository.coursewareLearningStartTime = LocalDateTime.of(2026, 8, 1, 0, 0);
+        repository.coursewareLearningEndTime = LocalDateTime.of(2026, 8, 31, 23, 59);
+        StudentCourseService service = new StudentCourseService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.updateCoursewareProgress(7L, 3L, 100L, 600, false);
+        });
+
+        assertEquals("Courseware is not open for learning", exception.getMessage());
+    }
+
     private static class FakeCourses implements StudentCourseRepository {
         private Long progressStudentId;
         private Long progressCourseId;
         private Long progressContentId;
         private int progressStudiedSeconds;
         private boolean progressCompleted;
+        private LocalDateTime coursewareLearningStartTime = LocalDateTime.of(2026, 7, 1, 0, 0);
+        private LocalDateTime coursewareLearningEndTime = LocalDateTime.of(2026, 8, 31, 23, 59);
 
         @Override
         public List<StudentCourseRecord> findPublishedCourses(Long studentId, String keyword) {
@@ -173,6 +191,8 @@ class StudentCourseServiceTests {
             record.setAssignmentId(assignmentId);
             record.setResourceId(resourceId);
             record.setRequiredDurationSeconds(requiredDurationSeconds);
+            record.setLearningStartTime(coursewareLearningStartTime);
+            record.setLearningEndTime(coursewareLearningEndTime);
             record.setStudiedSeconds(studiedSeconds);
             record.setCompleted(completed);
             record.setSortOrder(sortOrder);

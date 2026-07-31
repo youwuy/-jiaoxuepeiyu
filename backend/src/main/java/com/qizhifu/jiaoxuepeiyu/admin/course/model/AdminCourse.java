@@ -24,6 +24,7 @@ public class AdminCourse {
     private Integer coursewareScoreCap;
     private Integer coursewareCount;
     private Integer assignmentCount;
+    private Integer pendingReviewCount;
     private String publishStatus;
     private LocalDateTime openStartTime;
     private LocalDateTime openEndTime;
@@ -177,6 +178,14 @@ public class AdminCourse {
 
     public void setAssignmentCount(Integer assignmentCount) {
         this.assignmentCount = assignmentCount;
+    }
+
+    public Integer getPendingReviewCount() {
+        return pendingReviewCount;
+    }
+
+    public void setPendingReviewCount(Integer pendingReviewCount) {
+        this.pendingReviewCount = pendingReviewCount;
     }
 
     public String getPublishStatus() {

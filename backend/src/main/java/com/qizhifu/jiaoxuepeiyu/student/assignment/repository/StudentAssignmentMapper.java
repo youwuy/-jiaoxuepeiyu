@@ -16,7 +16,8 @@ import org.apache.ibatis.annotations.Update;
 public interface StudentAssignmentMapper {
 
     @Select("SELECT a.id AS assignment_id, a.course_id, a.assignment_title, a.assignment_type, "
-            + "a.deadline, a.total_score, COALESCE(t.status, 'NOT_STARTED') AS status, "
+            + "a.deadline, a.answer_start_time, a.answer_end_time, a.completion_rule, "
+            + "a.pass_score, a.publish_mode, a.total_score, COALESCE(t.status, 'NOT_STARTED') AS status, "
             + "t.score, t.review_comment, t.submitted_at "
             + "FROM course_assignment a "
             + "JOIN course c ON c.id = a.course_id "
@@ -93,7 +94,9 @@ public interface StudentAssignmentMapper {
             + "AND aa.status IN ('SUBMITTED', 'REVIEWED') "
             + "WHERE ca.id = #{assignmentId} "
             + "AND ((ct.item_type = 'COURSEWARE' AND cp.completed = 1) "
-            + "OR (ct.item_type = 'ASSIGNMENT' AND aa.id IS NOT NULL)) "
+            + "OR (ct.item_type = 'ASSIGNMENT' AND aa.id IS NOT NULL "
+            + "AND (a.completion_rule = 'SUBMIT' "
+            + "OR (a.completion_rule = 'PASS_SCORE' AND aa.score IS NOT NULL AND aa.score >= COALESCE(a.pass_score, 0))))) "
             + "GROUP BY ca.course_id "
             + "ON DUPLICATE KEY UPDATE completed_items = VALUES(completed_items), updated_at = NOW()")
     void refreshCourseProgressByAssignment(@Param("studentId") Long studentId,

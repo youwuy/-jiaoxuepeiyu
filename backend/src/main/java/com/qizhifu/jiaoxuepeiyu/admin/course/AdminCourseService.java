@@ -25,8 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminCourseService {
 
     private static final int MAX_PAGE_SIZE = 100;
-    private static final Set<String> LEARNING_MODES = new HashSet<String>(Arrays.asList("SELF_PACED", "TEACHER_LED"));
+    private static final Set<String> LEARNING_MODES = new HashSet<String>(Arrays.asList("SELF_PACED", "SEQUENTIAL", "TEACHER_LED"));
     private static final Set<String> ASSIGNMENT_RULES = new HashSet<String>(Arrays.asList("SUBMIT", "PASS_SCORE"));
+    private static final Set<String> ASSIGNMENT_PUBLISH_MODES = new HashSet<String>(Arrays.asList("PRACTICE", "EXAM"));
 
     private final AdminCourseRepository repository;
 
@@ -130,8 +131,8 @@ public class AdminCourseService {
         if (courseName == null) {
             throw new BusinessException(400, "Course name is required");
         }
-        if (courseName.length() > 64) {
-            throw new BusinessException(400, "Course name cannot exceed 64 characters");
+        if (courseName.length() > 20) {
+            throw new BusinessException(400, "Course name cannot exceed 20 characters");
         }
         if (command.getAcademicYearId() == null || command.getSemesterId() == null) {
             throw new BusinessException(400, "Course academic year and semester are required");
@@ -178,6 +179,9 @@ public class AdminCourseService {
             if (chapterTitle == null) {
                 throw new BusinessException(400, "Course chapter title is required");
             }
+            if (chapterTitle.length() > 20) {
+                throw new BusinessException(400, "Course chapter title cannot exceed 20 characters");
+            }
             AdminCourseChapterCommand normalizedChapter = new AdminCourseChapterCommand();
             normalizedChapter.setChapterTitle(chapterTitle);
             normalizedChapter.setSortOrder(chapter.getSortOrder() == null ? Integer.valueOf(defaultChapterSort) : chapter.getSortOrder());
@@ -212,12 +216,29 @@ public class AdminCourseService {
                 }
                 normalizedContent.setResourceId(content.getResourceId());
                 normalizedContent.setRequiredDurationSeconds(normalizedDuration(content.getRequiredDurationSeconds()));
+                validateContentTime(content.getLearningStartTime(), content.getLearningEndTime(),
+                        "Courseware learning end time must be after start time");
+                normalizedContent.setLearningStartTime(content.getLearningStartTime());
+                normalizedContent.setLearningEndTime(content.getLearningEndTime());
             } else {
                 if (content.getAssignmentId() == null) {
                     throw new BusinessException(400, "Course assignment is required");
                 }
                 normalizedContent.setAssignmentId(content.getAssignmentId());
                 normalizedContent.setRequiredDurationSeconds(Integer.valueOf(0));
+                normalizedContent.setAssignmentCompletionRule(normalizedEnum(content.getAssignmentCompletionRule(),
+                        "SUBMIT", ASSIGNMENT_RULES, "Assignment completion rule is invalid"));
+                normalizedContent.setPassScore(normalizedPassScore(
+                        normalizedContent.getAssignmentCompletionRule(),
+                        content.getPassScore(),
+                        content.getAssignmentTotalScore()));
+                normalizedContent.setAssignmentPublishMode(normalizedEnum(content.getAssignmentPublishMode(),
+                        "PRACTICE", ASSIGNMENT_PUBLISH_MODES, "Assignment publish mode is invalid"));
+                validateContentTime(content.getAnswerStartTime(), content.getAnswerEndTime(),
+                        "Assignment answer end time must be after start time");
+                normalizedContent.setAnswerStartTime(content.getAnswerStartTime());
+                normalizedContent.setAnswerEndTime(content.getAnswerEndTime());
+                normalizedContent.setAssignmentTotalScore(content.getAssignmentTotalScore());
             }
             normalizedContent.setSortOrder(content.getSortOrder() == null ? Integer.valueOf(defaultSort) : content.getSortOrder());
             normalized.add(normalizedContent);
@@ -235,10 +256,14 @@ public class AdminCourseService {
             normalized.setMajorId(query.getMajorId());
             normalized.setClassId(query.getClassId());
             normalized.setTeacherId(query.getTeacherId());
-            normalized.setPublishStatus(upper(trimToNull(query.getPublishStatus())));
+            normalized.setTeachingStartTime(query.getTeachingStartTime());
+            normalized.setTeachingEndTime(query.getTeachingEndTime());
+            normalized.setPublishStatus(normalizedPublishStatus(query.getPublishStatus()));
             normalized.setPage(query.getPage());
             normalized.setPageSize(query.getPageSize());
         }
+        validateContentTime(normalized.getTeachingStartTime(), normalized.getTeachingEndTime(),
+                "Course teaching filter end time must be after start time");
         if (normalized.getPage() < 1) {
             normalized.setPage(1);
         }
@@ -300,10 +325,45 @@ public class AdminCourseService {
 
     private Integer normalizedScoreCap(Integer scoreCap) {
         int value = scoreCap == null ? 100 : scoreCap.intValue();
-        if (value < 0 || value > 100) {
-            throw new BusinessException(400, "Courseware score cap must be between 0 and 100");
+        if (value <= 0 || value > 100) {
+            throw new BusinessException(400, "Courseware score cap must be between 1 and 100");
         }
         return Integer.valueOf(value);
+    }
+
+    private Integer normalizedPassScore(String completionRule, Integer passScore, Integer totalScore) {
+        if (!"PASS_SCORE".equals(completionRule)) {
+            return null;
+        }
+        if (passScore == null) {
+            throw new BusinessException(400, "Assignment pass score is required");
+        }
+        int score = passScore.intValue();
+        int maxScore = totalScore == null ? 100 : totalScore.intValue();
+        if (score < 0 || score > maxScore) {
+            throw new BusinessException(400, "Assignment pass score must be between 0 and total score");
+        }
+        return Integer.valueOf(score);
+    }
+
+    private String normalizedPublishStatus(String status) {
+        String normalized = upper(trimToNull(status));
+        if (normalized == null) {
+            return null;
+        }
+        if ("UNPUBLISHED".equals(normalized) || "NOT_PUBLISHED".equals(normalized)) {
+            return "NOT_PUBLISHED";
+        }
+        if ("PUBLISHED".equals(normalized) || "DRAFT".equals(normalized) || "OFFLINE".equals(normalized)) {
+            return normalized;
+        }
+        throw new BusinessException(400, "Course publish status is invalid");
+    }
+
+    private void validateContentTime(LocalDateTime startTime, LocalDateTime endTime, String message) {
+        if (startTime != null && endTime != null && !endTime.isAfter(startTime)) {
+            throw new BusinessException(400, message);
+        }
     }
 
     private Integer normalizedDuration(Integer duration) {

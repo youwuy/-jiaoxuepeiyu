@@ -65,6 +65,20 @@ class StudentAssignmentServiceTests {
     }
 
     @Test
+    void rejectsAnswerChangesBeforeAnswerStartTime() {
+        FakeAssignments repository = new FakeAssignments();
+        repository.assignment.setAnswerStartTime(LocalDateTime.parse("2026-08-01T00:00:00"));
+        StudentAssignmentService service = new StudentAssignmentService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.saveAnswers(7L, 12L, new AssignmentAnswerCommand(Arrays.asList(
+                    new AssignmentAnswerCommand.AnswerItem(1L, "A"))));
+        });
+
+        assertEquals("Assignment is not open for answering", exception.getMessage());
+    }
+
+    @Test
     void submitsAssignmentAndScoresObjectiveQuestions() {
         FakeAssignments repository = new FakeAssignments();
         StudentAssignmentService service = new StudentAssignmentService(repository, CLOCK);

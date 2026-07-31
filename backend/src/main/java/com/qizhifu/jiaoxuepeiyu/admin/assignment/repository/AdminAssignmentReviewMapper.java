@@ -148,7 +148,10 @@ public interface AdminAssignmentReviewMapper {
             + "AND completed_attempt.status IN ('SUBMITTED', 'REVIEWED') "
             + "WHERE aa.id = #{attemptId} "
             + "AND ((ct.item_type = 'COURSEWARE' AND cp.completed = 1) "
-            + "OR (ct.item_type = 'ASSIGNMENT' AND completed_attempt.id IS NOT NULL)) "
+            + "OR (ct.item_type = 'ASSIGNMENT' AND completed_attempt.id IS NOT NULL "
+            + "AND (a.completion_rule = 'SUBMIT' "
+            + "OR (a.completion_rule = 'PASS_SCORE' AND completed_attempt.score IS NOT NULL "
+            + "AND completed_attempt.score >= COALESCE(a.pass_score, 0))))) "
             + "GROUP BY ca.course_id, aa.student_id "
             + "ON DUPLICATE KEY UPDATE completed_items = VALUES(completed_items), updated_at = NOW()")
     void refreshCourseProgress(@Param("attemptId") Long attemptId);

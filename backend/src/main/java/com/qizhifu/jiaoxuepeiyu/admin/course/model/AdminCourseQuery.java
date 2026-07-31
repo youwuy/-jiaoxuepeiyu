@@ -1,5 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.course.model;
 
+import java.time.LocalDateTime;
+
 public class AdminCourseQuery {
 
     private String keyword;
@@ -8,6 +10,8 @@ public class AdminCourseQuery {
     private Long majorId;
     private Long classId;
     private Long teacherId;
+    private LocalDateTime teachingStartTime;
+    private LocalDateTime teachingEndTime;
     private String publishStatus;
     private int page = 1;
     private int pageSize = 20;
@@ -58,6 +62,22 @@ public class AdminCourseQuery {
 
     public void setTeacherId(Long teacherId) {
         this.teacherId = teacherId;
+    }
+
+    public LocalDateTime getTeachingStartTime() {
+        return teachingStartTime;
+    }
+
+    public void setTeachingStartTime(LocalDateTime teachingStartTime) {
+        this.teachingStartTime = teachingStartTime;
+    }
+
+    public LocalDateTime getTeachingEndTime() {
+        return teachingEndTime;
+    }
+
+    public void setTeachingEndTime(LocalDateTime teachingEndTime) {
+        this.teachingEndTime = teachingEndTime;
     }
 
     public String getPublishStatus() {

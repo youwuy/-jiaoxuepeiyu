@@ -42,7 +42,8 @@ public interface StudentCourseMapper {
 
     @Select("SELECT ch.id AS chapter_id, ch.chapter_title, ch.sort_order AS chapter_sort_order, "
             + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, ct.resource_id, "
-            + "ct.required_duration_seconds, COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
+            + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
+            + "COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
             + "CASE WHEN cp.completed = 1 THEN TRUE ELSE FALSE END AS completed, ct.sort_order "
             + "FROM course_content ct "
             + "JOIN course_chapter ch ON ch.id = ct.chapter_id "
@@ -58,7 +59,8 @@ public interface StudentCourseMapper {
 
     @Select("SELECT ch.id AS chapter_id, ch.chapter_title, ch.sort_order AS chapter_sort_order, "
             + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, ct.resource_id, "
-            + "ct.required_duration_seconds, COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
+            + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
+            + "COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
             + "CASE WHEN cp.completed = 1 THEN TRUE ELSE FALSE END AS completed, ct.sort_order "
             + "FROM course_content ct "
             + "JOIN course_chapter ch ON ch.id = ct.chapter_id "
@@ -101,7 +103,9 @@ public interface StudentCourseMapper {
             + "AND aa.status IN ('SUBMITTED', 'REVIEWED') "
             + "WHERE ct.course_id = #{courseId} "
             + "AND ((ct.item_type = 'COURSEWARE' AND cp.completed = 1) "
-            + "OR (ct.item_type = 'ASSIGNMENT' AND aa.id IS NOT NULL)) "
+            + "OR (ct.item_type = 'ASSIGNMENT' AND aa.id IS NOT NULL "
+            + "AND (a.completion_rule = 'SUBMIT' "
+            + "OR (a.completion_rule = 'PASS_SCORE' AND aa.score IS NOT NULL AND aa.score >= COALESCE(a.pass_score, 0))))) "
             + "ON DUPLICATE KEY UPDATE completed_items = VALUES(completed_items), updated_at = NOW()")
     void refreshCourseProgress(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 }

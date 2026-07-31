@@ -95,8 +95,14 @@ public class StudentAssignmentService {
         if ("SUBMITTED".equals(assignment.getStatus()) || "REVIEWED".equals(assignment.getStatus())) {
             throw new BusinessException(400, "Assignment has already been submitted");
         }
-        LocalDateTime deadline = assignment.getDeadline();
-        if (deadline != null && LocalDateTime.now(clock).isAfter(deadline)) {
+        LocalDateTime deadline = assignment.getAnswerEndTime() == null
+                ? assignment.getDeadline()
+                : assignment.getAnswerEndTime();
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (assignment.getAnswerStartTime() != null && now.isBefore(assignment.getAnswerStartTime())) {
+            throw new BusinessException(400, "Assignment is not open for answering");
+        }
+        if (deadline != null && now.isAfter(deadline)) {
             throw new BusinessException(400, "Assignment deadline has passed");
         }
     }
@@ -147,6 +153,11 @@ public class StudentAssignmentService {
         detail.setAssignmentTitle(assignment.getAssignmentTitle());
         detail.setAssignmentType(assignment.getAssignmentType());
         detail.setDeadline(assignment.getDeadline());
+        detail.setAnswerStartTime(assignment.getAnswerStartTime());
+        detail.setAnswerEndTime(assignment.getAnswerEndTime());
+        detail.setCompletionRule(assignment.getCompletionRule());
+        detail.setPassScore(assignment.getPassScore());
+        detail.setPublishMode(assignment.getPublishMode());
         detail.setTotalScore(assignment.getTotalScore());
         detail.setStatus(assignment.getStatus());
         detail.setSubmittedAt(assignment.getSubmittedAt());
