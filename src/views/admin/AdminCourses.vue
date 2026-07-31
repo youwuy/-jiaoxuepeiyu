@@ -122,8 +122,7 @@
             <p>共 {{ filteredCourses.length }} 条记录</p>
             <el-pagination
               v-model:current-page="page"
-              :page-size="pageSize"
-              :total="filteredCourses.length"
+              :page-count="2"
               layout="prev, pager, next"
               background
             />
@@ -206,23 +205,6 @@
       </template>
     </el-drawer>
 
-    <el-dialog v-model="statisticsVisible" class="admin-statistics-dialog" title="成绩统计" width="680px">
-      <div v-if="statisticsLoading" class="admin-course-empty dialog-state">统计加载中...</div>
-      <template v-else-if="statistics">
-        <div class="admin-statistics-hero">
-          <strong>{{ statistics.averageScore.toFixed(1) }}</strong>
-          <span>平均成绩</span>
-        </div>
-        <section class="admin-statistics-grid">
-          <div><span>学生总数</span><strong>{{ statistics.studentCount }}</strong></div>
-          <div><span>已完成</span><strong>{{ statistics.completedCount }}</strong></div>
-          <div><span>学习中</span><strong>{{ statistics.studyingCount }}</strong></div>
-          <div><span>未开始</span><strong>{{ statistics.notStartedCount }}</strong></div>
-          <div><span>待批改</span><strong>{{ statistics.pendingReviewCount }}</strong></div>
-        </section>
-      </template>
-    </el-dialog>
-
     <el-drawer
       v-model="logsVisible"
       class="admin-course-drawer"
@@ -255,6 +237,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, Close, Plus, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
@@ -263,7 +246,6 @@ import {
   deleteAdminCourse,
   fetchAdminCourseDetail,
   fetchAdminCourseLogs,
-  fetchAdminCourseStatistics,
   fetchAdminCourses,
   publishAdminCourse,
   cancelPublishAdminCourse
@@ -277,28 +259,18 @@ import {
 } from '../../features/admin/courses';
 
 const pageSize = 5;
+const router = useRouter();
 const page = ref(1);
 const busyId = ref<number | null>(null);
 const loading = ref(false);
 const detailLoading = ref(false);
-const statisticsLoading = ref(false);
 const logsLoading = ref(false);
 
 const courses = ref<AdminCourseRecord[]>(mockAdminCourses);
 const selectedCourse = ref<AdminCourseView | null>(null);
 const selectedDetail = ref<AdminCourseRecord | null>(null);
-const statisticsVisible = ref(false);
 const detailVisible = ref(false);
 const logsVisible = ref(false);
-const statistics = ref<{
-  courseId: number;
-  studentCount: number;
-  completedCount: number;
-  studyingCount: number;
-  notStartedCount: number;
-  pendingReviewCount: number;
-  averageScore: number;
-} | null>(null);
 const logs = ref<
   {
     logId: number;
@@ -410,7 +382,7 @@ function resetFilters() {
 }
 
 function handleCreateCourse() {
-  ElMessage.info('新增课程表单将在下一步补齐');
+  router.push('/admin/courses/new');
 }
 
 function setBusy(courseId: number | null) {
@@ -506,26 +478,11 @@ async function openDetail(course: AdminCourseView) {
   }
 }
 
-async function openStatistics(course: AdminCourseView) {
-  selectedCourse.value = course;
-  statisticsVisible.value = true;
-  statisticsLoading.value = true;
-
-  try {
-    statistics.value = await fetchAdminCourseStatistics(course.id);
-  } catch {
-    statistics.value = {
-      courseId: course.id,
-      studentCount: 0,
-      completedCount: 0,
-      studyingCount: 0,
-      notStartedCount: 0,
-      pendingReviewCount: Number(course.pendingReviewLabel),
-      averageScore: 0
-    };
-  } finally {
-    statisticsLoading.value = false;
-  }
+function openStatistics(course: AdminCourseView) {
+  router.push({
+    path: `/admin/courses/${course.id}/statistics`,
+    query: { title: course.title }
+  });
 }
 
 async function openLogs(course: AdminCourseView) {
@@ -543,7 +500,10 @@ async function openLogs(course: AdminCourseView) {
 }
 
 function handleReview(course: AdminCourseView) {
-  ElMessage.info(`批改作业入口：${course.title}`);
+  router.push({
+    path: `/admin/courses/${course.id}/reviews`,
+    query: { title: course.title }
+  });
 }
 
 function mutateCourse(courseId: number, patch: Partial<AdminCourseRecord>) {

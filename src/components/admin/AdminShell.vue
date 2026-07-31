@@ -93,7 +93,7 @@ const navGroups = [
     title: '教学实训',
     items: [
       { key: 'admin-courses', label: '教学课程', path: '/admin/courses', icon: Monitor },
-      { key: 'admin-trainings', label: '实训课', path: '/admin/training', icon: Coin }
+      { key: 'admin-trainings', label: '实训组课', path: '/admin/training', icon: Coin }
     ]
   },
   {

@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AdminLogin from '../views/auth/AdminLogin.vue';
+import AdminCourseForm from '../views/admin/AdminCourseForm.vue';
+import AdminCourseTheoryReview from '../views/admin/AdminCourseTheoryReview.vue';
+import AdminCourseReviews from '../views/admin/AdminCourseReviews.vue';
+import AdminCourseStatistics from '../views/admin/AdminCourseStatistics.vue';
 import AdminCourses from '../views/admin/AdminCourses.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import StudentLogin from '../views/auth/StudentLogin.vue';
@@ -59,6 +63,26 @@ export const router = createRouter({
       path: '/admin/courses',
       name: 'admin-courses',
       component: AdminCourses
+    },
+    {
+      path: '/admin/courses/new',
+      name: 'admin-course-new',
+      component: AdminCourseForm
+    },
+    {
+      path: '/admin/courses/:id/statistics',
+      name: 'admin-course-statistics',
+      component: AdminCourseStatistics
+    },
+    {
+      path: '/admin/courses/:id/reviews',
+      name: 'admin-course-reviews',
+      component: AdminCourseReviews
+    },
+    {
+      path: '/admin/courses/:id/reviews/:reviewId/theory',
+      name: 'admin-course-theory-review',
+      component: AdminCourseTheoryReview
     },
     {
       path: '/admin/training',
