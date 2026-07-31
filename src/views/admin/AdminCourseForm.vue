@@ -44,9 +44,20 @@
 
           <label class="admin-course-form-field">
             <span>所属学年学期 <b>*</b></span>
-            <el-select v-model="form.term" placeholder="请选择学期">
-              <el-option label="2024-2025学年 下学期" value="2024-2025学年 下学期" />
-              <el-option label="2025-2026学年 上学期" value="2025-2026学年 上学期" />
+            <el-select v-model="form.semesterKey" placeholder="请选择学期" filterable>
+              <el-option
+                v-for="item in semesterOptions"
+                :key="item.key"
+                :label="item.label"
+                :value="item.key"
+              />
+            </el-select>
+          </label>
+
+          <label class="admin-course-form-field">
+            <span>所属专业 <b>*</b></span>
+            <el-select v-model="form.majorId" placeholder="请选择专业" filterable @change="handleMajorChange">
+              <el-option v-for="item in majorOptions" :key="item.majorId" :label="item.majorName" :value="item.majorId" />
             </el-select>
           </label>
 
@@ -64,8 +75,8 @@
               <el-icon><InfoFilled /></el-icon>
             </span>
             <el-radio-group v-model="form.learningMode" class="admin-course-form-radio">
-              <el-radio label="FREE">自由学习</el-radio>
-              <el-radio label="LOCKED">顺序解锁</el-radio>
+              <el-radio label="SELF_PACED">自由学习</el-radio>
+              <el-radio label="SEQUENTIAL">顺序解锁</el-radio>
             </el-radio-group>
           </div>
         </div>
@@ -77,11 +88,14 @@
           <strong>教学团队</strong>
         </header>
         <div class="admin-course-form-tags">
-          <el-tag closable type="primary" effect="light">李立峰</el-tag>
-          <el-button plain @click="showComingSoon('添加教师')">
-            <el-icon><Plus /></el-icon>
-            添加教师
-          </el-button>
+          <el-select v-model="form.teacherIds" multiple filterable placeholder="请选择教师">
+            <el-option
+              v-for="item in teacherOptions"
+              :key="item.userId"
+              :label="item.realName || item.accountNo"
+              :value="item.userId"
+            />
+          </el-select>
         </div>
       </section>
 
@@ -91,11 +105,14 @@
           <strong>授课班级</strong>
         </header>
         <div class="admin-course-form-tags">
-          <el-tag closable type="success" effect="light">城轨信号2401班</el-tag>
-          <el-button plain @click="showComingSoon('添加班级')">
-            <el-icon><Plus /></el-icon>
-            添加班级
-          </el-button>
+          <el-select v-model="form.classIds" multiple filterable placeholder="请选择班级">
+            <el-option
+              v-for="item in classOptions"
+              :key="item.classId"
+              :label="item.majorName ? `${item.className}（${item.majorName}）` : item.className"
+              :value="item.classId"
+            />
+          </el-select>
         </div>
       </section>
 
@@ -166,14 +183,14 @@
 
       <footer class="admin-course-form-footer">
         <el-button @click="goBack">取消</el-button>
-        <el-button type="primary" @click="saveCourse">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="saveCourse">保存</el-button>
       </footer>
     </section>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
@@ -189,17 +206,49 @@ import {
   UserFilled
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  createAdminCourse,
+  fetchAdminAcademicYears,
+  fetchAdminClasses,
+  fetchAdminMajors,
+  fetchAdminTeachers,
+  type AdminAcademicYearOption,
+  type AdminClassOption,
+  type AdminMajorOption,
+  type AdminTeacherOption
+} from '../../api/admin-course';
 
 const router = useRouter();
 
 const form = reactive({
   courseName: '',
-  startTime: '',
-  endTime: '',
-  term: '2024-2025学年 下学期',
-  coursewareScore: '',
-  learningMode: 'FREE'
+  startTime: undefined as Date | undefined,
+  endTime: undefined as Date | undefined,
+  semesterKey: '',
+  majorId: undefined as number | undefined,
+  coursewareScore: '100',
+  learningMode: 'SELF_PACED',
+  teacherIds: [] as number[],
+  classIds: [] as number[]
 });
+
+const saving = ref(false);
+const academicYears = ref<AdminAcademicYearOption[]>([]);
+const majorOptions = ref<AdminMajorOption[]>([]);
+const classOptions = ref<AdminClassOption[]>([]);
+const teacherOptions = ref<AdminTeacherOption[]>([]);
+
+const semesterOptions = computed(() =>
+  academicYears.value.flatMap((year) =>
+    (year.semesters ?? []).map((semester) => ({
+      key: `${year.academicYearId}:${semester.semesterId}`,
+      label: `${year.yearName} ${semester.semesterName}`,
+      academicYearId: year.academicYearId,
+      semesterId: semester.semesterId,
+      current: semester.current
+    }))
+  )
+);
 
 const chapters = [
   {
@@ -247,12 +296,137 @@ function goBack() {
   router.push('/admin/courses');
 }
 
-function saveCourse() {
-  ElMessage.success('课程已保存');
-  goBack();
+function showComingSoon(label: string) {
+  ElMessage.info(`${label}功能待接入资源/作业选择接口`);
 }
 
-function showComingSoon(label: string) {
-  ElMessage.info(`${label}功能待接入接口`);
+function formatLocalDateTime(value?: Date) {
+  if (!value) {
+    return undefined;
+  }
+
+  const pad = (num: number) => String(num).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(
+    value.getMinutes()
+  )}:${pad(value.getSeconds())}`;
 }
+
+function selectedSemester() {
+  return semesterOptions.value.find((item) => item.key === form.semesterKey);
+}
+
+function validateForm() {
+  const semester = selectedSemester();
+  if (!form.courseName.trim()) {
+    throw new Error('请输入课程名称');
+  }
+  if (!form.startTime || !form.endTime) {
+    throw new Error('请选择教学起止时间');
+  }
+  if (!semester) {
+    throw new Error('请选择学年学期');
+  }
+  if (!form.majorId) {
+    throw new Error('请选择所属专业');
+  }
+  if (!form.teacherIds.length) {
+    throw new Error('请选择教学团队');
+  }
+  if (!form.classIds.length) {
+    throw new Error('请选择授课班级');
+  }
+
+  const scoreCap = Number(form.coursewareScore);
+  if (!Number.isFinite(scoreCap) || scoreCap <= 0 || scoreCap > 100) {
+    throw new Error('课件完成度满分需为 1-100');
+  }
+
+  return { semester, scoreCap };
+}
+
+async function saveCourse() {
+  let payload: ReturnType<typeof validateForm>;
+  try {
+    payload = validateForm();
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '请完善课程信息');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    await createAdminCourse({
+      courseName: form.courseName.trim(),
+      academicYearId: payload.semester.academicYearId,
+      semesterId: payload.semester.semesterId,
+      majorId: form.majorId,
+      coverUrl: '/assets/course-station-preview-Dw2Sploi.png',
+      openStartTime: formatLocalDateTime(form.startTime),
+      openEndTime: formatLocalDateTime(form.endTime),
+      teacherIds: form.teacherIds,
+      classIds: form.classIds,
+      learningMode: form.learningMode,
+      assignmentCompletionRule: 'SUBMIT',
+      coursewareScoreCap: payload.scoreCap,
+      chapters: chapters.map((chapter, index) => ({
+        chapterTitle: chapter.title.slice(0, 20),
+        sortOrder: index + 1,
+        children: chapter.sections.map((section, sectionIndex) => ({
+          chapterTitle: section.title.slice(0, 20),
+          sortOrder: sectionIndex + 1,
+          contents: []
+        }))
+      }))
+    });
+    ElMessage.success('课程已保存');
+    goBack();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '课程保存失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function loadOptions() {
+  try {
+    const [years, majors, classes, teachers] = await Promise.all([
+      fetchAdminAcademicYears(),
+      fetchAdminMajors(),
+      fetchAdminClasses(),
+      fetchAdminTeachers()
+    ]);
+    academicYears.value = years;
+    majorOptions.value = majors.filter((item) => item.enabled !== false);
+    classOptions.value = classes.filter((item) => item.enabled !== false);
+    teacherOptions.value = teachers.filter((item) => item.enabled !== false);
+    form.semesterKey = semesterOptions.value.find((item) => item.current)?.key || semesterOptions.value[0]?.key || '';
+    form.majorId = majorOptions.value[0]?.majorId;
+    form.teacherIds = teacherOptions.value[0]?.userId ? [teacherOptions.value[0].userId] : [];
+    form.classIds = classOptions.value[0]?.classId ? [classOptions.value[0].classId] : [];
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '课程基础数据加载失败');
+  }
+}
+
+async function handleMajorChange(value?: number) {
+  try {
+    classOptions.value = (await fetchAdminClasses(value)).filter((item) => item.enabled !== false);
+    form.classIds = [];
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '班级列表加载失败');
+  }
+}
+
+watch(
+  () => form.majorId,
+  (majorId, oldMajorId) => {
+    if (majorId && oldMajorId && majorId !== oldMajorId) {
+      void handleMajorChange(majorId);
+    }
+  }
+);
+
+onMounted(() => {
+  void loadOptions();
+});
 </script>

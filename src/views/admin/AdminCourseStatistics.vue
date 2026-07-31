@@ -43,6 +43,33 @@
         </div>
       </section>
 
+      <section class="admin-course-stats-summary">
+        <article>
+          <span>课程人数</span>
+          <strong>{{ courseStats.studentCount }}</strong>
+        </article>
+        <article>
+          <span>已完成</span>
+          <strong>{{ courseStats.completedCount }}</strong>
+        </article>
+        <article>
+          <span>学习中</span>
+          <strong>{{ courseStats.studyingCount }}</strong>
+        </article>
+        <article>
+          <span>未开始</span>
+          <strong>{{ courseStats.notStartedCount }}</strong>
+        </article>
+        <article>
+          <span>待批改</span>
+          <strong>{{ courseStats.pendingReviewCount }}</strong>
+        </article>
+        <article>
+          <span>平均分</span>
+          <strong>{{ formatScore(courseStats.averageScore) }}</strong>
+        </article>
+      </section>
+
       <section class="admin-course-stats-table-card">
         <header class="admin-course-stats-table-head">
           <div>
@@ -118,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
@@ -132,6 +159,7 @@ import {
   Tickets
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { fetchAdminCourseStatistics, type AdminCourseStatistics } from '../../api/admin-course';
 import { mockAdminCourses } from '../../features/admin/courses';
 
 interface StudentScoreRow {
@@ -158,6 +186,15 @@ const filters = reactive({
   className: ''
 });
 const appliedFilters = ref({ ...filters });
+const courseStats = ref<AdminCourseStatistics>({
+  courseId: courseId.value,
+  studentCount: 0,
+  completedCount: 0,
+  studyingCount: 0,
+  notStartedCount: 0,
+  pendingReviewCount: 0,
+  averageScore: 0
+});
 
 const students = ref<StudentScoreRow[]>([
   { name: '张明远', studentNo: '2024CGXH001', className: '信号1班', progress: 92, progressScore: 9.2, assignmentCount: 8, assignmentScore: 75 },
@@ -235,4 +272,16 @@ function exportData() {
 function showDetail(student: StudentScoreRow) {
   ElMessage.info(`${student.name} 的成绩详情待接入接口`);
 }
+
+async function loadCourseStatistics() {
+  try {
+    courseStats.value = await fetchAdminCourseStatistics(courseId.value);
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '课程统计接口暂不可用');
+  }
+}
+
+onMounted(() => {
+  void loadCourseStatistics();
+});
 </script>

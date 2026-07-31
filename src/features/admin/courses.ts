@@ -14,9 +14,11 @@ export interface AdminCourseContent {
 export interface AdminCourseChapter {
   chapterId?: number;
   courseId?: number;
+  parentChapterId?: number;
   chapterTitle?: string;
   sortOrder?: number;
   contents?: AdminCourseContent[];
+  children?: AdminCourseChapter[];
 }
 
 export interface AdminCourseRecord {
@@ -92,7 +94,10 @@ function splitDisplayText(value?: string): string {
 }
 
 function countContents(chapters?: AdminCourseChapter[]): number {
-  return (chapters ?? []).reduce((total, chapter) => total + (chapter.contents?.length ?? 0), 0);
+  return (chapters ?? []).reduce(
+    (total, chapter) => total + (chapter.contents?.length ?? 0) + countContents(chapter.children),
+    0
+  );
 }
 
 export function mapAdminCourseView(course: AdminCourseRecord): AdminCourseView {
@@ -450,4 +455,3 @@ export const mockAdminCourses: AdminCourseRecord[] = [
     createdAt: '2026-03-01T09:00:00'
   }
 ];
-

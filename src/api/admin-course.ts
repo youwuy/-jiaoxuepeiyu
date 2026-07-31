@@ -71,9 +71,52 @@ export interface AdminCourseCommand {
       resourceId?: number;
       assignmentId?: number;
       requiredDurationSeconds?: number;
+      learningStartTime?: string;
+      learningEndTime?: string;
+      assignmentCompletionRule?: string;
+      passScore?: number;
+      assignmentPublishMode?: string;
+      answerStartTime?: string;
+      answerEndTime?: string;
+      assignmentTotalScore?: number;
       sortOrder?: number;
     }>;
+    children?: AdminCourseCommand['chapters'];
   }>;
+}
+
+export interface AdminSemesterOption {
+  semesterId: number;
+  academicYearId: number;
+  semesterName: string;
+  current?: boolean;
+}
+
+export interface AdminAcademicYearOption {
+  academicYearId: number;
+  yearName: string;
+  semesters?: AdminSemesterOption[];
+}
+
+export interface AdminMajorOption {
+  majorId: number;
+  majorName: string;
+  enabled?: boolean;
+}
+
+export interface AdminClassOption {
+  classId: number;
+  majorId: number;
+  majorName?: string;
+  className: string;
+  enabled?: boolean;
+}
+
+export interface AdminTeacherOption {
+  userId: number;
+  accountNo?: string;
+  realName: string;
+  enabled?: boolean;
 }
 
 function buildQuery(params: AdminCourseQuery): string {
@@ -116,11 +159,13 @@ export async function fetchAdminCourseDetail(courseId: number) {
 }
 
 export async function createAdminCourse(command: AdminCourseCommand) {
-  return requestJson<{ courseId: number }>('/admin/courses', {
+  const result = await requestJson<number | { courseId: number }>('/admin/courses', {
     method: 'POST',
     body: JSON.stringify(command),
     fallbackLabel: '新增课程'
   });
+
+  return { courseId: typeof result === 'number' ? result : result.courseId };
 }
 
 export async function updateAdminCourse(courseId: number, command: AdminCourseCommand) {
@@ -153,10 +198,12 @@ export async function deleteAdminCourse(courseId: number) {
 }
 
 export async function copyAdminCourse(courseId: number) {
-  return requestJson<{ courseId: number }>(`/admin/courses/${courseId}/copy`, {
+  const result = await requestJson<number | { courseId: number }>(`/admin/courses/${courseId}/copy`, {
     method: 'POST',
     fallbackLabel: '复制课程'
   });
+
+  return { courseId: typeof result === 'number' ? result : result.courseId };
 }
 
 export async function fetchAdminCourseStatistics(courseId: number) {
@@ -169,6 +216,32 @@ export async function fetchAdminCourseLogs(courseId: number) {
   return requestJson<AdminCourseLog[]>(`/admin/courses/${courseId}/logs`, {
     fallbackLabel: '课程日志'
   });
+}
+
+export async function fetchAdminAcademicYears() {
+  return requestJson<AdminAcademicYearOption[]>('/admin/academic-years', {
+    fallbackLabel: '学年学期'
+  });
+}
+
+export async function fetchAdminMajors() {
+  return requestJson<AdminMajorOption[]>('/admin/majors', {
+    fallbackLabel: '专业列表'
+  });
+}
+
+export async function fetchAdminClasses(majorId?: number) {
+  return requestJson<AdminClassOption[]>(`/admin/classes${buildQuery({ majorId })}`, {
+    fallbackLabel: '班级列表'
+  });
+}
+
+export async function fetchAdminTeachers() {
+  const result = await requestJson<AdminCoursePage & { records?: AdminTeacherOption[] }>('/admin/accounts/teachers?page=1&pageSize=200', {
+    fallbackLabel: '教师列表'
+  });
+
+  return normalizeListResponse<AdminTeacherOption>(result);
 }
 
 export type { AdminCourseChapter, AdminCourseContent, AdminCoursePublishStatus, AdminCourseRecord };
