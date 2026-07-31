@@ -251,7 +251,7 @@ class StudentTrainingServiceTests {
         member.setStudentId(studentId);
         member.setStudentName("Student " + studentId);
         member.setRoleId(roleId);
-        member.setOwner(7L.equals(studentId));
+        member.setOwner(Long.valueOf(7L).equals(studentId));
         return member;
     }
 

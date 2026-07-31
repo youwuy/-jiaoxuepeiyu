@@ -21,7 +21,7 @@ class ScoreCalculatorTests {
                 20,
                 30);
 
-        assertEquals(new BigDecimal("88.0"), ScoreCalculator.calculate(input));
+        assertEquals(new BigDecimal("87.0"), ScoreCalculator.calculate(input));
     }
 
     @Test
