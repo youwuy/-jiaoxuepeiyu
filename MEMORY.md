@@ -57,6 +57,7 @@
 - 2026-07-31: MySQL init scripts should not duplicate `sys_user.id_card` or `idx_sys_user_class`; those are created by `004_student_portal.sql`, while `008_admin_account_profile.sql` only adds `job_title` and `idx_sys_user_org`.
 - 2026-07-31: Admin teaching course completion now includes PDF page 92-100 rules for course teaching-time overlap filters, unpublished status filters, pending-review list counts, 20-character course/chapter limits, courseware learning windows, assignment answer windows, assignment publish mode, and submit/pass-score completion semantics.
 - 2026-07-31: Admin teaching course content trees now support the PDF-required maximum 3 chapter levels using `course_chapter.parent_chapter_id`; admin reads return nested `children`, while student course detail remains response-compatible and orders nested content by chapter path.
+- 2026-08-01: Admin organization management keeps the existing `/api/admin/org` module and `sys_org` table instead of adding a duplicate module; it now covers PDF page 44-47 requirements for fuzzy tree search, enabled-only parent picker trees, 20-character trimmed names, sibling-name uniqueness, immutable parent on edit, audit fields, drag sort persistence, selected-node enable, and selected-node-plus-descendants disable.
 
 ## Operational Notes
 

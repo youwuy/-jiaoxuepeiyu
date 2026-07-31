@@ -36,6 +36,7 @@ These items have code-level evidence in the repository:
 - Student training room APIs now include role release for waiting rooms, constrained to the current student's own claimed role.
 - Admin teaching course APIs now support PDF-specified teaching-time overlap filtering, unpublished status filtering, pending-review counts in course lists, 20-character course/chapter validation, courseware learning windows, assignment answer windows, assignment publish modes, and submit/pass-score completion rules.
 - Admin teaching course APIs now support up to 3 levels of nested chapter trees, persist `course_chapter.parent_chapter_id`, return nested chapter `children` in admin course detail/list payloads, and keep student course detail responses compatible by returning nested content in path order.
+- Admin organization management extends the existing `/api/admin/org` module instead of adding duplicate organization APIs, and now covers PDF page 44-47 behavior for fuzzy search, enabled-only parent picker trees, 20-character trimmed names, sibling-name uniqueness, audit fields, drag sort persistence, immutable parent editing, selected-node enable, and selected-node-plus-descendants disable.
 
 ## Not Yet Proven
 

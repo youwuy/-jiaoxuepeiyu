@@ -13,20 +13,31 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface AdminOrgMapper {
 
-    @Select("SELECT id AS org_id, parent_id, org_name, sort_order, "
-            + "CASE WHEN status = 1 THEN TRUE ELSE FALSE END AS enabled "
-            + "FROM sys_org ORDER BY sort_order ASC, id ASC")
+    @Select("SELECT o.id AS org_id, o.parent_id, o.org_name, o.sort_order, "
+            + "CASE WHEN o.status = 1 THEN TRUE ELSE FALSE END AS enabled, "
+            + "o.created_by, creator.real_name AS created_name, "
+            + "o.updated_by, updater.real_name AS updated_name, "
+            + "o.created_at, o.updated_at "
+            + "FROM sys_org o "
+            + "LEFT JOIN sys_user creator ON creator.id = o.created_by "
+            + "LEFT JOIN sys_user updater ON updater.id = o.updated_by "
+            + "ORDER BY o.sort_order ASC, o.id ASC")
     List<AdminOrg> findAll();
 
-    @Insert("INSERT INTO sys_org (parent_id, org_name, sort_order, status, created_at, updated_at) "
-            + "VALUES (#{parentId}, #{orgName}, #{sortOrder}, 1, NOW(), NOW())")
+    @Insert("INSERT INTO sys_org (parent_id, org_name, sort_order, status, created_by, updated_by, created_at, updated_at) "
+            + "VALUES (#{parentId}, #{orgName}, #{sortOrder}, 1, #{createdBy}, #{updatedBy}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "orgId")
     void insert(AdminOrg org);
 
     @Update("UPDATE sys_org SET parent_id = #{command.parentId}, org_name = #{command.orgName}, "
-            + "sort_order = #{command.sortOrder}, updated_at = NOW() WHERE id = #{orgId}")
-    void update(@Param("orgId") Long orgId, @Param("command") AdminOrgCommand command);
+            + "sort_order = #{command.sortOrder}, updated_by = #{operatorId}, updated_at = NOW() WHERE id = #{orgId}")
+    void update(@Param("orgId") Long orgId, @Param("command") AdminOrgCommand command, @Param("operatorId") Long operatorId);
 
-    @Update("UPDATE sys_org SET status = #{status}, updated_at = NOW() WHERE id = #{orgId}")
-    void updateStatus(@Param("orgId") Long orgId, @Param("status") int status);
+    @Update("UPDATE sys_org SET status = #{status}, updated_by = #{operatorId}, updated_at = NOW() WHERE id = #{orgId}")
+    void updateStatus(@Param("orgId") Long orgId, @Param("status") int status, @Param("operatorId") Long operatorId);
+
+    @Update("UPDATE sys_org SET sort_order = #{sortOrder}, updated_by = #{operatorId}, updated_at = NOW() WHERE id = #{orgId}")
+    void updateSort(@Param("orgId") Long orgId,
+                    @Param("sortOrder") int sortOrder,
+                    @Param("operatorId") Long operatorId);
 }
