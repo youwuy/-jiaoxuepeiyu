@@ -16,11 +16,11 @@
             clearable
             @keyup.enter="applyFilters"
           />
-          <el-select v-model="draft.className" class="admin-course-select" placeholder="授课班级" clearable>
-            <el-option v-for="item in classOptions" :key="item" :label="item" :value="item" />
+          <el-select v-model="draft.classId" class="admin-course-select" placeholder="授课班级" filterable clearable>
+            <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
           </el-select>
-          <el-select v-model="draft.termLabel" class="admin-course-select" placeholder="教学时间" clearable>
-            <el-option v-for="item in termOptions" :key="item" :label="item" :value="item" />
+          <el-select v-model="draft.semesterKey" class="admin-course-select" placeholder="教学时间" filterable clearable>
+            <el-option v-for="item in termOptions" :key="item.key" :label="item.label" :value="item.key" />
           </el-select>
           <el-select v-model="draft.publishStatus" class="admin-course-select" placeholder="课程状态" clearable>
             <el-option label="已发布" value="PUBLISHED" />
@@ -119,12 +119,14 @@
           </div>
 
           <footer class="admin-course-footer">
-            <p>共 {{ filteredCourses.length }} 条记录</p>
+            <p>共 {{ total }} 条记录</p>
             <el-pagination
               v-model:current-page="page"
-              :page-count="2"
+              :page-size="pageSize"
+              :total="total"
               layout="prev, pager, next"
               background
+              @current-change="loadCourses"
             />
           </footer>
         </template>
@@ -244,6 +246,8 @@ import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   copyAdminCourse,
   deleteAdminCourse,
+  fetchAdminAcademicYears,
+  fetchAdminClasses,
   fetchAdminCourseDetail,
   fetchAdminCourseLogs,
   fetchAdminCourses,
@@ -257,16 +261,20 @@ import {
   type AdminCourseRecord,
   type AdminCourseView
 } from '../../features/admin/courses';
+import type { AdminAcademicYearOption, AdminClassOption } from '../../api/admin-course';
 
 const pageSize = 5;
 const router = useRouter();
 const page = ref(1);
+const total = ref(0);
 const busyId = ref<number | null>(null);
 const loading = ref(false);
 const detailLoading = ref(false);
 const logsLoading = ref(false);
 
 const courses = ref<AdminCourseRecord[]>(mockAdminCourses);
+const academicYears = ref<AdminAcademicYearOption[]>([]);
+const classOptions = ref<AdminClassOption[]>([]);
 const selectedCourse = ref<AdminCourseView | null>(null);
 const selectedDetail = ref<AdminCourseRecord | null>(null);
 const detailVisible = ref(false);
@@ -284,8 +292,8 @@ const logs = ref<
 
 const draft = reactive({
   keyword: '',
-  className: '',
-  termLabel: '',
+  classId: undefined as number | undefined,
+  semesterKey: '',
   publishStatus: ''
 });
 
@@ -294,47 +302,18 @@ let requestId = 0;
 
 const courseViews = computed(() => buildAdminCourseViews(courses.value));
 
-const classOptions = computed(() =>
-  Array.from(
-    new Set(
-      courseViews.value
-        .flatMap((course) => course.classLabel.split('\n'))
-        .map((item) => item.trim())
-        .filter((item) => Boolean(item) && item !== '-')
-    )
+const termOptions = computed(() =>
+  academicYears.value.flatMap((year) =>
+    (year.semesters ?? []).map((semester) => ({
+      key: `${year.academicYearId}:${semester.semesterId}`,
+      label: `${year.yearName} ${semester.semesterName}`,
+      academicYearId: year.academicYearId,
+      semesterId: semester.semesterId
+    }))
   )
 );
 
-const termOptions = computed(() =>
-  Array.from(new Set(courseViews.value.map((course) => course.termLabel).filter((item) => item && item !== '-')))
-);
-
-const filteredCourses = computed(() => {
-  const keyword = normalizeText(appliedFilters.value.keyword);
-  return courseViews.value.filter((course) => {
-    const matchesKeyword =
-      !keyword ||
-      [course.title, course.termLabel, course.classLabel, course.teacherLabel, course.statusLabel]
-        .join(' ')
-        .toLowerCase()
-        .includes(keyword);
-    const matchesClass = !appliedFilters.value.className || course.classLabel.includes(appliedFilters.value.className);
-    const matchesTerm = !appliedFilters.value.termLabel || course.termLabel === appliedFilters.value.termLabel;
-    const matchesStatus =
-      !appliedFilters.value.publishStatus || course.publishStatus?.toUpperCase() === appliedFilters.value.publishStatus;
-
-    return matchesKeyword && matchesClass && matchesTerm && matchesStatus;
-  });
-});
-
-const pagedCourses = computed(() => {
-  const start = (page.value - 1) * pageSize;
-  return filteredCourses.value.slice(start, start + pageSize);
-});
-
-function normalizeText(value: string) {
-  return value.replace(/\s+/g, '').toLowerCase();
-}
+const pagedCourses = computed(() => courseViews.value);
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -350,15 +329,26 @@ async function loadCourses() {
   loading.value = true;
 
   try {
-    const result = await fetchAdminCourses({ page: 1, pageSize: 100 });
+    const term = termOptions.value.find((item) => item.key === appliedFilters.value.semesterKey);
+    const result = await fetchAdminCourses({
+      keyword: appliedFilters.value.keyword.trim() || undefined,
+      academicYearId: term?.academicYearId,
+      semesterId: term?.semesterId,
+      classId: appliedFilters.value.classId,
+      publishStatus: appliedFilters.value.publishStatus || undefined,
+      page: page.value,
+      pageSize
+    });
     if (currentRequest !== requestId) {
       return;
     }
 
     courses.value = result.records.length > 0 ? result.records : mockAdminCourses;
+    total.value = result.records.length > 0 ? result.total : mockAdminCourses.length;
   } catch {
     if (currentRequest === requestId) {
       courses.value = mockAdminCourses;
+      total.value = mockAdminCourses.length;
     }
   } finally {
     if (currentRequest === requestId) {
@@ -370,15 +360,17 @@ async function loadCourses() {
 function applyFilters() {
   appliedFilters.value = { ...draft };
   page.value = 1;
+  void loadCourses();
 }
 
 function resetFilters() {
   draft.keyword = '';
-  draft.className = '';
-  draft.termLabel = '';
+  draft.classId = undefined;
+  draft.semesterKey = '';
   draft.publishStatus = '';
   appliedFilters.value = { ...draft };
   page.value = 1;
+  void loadCourses();
 }
 
 function handleCreateCourse() {
@@ -430,6 +422,7 @@ async function deleteCourse(course: AdminCourseView) {
   try {
     await deleteAdminCourse(course.id);
     courses.value = courses.value.filter((item) => item.courseId !== course.id);
+    total.value = Math.max(0, total.value - 1);
     ElMessage.success('课程已删除');
     page.value = 1;
   } catch (error) {
@@ -455,6 +448,7 @@ async function copyCourse(course: AdminCourseView) {
       },
       ...courses.value
     ];
+    total.value += 1;
     ElMessage.success('课程已复制');
     page.value = 1;
   } catch (error) {
@@ -510,7 +504,19 @@ function mutateCourse(courseId: number, patch: Partial<AdminCourseRecord>) {
   courses.value = courses.value.map((course) => (course.courseId === courseId ? { ...course, ...patch } : course));
 }
 
+async function loadFilterOptions() {
+  try {
+    const [years, classes] = await Promise.all([fetchAdminAcademicYears(), fetchAdminClasses()]);
+    academicYears.value = years;
+    classOptions.value = classes.filter((item) => item.enabled !== false);
+  } catch {
+    academicYears.value = [];
+    classOptions.value = [];
+  }
+}
+
 onMounted(() => {
+  void loadFilterOptions();
   void loadCourses();
 });
 </script>

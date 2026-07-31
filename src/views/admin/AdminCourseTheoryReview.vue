@@ -25,16 +25,18 @@
           <p><span>学生学号</span><strong>{{ studentNo }}</strong></p>
           <p><span>所属班级</span><strong>{{ className }}</strong></p>
           <p><span>提交时间</span><strong>{{ submittedAt }}</strong></p>
-          <p><span>试卷总分</span><strong>100 分</strong></p>
+          <p><span>试卷总分</span><strong>{{ totalPossibleScore }} 分</strong></p>
           <p>
             <span>核算总分</span>
-            <b>{{ totalScore }} / 100</b>
+            <b>{{ totalScore }} / {{ totalPossibleScore }}</b>
           </p>
         </div>
       </section>
 
       <main class="admin-theory-review-content">
+        <div v-if="loading" class="admin-course-empty">作业详情加载中...</div>
         <section
+          v-else
           v-for="section in questionSections"
           :key="section.key"
           class="admin-theory-review-section"
@@ -119,7 +121,7 @@
             placeholder="请输入本次作业整体评语（选填）"
           />
         </div>
-        <el-button class="admin-theory-review-save" type="primary" @click="saveReview">
+        <el-button class="admin-theory-review-save" type="primary" :loading="saving" @click="saveReview">
           <el-icon><Check /></el-icon>
           保存阅卷结果
         </el-button>
@@ -129,11 +131,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, ChatLineRound, Check, DocumentChecked, Warning } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  fetchAdminAssignmentAttemptDetail,
+  reviewAdminAssignmentAttempt,
+  type AdminAssignmentAttempt,
+  type AdminAssignmentAttemptAnswer
+} from '../../api/admin-course';
 
 type QuestionType = 'choice' | 'judge' | 'blank' | 'essay';
 
@@ -162,14 +170,18 @@ interface ReviewSection {
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
-const assignmentTitle = computed(() => (route.query.assignment as string) || '第1.1节作业');
-const studentName = computed(() => (route.query.studentName as string) || '张明远');
-const studentNo = computed(() => (route.query.studentNo as string) || '2023XH9201');
-const className = computed(() => (route.query.className as string) || '城轨1班');
-const submittedAt = computed(() => (route.query.submittedAt as string) || '2025-04-10 14:32');
+const attemptId = computed(() => Number(route.params.reviewId));
+const attempt = ref<AdminAssignmentAttempt | null>(null);
+const loading = ref(false);
+const saving = ref(false);
+const assignmentTitle = computed(() => attempt.value?.assignmentTitle || (route.query.assignment as string) || '第1.1节作业');
+const studentName = computed(() => attempt.value?.studentName || (route.query.studentName as string) || '张明远');
+const studentNo = computed(() => attempt.value?.studentNo || (route.query.studentNo as string) || '2023XH9201');
+const className = computed(() => attempt.value?.className || (route.query.className as string) || '城轨1班');
+const submittedAt = computed(() => formatDateTime(attempt.value?.submittedAt) || (route.query.submittedAt as string) || '2025-04-10 14:32');
 const comment = ref('');
 
-const questionSections = reactive<ReviewSection[]>([
+const defaultQuestionSections: ReviewSection[] = [
   {
     key: 'single',
     label: '单选题',
@@ -334,9 +346,11 @@ const questionSections = reactive<ReviewSection[]>([
       }
     ]
   }
-]);
+];
+const questionSections = ref<ReviewSection[]>(defaultQuestionSections);
 
-const totalScore = computed(() => questionSections.reduce((sum, section) => sum + sectionScore(section), 0));
+const totalScore = computed(() => questionSections.value.reduce((sum, section) => sum + sectionScore(section), 0));
+const totalPossibleScore = computed(() => questionSections.value.reduce((sum, section) => sum + section.total, 0));
 
 function sectionScore(section: ReviewSection) {
   return section.questions.reduce((sum, question) => sum + Number(question.score || 0), 0);
@@ -360,8 +374,120 @@ function goBack() {
   });
 }
 
-function saveReview() {
-  ElMessage.success('阅卷结果已保存');
-  goBack();
+async function saveReview() {
+  saving.value = true;
+  try {
+    await reviewAdminAssignmentAttempt(attemptId.value, {
+      reviewComment: comment.value.trim() || undefined,
+      answers: questionSections.value.flatMap((section) =>
+        section.questions.map((question) => ({
+          questionId: question.id,
+          score: Number(question.score || 0)
+        }))
+      )
+    });
+    ElMessage.success('阅卷结果已保存');
+    goBack();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '阅卷结果保存失败');
+  } finally {
+    saving.value = false;
+  }
 }
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return '';
+  }
+
+  const normalized = value.includes('T') ? value.replace('T', ' ') : value;
+  return normalized.slice(0, 16);
+}
+
+function normalizeQuestionType(value?: string): QuestionType {
+  const type = (value || '').toUpperCase();
+  if (type.includes('JUDGE') || type.includes('TRUE_FALSE')) {
+    return 'judge';
+  }
+  if (type.includes('BLANK')) {
+    return 'blank';
+  }
+  if (type.includes('ESSAY') || type.includes('SUBJECTIVE')) {
+    return 'essay';
+  }
+  return 'choice';
+}
+
+function sectionMeta(type: QuestionType) {
+  if (type === 'judge') {
+    return { key: 'judge', label: '判断题' };
+  }
+  if (type === 'blank') {
+    return { key: 'blank', label: '填空题' };
+  }
+  if (type === 'essay') {
+    return { key: 'essay', label: '简答题' };
+  }
+  return { key: 'single', label: '选择题' };
+}
+
+function mapAnswerQuestion(answer: AdminAssignmentAttemptAnswer): ReviewQuestion {
+  const type = normalizeQuestionType(answer.questionType);
+  const score = Number(answer.score ?? 0);
+  return {
+    id: answer.questionId,
+    type,
+    title: answer.title || '未命名题目',
+    maxScore: Number(answer.questionScore ?? 0),
+    studentAnswer: answer.answerContent || '',
+    standardAnswer: answer.standardAnswer || '',
+    systemScore: score,
+    score,
+    studentAnswerText: answer.answerContent || '',
+    referenceAnswer: answer.standardAnswer || ''
+  };
+}
+
+function buildSections(answers: AdminAssignmentAttemptAnswer[]) {
+  const grouped = new Map<string, ReviewSection>();
+  answers.forEach((answer) => {
+    const question = mapAnswerQuestion(answer);
+    const meta = sectionMeta(question.type);
+    const existing =
+      grouped.get(meta.key) ||
+      ({
+        key: meta.key,
+        label: meta.label,
+        scorePerQuestion: question.maxScore,
+        total: 0,
+        questions: []
+      } satisfies ReviewSection);
+    existing.questions.push(question);
+    existing.total += question.maxScore;
+    existing.scorePerQuestion = existing.questions.length === 1 ? question.maxScore : existing.scorePerQuestion;
+    grouped.set(meta.key, existing);
+  });
+
+  return Array.from(grouped.values());
+}
+
+async function loadAttemptDetail() {
+  loading.value = true;
+  try {
+    const detail = await fetchAdminAssignmentAttemptDetail(attemptId.value);
+    attempt.value = detail;
+    comment.value = detail.reviewComment || '';
+    if (detail.answers?.length) {
+      questionSections.value = buildSections(detail.answers);
+    }
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '作业详情接口暂不可用');
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadAttemptDetail();
+});
 </script>

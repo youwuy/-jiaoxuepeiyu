@@ -13,16 +13,18 @@ export interface AdminCourseQuery {
   majorId?: number;
   classId?: number;
   teacherId?: number;
+  teachingStartTime?: string;
+  teachingEndTime?: string;
   publishStatus?: string;
   page?: number;
   pageSize?: number;
 }
 
 export interface AdminCoursePage {
-  records?: AdminCourseRecord[];
-  rows?: AdminCourseRecord[];
-  list?: AdminCourseRecord[];
-  data?: AdminCourseRecord[];
+  records?: unknown[];
+  rows?: unknown[];
+  list?: unknown[];
+  data?: unknown[];
   total?: number;
   page?: number;
   pageSize?: number;
@@ -117,6 +119,60 @@ export interface AdminTeacherOption {
   accountNo?: string;
   realName: string;
   enabled?: boolean;
+}
+
+export interface AdminAssignmentAttemptQuery {
+  courseId?: number;
+  assignmentId?: number;
+  classId?: number;
+  studentId?: number;
+  status?: string;
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminAssignmentAttemptAnswer {
+  questionId: number;
+  questionType?: string;
+  title?: string;
+  standardAnswer?: string;
+  answerContent?: string;
+  questionScore?: number;
+  score?: number;
+  reviewComment?: string;
+}
+
+export interface AdminAssignmentAttempt {
+  attemptId: number;
+  assignmentId?: number;
+  assignmentTitle?: string;
+  assignmentType?: string;
+  courseId?: number;
+  courseName?: string;
+  studentId?: number;
+  studentName?: string;
+  studentNo?: string;
+  classId?: number;
+  className?: string;
+  totalScore?: number;
+  status?: string;
+  score?: number;
+  reviewComment?: string;
+  reviewerId?: number;
+  reviewerName?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  answers?: AdminAssignmentAttemptAnswer[];
+}
+
+export interface AdminAssignmentReviewCommand {
+  reviewComment?: string;
+  answers: Array<{
+    questionId: number;
+    score: number;
+    comment?: string;
+  }>;
 }
 
 function buildQuery(params: AdminCourseQuery): string {
@@ -242,6 +298,33 @@ export async function fetchAdminTeachers() {
   });
 
   return normalizeListResponse<AdminTeacherOption>(result);
+}
+
+export async function fetchAdminAssignmentAttempts(query: AdminAssignmentAttemptQuery = {}) {
+  const result = await requestJson<AdminCoursePage>(`/admin/assignment-attempts${buildQuery(query)}`, {
+    fallbackLabel: '作业批阅列表'
+  });
+
+  return {
+    records: normalizeListResponse<AdminAssignmentAttempt>(result),
+    total: result.total ?? normalizeListResponse<AdminAssignmentAttempt>(result).length,
+    page: result.page ?? query.page ?? 1,
+    pageSize: result.pageSize ?? query.pageSize ?? 20
+  };
+}
+
+export async function fetchAdminAssignmentAttemptDetail(attemptId: number) {
+  return requestJson<AdminAssignmentAttempt>(`/admin/assignment-attempts/${attemptId}`, {
+    fallbackLabel: '作业批阅详情'
+  });
+}
+
+export async function reviewAdminAssignmentAttempt(attemptId: number, command: AdminAssignmentReviewCommand) {
+  return requestJson<void>(`/admin/assignment-attempts/${attemptId}/review`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '保存阅卷结果'
+  });
 }
 
 export type { AdminCourseChapter, AdminCourseContent, AdminCoursePublishStatus, AdminCourseRecord };

@@ -26,8 +26,8 @@
           </label>
           <label class="admin-course-reviews-field">
             <span>所属班级</span>
-            <el-select v-model="filters.className" placeholder="请选择所属班级" clearable>
-              <el-option v-for="item in classOptions" :key="item" :label="item" :value="item" />
+            <el-select v-model="filters.classId" placeholder="请选择所属班级" filterable clearable>
+              <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
             </el-select>
           </label>
           <label class="admin-course-reviews-field assignment">
@@ -68,7 +68,11 @@
           </button>
         </div>
 
-        <div class="admin-course-reviews-table-scroll">
+        <div v-if="loading" class="admin-course-empty">作业列表加载中...</div>
+        <div v-else-if="pagedRows.length === 0" class="admin-course-empty">
+          <el-empty description="暂无匹配作业" />
+        </div>
+        <div v-else class="admin-course-reviews-table-scroll">
           <table class="admin-course-reviews-table">
             <thead>
               <tr>
@@ -125,21 +129,22 @@
         </div>
 
         <footer class="admin-course-reviews-pagination">
-          <p>显示 {{ pageStart }} 到 {{ pageEnd }} 条，共 {{ filteredRows.length }} 条记录</p>
+          <p>显示 {{ pageStart }} 到 {{ pageEnd }} 条，共 {{ total }} 条记录</p>
           <div class="admin-course-reviews-pager">
-            <el-button :icon="DArrowLeft" :disabled="page === 1" @click="page = 1" />
-            <el-button :icon="ArrowLeft" :disabled="page === 1" @click="page = Math.max(1, page - 1)" />
+            <el-button :icon="DArrowLeft" :disabled="page === 1" @click="goToPage(1)" />
+            <el-button :icon="ArrowLeft" :disabled="page === 1" @click="goToPage(Math.max(1, page - 1))" />
             <el-pagination
               v-model:current-page="page"
               :page-size="pageSize"
-              :total="filteredRows.length"
+              :total="total"
               layout="pager"
               background
+              @current-change="loadRows"
             />
-            <el-button :icon="ArrowRight" :disabled="page === pageCount" @click="page = Math.min(pageCount, page + 1)" />
-            <el-button :icon="DArrowRight" :disabled="page === pageCount" @click="page = pageCount" />
+            <el-button :icon="ArrowRight" :disabled="page === pageCount" @click="goToPage(Math.min(pageCount, page + 1))" />
+            <el-button :icon="DArrowRight" :disabled="page === pageCount" @click="goToPage(pageCount)" />
             <span>每页</span>
-            <el-select v-model="pageSize" class="admin-course-reviews-size">
+            <el-select v-model="pageSize" class="admin-course-reviews-size" @change="handlePageSizeChange">
               <el-option :label="10" :value="10" />
               <el-option :label="20" :value="20" />
             </el-select>
@@ -152,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   ArrowLeft,
@@ -166,6 +171,12 @@ import {
   View
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  fetchAdminAssignmentAttempts,
+  fetchAdminClasses,
+  type AdminAssignmentAttempt,
+  type AdminClassOption
+} from '../../api/admin-course';
 import { mockAdminCourses } from '../../features/admin/courses';
 
 type ReviewTabKey = 'all' | 'pending' | 'reviewed' | 'notSubmitted';
@@ -190,16 +201,20 @@ const courseTitle = computed(() => (route.query.title as string) || currentCours
 
 const page = ref(1);
 const pageSize = ref(10);
+const total = ref(0);
+const loading = ref(false);
 const activeTab = ref<ReviewTabKey>('all');
 const filters = reactive({
   studentName: '',
   studentNo: '',
-  className: '',
+  classId: undefined as number | undefined,
   assignmentName: ''
 });
 const appliedFilters = ref({ ...filters });
+let requestId = 0;
 
-const rows = ref<AssignmentReviewRow[]>([
+const classOptions = ref<AdminClassOption[]>([]);
+const mockRows: AssignmentReviewRow[] = [
   { id: 1, studentName: '张明远', studentNo: '2024CGXH001', className: '信号1班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-10 14:32', reviewed: true, score: 92 },
   { id: 2, studentName: '李晓婷', studentNo: '2024CGXH002', className: '信号1班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-11 09:15', reviewed: false, score: 92 },
   { id: 3, studentName: '王志强', studentNo: '2024CGXH003', className: '信号2班', assignmentName: '1.1节作业', submitted: false, reviewed: false },
@@ -212,93 +227,89 @@ const rows = ref<AssignmentReviewRow[]>([
   { id: 10, studentName: '黄俊杰', studentNo: '2024CGXH010', className: '信号3班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-07 15:30', reviewed: true, score: 68 },
   { id: 11, studentName: '马欣怡', studentNo: '2024CGXH011', className: '信号1班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-12 18:10', reviewed: false, score: 90 },
   { id: 12, studentName: '朱博文', studentNo: '2024CGXH012', className: '信号2班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-12 19:45', reviewed: true, score: 84 }
-]);
+];
+const rows = ref<AssignmentReviewRow[]>(mockRows);
 
-const classOptions = computed(() => Array.from(new Set(rows.value.map((item) => item.className))));
-const baseFilteredRows = computed(() => {
-  const name = normalize(appliedFilters.value.studentName);
-  const no = normalize(appliedFilters.value.studentNo);
-  const assignment = normalize(appliedFilters.value.assignmentName);
-  return rows.value.filter((item) => {
-    const matchesName = !name || normalize(item.studentName).includes(name);
-    const matchesNo = !no || normalize(item.studentNo).includes(no);
-    const matchesClass = !appliedFilters.value.className || item.className === appliedFilters.value.className;
-    const matchesAssignment = !assignment || normalize(item.assignmentName).includes(assignment);
-    return matchesName && matchesNo && matchesClass && matchesAssignment;
-  });
-});
-const filteredRows = computed(() => {
-  if (activeTab.value === 'pending') {
-    return baseFilteredRows.value.filter((item) => item.submitted && !item.reviewed);
-  }
-  if (activeTab.value === 'reviewed') {
-    return baseFilteredRows.value.filter((item) => item.submitted && item.reviewed);
-  }
-  if (activeTab.value === 'notSubmitted') {
-    return baseFilteredRows.value.filter((item) => !item.submitted);
-  }
-  return baseFilteredRows.value;
-});
 const tabs = computed(() => [
-  { key: 'all' as const, label: '全部', count: baseFilteredRows.value.length, tone: 'all' },
+  { key: 'all' as const, label: '全部', count: total.value, tone: 'all' },
   {
     key: 'pending' as const,
     label: '待批阅',
-    count: baseFilteredRows.value.filter((item) => item.submitted && !item.reviewed).length,
+    count: rows.value.filter((item) => item.submitted && !item.reviewed).length,
     tone: 'pending'
   },
   {
     key: 'reviewed' as const,
     label: '已批阅',
-    count: baseFilteredRows.value.filter((item) => item.submitted && item.reviewed).length,
+    count: rows.value.filter((item) => item.submitted && item.reviewed).length,
     tone: 'reviewed'
   },
   {
     key: 'notSubmitted' as const,
     label: '未提交',
-    count: baseFilteredRows.value.filter((item) => !item.submitted).length,
+    count: rows.value.filter((item) => !item.submitted).length,
     tone: 'notSubmitted'
   }
 ]);
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)));
-const pagedRows = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return filteredRows.value.slice(start, start + pageSize.value);
-});
-const pageStart = computed(() => (filteredRows.value.length === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
-const pageEnd = computed(() => Math.min(page.value * pageSize.value, filteredRows.value.length));
+const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+const pagedRows = computed(() => rows.value);
+const pageStart = computed(() => (total.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
+const pageEnd = computed(() => Math.min(page.value * pageSize.value, total.value));
 
-watch(pageSize, () => {
-  page.value = 1;
-});
-
-watch(filteredRows, () => {
-  if (page.value > pageCount.value) {
-    page.value = pageCount.value;
+function formatDateTime(value?: string) {
+  if (!value) {
+    return undefined;
   }
-});
 
-function normalize(value?: string) {
-  return (value || '').replace(/\s+/g, '').toLowerCase();
+  const normalized = value.includes('T') ? value.replace('T', ' ') : value;
+  return normalized.slice(0, 16);
+}
+
+function statusForTab(tab: ReviewTabKey) {
+  if (tab === 'pending') {
+    return 'SUBMITTED';
+  }
+  if (tab === 'reviewed') {
+    return 'REVIEWED';
+  }
+  return undefined;
+}
+
+function mapAttemptRow(item: AdminAssignmentAttempt): AssignmentReviewRow {
+  const reviewed = (item.status || '').toUpperCase() === 'REVIEWED';
+  return {
+    id: item.attemptId,
+    studentName: item.studentName || '-',
+    studentNo: item.studentNo || '-',
+    className: item.className || '-',
+    assignmentName: item.assignmentTitle || '-',
+    submitted: true,
+    submittedAt: formatDateTime(item.submittedAt),
+    reviewed,
+    score: item.score
+  };
 }
 
 function setTab(tab: ReviewTabKey) {
   activeTab.value = tab;
   page.value = 1;
+  void loadRows();
 }
 
 function applyFilters() {
   appliedFilters.value = { ...filters };
   page.value = 1;
+  void loadRows();
 }
 
 function resetFilters() {
   filters.studentName = '';
   filters.studentNo = '';
-  filters.className = '';
+  filters.classId = undefined;
   filters.assignmentName = '';
   appliedFilters.value = { ...filters };
   page.value = 1;
+  void loadRows();
 }
 
 function goBack() {
@@ -318,4 +329,71 @@ function openReview(row: AssignmentReviewRow) {
     }
   });
 }
+
+function queryKeyword() {
+  return [appliedFilters.value.studentName, appliedFilters.value.studentNo, appliedFilters.value.assignmentName]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+async function loadRows() {
+  const currentRequest = ++requestId;
+  loading.value = true;
+
+  try {
+    if (activeTab.value === 'notSubmitted') {
+      rows.value = [];
+      total.value = 0;
+      return;
+    }
+
+    const result = await fetchAdminAssignmentAttempts({
+      courseId: courseId.value,
+      classId: appliedFilters.value.classId,
+      status: statusForTab(activeTab.value),
+      keyword: queryKeyword() || undefined,
+      page: page.value,
+      pageSize: pageSize.value
+    });
+    if (currentRequest !== requestId) {
+      return;
+    }
+
+    rows.value = result.records.map(mapAttemptRow);
+    total.value = result.total;
+  } catch {
+    if (currentRequest === requestId) {
+      rows.value = mockRows;
+      total.value = mockRows.length;
+    }
+  } finally {
+    if (currentRequest === requestId) {
+      loading.value = false;
+    }
+  }
+}
+
+async function loadClassOptions() {
+  try {
+    classOptions.value = (await fetchAdminClasses()).filter((item) => item.enabled !== false);
+  } catch {
+    classOptions.value = [];
+  }
+}
+
+function handlePageSizeChange() {
+  page.value = 1;
+  void loadRows();
+}
+
+function goToPage(nextPage: number) {
+  page.value = nextPage;
+  void loadRows();
+}
+
+onMounted(() => {
+  void loadClassOptions();
+  void loadRows();
+});
 </script>
