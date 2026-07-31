@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminCourseService {
 
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_CHAPTER_DEPTH = 3;
     private static final Set<String> LEARNING_MODES = new HashSet<String>(Arrays.asList("SELF_PACED", "SEQUENTIAL", "TEACHER_LED"));
     private static final Set<String> ASSIGNMENT_RULES = new HashSet<String>(Arrays.asList("SUBMIT", "PASS_SCORE"));
     private static final Set<String> ASSIGNMENT_PUBLISH_MODES = new HashSet<String>(Arrays.asList("PRACTICE", "EXAM"));
@@ -169,9 +170,16 @@ public class AdminCourseService {
     }
 
     private List<AdminCourseChapterCommand> normalizedChapters(List<AdminCourseChapterCommand> chapters) {
+        return normalizedChapters(chapters, 1);
+    }
+
+    private List<AdminCourseChapterCommand> normalizedChapters(List<AdminCourseChapterCommand> chapters, int depth) {
         List<AdminCourseChapterCommand> normalized = new ArrayList<AdminCourseChapterCommand>();
         if (chapters == null) {
             return normalized;
+        }
+        if (depth > MAX_CHAPTER_DEPTH) {
+            throw new BusinessException(400, "Course chapters cannot exceed 3 levels");
         }
         int defaultChapterSort = 1;
         for (AdminCourseChapterCommand chapter : chapters) {
@@ -186,6 +194,7 @@ public class AdminCourseService {
             normalizedChapter.setChapterTitle(chapterTitle);
             normalizedChapter.setSortOrder(chapter.getSortOrder() == null ? Integer.valueOf(defaultChapterSort) : chapter.getSortOrder());
             normalizedChapter.setContents(normalizedContents(chapter.getContents()));
+            normalizedChapter.setChildren(normalizedChapters(chapter.getChildren(), depth + 1));
             normalized.add(normalizedChapter);
             defaultChapterSort++;
         }
@@ -376,13 +385,15 @@ public class AdminCourseService {
     private int countContents(List<AdminCourseChapterCommand> chapters, String itemType) {
         int count = 0;
         for (AdminCourseChapterCommand chapter : chapters) {
-            if (chapter.getContents() == null) {
-                continue;
-            }
-            for (AdminCourseContentCommand content : chapter.getContents()) {
-                if (itemType.equals(content.getItemType())) {
-                    count++;
+            if (chapter.getContents() != null) {
+                for (AdminCourseContentCommand content : chapter.getContents()) {
+                    if (itemType.equals(content.getItemType())) {
+                        count++;
+                    }
                 }
+            }
+            if (chapter.getChildren() != null) {
+                count += countContents(chapter.getChildren(), itemType);
             }
         }
         return count;

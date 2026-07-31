@@ -121,6 +121,43 @@ class AdminCourseServiceTests {
     }
 
     @Test
+    void keepsNestedChaptersAndCountsNestedContent() {
+        FakeCourses repository = new FakeCourses();
+        AdminCourseService service = new AdminCourseService(repository);
+        AdminCourseCommand command = courseCommand();
+        AdminCourseChapterCommand child = new AdminCourseChapterCommand();
+        child.setChapterTitle("Section 1");
+        child.setContents(Arrays.asList(content("COURSEWARE")));
+        command.getChapters().get(0).setChildren(Arrays.asList(child));
+
+        service.createCourse(command, 9L);
+
+        assertEquals(2, repository.savedCommand.getCoursewareCount().intValue());
+        assertEquals(1, repository.savedCommand.getChapters().get(0).getChildren().size());
+    }
+
+    @Test
+    void rejectsChapterDeeperThanThreeLevels() {
+        AdminCourseService service = new AdminCourseService(new FakeCourses());
+        AdminCourseCommand command = courseCommand();
+        AdminCourseChapterCommand level2 = new AdminCourseChapterCommand();
+        level2.setChapterTitle("Level 2");
+        AdminCourseChapterCommand level3 = new AdminCourseChapterCommand();
+        level3.setChapterTitle("Level 3");
+        AdminCourseChapterCommand level4 = new AdminCourseChapterCommand();
+        level4.setChapterTitle("Level 4");
+        level3.setChildren(Arrays.asList(level4));
+        level2.setChildren(Arrays.asList(level3));
+        command.getChapters().get(0).setChildren(Arrays.asList(level2));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createCourse(command, 9L);
+        });
+
+        assertEquals("Course chapters cannot exceed 3 levels", exception.getMessage());
+    }
+
+    @Test
     void publishesCourseAndNotifiesBoundStudents() {
         FakeCourses repository = new FakeCourses();
         repository.course = existingCourse(31L, 2);

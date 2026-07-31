@@ -35,6 +35,7 @@ These items have code-level evidence in the repository:
 - Student training attempt APIs now expose `/api/student/training-attempts` and `/api/student/training-attempts/{attemptId}/score-sheet` while reusing the UE result callback and archive score-sheet pipeline.
 - Student training room APIs now include role release for waiting rooms, constrained to the current student's own claimed role.
 - Admin teaching course APIs now support PDF-specified teaching-time overlap filtering, unpublished status filtering, pending-review counts in course lists, 20-character course/chapter validation, courseware learning windows, assignment answer windows, assignment publish modes, and submit/pass-score completion rules.
+- Admin teaching course APIs now support up to 3 levels of nested chapter trees, persist `course_chapter.parent_chapter_id`, return nested chapter `children` in admin course detail/list payloads, and keep student course detail responses compatible by returning nested content in path order.
 
 ## Not Yet Proven
 

@@ -7,6 +7,7 @@ public class AdminCourseChapterCommand {
     private String chapterTitle;
     private Integer sortOrder;
     private List<AdminCourseContentCommand> contents;
+    private List<AdminCourseChapterCommand> children;
 
     public String getChapterTitle() {
         return chapterTitle;
@@ -30,5 +31,13 @@ public class AdminCourseChapterCommand {
 
     public void setContents(List<AdminCourseContentCommand> contents) {
         this.contents = contents;
+    }
+
+    public List<AdminCourseChapterCommand> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<AdminCourseChapterCommand> children) {
+        this.children = children;
     }
 }

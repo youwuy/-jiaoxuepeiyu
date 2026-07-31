@@ -3,12 +3,14 @@ USE `jiaoxuepeiyu`;
 CREATE TABLE IF NOT EXISTS `course_chapter` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `course_id` BIGINT NOT NULL,
+  `parent_chapter_id` BIGINT DEFAULT NULL,
   `chapter_title` VARCHAR(128) NOT NULL,
   `sort_order` INT NOT NULL DEFAULT 0,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_course_chapter_course` (`course_id`, `sort_order`)
+  KEY `idx_course_chapter_course` (`course_id`, `parent_chapter_id`, `sort_order`),
+  KEY `idx_course_chapter_parent` (`parent_chapter_id`, `sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='course chapters';
 
 CREATE TABLE IF NOT EXISTS `course_content` (

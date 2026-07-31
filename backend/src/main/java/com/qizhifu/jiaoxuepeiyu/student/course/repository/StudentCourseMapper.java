@@ -47,13 +47,20 @@ public interface StudentCourseMapper {
             + "CASE WHEN cp.completed = 1 THEN TRUE ELSE FALSE END AS completed, ct.sort_order "
             + "FROM course_content ct "
             + "JOIN course_chapter ch ON ch.id = ct.chapter_id "
+            + "LEFT JOIN course_chapter parent_ch ON parent_ch.id = ch.parent_chapter_id "
+            + "LEFT JOIN course_chapter root_ch ON root_ch.id = parent_ch.parent_chapter_id "
             + "JOIN course c ON c.id = ct.course_id "
             + "LEFT JOIN course_class cc ON cc.course_id = c.id "
             + "JOIN sys_user u ON u.class_id = COALESCE(cc.class_id, c.class_id) "
             + "LEFT JOIN course_content_learning_progress cp "
             + "ON cp.content_id = ct.id AND cp.student_id = u.id "
             + "WHERE u.id = #{studentId} AND c.id = #{courseId} AND c.publish_status = 'PUBLISHED' "
-            + "ORDER BY ch.sort_order ASC, ch.id ASC, ct.sort_order ASC, ct.id ASC")
+            + "ORDER BY COALESCE(root_ch.sort_order, parent_ch.sort_order, ch.sort_order) ASC, "
+            + "COALESCE(root_ch.id, parent_ch.id, ch.id) ASC, "
+            + "CASE WHEN root_ch.id IS NULL AND parent_ch.id IS NULL THEN 0 "
+            + "WHEN root_ch.id IS NULL THEN 1 ELSE 2 END ASC, "
+            + "COALESCE(parent_ch.sort_order, ch.sort_order) ASC, COALESCE(parent_ch.id, ch.id) ASC, "
+            + "ch.sort_order ASC, ch.id ASC, ct.sort_order ASC, ct.id ASC")
     List<StudentCourseContentRecord> findCourseContents(@Param("studentId") Long studentId,
                                                         @Param("courseId") Long courseId);
 

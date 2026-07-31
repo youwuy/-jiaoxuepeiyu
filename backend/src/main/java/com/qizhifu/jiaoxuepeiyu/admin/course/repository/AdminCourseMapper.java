@@ -14,6 +14,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -149,16 +150,25 @@ public interface AdminCourseMapper {
     @Select("SELECT class_id FROM course_class WHERE course_id = #{courseId} ORDER BY sort_order ASC, id ASC")
     List<Long> findClassIds(@Param("courseId") Long courseId);
 
-    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.chapter_title, ch.sort_order "
-            + "FROM course_chapter ch WHERE ch.course_id = #{courseId} ORDER BY ch.sort_order ASC, ch.id ASC")
+    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
+            + "FROM course_chapter ch WHERE ch.course_id = #{courseId} "
+            + "AND ch.parent_chapter_id IS NULL ORDER BY ch.sort_order ASC, ch.id ASC")
     @Results(id = "courseChapterMap", value = {
             @Result(column = "chapter_id", property = "chapterId", id = true),
             @Result(column = "course_id", property = "courseId"),
+            @Result(column = "parent_chapter_id", property = "parentChapterId"),
             @Result(column = "chapter_title", property = "chapterTitle"),
             @Result(column = "sort_order", property = "sortOrder"),
-            @Result(column = "chapter_id", property = "contents", many = @Many(select = "findContents"))
+            @Result(column = "chapter_id", property = "contents", many = @Many(select = "findContents")),
+            @Result(column = "chapter_id", property = "children", many = @Many(select = "findChildChapters"))
     })
     List<AdminCourseChapter> findChapters(@Param("courseId") Long courseId);
+
+    @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
+            + "FROM course_chapter ch WHERE ch.parent_chapter_id = #{parentChapterId} "
+            + "ORDER BY ch.sort_order ASC, ch.id ASC")
+    @ResultMap("courseChapterMap")
+    List<AdminCourseChapter> findChildChapters(@Param("parentChapterId") Long parentChapterId);
 
     @Select("SELECT ct.id AS content_id, ct.chapter_id, ct.item_type, ct.title, ct.resource_id, ct.assignment_id, "
             + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
@@ -212,8 +222,8 @@ public interface AdminCourseMapper {
     @Delete("DELETE FROM course_chapter WHERE course_id = #{courseId}")
     void deleteChapters(@Param("courseId") Long courseId);
 
-    @Insert("INSERT INTO course_chapter (course_id, chapter_title, sort_order, created_at, updated_at) "
-            + "VALUES (#{courseId}, #{chapter.chapterTitle}, #{chapter.sortOrder}, NOW(), NOW())")
+    @Insert("INSERT INTO course_chapter (course_id, parent_chapter_id, chapter_title, sort_order, created_at, updated_at) "
+            + "VALUES (#{courseId}, #{chapter.parentChapterId}, #{chapter.chapterTitle}, #{chapter.sortOrder}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "chapter.chapterId")
     void insertChapter(@Param("courseId") Long courseId, @Param("chapter") AdminCourseChapter chapter);
 
