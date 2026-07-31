@@ -17,6 +17,7 @@
             type="button"
             class="admin-nav-link"
             :class="{ active: item.key === activeKey }"
+            @click="goTo(item.path)"
           >
             <el-icon><component :is="item.icon" /></el-icon>
             <span>{{ item.label }}</span>
@@ -39,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import {
   Coin,
   Collection,
@@ -57,6 +59,14 @@ import {
 defineProps<{
   activeKey: string;
 }>();
+
+const router = useRouter();
+
+function goTo(path: string) {
+  if (path.startsWith('/')) {
+    router.push(path);
+  }
+}
 
 const navGroups = [
   {
@@ -83,7 +93,7 @@ const navGroups = [
     title: '教学实训',
     items: [
       { key: 'admin-courses', label: '教学课程', path: '/admin/courses', icon: Monitor },
-      { key: 'admin-trainings', label: '实训组课', path: 'admin-trainings', icon: Coin }
+      { key: 'admin-trainings', label: '实训课', path: '/admin/training', icon: Coin }
     ]
   },
   {

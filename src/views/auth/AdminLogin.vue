@@ -158,7 +158,7 @@ async function submit() {
   try {
     await loginAdmin(form, mode.value === 'phone' ? 'phone' : 'username');
     ElMessage.success('登录成功');
-    router.push('/admin/courses');
+    await router.push('/admin/training');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '登录失败，请稍后重试');
   } finally {
