@@ -44,77 +44,79 @@
           <el-empty description="暂无匹配课程" />
         </div>
         <template v-else>
-          <table class="admin-course-table">
-            <thead>
-              <tr>
-                <th>课程名称</th>
-                <th>学年学期</th>
-                <th>教学起止时间</th>
-                <th>授课班级</th>
-                <th>教学团队</th>
-                <th>待批改作业</th>
-                <th>课程状态</th>
-                <th>创建时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="course in pagedCourses" :key="course.id">
-                <td class="admin-course-name-cell">
-                  <strong>{{ course.title }}</strong>
-                </td>
-                <td>{{ course.termLabel }}</td>
-                <td>{{ course.periodLabel }}</td>
-                <td class="admin-course-multiline">{{ course.classLabel }}</td>
-                <td>{{ course.teacherLabel }}</td>
-                <td class="admin-course-pending" :class="{ hot: Number(course.pendingReviewLabel) > 0 }">
-                  {{ course.pendingReviewLabel }}
-                </td>
-                <td>
-                  <span class="admin-course-status" :class="course.statusTone">
-                    <i class="dot"></i>
-                    {{ course.statusLabel }}
-                  </span>
-                </td>
-                <td>{{ course.createdAtLabel }}</td>
-                <td class="admin-course-ops">
-                  <template v-if="course.statusTone === 'published'">
-                    <el-button class="admin-op-button warning" :loading="busyId === course.id" @click="cancelPublish(course)">
-                      取消发布
-                    </el-button>
-                    <el-button class="admin-op-button primary" @click="openDetail(course)">查看</el-button>
-                    <el-button class="admin-op-button primary" @click="handleReview(course)">批改作业</el-button>
-                    <el-button class="admin-op-button primary" @click="openStatistics(course)">成绩统计</el-button>
-                    <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
-                    <el-dropdown trigger="click">
-                      <el-button class="admin-op-button more">
-                        更多
-                        <el-icon><ArrowDown /></el-icon>
+          <div class="admin-course-table-scroll">
+            <table class="admin-course-table">
+              <thead>
+                <tr>
+                  <th>课程名称</th>
+                  <th>学年学期</th>
+                  <th>教学起止时间</th>
+                  <th>授课班级</th>
+                  <th>教学团队</th>
+                  <th>待批改作业</th>
+                  <th>课程状态</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="course in pagedCourses" :key="course.id">
+                  <td class="admin-course-name-cell">
+                    <strong>{{ course.title }}</strong>
+                  </td>
+                  <td>{{ course.termLabel }}</td>
+                  <td>{{ course.periodLabel }}</td>
+                  <td class="admin-course-multiline">{{ course.classLabel }}</td>
+                  <td>{{ course.teacherLabel }}</td>
+                  <td class="admin-course-pending" :class="{ hot: Number(course.pendingReviewLabel) > 0 }">
+                    {{ course.pendingReviewLabel }}
+                  </td>
+                  <td>
+                    <span class="admin-course-status" :class="course.statusTone">
+                      <i class="dot"></i>
+                      {{ course.statusLabel }}
+                    </span>
+                  </td>
+                  <td>{{ course.createdAtLabel }}</td>
+                  <td class="admin-course-ops">
+                    <template v-if="course.statusTone === 'published'">
+                      <el-button class="admin-op-button warning" :loading="busyId === course.id" @click="cancelPublish(course)">
+                        取消发布
                       </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item @click="openLogs(course)">操作日志</el-dropdown-item>
-                          <el-dropdown-item @click="openDetail(course)">课程详情</el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </template>
+                      <el-button class="admin-op-button primary" @click="openDetail(course)">查看</el-button>
+                      <el-button class="admin-op-button primary" @click="handleReview(course)">批改作业</el-button>
+                      <el-button class="admin-op-button primary" @click="openStatistics(course)">成绩统计</el-button>
+                      <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
+                      <el-dropdown trigger="click">
+                        <el-button class="admin-op-button more">
+                          更多
+                          <el-icon><ArrowDown /></el-icon>
+                        </el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item @click="openLogs(course)">操作日志</el-dropdown-item>
+                            <el-dropdown-item @click="openDetail(course)">课程详情</el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </template>
 
-                  <template v-else>
-                    <el-button class="admin-op-button light" @click="openDetail(course)">编辑</el-button>
-                    <el-button class="admin-op-button danger" :loading="busyId === course.id" @click="deleteCourse(course)">
-                      删除
-                    </el-button>
-                    <el-button class="admin-op-button success" :loading="busyId === course.id" @click="publishCourse(course)">
-                      发布
-                    </el-button>
-                    <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
-                    <el-button class="admin-op-button muted" @click="openLogs(course)">操作日志</el-button>
-                  </template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <template v-else>
+                      <el-button class="admin-op-button light" @click="openDetail(course)">编辑</el-button>
+                      <el-button class="admin-op-button danger" :loading="busyId === course.id" @click="deleteCourse(course)">
+                        删除
+                      </el-button>
+                      <el-button class="admin-op-button success" :loading="busyId === course.id" @click="publishCourse(course)">
+                        发布
+                      </el-button>
+                      <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
+                      <el-button class="admin-op-button muted" @click="openLogs(course)">操作日志</el-button>
+                    </template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <footer class="admin-course-footer">
             <p>共 {{ filteredCourses.length }} 条记录</p>
@@ -274,7 +276,7 @@ import {
   type AdminCourseView
 } from '../../features/admin/courses';
 
-const pageSize = 8;
+const pageSize = 5;
 const page = ref(1);
 const busyId = ref<number | null>(null);
 const loading = ref(false);
@@ -385,7 +387,6 @@ async function loadCourses() {
   } catch {
     if (currentRequest === requestId) {
       courses.value = mockAdminCourses;
-      ElMessage.warning('后端课程接口暂不可用，已展示本地示例数据');
     }
   } finally {
     if (currentRequest === requestId) {

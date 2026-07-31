@@ -516,11 +516,11 @@ a {
 
 .admin-course-page {
   min-height: 100vh;
-  padding: 18px 16px 20px;
+  padding: 18px 24px 20px;
 }
 
 .admin-course-breadcrumb {
-  margin: 0 0 24px;
+  margin: 0 0 44px;
   color: #94a3b8;
   font-size: 14px;
 }
@@ -607,6 +607,7 @@ a {
 .admin-course-table-card {
   margin-top: 18px;
   padding: 0 12px 8px;
+  overflow: hidden;
 }
 
 .admin-course-empty {
@@ -625,14 +626,21 @@ a {
   min-height: 180px;
 }
 
+.admin-course-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .admin-course-table {
   width: 100%;
+  min-width: 1710px;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
 .admin-course-table th {
-  height: 56px;
+  height: 54px;
   border-bottom: 1px solid #edf2f8;
   background: #f8fafc;
   color: #64748b;
@@ -642,7 +650,7 @@ a {
 }
 
 .admin-course-table td {
-  height: 62px;
+  height: 64px;
   border-bottom: 1px solid #edf2f8;
   color: #475569;
   font-size: 14px;
@@ -656,53 +664,54 @@ a {
 
 .admin-course-table th:nth-child(1),
 .admin-course-table td:nth-child(1) {
-  width: 12%;
+  width: 200px;
 }
 
 .admin-course-table th:nth-child(2),
 .admin-course-table td:nth-child(2) {
-  width: 9%;
+  width: 170px;
 }
 
 .admin-course-table th:nth-child(3),
 .admin-course-table td:nth-child(3) {
-  width: 11%;
+  width: 220px;
 }
 
 .admin-course-table th:nth-child(4),
 .admin-course-table td:nth-child(4) {
-  width: 12%;
+  width: 180px;
 }
 
 .admin-course-table th:nth-child(5),
 .admin-course-table td:nth-child(5) {
-  width: 8%;
+  width: 160px;
 }
 
 .admin-course-table th:nth-child(6),
 .admin-course-table td:nth-child(6) {
-  width: 5%;
+  width: 100px;
 }
 
 .admin-course-table th:nth-child(7),
 .admin-course-table td:nth-child(7) {
-  width: 7%;
+  width: 110px;
 }
 
 .admin-course-table th:nth-child(8),
 .admin-course-table td:nth-child(8) {
-  width: 6%;
+  width: 150px;
 }
 
 .admin-course-table th:nth-child(9),
 .admin-course-table td:nth-child(9) {
-  width: 30%;
+  width: 420px;
 }
 
 .admin-course-name-cell strong {
   color: #334155;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.45;
 }
 
 .admin-course-multiline {
@@ -722,7 +731,9 @@ a {
 .admin-course-status {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-width: 72px;
   min-height: 24px;
   padding: 0 12px;
   border-radius: 999px;
@@ -748,6 +759,21 @@ a {
 }
 
 .admin-course-ops {
+  white-space: nowrap;
+}
+
+.admin-course-table th:nth-child(2),
+.admin-course-table th:nth-child(3),
+.admin-course-table th:nth-child(5),
+.admin-course-table th:nth-child(6),
+.admin-course-table th:nth-child(7),
+.admin-course-table th:nth-child(8),
+.admin-course-table td:nth-child(2),
+.admin-course-table td:nth-child(3),
+.admin-course-table td:nth-child(5),
+.admin-course-table td:nth-child(6),
+.admin-course-table td:nth-child(7),
+.admin-course-table td:nth-child(8) {
   white-space: nowrap;
 }
 
