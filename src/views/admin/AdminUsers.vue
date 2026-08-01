@@ -1,0 +1,821 @@
+<template>
+  <AdminShell activeKey="users">
+    <section v-if="teacherFormPageVisible" class="admin-user-teacher-form-page">
+      <el-breadcrumb class="admin-user-teacher-breadcrumb" separator="/">
+        <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+        <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+        <el-breadcrumb-item>{{ formMode === 'create' ? '新增教师' : '编辑教师' }}</el-breadcrumb-item>
+      </el-breadcrumb>
+
+      <section class="admin-user-teacher-card">
+        <h3><i></i>基本信息</h3>
+        <div class="admin-user-teacher-grid basic">
+          <label>
+            <span>姓名 <b>*</b></span>
+            <el-input v-model="form.realName" maxlength="30" placeholder="请输入姓名" />
+            <small>最多输入30个字</small>
+          </label>
+          <label>
+            <span>工号 <b>*</b></span>
+            <el-input v-model="form.accountNo" :disabled="formMode === 'edit'" maxlength="30" placeholder="请输入工号" />
+            <small>最多输入30个字</small>
+          </label>
+          <label>
+            <span>手机号 <b>*</b></span>
+            <el-input v-model="form.phone" maxlength="11" placeholder="请输入11位手机号" />
+          </label>
+          <label>
+            <span>身份证号</span>
+            <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
+          </label>
+          <label>
+            <span>岗位</span>
+            <el-input v-model="form.jobTitle" maxlength="10" placeholder="请输入岗位" />
+            <small>最多输入10个字</small>
+          </label>
+        </div>
+      </section>
+
+      <section class="admin-user-teacher-card compact">
+        <h3><i></i>组织信息</h3>
+        <div class="admin-user-teacher-grid org">
+          <label>
+            <span>所属组织 <b>*</b></span>
+            <el-select v-model="form.orgId" placeholder="请选择所属组织" filterable>
+              <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
+            </el-select>
+          </label>
+          <label>
+            <span>管理组织 <em title="该教师可管理的数据组织范围">i</em></span>
+            <el-select v-model="form.managedOrgIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择管理组织" filterable>
+              <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
+            </el-select>
+          </label>
+          <label>
+            <span>授课班级 <em title="该教师负责授课的班级，可多选">i</em></span>
+            <el-select v-model="form.teachingClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择该教师的授课班级，可多选" filterable>
+              <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
+            </el-select>
+          </label>
+        </div>
+      </section>
+
+      <section class="admin-user-teacher-card bio">
+        <h3><i></i>生物信息录入</h3>
+        <div class="admin-user-teacher-bio-row">
+          <div class="admin-user-bio-item">
+            <span>人脸信息录入</span>
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFaceRecorded }" @click="markBioRecorded('face')">
+              <el-icon><Camera /></el-icon>
+              <strong>{{ bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
+            </button>
+            <p>状态：<b :class="{ recorded: bioFaceRecorded }">{{ bioFaceRecorded ? '已录入' : '未录入' }}</b></p>
+          </div>
+          <div class="admin-user-bio-item">
+            <span>指纹信息录入</span>
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFingerprintRecorded }" @click="markBioRecorded('fingerprint')">
+              <el-icon><Pointer /></el-icon>
+              <strong>{{ bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
+            </button>
+            <p>状态：<b :class="{ recorded: bioFingerprintRecorded }">{{ bioFingerprintRecorded ? '已录入' : '未录入' }}</b></p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="admin-user-teacher-actions">
+        <el-button class="admin-user-teacher-cancel" @click="cancelTeacherForm">取消</el-button>
+        <el-button class="admin-user-teacher-confirm" type="primary" :loading="saving" @click="saveAccount">确定</el-button>
+      </footer>
+    </section>
+
+    <section v-else class="admin-users-page">
+      <el-breadcrumb class="admin-users-breadcrumb" separator="/">
+        <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>
+        <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+      </el-breadcrumb>
+
+      <section class="admin-users-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          :class="{ active: activeKind === tab.key }"
+          @click="switchKind(tab.key)"
+        >
+          <span>{{ tab.label }}</span>
+          <em>{{ tab.count }}</em>
+        </button>
+      </section>
+
+      <section class="admin-users-toolbar">
+        <div class="admin-users-filter-grid">
+          <el-input v-model="draft.realName" :prefix-icon="Search" placeholder="姓名" clearable @keyup.enter="applySearch" />
+          <el-input v-model="draft.accountNo" :prefix-icon="Search" :placeholder="activeKind === 'teacher' ? '工号' : '学号'" clearable @keyup.enter="applySearch" />
+          <el-input v-model="draft.phone" :prefix-icon="Iphone" placeholder="手机号" clearable @keyup.enter="applySearch" />
+          <el-select v-model="draft.orgId" placeholder="所属组织" clearable filterable>
+            <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
+          </el-select>
+          <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="班级" clearable filterable>
+            <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
+          </el-select>
+          <el-select v-model="draft.enabled" placeholder="状态" clearable>
+            <el-option label="启用" :value="true" />
+            <el-option label="禁用" :value="false" />
+          </el-select>
+        </div>
+        <div class="admin-users-toolbar-actions">
+          <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
+          <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
+        </div>
+      </section>
+
+      <section class="admin-users-table-card">
+        <header class="admin-users-table-head">
+          <div>
+            <strong>{{ activeKind === 'teacher' ? '教师列表' : '学员列表' }}</strong>
+            <span>已选 {{ selectedIds.length }} 项</span>
+          </div>
+          <div class="admin-users-head-actions">
+            <el-button class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
+            <el-button class="admin-users-lite-button" @click="openImport">导入{{ activeKindLabel }}</el-button>
+            <el-button class="admin-users-lite-button" @click="exportRows">导出</el-button>
+            <el-button class="admin-users-primary-button" type="primary" @click="openCreate">
+              <el-icon><Plus /></el-icon>
+              新增{{ activeKindLabel }}
+            </el-button>
+          </div>
+        </header>
+
+        <div v-if="loading" class="admin-course-empty">用户加载中...</div>
+        <template v-else>
+          <div class="admin-users-table-scroll">
+            <table class="admin-users-table">
+              <thead>
+                <tr>
+                  <th class="check-col">
+                    <el-checkbox :model-value="allCurrentSelected" :indeterminate="partSelected" @change="toggleAll" />
+                  </th>
+                  <th>姓名</th>
+                  <th>{{ activeKind === 'teacher' ? '工号' : '学号' }}</th>
+                  <th>手机号</th>
+                  <th v-if="activeKind === 'teacher'">岗位</th>
+                  <th>所属组织</th>
+                  <th v-if="activeKind === 'student'">班级</th>
+                  <th>身份证</th>
+                  <th v-if="activeKind === 'teacher'">角色</th>
+                  <th v-if="activeKind === 'student'">人脸/指纹</th>
+                  <th>状态</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in accounts" :key="row.userId" :class="{ disabled: !row.enabled }">
+                  <td class="check-col">
+                    <el-checkbox :model-value="selectedIds.includes(row.userId)" @change="toggleOne(row.userId)" />
+                  </td>
+                  <td class="strong-cell">{{ row.realName }}</td>
+                  <td>{{ row.accountNo }}</td>
+                  <td>{{ row.maskedPhone || row.phone || '-' }}</td>
+                  <td v-if="activeKind === 'teacher'">{{ row.jobTitle || '-' }}</td>
+                  <td class="wrap-cell">{{ row.orgName || '-' }}</td>
+                  <td v-if="activeKind === 'student'">{{ row.className || '-' }}</td>
+                  <td>{{ row.maskedIdCard || '-' }}</td>
+                  <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ compactList(row.roleNames) }}</td>
+                  <td v-if="activeKind === 'student'">
+                    <span class="admin-users-capture" :class="{ ok: row.faceRecorded }">人脸</span>
+                    <span class="admin-users-capture" :class="{ ok: row.fingerprintRecorded }">指纹</span>
+                  </td>
+                  <td>
+                    <span class="admin-users-status" :class="row.enabled ? 'enabled' : 'disabled'">
+                      <i></i>
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </td>
+                  <td>{{ formatAccountTime(row.createdAt) }}</td>
+                  <td>
+                    <div class="admin-users-row-actions">
+                      <el-button class="edit" @click="openEdit(row)">编辑</el-button>
+                      <el-button v-if="activeKind === 'teacher'" class="edit" @click="openRole(row)">设置角色</el-button>
+                      <el-button :class="row.enabled ? 'warn' : 'enable'" :loading="busyId === row.userId" @click="toggleEnabled(row)">
+                        {{ row.enabled ? '禁用' : '启用' }}
+                      </el-button>
+                      <el-button class="plain" @click="openReset(row)">重置密码</el-button>
+                      <el-button class="plain" @click="openDetail(row)">查看</el-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <footer class="admin-users-footer">
+            <p>共 <strong>{{ page.total }}</strong> 条记录，每页 {{ page.pageSize }} 条</p>
+            <el-pagination
+              v-model:current-page="page.page"
+              v-model:page-size="page.pageSize"
+              :total="page.total"
+              layout="prev, pager, next"
+              background
+              @current-change="loadAccounts"
+            />
+          </footer>
+        </template>
+      </section>
+    </section>
+
+    <el-dialog v-model="formVisible" class="admin-users-dialog" width="720px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-users-dialog-head">
+          <strong>{{ formMode === 'create' ? `新增${activeKindLabel}` : `编辑${activeKindLabel}` }}</strong>
+          <el-button text circle :icon="Close" @click="formVisible = false" />
+        </div>
+      </template>
+
+      <div class="admin-users-form-grid">
+        <label>
+          <span>姓名 <b>*</b></span>
+          <el-input v-model="form.realName" placeholder="请输入姓名" />
+        </label>
+        <label>
+          <span>{{ activeKind === 'teacher' ? '工号' : '学号' }} <b>*</b></span>
+          <el-input v-model="form.accountNo" :disabled="formMode === 'edit'" placeholder="请输入账号" />
+        </label>
+        <label>
+          <span>手机号</span>
+          <el-input v-model="form.phone" placeholder="请输入手机号" />
+        </label>
+        <label>
+          <span>身份证号</span>
+          <el-input v-model="form.idCard" placeholder="请输入身份证号" />
+        </label>
+        <label v-if="activeKind === 'teacher'">
+          <span>岗位</span>
+          <el-input v-model="form.jobTitle" placeholder="请输入岗位" />
+        </label>
+        <label>
+          <span>所属组织 <b>*</b></span>
+          <el-select v-model="form.orgId" placeholder="请选择组织" filterable>
+            <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
+          </el-select>
+        </label>
+        <label v-if="activeKind === 'student'">
+          <span>班级 <b>*</b></span>
+          <el-select v-model="form.classId" placeholder="请选择班级" filterable>
+            <el-option v-for="item in classOptions" :key="item.classId" :label="`${item.majorName || ''} ${item.className}`" :value="item.classId" />
+          </el-select>
+        </label>
+        <label v-if="activeKind === 'teacher'">
+          <span>授课班级</span>
+          <el-select v-model="form.teachingClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择班级">
+            <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
+          </el-select>
+        </label>
+        <label v-if="activeKind === 'teacher'" class="wide">
+          <span>角色</span>
+          <el-select v-model="form.roleIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择角色">
+            <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
+          </el-select>
+        </label>
+      </div>
+
+      <template #footer>
+        <div class="admin-users-dialog-footer">
+          <el-button @click="formVisible = false">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="saveAccount">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="detailVisible" class="admin-users-dialog" width="620px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-users-dialog-head">
+          <strong>{{ detailAccount?.realName || '用户详情' }}</strong>
+          <el-button text circle :icon="Close" @click="detailVisible = false" />
+        </div>
+      </template>
+      <dl v-if="detailAccount" class="admin-users-detail">
+        <div><dt>{{ detailAccount.userType === 'teacher' ? '工号' : '学号' }}</dt><dd>{{ detailAccount.accountNo }}</dd></div>
+        <div><dt>手机号</dt><dd>{{ detailAccount.maskedPhone || detailAccount.phone || '-' }}</dd></div>
+        <div><dt>所属组织</dt><dd>{{ detailAccount.orgName || '-' }}</dd></div>
+        <div><dt>班级</dt><dd>{{ detailAccount.className || '-' }}</dd></div>
+        <div><dt>岗位</dt><dd>{{ detailAccount.jobTitle || '-' }}</dd></div>
+        <div><dt>角色</dt><dd>{{ compactList(detailAccount.roleNames) }}</dd></div>
+        <div><dt>状态</dt><dd>{{ detailAccount.enabled ? '启用' : '禁用' }}</dd></div>
+        <div><dt>创建时间</dt><dd>{{ formatAccountTime(detailAccount.createdAt) }}</dd></div>
+      </dl>
+    </el-dialog>
+
+    <el-dialog v-model="roleVisible" class="admin-users-dialog" width="520px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-users-dialog-head">
+          <strong>设置角色</strong>
+          <el-button text circle :icon="Close" @click="roleVisible = false" />
+        </div>
+      </template>
+      <el-select v-model="roleFormIds" class="admin-users-full-select" multiple placeholder="请选择角色">
+        <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
+      </el-select>
+      <template #footer>
+        <div class="admin-users-dialog-footer">
+          <el-button @click="roleVisible = false">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="saveRole">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="batchOrgVisible" class="admin-users-dialog" width="520px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-users-dialog-head">
+          <strong>批量设置所属组织</strong>
+          <el-button text circle :icon="Close" @click="batchOrgVisible = false" />
+        </div>
+      </template>
+      <p class="admin-users-dialog-note">将为已选 {{ selectedIds.length }} 个用户设置所属组织。</p>
+      <el-select v-model="batchOrgId" class="admin-users-full-select" placeholder="请选择所属组织" filterable>
+        <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
+      </el-select>
+      <template #footer>
+        <div class="admin-users-dialog-footer">
+          <el-button @click="batchOrgVisible = false">取消</el-button>
+          <el-button type="primary" :loading="saving" @click="saveBatchOrg">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="importVisible" class="admin-users-dialog" width="720px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-users-dialog-head">
+          <strong>导入{{ activeKindLabel }}</strong>
+          <el-button text circle :icon="Close" @click="importVisible = false" />
+        </div>
+      </template>
+      <el-input v-model="importText" type="textarea" :rows="7" placeholder="每行一个用户：账号,姓名,手机号" />
+      <div class="admin-users-import-actions">
+        <el-button @click="previewImportRows">预览校验</el-button>
+        <span v-if="importPreview">共 {{ importPreview.totalCount }} 条，通过 {{ importPreview.validCount }} 条，异常 {{ importPreview.errorCount }} 条</span>
+      </div>
+      <div v-if="importPreview" class="admin-users-import-preview">
+        <div v-for="row in importPreview.rows.slice(0, 5)" :key="row.rowNo" :class="{ error: row.valid === false }">
+          第 {{ row.rowNo }} 行：{{ row.accountNo }} / {{ row.realName }}
+          <span>{{ row.errors?.join('；') || '校验通过' }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <div class="admin-users-dialog-footer">
+          <el-button @click="importVisible = false">取消</el-button>
+          <el-button type="primary" :disabled="!importPreview || importPreview.errorCount > 0" :loading="saving" @click="submitImportRows">确认导入</el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </AdminShell>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Camera, Close, Iphone, Plus, Pointer, Search } from '@element-plus/icons-vue';
+import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  createAdminAccount,
+  disableAdminAccount,
+  enableAdminAccount,
+  exportAdminAccounts,
+  fetchAdminAccountDetail,
+  fetchAdminAccounts,
+  fetchAdminClasses,
+  fetchAdminRoles,
+  importAdminAccounts,
+  previewAdminAccountImport,
+  resetAdminAccountPasswords,
+  updateAdminAccount,
+  updateAdminAccountOrg,
+  updateAdminTeacherRoles,
+  type AdminAccount,
+  type AdminAccountCommand,
+  type AdminAccountImportPreview,
+  type AdminAccountImportRow,
+  type AdminAccountKind,
+  type AdminAccountQuery,
+  type AdminClassOption,
+  type AdminRoleOption
+} from '../../api/admin-account';
+import { fetchAdminOrgTree } from '../../api/admin-org';
+import {
+  accountKindLabel,
+  compactList,
+  flattenOrgOptions,
+  formatAccountTime,
+  mockAccountOrgTree,
+  mockAdminAccountTabs,
+  mockAdminClasses,
+  mockAdminRoles,
+  normalizeRoleOptions,
+  toAccountPage
+} from '../../features/admin/accounts';
+
+type FormMode = 'create' | 'edit';
+
+const activeKind = ref<AdminAccountKind>('teacher');
+const loading = ref(false);
+const saving = ref(false);
+const busyId = ref<number | null>(null);
+const accounts = ref<AdminAccount[]>([]);
+const selectedIds = ref<number[]>([]);
+const tabs = ref(mockAdminAccountTabs);
+const page = reactive({ page: 1, pageSize: 20, total: 0 });
+const query = reactive<AdminAccountQuery>({});
+const draft = reactive<AdminAccountQuery>({ enabled: null });
+const orgTree = ref(mockAccountOrgTree);
+const classOptions = ref<AdminClassOption[]>(mockAdminClasses);
+const roleOptions = ref<AdminRoleOption[]>(mockAdminRoles);
+const teacherFormPageVisible = ref(false);
+const bioFaceRecorded = ref(false);
+const bioFingerprintRecorded = ref(false);
+const formVisible = ref(false);
+const formMode = ref<FormMode>('create');
+const editingId = ref<number | null>(null);
+const detailVisible = ref(false);
+const detailAccount = ref<AdminAccount | null>(null);
+const roleVisible = ref(false);
+const roleAccount = ref<AdminAccount | null>(null);
+const roleFormIds = ref<number[]>([]);
+const batchOrgVisible = ref(false);
+const batchOrgId = ref<number | null>(null);
+const importVisible = ref(false);
+const importText = ref('');
+const importPreview = ref<AdminAccountImportPreview | null>(null);
+
+const emptyForm = (): AdminAccountCommand => ({
+  realName: '',
+  accountNo: '',
+  phone: '',
+  idCard: '',
+  jobTitle: '',
+  orgId: null,
+  classId: null,
+  faceFileId: null,
+  fingerprintFileId: null,
+  roleIds: [],
+  managedOrgIds: [],
+  teachingClassIds: []
+});
+
+const form = reactive<AdminAccountCommand>(emptyForm());
+const activeKindLabel = computed(() => accountKindLabel(activeKind.value));
+const orgOptions = computed(() => flattenOrgOptions(orgTree.value));
+const allCurrentSelected = computed(() => accounts.value.length > 0 && accounts.value.every((row) => selectedIds.value.includes(row.userId)));
+const partSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
+
+function applyForm(next: AdminAccountCommand) {
+  Object.assign(form, emptyForm(), next);
+}
+
+function resetBioState(faceRecorded = false, fingerprintRecorded = false) {
+  bioFaceRecorded.value = faceRecorded;
+  bioFingerprintRecorded.value = fingerprintRecorded;
+}
+
+function currentQuery() {
+  return {
+    ...query,
+    page: page.page,
+    pageSize: page.pageSize
+  };
+}
+
+async function loadOptions() {
+  try {
+    orgTree.value = await fetchAdminOrgTree();
+  } catch {
+    orgTree.value = mockAccountOrgTree;
+  }
+
+  try {
+    classOptions.value = await fetchAdminClasses();
+  } catch {
+    classOptions.value = mockAdminClasses;
+  }
+
+  try {
+    roleOptions.value = normalizeRoleOptions(await fetchAdminRoles());
+  } catch {
+    roleOptions.value = mockAdminRoles;
+  }
+}
+
+async function loadAccounts() {
+  loading.value = true;
+  selectedIds.value = [];
+  try {
+    const result = await fetchAdminAccounts(activeKind.value, currentQuery());
+    accounts.value = result.records;
+    page.total = result.total;
+    page.page = result.page;
+    page.pageSize = result.pageSize;
+    updateTabCount(result.total);
+  } catch {
+    const fallback = toAccountPage(activeKind.value, page.page, page.pageSize);
+    accounts.value = fallback.records;
+    page.total = fallback.total;
+    updateTabCount(fallback.total);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function updateTabCount(total: number) {
+  tabs.value = tabs.value.map((tab) => (tab.key === activeKind.value ? { ...tab, count: total } : tab));
+}
+
+function switchKind(kind: AdminAccountKind) {
+  teacherFormPageVisible.value = false;
+  activeKind.value = kind;
+  page.page = 1;
+  Object.assign(query, {});
+  Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
+  loadAccounts();
+}
+
+function applySearch() {
+  Object.assign(query, {
+    realName: draft.realName?.trim() || undefined,
+    accountNo: draft.accountNo?.trim() || undefined,
+    phone: draft.phone?.trim() || undefined,
+    orgId: draft.orgId || undefined,
+    classId: activeKind.value === 'student' ? draft.classId || undefined : undefined,
+    enabled: draft.enabled
+  });
+  page.page = 1;
+  loadAccounts();
+}
+
+function resetSearch() {
+  Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
+  Object.assign(query, { realName: undefined, accountNo: undefined, phone: undefined, orgId: undefined, classId: undefined, enabled: undefined });
+  page.page = 1;
+  loadAccounts();
+}
+
+function toggleAll(value: string | number | boolean) {
+  selectedIds.value = value ? accounts.value.map((row) => row.userId) : [];
+}
+
+function toggleOne(userId: number) {
+  selectedIds.value = selectedIds.value.includes(userId)
+    ? selectedIds.value.filter((id) => id !== userId)
+    : [...selectedIds.value, userId];
+}
+
+function openCreate() {
+  formMode.value = 'create';
+  editingId.value = null;
+  applyForm(emptyForm());
+  resetBioState();
+  if (activeKind.value === 'teacher') {
+    teacherFormPageVisible.value = true;
+    return;
+  }
+  formVisible.value = true;
+}
+
+function openEdit(row: AdminAccount) {
+  formMode.value = 'edit';
+  editingId.value = row.userId;
+  applyForm({
+    realName: row.realName,
+    accountNo: row.accountNo,
+    phone: row.phone || '',
+    idCard: '',
+    jobTitle: row.jobTitle || '',
+    orgId: row.orgId ?? null,
+    classId: row.classId ?? null,
+    faceFileId: null,
+    fingerprintFileId: null,
+    roleIds: row.roleIds ?? [],
+    managedOrgIds: row.managedOrgIds ?? [],
+    teachingClassIds: row.teachingClassIds ?? []
+  });
+  resetBioState(Boolean(row.faceRecorded), Boolean(row.fingerprintRecorded));
+  if (activeKind.value === 'teacher') {
+    teacherFormPageVisible.value = true;
+    return;
+  }
+  formVisible.value = true;
+}
+
+function validateForm() {
+  if (!form.realName.trim()) {
+    throw new Error('请输入姓名');
+  }
+  if (!form.accountNo?.trim()) {
+    throw new Error(activeKind.value === 'teacher' ? '请输入工号' : '请输入学号');
+  }
+  if (!form.orgId) {
+    throw new Error('请选择所属组织');
+  }
+  if (activeKind.value === 'teacher' && form.phone && !/^1\d{10}$/.test(form.phone)) {
+    throw new Error('请输入11位手机号');
+  }
+  if (activeKind.value === 'student' && !form.classId) {
+    throw new Error('请选择班级');
+  }
+}
+
+function cancelTeacherForm() {
+  teacherFormPageVisible.value = false;
+  editingId.value = null;
+  applyForm(emptyForm());
+  resetBioState();
+}
+
+function markBioRecorded(type: 'face' | 'fingerprint') {
+  if (type === 'face') {
+    bioFaceRecorded.value = !bioFaceRecorded.value;
+  } else {
+    bioFingerprintRecorded.value = !bioFingerprintRecorded.value;
+  }
+}
+
+async function saveAccount() {
+  try {
+    validateForm();
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '请完善用户信息');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    if (formMode.value === 'create') {
+      await createAdminAccount(activeKind.value, form);
+      ElMessage.success(`新增${activeKindLabel.value}成功`);
+    } else if (editingId.value) {
+      await updateAdminAccount(activeKind.value, editingId.value, form);
+      ElMessage.success(`编辑${activeKindLabel.value}成功`);
+    }
+    formVisible.value = false;
+    teacherFormPageVisible.value = false;
+    await loadAccounts();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '保存失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function toggleEnabled(row: AdminAccount) {
+  busyId.value = row.userId;
+  try {
+    if (row.enabled) {
+      await disableAdminAccount(row.userId);
+      ElMessage.success('账号已禁用');
+    } else {
+      await enableAdminAccount(row.userId);
+      ElMessage.success('账号已启用');
+    }
+    await loadAccounts();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '操作失败');
+  } finally {
+    busyId.value = null;
+  }
+}
+
+async function openDetail(row: AdminAccount) {
+  detailAccount.value = row;
+  detailVisible.value = true;
+  try {
+    detailAccount.value = await fetchAdminAccountDetail(row.userId);
+  } catch {
+    detailAccount.value = row;
+  }
+}
+
+function openRole(row: AdminAccount) {
+  roleAccount.value = row;
+  roleFormIds.value = [...(row.roleIds ?? [])];
+  roleVisible.value = true;
+}
+
+async function saveRole() {
+  if (!roleAccount.value) {
+    return;
+  }
+  saving.value = true;
+  try {
+    await updateAdminTeacherRoles(roleAccount.value.userId, roleFormIds.value);
+    ElMessage.success('角色设置成功');
+    roleVisible.value = false;
+    await loadAccounts();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '角色设置失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function openReset(row: AdminAccount) {
+  try {
+    await ElMessageBox.confirm(`确认将 ${row.realName} 的密码重置为系统初始密码？`, '重置密码', { type: 'warning' });
+    await resetAdminAccountPasswords([row.userId]);
+    ElMessage.success('密码已重置');
+  } catch (error) {
+    if (error instanceof Error) {
+      ElMessage.error(error.message);
+    }
+  }
+}
+
+function openBatchOrg() {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择用户');
+    return;
+  }
+  batchOrgId.value = null;
+  batchOrgVisible.value = true;
+}
+
+async function saveBatchOrg() {
+  if (!batchOrgId.value) {
+    ElMessage.warning('请选择所属组织');
+    return;
+  }
+  saving.value = true;
+  try {
+    await updateAdminAccountOrg(selectedIds.value, batchOrgId.value);
+    ElMessage.success('所属组织已更新');
+    batchOrgVisible.value = false;
+    await loadAccounts();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '批量设置失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+function openImport() {
+  importText.value = '';
+  importPreview.value = null;
+  importVisible.value = true;
+}
+
+function parseImportRows(): AdminAccountImportRow[] {
+  return importText.value
+    .split(/\n+/)
+    .map((line, index) => {
+      const [accountNo = '', realName = '', phone = ''] = line.split(',').map((item) => item.trim());
+      return { rowNo: index + 1, accountNo, realName, phone, orgId: orgOptions.value[0]?.orgId, classId: activeKind.value === 'student' ? classOptions.value[0]?.classId : undefined };
+    })
+    .filter((row) => row.accountNo || row.realName || row.phone);
+}
+
+async function previewImportRows() {
+  const rows = parseImportRows();
+  if (rows.length === 0) {
+    ElMessage.warning('请输入导入内容');
+    return;
+  }
+  try {
+    importPreview.value = await previewAdminAccountImport(activeKind.value, rows);
+  } catch {
+    importPreview.value = {
+      totalCount: rows.length,
+      validCount: rows.filter((row) => row.accountNo && row.realName).length,
+      errorCount: rows.filter((row) => !row.accountNo || !row.realName).length,
+      rows: rows.map((row) => ({ ...row, valid: Boolean(row.accountNo && row.realName), errors: row.accountNo && row.realName ? [] : ['账号和姓名不能为空'] }))
+    };
+  }
+}
+
+async function submitImportRows() {
+  if (!importPreview.value) {
+    return;
+  }
+  saving.value = true;
+  try {
+    await importAdminAccounts(activeKind.value, importPreview.value.rows);
+    ElMessage.success('导入成功');
+    importVisible.value = false;
+    await loadAccounts();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '导入失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function exportRows() {
+  try {
+    await exportAdminAccounts(activeKind.value, currentQuery());
+    ElMessage.success('导出数据已生成');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '导出失败');
+  }
+}
+
+onMounted(async () => {
+  await loadOptions();
+  await loadAccounts();
+});
+</script>

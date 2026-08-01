@@ -8,6 +8,34 @@ import {
   publishAdminCourse
 } from '../src/api/admin-course';
 import { createAdminOrg, disableAdminOrg, enableAdminOrg, fetchAdminOrgTree, updateAdminOrg } from '../src/api/admin-org';
+import {
+  createAdminPermission,
+  deleteAdminPermission,
+  disableAdminPermission,
+  enableAdminPermission,
+  fetchAdminPermissionTree,
+  updateAdminPermission
+} from '../src/api/admin-permission';
+import {
+  createAdminAccount,
+  disableAdminAccount,
+  enableAdminAccount,
+  fetchAdminAccounts,
+  resetAdminAccountPasswords,
+  updateAdminAccount,
+  updateAdminAccountOrg,
+  updateAdminTeacherRoles
+} from '../src/api/admin-account';
+import {
+  createAdminRole,
+  deleteAdminRole,
+  disableAdminRole,
+  enableAdminRole,
+  fetchAdminRoleLogs,
+  fetchAdminRoles,
+  updateAdminRole,
+  updateAdminRolePermissions
+} from '../src/api/admin-role';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -193,6 +221,214 @@ describe('api http client', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/org/9/disable', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/org/9/enable', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('uses the documented admin permission endpoints', async () => {
+    const command = {
+      parentId: null,
+      permissionName: '功能管理',
+      permissionCode: 'system:permission',
+      permissionType: 'MENU' as const,
+      routePath: '/admin/permissions',
+      visible: true,
+      sortOrder: 3
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: [
+            {
+              permissionId: 1,
+              parentId: null,
+              permissionName: '系统基础设置',
+              permissionCode: 'system',
+              permissionType: 'MENU',
+              routePath: '/system',
+              visible: true,
+              sortOrder: 1,
+              children: []
+            }
+          ]
+        })
+      )
+      .mockImplementationOnce(() => mockJsonResponse({ data: 12 }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminPermissionTree()).resolves.toMatchObject([{ permissionId: 1, permissionName: '系统基础设置' }]);
+    await expect(createAdminPermission(command)).resolves.toEqual({ permissionId: 12 });
+    await updateAdminPermission(12, command);
+    await disableAdminPermission(12);
+    await enableAdminPermission(12);
+    await deleteAdminPermission(12);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/permissions/tree', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/permissions',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(command) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/permissions/12',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(command) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/permissions/12/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/permissions/12/enable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/admin/permissions/12/delete', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('uses the documented admin account management endpoints', async () => {
+    const command = {
+      realName: '李明远',
+      accountNo: 'T20240001',
+      phone: '13800138000',
+      jobTitle: '信号系统教师',
+      orgId: 11,
+      roleIds: [1, 3],
+      managedOrgIds: [11],
+      teachingClassIds: [201]
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [{ userId: 101, accountNo: 'T20240001', realName: '李明远', userType: 'teacher', enabled: true }],
+            total: 1,
+            page: 1,
+            pageSize: 20
+          }
+        })
+      )
+      .mockImplementationOnce(() => mockJsonResponse({ data: 101 }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminAccounts('teacher', { realName: '李', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
+      records: [{ userId: 101, accountNo: 'T20240001' }],
+      total: 1
+    });
+    await expect(createAdminAccount('teacher', command)).resolves.toEqual({ userId: 101 });
+    await updateAdminAccount('teacher', 101, command);
+    await disableAdminAccount(101);
+    await enableAdminAccount(101);
+    await resetAdminAccountPasswords([101, 102]);
+    await updateAdminAccountOrg([101, 102], 11);
+    await updateAdminTeacherRoles(101, [1, 3]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/admin/accounts/teachers?realName=%E6%9D%8E&enabled=true&page=1&pageSize=20',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/accounts/teachers',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ ...command, userType: 'teacher' }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/accounts/teachers/101',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ ...command, userType: 'teacher' }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/accounts/101/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/accounts/101/enable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      '/api/admin/accounts/batch/reset-password',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102] }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      7,
+      '/api/admin/accounts/batch/org',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102], orgId: 11 }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      8,
+      '/api/admin/accounts/teachers/101/roles',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ roleIds: [1, 3] }) })
+    );
+  });
+
+  it('uses the documented admin role management endpoints', async () => {
+    const command = {
+      roleName: '实训教师',
+      roleCode: 'training_teacher',
+      dataScope: 'SELF',
+      remark: '负责教学业务操作',
+      permissionIds: [5, 6, 7]
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [{ roleId: 3, roleName: '实训教师', roleCode: 'training_teacher', enabled: true }],
+            total: 1,
+            page: 1,
+            pageSize: 20
+          }
+        })
+      )
+      .mockImplementationOnce(() => mockJsonResponse({ data: 3 }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: [{ logId: 9, roleId: 3, operatorName: '李教师', action: 'UPDATE', content: 'Update role' }]
+        })
+      );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminRoles({ keyword: '实训', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
+      records: [{ roleId: 3, roleName: '实训教师' }],
+      total: 1
+    });
+    await expect(createAdminRole(command)).resolves.toEqual({ roleId: 3 });
+    await updateAdminRole(3, command);
+    await disableAdminRole(3);
+    await enableAdminRole(3);
+    await updateAdminRolePermissions(3, [5, 6]);
+    await deleteAdminRole(3);
+    await expect(fetchAdminRoleLogs(3)).resolves.toMatchObject([{ logId: 9, action: 'UPDATE' }]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/admin/roles?keyword=%E5%AE%9E%E8%AE%AD&enabled=true&page=1&pageSize=20',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/roles',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(command) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/roles/3',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(command) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/roles/3/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/roles/3/enable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      '/api/admin/roles/3/permissions',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ permissionIds: [5, 6] }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/roles/3/delete', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/admin/roles/3/logs', expect.any(Object));
   });
 
   it('maps backend student course cards into the existing course UI model', async () => {

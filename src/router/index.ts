@@ -6,7 +6,10 @@ import AdminCourseReviews from '../views/admin/AdminCourseReviews.vue';
 import AdminCourseStatistics from '../views/admin/AdminCourseStatistics.vue';
 import AdminCourses from '../views/admin/AdminCourses.vue';
 import AdminOrganization from '../views/admin/AdminOrganization.vue';
+import AdminPermissions from '../views/admin/AdminPermissions.vue';
+import AdminRoles from '../views/admin/AdminRoles.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
+import AdminUsers from '../views/admin/AdminUsers.vue';
 import StudentLogin from '../views/auth/StudentLogin.vue';
 import StudentCourseLearn from '../views/student/StudentCourseLearn.vue';
 import StudentCourses from '../views/student/StudentCourses.vue';
@@ -64,6 +67,21 @@ export const router = createRouter({
       path: '/admin/organization',
       name: 'admin-organization',
       component: AdminOrganization
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsers
+    },
+    {
+      path: '/admin/permissions',
+      name: 'admin-permissions',
+      component: AdminPermissions
+    },
+    {
+      path: '/admin/roles',
+      name: 'admin-roles',
+      component: AdminRoles
     },
     {
       path: '/admin/courses',
