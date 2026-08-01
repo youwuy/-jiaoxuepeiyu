@@ -210,6 +210,27 @@ export async function fetchAdminPublicApplication(applicationId: number) {
   });
 }
 
+export async function fetchAdminPublicResources(query: AdminResourceQuery = {}) {
+  const result = await requestJson<PageResponse<AdminResource> | AdminResource[]>(
+    `/admin/public-resources${buildQuery({
+      keyword: query.keyword?.trim(),
+      resourceType: query.resourceType,
+      majorId: query.majorId ?? undefined,
+      courseName: query.courseName?.trim(),
+      uploaderId: query.uploaderId ?? undefined,
+      publicStatus: query.publicStatus,
+      uploadStartDate: query.uploadStartDate,
+      uploadEndDate: query.uploadEndDate,
+      page: query.page,
+      pageSize: query.pageSize
+    })}`,
+    {
+      fallbackLabel: '公开资源库'
+    }
+  );
+  return normalizePage(result as PageResponse<AdminResource> | AdminResource[]);
+}
+
 export async function approveAdminPublicApplication(applicationId: number, command: AdminPublicReviewCommand = {}) {
   return requestJson<void>(`/admin/public-applications/${applicationId}/approve`, {
     method: 'POST',

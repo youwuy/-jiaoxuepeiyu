@@ -9,6 +9,7 @@ import AdminOrganization from '../views/admin/AdminOrganization.vue';
 import AdminPermissions from '../views/admin/AdminPermissions.vue';
 import AdminRoles from '../views/admin/AdminRoles.vue';
 import AdminPublicApplications from '../views/admin/AdminPublicApplications.vue';
+import AdminPublicResources from '../views/admin/AdminPublicResources.vue';
 import AdminResources from '../views/admin/AdminResources.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
@@ -94,6 +95,11 @@ export const router = createRouter({
       path: '/admin/public-application',
       name: 'admin-public-application',
       component: AdminPublicApplications
+    },
+    {
+      path: '/admin/public-resource',
+      name: 'admin-public-resource',
+      component: AdminPublicResources
     },
     {
       path: '/admin/courses',
