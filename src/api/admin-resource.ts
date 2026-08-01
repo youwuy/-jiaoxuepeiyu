@@ -64,6 +64,19 @@ export interface AdminPublicReviewCommand {
   reviewComment?: string;
 }
 
+export interface AdminPublicApplication extends AdminResource {
+  applicationId: number;
+  publicResourceId?: number;
+  resourceVersion?: number;
+  applicantId?: number;
+  applicantName?: string;
+  reviewerId?: number;
+  reviewerName?: string;
+  reviewComment?: string;
+  appliedAt?: string;
+  reviewedAt?: string;
+}
+
 export interface AdminResourceLog {
   logId: number;
   resourceId: number;
@@ -167,6 +180,49 @@ export async function submitAdminResourcePublicApplication(resourceId: number) {
   return requestJson<number>(`/admin/resources/${resourceId}/public-applications`, {
     method: 'POST',
     fallbackLabel: '公开申请'
+  });
+}
+
+export async function fetchAdminPublicApplications(query: AdminResourceQuery = {}) {
+  const result = await requestJson<PageResponse<AdminPublicApplication> | AdminPublicApplication[]>(
+    `/admin/public-applications${buildQuery({
+      keyword: query.keyword?.trim(),
+      resourceType: query.resourceType,
+      majorId: query.majorId ?? undefined,
+      courseName: query.courseName?.trim(),
+      uploaderId: query.uploaderId ?? undefined,
+      publicStatus: query.publicStatus,
+      uploadStartDate: query.uploadStartDate,
+      uploadEndDate: query.uploadEndDate,
+      page: query.page,
+      pageSize: query.pageSize
+    })}`,
+    {
+      fallbackLabel: '资源公开申请'
+    }
+  );
+  return normalizePage(result as PageResponse<AdminPublicApplication> | AdminPublicApplication[]);
+}
+
+export async function fetchAdminPublicApplication(applicationId: number) {
+  return requestJson<AdminPublicApplication>(`/admin/public-applications/${applicationId}`, {
+    fallbackLabel: '公开申请详情'
+  });
+}
+
+export async function approveAdminPublicApplication(applicationId: number, command: AdminPublicReviewCommand = {}) {
+  return requestJson<void>(`/admin/public-applications/${applicationId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '公开申请通过'
+  });
+}
+
+export async function rejectAdminPublicApplication(applicationId: number, command: AdminPublicReviewCommand = {}) {
+  return requestJson<void>(`/admin/public-applications/${applicationId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '公开申请驳回'
   });
 }
 

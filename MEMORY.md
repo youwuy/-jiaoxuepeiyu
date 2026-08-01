@@ -72,6 +72,7 @@
 - 2026-08-01: Admin permission management frontend now uses a Calicat-style menu permission tree table with an inline right-side "新增菜单" panel; local typecheck passed, but browser screenshot verification on this Windows machine has been flaky because headless Chrome keeps failing on profile/GPU/remote-debugging startup.
 - 2026-08-01: The permissions page was further tightened with directory/menu/button type pills, denser table rows, and a cleaner right-side add/edit panel; `vue-tsc --noEmit` passes, but full Vite build and Chrome screenshot capture are still blocked by this machine's Node/Vite temporary-file and headless Chrome remote-debugging limitations.
 - 2026-08-01: Admin personal resource library frontend now lives at `/admin/personal-resource`, with filterable list, right-side add/edit panel, detail drawer, operation logs, batch edit/delete, and public-application actions wired to `admin-resource` APIs; resource queries now forward keyword, type, major, status, and paging parameters to the backend.
+- 2026-08-01: Admin resource public application frontend now lives at `/admin/public-application`, with a filterable application queue, right-side application detail/review panel, and approve/reject dialog; it uses `admin/public-applications` list/detail/review APIs and falls back to local mock rows when the backend is unavailable.
 
 ## Operational Notes
 
