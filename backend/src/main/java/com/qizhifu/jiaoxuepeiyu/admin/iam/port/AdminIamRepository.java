@@ -16,11 +16,17 @@ public interface AdminIamRepository {
 
     Long findPermissionIdByCode(String permissionCode);
 
+    Long findPermissionIdByNameAndParent(String permissionName, Long parentId);
+
+    Long findPermissionIdByRoutePath(String routePath);
+
     Long createPermission(AdminPermissionCommand command);
 
     void updatePermission(Long permissionId, AdminPermissionCommand command);
 
     void updatePermissionStatus(Long permissionId, boolean visible);
+
+    void updatePermissionSort(Long permissionId, Integer sortOrder);
 
     void deletePermission(Long permissionId);
 

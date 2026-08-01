@@ -75,6 +75,7 @@
 - 2026-08-01: Admin account management query contract includes backend-level fuzzy `jobTitle` filtering for teacher/student paged lists and exports; do not rely on frontend current-page filtering for岗位搜索.
 - 2026-08-01: Admin personal resource library frontend now lives at `/admin/personal-resource`, with filterable list, right-side add/edit panel, detail drawer, operation logs, batch edit/delete, and public-application actions wired to `admin-resource` APIs; resource queries now forward keyword, type, major, status, and paging parameters to the backend.
 - 2026-08-01: Admin resource public application frontend now lives at `/admin/public-application`, with a filterable application queue, right-side application detail/review panel, and approve/reject dialog; it uses `admin/public-applications` list/detail/review APIs and falls back to local mock rows when the backend is unavailable.
+- 2026-08-01: Admin function management uses `sys_permission` through `/api/admin/permissions/**`; backend enforces MENU/PAGE/BUTTON hierarchy, 8-character same-parent unique names, globally unique 100-character route paths, recursive hide for descendants, leaf-only delete, and `/api/admin/permissions/sort` for drag-sort persistence.
 
 ## Operational Notes
 
