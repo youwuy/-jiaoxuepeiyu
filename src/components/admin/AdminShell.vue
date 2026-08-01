@@ -26,7 +26,7 @@
       </div>
 
       <div class="admin-sidebar-footer">
-        <strong>李教师</strong>
+        <button type="button" class="admin-sidebar-user" @click="goTo('/admin/profile')">李教师</button>
         <el-button class="admin-logout-button" text circle aria-label="退出登录">
           <el-icon><SwitchButton /></el-icon>
         </el-button>

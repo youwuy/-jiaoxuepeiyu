@@ -5,15 +5,19 @@ import AdminCourseTheoryReview from '../views/admin/AdminCourseTheoryReview.vue'
 import AdminCourseReviews from '../views/admin/AdminCourseReviews.vue';
 import AdminCourseStatistics from '../views/admin/AdminCourseStatistics.vue';
 import AdminCourses from '../views/admin/AdminCourses.vue';
+import AdminDeviceEfficiency from '../views/admin/AdminDeviceEfficiency.vue';
 import AdminOrganization from '../views/admin/AdminOrganization.vue';
 import AdminPermissions from '../views/admin/AdminPermissions.vue';
+import AdminProfile from '../views/admin/AdminProfile.vue';
 import AdminRoles from '../views/admin/AdminRoles.vue';
 import AdminSettings from '../views/admin/AdminSettings.vue';
 import AdminPublicApplications from '../views/admin/AdminPublicApplications.vue';
 import AdminPublicResources from '../views/admin/AdminPublicResources.vue';
 import AdminResources from '../views/admin/AdminResources.vue';
+import AdminSemesterScore from '../views/admin/AdminSemesterScore.vue';
 import AdminTheoryPapers from '../views/admin/AdminTheoryPapers.vue';
 import AdminTheoryQuestions from '../views/admin/AdminTheoryQuestions.vue';
+import AdminTrainingArchive from '../views/admin/AdminTrainingArchive.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
 import StudentLogin from '../views/auth/StudentLogin.vue';
@@ -95,6 +99,11 @@ export const router = createRouter({
       component: AdminSettings
     },
     {
+      path: '/admin/profile',
+      name: 'admin-profile',
+      component: AdminProfile
+    },
+    {
       path: '/admin/personal-resource',
       name: 'admin-personal-resource',
       component: AdminResources
@@ -148,6 +157,21 @@ export const router = createRouter({
       path: '/admin/training',
       name: 'admin-training',
       component: AdminTrainingCourses
+    },
+    {
+      path: '/admin/semester-score',
+      name: 'admin-semester-score',
+      component: AdminSemesterScore
+    },
+    {
+      path: '/admin/training-archive',
+      name: 'admin-training-archive',
+      component: AdminTrainingArchive
+    },
+    {
+      path: '/admin/device-efficiency',
+      name: 'admin-device-efficiency',
+      component: AdminDeviceEfficiency
     }
   ]
 });
