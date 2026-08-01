@@ -372,7 +372,7 @@ describe('api http client', () => {
     const command = {
       roleName: '实训教师',
       roleCode: 'training_teacher',
-      dataScope: 'SELF',
+      dataScope: 'SELF' as const,
       remark: '负责教学业务操作',
       permissionIds: [5, 6, 7]
     };

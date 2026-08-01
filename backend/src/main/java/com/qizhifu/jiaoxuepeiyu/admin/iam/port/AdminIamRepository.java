@@ -38,6 +38,10 @@ public interface AdminIamRepository {
 
     long countRoles(AdminRoleQuery query);
 
+    Long findRoleIdByName(String roleName);
+
+    Long findRoleIdByCode(String roleCode);
+
     AdminRole findRole(Long roleId);
 
     Long createRole(AdminRoleCommand command);

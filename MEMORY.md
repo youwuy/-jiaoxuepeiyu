@@ -79,6 +79,7 @@
 - 2026-08-01: Admin public application frontend now keeps a Calicat-style 11-column review table plus preview, record, batch-review, and single-review dialogs; the latest polish tightened the column widths and secondary dialog layouts to keep the module dense and consistent with the rest of the admin UI.
 - 2026-08-01: Admin theory question frontend now lives at `/admin/theory-question`, with a Calicat-style question bank table, filters, create/edit side panel, question preview, import validation dialog, logs drawer, and enable/disable actions wired to `/api/admin/questions` with local fallback rows.
 - 2026-08-01: Admin function management uses `sys_permission` through `/api/admin/permissions/**`; backend enforces MENU/PAGE/BUTTON hierarchy, 8-character same-parent unique names, globally unique 100-character route paths, recursive hide for descendants, leaf-only delete, and `/api/admin/permissions/sort` for drag-sort persistence.
+- 2026-08-01: Admin role management frontend and backend now use data scopes `SELF`, `ORG_ONLY`, and `ALL`; backend still accepts legacy `PERSONAL` and `MANAGED_ORG` inputs but normalizes responses and persisted new writes to frontend-facing values. Role creation/update requires non-empty permission ids, globally unique role name/code, and protects built-in `super_admin` from edit/disable/delete.
 
 ## Operational Notes
 

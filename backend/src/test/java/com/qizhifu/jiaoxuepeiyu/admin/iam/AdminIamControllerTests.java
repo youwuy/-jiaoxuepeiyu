@@ -31,6 +31,7 @@ class AdminIamControllerTests {
         AdminRoleCommand command = new AdminRoleCommand();
         command.setRoleName("Teacher");
         command.setRoleCode("teacher");
+        command.setPermissionIds(Arrays.asList(1L));
 
         Long roleId = controller.createRole(command, request).getData();
 
@@ -161,6 +162,16 @@ class AdminIamControllerTests {
         @Override
         public long countRoles(AdminRoleQuery query) {
             return 0;
+        }
+
+        @Override
+        public Long findRoleIdByName(String roleName) {
+            return null;
+        }
+
+        @Override
+        public Long findRoleIdByCode(String roleCode) {
+            return null;
         }
 
         @Override
