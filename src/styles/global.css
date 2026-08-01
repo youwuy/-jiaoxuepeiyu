@@ -11446,3 +11446,637 @@ a {
     flex-direction: column;
   }
 }
+
+.admin-public-page .admin-public-head,
+.admin-public-page .admin-public-board-head,
+.admin-public-page .admin-public-panel,
+.admin-public-table th.check-col,
+.admin-public-table td.check-col,
+.admin-public-table th:nth-child(9),
+.admin-public-table td:nth-child(9) {
+  display: none;
+}
+
+.admin-public-page {
+  min-height: 100vh;
+  padding: 0 24px 42px;
+  background: #f5f7fb;
+}
+
+.admin-public-breadcrumb {
+  height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-public-filter-card {
+  margin: 24px 0 18px;
+  padding: 16px 20px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-public-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.admin-public-search {
+  width: 240px;
+}
+
+.admin-public-select {
+  width: 142px;
+}
+
+.admin-public-search .el-input__wrapper,
+.admin-public-select .el-select__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #dbe3ee inset;
+}
+
+.admin-public-query-button.el-button,
+.admin-public-reset-button.el-button {
+  height: 40px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.admin-public-query-button.el-button {
+  border-color: #3478f6;
+  background: #3478f6;
+  color: #ffffff;
+}
+
+.admin-public-reset-button.el-button {
+  border-color: #dbe3ee;
+  background: #ffffff;
+  color: #52657d;
+}
+
+.admin-public-workspace {
+  display: block;
+}
+
+.admin-public-board {
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.admin-public-table {
+  min-width: 1120px;
+}
+
+.admin-public-table th {
+  height: 46px;
+  padding: 0 20px;
+  background: #f8fafc;
+  color: #40536d;
+  font-size: 13px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.admin-public-table td {
+  height: 50px;
+  padding: 8px 20px;
+  border-top: 1px solid #edf2f7;
+  color: #223148;
+  font-size: 14px;
+}
+
+.admin-public-name-cell img,
+.admin-public-name-cell span {
+  display: none;
+}
+
+.admin-public-name-cell strong {
+  color: #142033;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-public-status {
+  height: 26px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-public-status.pending {
+  background: #fff7df;
+  color: #d97706;
+}
+
+.admin-public-status.approved {
+  background: #e8fbf1;
+  color: #00a862;
+}
+
+.admin-public-status.rejected {
+  background: #fff0f0;
+  color: #ef4444;
+}
+
+.admin-public-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-public-row-actions .el-button {
+  height: 28px;
+  margin: 0;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #eef5ff;
+  color: #2373f6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-public-row-actions .approve.el-button {
+  background: #3478f6;
+  color: #ffffff;
+}
+
+.admin-public-row-actions .warn.el-button {
+  background: #fff7e6;
+  color: #b7791f;
+}
+
+.admin-public-footer {
+  min-height: 58px;
+  padding: 10px 20px;
+  border-top: 1px solid #edf2f7;
+}
+
+.admin-public-review-page {
+  min-height: 100vh;
+  padding: 0 32px 42px;
+  background: #f5f7fb;
+}
+
+.admin-public-review-top {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.admin-public-review-top button {
+  border: 0;
+  background: transparent;
+  color: #223148;
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.admin-public-review-info-card,
+.admin-public-review-preview-card,
+.admin-public-review-progress-card,
+.admin-public-review-action-card {
+  border: 1px solid #dfe6f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-public-review-info-card {
+  padding: 24px;
+}
+
+.admin-public-review-card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-public-review-card-title span {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 21px;
+}
+
+.admin-public-review-card-title strong {
+  color: #172033;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.admin-public-review-info-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 80px;
+  margin: 0;
+}
+
+.admin-public-review-info-card div {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  align-items: center;
+}
+
+.admin-public-review-info-card dt {
+  color: #8b9ab0;
+  font-size: 14px;
+}
+
+.admin-public-review-info-card dd {
+  margin: 0;
+  color: #172033;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-public-review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.admin-public-review-preview-card,
+.admin-public-review-progress-card {
+  padding: 24px;
+}
+
+.admin-public-review-doc,
+.admin-public-preview-doc {
+  min-height: 442px;
+  padding: 32px 44px;
+  border: 1px solid #dfe6f0;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.admin-public-review-doc h2,
+.admin-public-preview-doc h2 {
+  margin: 0 0 8px;
+  color: #172033;
+  font-size: 28px;
+  line-height: 38px;
+  font-weight: 900;
+}
+
+.admin-public-review-doc > p,
+.admin-public-preview-doc > p {
+  margin: 0 0 28px;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.admin-public-review-doc article,
+.admin-public-preview-doc article {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+}
+
+.admin-public-review-doc article.blue,
+.admin-public-preview-doc article.blue {
+  background: #eef2ff;
+}
+
+.admin-public-review-doc article.green,
+.admin-public-preview-doc article.green {
+  background: #ecfdf3;
+}
+
+.admin-public-review-doc article.orange,
+.admin-public-preview-doc article.orange {
+  background: #fff7ed;
+}
+
+.admin-public-review-doc article > span,
+.admin-public-preview-doc article > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.admin-public-review-doc article.green > span,
+.admin-public-preview-doc article.green > span {
+  background: #10b981;
+}
+
+.admin-public-review-doc article.orange > span,
+.admin-public-preview-doc article.orange > span {
+  background: #f59e0b;
+}
+
+.admin-public-review-doc article strong,
+.admin-public-preview-doc article strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-public-review-doc article p,
+.admin-public-preview-doc article p {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.admin-public-review-timeline article {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 28px;
+}
+
+.admin-public-review-timeline article::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  bottom: 0;
+  width: 2px;
+  background: #d9e1ec;
+}
+
+.admin-public-review-timeline article:last-child::before {
+  display: none;
+}
+
+.admin-public-review-timeline i {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #717986;
+}
+
+.admin-public-review-timeline header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.admin-public-review-timeline strong {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-public-review-timeline span,
+.admin-public-review-timeline p {
+  margin: 0 0 6px;
+  color: #8190a6;
+  font-size: 13px;
+}
+
+.admin-public-review-timeline b {
+  color: #26364f;
+}
+
+.admin-public-review-timeline em {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #fff0c2;
+  color: #d97706;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-public-review-timeline small {
+  display: block;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #52657d;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.admin-public-review-action-card {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.admin-public-review-action-card label {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-public-review-action-card label > span {
+  color: #223148;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-public-review-action-card .el-textarea__inner {
+  min-height: 120px;
+  border-radius: 8px;
+  background: #fbfcfe;
+  box-shadow: 0 0 0 1px #d8e0eb inset;
+}
+
+.admin-public-review-action-card small {
+  color: #8190a6;
+  font-size: 13px;
+}
+
+.admin-public-review-action-card footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.admin-public-review-action-card .el-button {
+  min-width: 96px;
+  height: 42px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.admin-public-review-reject.el-button {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #ef4444;
+}
+
+.admin-public-review-approve.el-button {
+  border-color: #6257f6;
+  background: #6257f6;
+}
+
+.admin-public-preview-modal .el-dialog,
+.admin-public-edit-dialog .el-dialog {
+  border-radius: 0 0 10px 10px;
+}
+
+.admin-public-preview-modal .el-dialog__header,
+.admin-public-edit-dialog .el-dialog__header {
+  margin: 0;
+  padding: 22px 24px 12px;
+}
+
+.admin-public-preview-modal .el-dialog__body {
+  padding: 40px 48px 34px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.admin-public-edit-dialog .el-dialog__body {
+  padding: 20px 24px 22px;
+}
+
+.admin-public-edit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-public-edit-head strong {
+  color: #152238;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.admin-public-edit-form {
+  display: grid;
+  gap: 22px;
+}
+
+.admin-public-edit-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-public-edit-form label > span {
+  color: #223148;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-public-edit-form b {
+  color: #ef4444;
+}
+
+.admin-public-edit-form .el-input__wrapper,
+.admin-public-edit-form .el-select__wrapper {
+  min-height: 42px;
+  border-radius: 8px;
+  background: #fbfcfe;
+  box-shadow: 0 0 0 1px #7c6cff inset;
+}
+
+.admin-public-edit-file {
+  min-height: 80px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #dfe6f0;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.admin-public-edit-file img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.admin-public-edit-file strong {
+  color: #24344d;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-public-edit-file p {
+  margin: 4px 0 0;
+  color: #70839c;
+  font-size: 13px;
+}
+
+.admin-public-edit-file-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #fff3e6;
+  color: #f97316;
+  font-size: 24px;
+}
+
+.admin-public-edit-file p i {
+  width: 4px;
+  height: 4px;
+  display: inline-block;
+  margin: 0 8px;
+  border-radius: 50%;
+  background: #cad3df;
+}
+
+.admin-public-edit-file p em {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #ddfbea;
+  color: #14b87a;
+  font-style: normal;
+}
+
+.admin-public-edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.admin-public-edit-footer .el-button {
+  min-width: 82px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.admin-public-edit-footer .el-button--primary {
+  border-color: #6257f6;
+  background: #6257f6;
+  box-shadow: 0 8px 18px rgba(98, 87, 246, 0.28);
+}
