@@ -47,16 +47,18 @@
                   </el-checkbox>
                 </td>
                 <td>
-                  <el-checkbox v-model="form.permissionIds" :label="row.pageId">{{ row.pageName }}</el-checkbox>
+                  <el-checkbox :model-value="isPermissionChecked(row.pageId)" @change="togglePermission(row.pageId, $event)">
+                    {{ row.pageName }}
+                  </el-checkbox>
                 </td>
                 <td>
                   <div class="admin-role-action-checks">
                     <el-checkbox
                       v-for="action in row.actions"
                       :key="action.key"
-                      v-model="form.permissionIds"
-                      :label="action.id"
+                      :model-value="isActionChecked(action)"
                       :disabled="action.virtual"
+                      @change="toggleAction(action, $event)"
                     >
                       {{ action.label }}
                     </el-checkbox>
@@ -245,7 +247,8 @@ function currentQuery() {
 
 async function loadPermissions() {
   try {
-    permissionTree.value = await fetchAdminPermissionTree();
+    const nextTree = await fetchAdminPermissionTree();
+    permissionTree.value = nextTree.length > 0 ? nextTree : mockAdminPermissions;
   } catch {
     permissionTree.value = mockAdminPermissions;
   }
@@ -316,6 +319,34 @@ function collectNodeIds(nodes: AdminPermissionNode[]): number[] {
 
 function isModuleChecked(ids: number[]) {
   return ids.every((id) => form.permissionIds.includes(id));
+}
+
+function isPermissionChecked(id: number) {
+  return form.permissionIds.includes(id);
+}
+
+function isActionChecked(action: PermissionMatrixAction) {
+  return action.virtual ? false : isPermissionChecked(action.id);
+}
+
+function setPermission(id: number, value: string | number | boolean) {
+  const next = new Set(form.permissionIds);
+  if (value) {
+    next.add(id);
+  } else {
+    next.delete(id);
+  }
+  form.permissionIds = [...next];
+}
+
+function togglePermission(id: number, value: string | number | boolean) {
+  setPermission(id, value);
+}
+
+function toggleAction(action: PermissionMatrixAction, value: string | number | boolean) {
+  if (!action.virtual) {
+    setPermission(action.id, value);
+  }
 }
 
 function toggleModule(ids: number[], value: string | number | boolean) {
