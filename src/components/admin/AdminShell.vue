@@ -85,7 +85,7 @@ const navGroups = [
       { key: 'personal-resource', label: '个人资源库', path: '/admin/personal-resource', icon: Files },
       { key: 'public-application', label: '资源公开申请', path: '/admin/public-application', icon: Collection },
       { key: 'public-resource', label: '公开资源库', path: '/admin/public-resource', icon: Notebook },
-      { key: 'theory-question', label: '理论试题', path: '/admin/theory-question', icon: Notebook },
+      { key: 'theory-question', label: '理论题库', path: '/admin/theory-question', icon: Notebook },
       { key: 'theory-paper', label: '理论试卷', path: '/admin/theory-paper', icon: Notebook }
     ]
   },

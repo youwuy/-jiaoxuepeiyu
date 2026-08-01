@@ -12,6 +12,7 @@ import AdminSettings from '../views/admin/AdminSettings.vue';
 import AdminPublicApplications from '../views/admin/AdminPublicApplications.vue';
 import AdminPublicResources from '../views/admin/AdminPublicResources.vue';
 import AdminResources from '../views/admin/AdminResources.vue';
+import AdminTheoryPapers from '../views/admin/AdminTheoryPapers.vue';
 import AdminTheoryQuestions from '../views/admin/AdminTheoryQuestions.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
@@ -112,6 +113,11 @@ export const router = createRouter({
       path: '/admin/theory-question',
       name: 'admin-theory-question',
       component: AdminTheoryQuestions
+    },
+    {
+      path: '/admin/theory-paper',
+      name: 'admin-theory-paper',
+      component: AdminTheoryPapers
     },
     {
       path: '/admin/courses',

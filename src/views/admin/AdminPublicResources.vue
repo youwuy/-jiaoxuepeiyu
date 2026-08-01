@@ -34,33 +34,45 @@
 
       <section class="admin-public-resource-filter-card">
         <div class="admin-public-resource-filter-row">
-          <el-input
-            v-model="draft.keyword"
-            class="admin-public-resource-search"
-            :prefix-icon="Search"
-            placeholder="搜索资源名称、课程或上传人"
-            clearable
-            @keyup.enter="applyFilters"
-          />
-          <el-select v-model="draft.resourceType" class="admin-public-resource-select" placeholder="资源类型" clearable>
-            <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.majorId" class="admin-public-resource-select" placeholder="所属专业" clearable filterable>
-            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.publicStatus" class="admin-public-resource-select" placeholder="公开状态" clearable>
-            <el-option v-for="item in publicStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-date-picker
-            v-model="draft.publishRange"
-            class="admin-public-resource-range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="公开开始"
-            end-placeholder="公开结束"
-            value-format="YYYY-MM-DD"
-            unlink-panels
-          />
+          <label class="admin-public-resource-field is-name">
+            <span>资源名称</span>
+            <el-input
+              v-model="draft.keyword"
+              class="admin-public-resource-search"
+              :prefix-icon="Search"
+              placeholder="请输入资源名称"
+              clearable
+              @keyup.enter="applyFilters"
+            />
+          </label>
+          <label class="admin-public-resource-field">
+            <span>分类</span>
+            <el-select v-model="draft.resourceType" class="admin-public-resource-select" placeholder="请选择分类" clearable>
+              <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="admin-public-resource-field">
+            <span>所属专业</span>
+            <el-select v-model="draft.majorId" class="admin-public-resource-select" placeholder="请选择专业" clearable filterable>
+              <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="admin-public-resource-field">
+            <span>所属课程</span>
+            <el-input
+              v-model="draft.courseName"
+              class="admin-public-resource-search"
+              placeholder="请输入课程"
+              clearable
+              @keyup.enter="applyFilters"
+            />
+          </label>
+          <label class="admin-public-resource-field">
+            <span>上传人</span>
+            <el-select v-model="draft.uploaderKey" class="admin-public-resource-select" placeholder="请选择上传人" clearable filterable>
+              <el-option v-for="item in uploaderOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
           <el-button class="admin-public-resource-query-button" @click="applyFilters">查询</el-button>
           <el-button class="admin-public-resource-reset-button" @click="resetFilters">重置</el-button>
         </div>
@@ -280,7 +292,14 @@
       </template>
     </el-drawer>
 
-    <el-dialog v-model="previewVisible" class="admin-public-resource-preview-modal" width="820px" :show-close="false" append-to-body>
+    <el-dialog
+      v-model="previewVisible"
+      class="admin-public-resource-preview-modal"
+      width="800px"
+      :show-close="false"
+      :close-on-click-modal="true"
+      append-to-body
+    >
       <template #header>
         <div class="admin-public-resource-dialog-head">
           <strong>{{ previewTarget?.resourceName || '资源预览' }}</strong>
@@ -388,7 +407,7 @@ interface PublicResourceRow extends AdminResource {
   reviewComment?: string;
 }
 
-const pageSize = 8;
+const pageSize = 6;
 const loading = ref(false);
 const saving = ref(false);
 const logsLoading = ref(false);
@@ -430,11 +449,11 @@ const draft = reactive({
   keyword: '',
   resourceType: '',
   majorId: null as number | null,
-  publicStatus: '' as '' | ResourceStatus,
-  publishRange: [] as string[]
+  courseName: '',
+  uploaderKey: ''
 });
 
-const appliedFilters = ref({ ...draft, publishRange: [] as string[] });
+const appliedFilters = ref({ ...draft });
 
 const majorOptions: MajorOption[] = [
   { label: '城市轨道交通运营管理', value: 1 },
@@ -452,25 +471,19 @@ const resourceTypeOptions: ResourceOption[] = [
   { label: '实训试题', value: '实训试题' }
 ];
 
-const publicStatusOptions: ResourceOption[] = [
-  { label: '已公开', value: 'PUBLISHED' },
-  { label: '下架中', value: 'REVIEWING' },
-  { label: '已下架', value: 'SUSPENDED' }
-];
-
 const filteredResources = computed(() =>
   resources.value.filter((item) => {
     const keyword = appliedFilters.value.keyword.trim().toLowerCase();
+    const courseName = appliedFilters.value.courseName.trim().toLowerCase();
+    const uploaderKey = appliedFilters.value.uploaderKey;
     const matchesKeyword =
       !keyword ||
-      [item.resourceName, item.courseName, item.uploaderName, item.fileName, item.majorLabel].some((text) => String(text || '').toLowerCase().includes(keyword));
+      [item.resourceName, item.fileName].some((text) => String(text || '').toLowerCase().includes(keyword));
     const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
     const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
-    const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    const [startDate, endDate] = appliedFilters.value.publishRange;
-    const publishedDate = item.publishedAtLabel.slice(0, 10);
-    const matchesDate = (!startDate || publishedDate >= startDate) && (!endDate || publishedDate <= endDate);
-    return matchesKeyword && matchesType && matchesMajor && matchesStatus && matchesDate;
+    const matchesCourse = !courseName || String(item.courseName || '').toLowerCase().includes(courseName);
+    const matchesUploader = !uploaderKey || uploaderKey === buildUploaderKey(item);
+    return matchesKeyword && matchesType && matchesMajor && matchesCourse && matchesUploader;
   })
 );
 
@@ -481,6 +494,17 @@ const suspendedCount = computed(() => filteredResources.value.filter((item) => i
 const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
+const uploaderOptions = computed<ResourceOption[]>(() => {
+  const seen = new Map<string, string>();
+  resources.value.forEach((item) => {
+    const label = item.uploaderName?.trim();
+    if (!label) {
+      return;
+    }
+    seen.set(buildUploaderKey(item), label);
+  });
+  return Array.from(seen, ([value, label]) => ({ value, label }));
+});
 
 function mockResources(): AdminResource[] {
   return [
@@ -696,6 +720,13 @@ function findMajorLabel(majorId?: number | null) {
   return majorOptions.find((item) => item.value === majorId)?.label || '-';
 }
 
+function buildUploaderKey(resource: AdminResource) {
+  if (resource.uploaderId) {
+    return `id:${resource.uploaderId}`;
+  }
+  return `name:${resource.uploaderName || ''}`;
+}
+
 function buildHistoryItems(resource: AdminResource): PublicHistoryItem[] {
   const currentVersion = Number(resource.currentVersion ?? 1);
   const publicVersion = Number(resource.publicVersion ?? currentVersion);
@@ -744,8 +775,8 @@ function createEmptyFilters() {
     keyword: '',
     resourceType: '',
     majorId: null as number | null,
-    publicStatus: '' as '' | ResourceStatus,
-    publishRange: [] as string[]
+    courseName: '',
+    uploaderKey: ''
   };
 }
 
@@ -781,8 +812,8 @@ function applyFilters() {
     keyword: draft.keyword,
     resourceType: draft.resourceType,
     majorId: draft.majorId,
-    publicStatus: draft.publicStatus,
-    publishRange: [...draft.publishRange]
+    courseName: draft.courseName,
+    uploaderKey: draft.uploaderKey
   };
   page.value = 1;
   void loadResources();
@@ -796,13 +827,13 @@ function resetFilters() {
 }
 
 function buildQuery(): AdminResourceQuery {
+  const uploaderId = appliedFilters.value.uploaderKey.startsWith('id:') ? Number(appliedFilters.value.uploaderKey.replace(/^id:/, '')) : NaN;
   return {
     keyword: appliedFilters.value.keyword.trim() || undefined,
     resourceType: appliedFilters.value.resourceType || undefined,
     majorId: appliedFilters.value.majorId ?? undefined,
-    publicStatus: appliedFilters.value.publicStatus || undefined,
-    uploadStartDate: appliedFilters.value.publishRange[0],
-    uploadEndDate: appliedFilters.value.publishRange[1],
+    courseName: appliedFilters.value.courseName.trim() || undefined,
+    uploaderId: Number.isFinite(uploaderId) ? uploaderId : undefined,
     page: 1,
     pageSize: 999
   };
