@@ -85,6 +85,14 @@ public class AdminEducationConfigService {
         return repository.createClass(normalized);
     }
 
+    public void enableClass(Long classId) {
+        repository.updateClassStatus(classId, true);
+    }
+
+    public void disableClass(Long classId) {
+        repository.updateClassStatus(classId, false);
+    }
+
     public List<AdminJobRole> listJobRoles() {
         return repository.findJobRoles();
     }

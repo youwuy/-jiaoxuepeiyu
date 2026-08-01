@@ -746,6 +746,14 @@ Request body:
 }
 ```
 
+### `POST /api/admin/classes/{classId}/enable`
+
+Enables a class for future selection.
+
+### `POST /api/admin/classes/{classId}/disable`
+
+Disables a class while preserving historical account, course, and score records.
+
 ### `GET /api/admin/job-roles`
 
 Response `data`: array of subway job role dictionary rows.

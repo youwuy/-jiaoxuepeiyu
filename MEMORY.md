@@ -80,6 +80,7 @@
 - 2026-08-01: Admin theory question frontend now lives at `/admin/theory-question`, with a Calicat-style question bank table, filters, create/edit side panel, question preview, import validation dialog, logs drawer, and enable/disable actions wired to `/api/admin/questions` with local fallback rows.
 - 2026-08-01: Admin function management uses `sys_permission` through `/api/admin/permissions/**`; backend enforces MENU/PAGE/BUTTON hierarchy, 8-character same-parent unique names, globally unique 100-character route paths, recursive hide for descendants, leaf-only delete, and `/api/admin/permissions/sort` for drag-sort persistence.
 - 2026-08-01: Admin role management frontend and backend now use data scopes `SELF`, `ORG_ONLY`, and `ALL`; backend still accepts legacy `PERSONAL` and `MANAGED_ORG` inputs but normalizes responses and persisted new writes to frontend-facing values. Role creation/update requires non-empty permission ids, globally unique role name/code, and protects built-in `super_admin` from edit/disable/delete.
+- 2026-08-01: Admin configuration management keeps `/api/admin` education config, `/api/admin/classrooms`, and score config as the backend source of truth; the settings page now calls backend create/status/save endpoints for academic years, current semesters, majors, classes, job roles, classrooms/cameras, and score weights instead of mutating local mock rows. Class enable/disable APIs are `/api/admin/classes/{classId}/enable` and `/api/admin/classes/{classId}/disable`.
 
 ## Operational Notes
 

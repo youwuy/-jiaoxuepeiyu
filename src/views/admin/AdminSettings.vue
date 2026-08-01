@@ -138,6 +138,36 @@
           </footer>
         </section>
 
+        <section v-else-if="activeConfig === 'jobRoles'" class="admin-settings-panel">
+          <el-button class="admin-settings-add-button" @click="openAdd('jobRole')">
+            <el-icon><Plus /></el-icon>
+            添加岗位角色
+          </el-button>
+          <table class="admin-settings-modal-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>岗位角色</th>
+                <th>排序</th>
+                <th>启用状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(role, index) in displayJobRoles" :key="role.jobRoleId">
+                <td>{{ index + 1 }}</td>
+                <td>{{ role.roleName }}</td>
+                <td>{{ role.sortOrder ?? 0 }}</td>
+                <td><span class="admin-settings-status" :class="{ disabled: !role.enabled }">{{ role.enabled ? '已启用' : '已禁用' }}</span></td>
+                <td>
+                  <button class="admin-settings-link" @click="setJobRoleStatus(role.jobRoleId, true)">启用</button>
+                  <button class="admin-settings-link danger" @click="setJobRoleStatus(role.jobRoleId, false)">禁用</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
         <section v-else-if="activeConfig === 'classrooms'" class="admin-settings-panel classroom">
           <el-button class="admin-settings-add-button" @click="openAdd('room')">
             <el-icon><Plus /></el-icon>
@@ -171,7 +201,7 @@
                 <td>{{ camera.channel }}</td>
                 <td class="wrap">{{ camera.url }}</td>
                 <td>
-                  <button class="admin-settings-link" @click="editRoom(camera.roomName)">编辑</button>
+                  <button class="admin-settings-link" @click="editRoom(camera)">编辑</button>
                   <button class="admin-settings-link danger" @click="removeCamera(camera.id)">删除</button>
                 </td>
               </tr>
@@ -274,6 +304,18 @@
           </label>
         </section>
 
+        <section v-else-if="addKind === 'jobRole'" class="admin-settings-add-form">
+          <label>
+            <span>岗位角色 <b>*</b></span>
+            <el-input v-model="addJobRoleName" maxlength="20" placeholder="请输入岗位角色" />
+            <small>最多输入20个字</small>
+          </label>
+          <label>
+            <span>排序</span>
+            <el-input-number v-model="addJobRoleSort" :min="0" controls-position="right" />
+          </label>
+        </section>
+
         <section v-else-if="addKind === 'room'" class="admin-settings-room-form">
           <label class="wide">
             <span>教室名称 <b>*</b></span>
@@ -348,6 +390,19 @@ import { ElMessage } from 'element-plus';
 import { Close, Edit, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
+  createAdminAcademicYear,
+  createAdminClass,
+  createAdminClassroom,
+  createAdminJobRole,
+  createAdminMajor,
+  createAdminScoreWeight,
+  deleteAdminClassroom,
+  disableAdminClass,
+  disableAdminJobRole,
+  disableAdminMajor,
+  enableAdminClass,
+  enableAdminJobRole,
+  enableAdminMajor,
   fetchAdminAcademicYears,
   fetchAdminClasses,
   fetchAdminClassrooms,
@@ -355,8 +410,13 @@ import {
   fetchAdminMajors,
   fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
+  setAdminCurrentSemester,
+  updateAdminClassroom,
   type AdminAcademicYear,
+  type AdminCamera,
+  type AdminCameraCommand,
   type AdminClass,
+  type AdminClassroomCommand,
   type AdminClassroom,
   type AdminJobRole,
   type AdminMajor,
@@ -365,8 +425,8 @@ import {
 } from '../../api/admin-settings';
 
 type SettingTone = 'blue' | 'amber' | 'rose' | 'violet' | 'green' | 'gray';
-type ConfigKey = 'semester' | 'majors' | 'classes' | 'classrooms' | 'grades' | 'weights';
-type AddKind = 'year' | 'major' | 'class' | 'room';
+type ConfigKey = 'semester' | 'majors' | 'classes' | 'jobRoles' | 'classrooms' | 'grades' | 'weights';
+type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'room';
 
 interface SettingRow {
   key: ConfigKey;
@@ -393,6 +453,8 @@ interface SemesterDisplayRow {
 
 interface CameraRow {
   id: number;
+  classroomId?: number;
+  cameraId?: number;
   roomName: string;
   host: string;
   port: string;
@@ -413,6 +475,9 @@ const addYearValue = ref('2025-2026');
 const addMajorName = ref('');
 const addClassName = ref('');
 const addClassMajorId = ref<number | null>(null);
+const addJobRoleName = ref('');
+const addJobRoleSort = ref(0);
+const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
 const majors = ref<AdminMajor[]>([]);
@@ -439,6 +504,7 @@ const fallbackRows: SettingRow[] = [
   { key: 'semester', name: '学年学期配置', value: '2024-2025学年 上学期', tone: 'blue', current: true },
   { key: 'majors', name: '专业目录配置', value: '城市轨道交通运营管理、城市轨道交通信号控制、城市轨道交通车辆技术 等8个专业', tone: 'amber' },
   { key: 'classes', name: '班级配置', value: '城轨运营2501班、城轨运营2401班、城轨车辆2501班、城轨车辆2401班 等20个班级', tone: 'rose' },
+  { key: 'jobRoles', name: '岗位角色配置', value: '司机、调度员、站务员、值班员', tone: 'violet' },
   { key: 'classrooms', name: '教室配置', value: '101实训室', tone: 'violet' },
   { key: 'grades', name: '成绩等级配置', value: '优秀（85%-100%）、良好（75%-85%）、中等（60%-75%）、较差（0%-60%）', tone: 'green', loggable: true },
   { key: 'weights', name: '综合成绩权重配置', value: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%', tone: 'gray', loggable: true }
@@ -450,6 +516,7 @@ const settingRows = computed<SettingRow[]>(() => [
   buildSemesterRow(),
   buildMajorRow(),
   buildClassRow(),
+  buildJobRoleRow(),
   buildClassroomRow(),
   buildGradeRow(),
   buildWeightRow()
@@ -460,6 +527,7 @@ const configTitle = computed(() => {
     semester: '编辑学年学期',
     majors: '专业目录配置',
     classes: '班级配置',
+    jobRoles: '岗位角色配置',
     classrooms: '教室配置',
     grades: '成绩等级配置',
     weights: '综合成绩权重配置'
@@ -468,7 +536,7 @@ const configTitle = computed(() => {
 });
 
 const configWidth = computed(() => (activeConfig.value === 'classrooms' ? '1080px' : activeConfig.value === 'weights' ? '520px' : '560px'));
-const addTitle = computed(() => ({ year: '添加学年', major: '添加专业', class: '新增班级', room: '添加教室' })[addKind.value]);
+const addTitle = computed(() => ({ year: '添加学年', major: '添加专业', class: '新增班级', jobRole: '添加岗位角色', room: '添加教室' })[addKind.value]);
 const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
 
 const semesterRows = computed<SemesterDisplayRow[]>(() => {
@@ -505,6 +573,13 @@ const displayClasses = computed(() => classes.value.length ? classes.value : [
   { classId: 6, majorId: 7, className: '城轨机电2101班', enabled: false }
 ]);
 
+const displayJobRoles = computed(() => jobRoles.value.length ? jobRoles.value : [
+  { jobRoleId: 1, roleName: '司机', sortOrder: 1, enabled: true },
+  { jobRoleId: 2, roleName: '调度员', sortOrder: 2, enabled: true },
+  { jobRoleId: 3, roleName: '站务员', sortOrder: 3, enabled: true },
+  { jobRoleId: 4, roleName: '值班员', sortOrder: 4, enabled: true }
+]);
+
 const displayGradeRules = computed(() => gradeRules.value.length ? gradeRules.value : [
   { ruleId: 1, gradeName: '优秀', minScore: 85, maxScore: 100, sortOrder: 1 },
   { ruleId: 2, gradeName: '良好', minScore: 75, maxScore: 85, sortOrder: 2 },
@@ -512,7 +587,14 @@ const displayGradeRules = computed(() => gradeRules.value.length ? gradeRules.va
   { ruleId: 4, gradeName: '较差', minScore: 0, maxScore: 60, sortOrder: 4 }
 ]);
 
-const classroomCameraRows = computed(() => localCameras.value.length ? localCameras.value : buildClassroomCameras());
+const classroomCameraRows = computed(() => {
+  if (localCameras.value.length) {
+    return localCameras.value;
+  }
+
+  const rows = classrooms.value.flatMap((classroom) => (classroom.cameras ?? []).map((camera) => toCameraRow(classroom, camera)));
+  return rows.length ? rows : buildClassroomCameras();
+});
 
 const visibleLogs = computed<SettingLog[]>(() => [
   { time: '2025-01-15 14:30:22', operator: '张建国', content: '课件学习进度得分*30%+实训练习得分*20%+课程作业得分*25%+考试得分*25%' },
@@ -549,24 +631,30 @@ function buildClassRow(): SettingRow {
   return { ...fallback, value: summarize(enabledNames(displayClasses.value, (item) => item.className), '班级', fallback) };
 }
 
-function buildClassroomRow(): SettingRow {
+function buildJobRoleRow(): SettingRow {
   const fallback = fallbackRows[3];
+  return { ...fallback, value: summarize(enabledNames(displayJobRoles.value, (item) => item.roleName), '岗位角色', fallback) };
+}
+
+function buildClassroomRow(): SettingRow {
+  const fallback = fallbackRows[4];
   return { ...fallback, value: summarize(classrooms.value.map((item) => item.roomName), '实训室', fallback) };
 }
 
 function buildGradeRow(): SettingRow {
-  const fallback = fallbackRows[4];
+  const fallback = fallbackRows[5];
   return { ...fallback, value: displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') };
 }
 
 function buildWeightRow(): SettingRow {
-  return { ...fallbackRows[5], value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%` };
+  return { ...fallbackRows[6], value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%` };
 }
 
 function buildClassroomCameras(): CameraRow[] {
   const roomName = classrooms.value[0]?.roomName || '101实训室';
   return [0, 1, 2, 3, 4].map((item) => ({
     id: item + 1,
+    classroomId: classrooms.value[0]?.classroomId,
     roomName,
     host: `192.168.1.10${item}`,
     port: '8000',
@@ -575,6 +663,21 @@ function buildClassroomCameras(): CameraRow[] {
     channel: `CH0${item + 1}`,
     url: `rtsp://192.168.1.10${item}:554/stream1`
   }));
+}
+
+function toCameraRow(classroom: AdminClassroom, camera: AdminCamera): CameraRow {
+  return {
+    id: camera.cameraId,
+    classroomId: classroom.classroomId,
+    cameraId: camera.cameraId,
+    roomName: classroom.roomName,
+    host: camera.nvrHost,
+    port: String(camera.nvrPort),
+    account: camera.adminUsername,
+    password: camera.adminPassword,
+    channel: camera.nvrChannel,
+    url: camera.streamUrl ?? ''
+  };
 }
 
 async function safeLoad<T>(loader: () => Promise<T[]>) {
@@ -631,11 +734,16 @@ function openConfig(key: ConfigKey) {
 
 function openAdd(kind: AddKind) {
   addKind.value = kind;
+  editingClassroomId.value = null;
   if (kind === 'year') addYearValue.value = '2025-2026';
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
     addClassMajorId.value = displayMajors.value[0]?.majorId ?? null;
+  }
+  if (kind === 'jobRole') {
+    addJobRoleName.value = '';
+    addJobRoleSort.value = displayJobRoles.value.length + 1;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -649,28 +757,83 @@ function openLogs(item: SettingRow) {
   logVisible.value = true;
 }
 
-function setCurrentSemester(semesterId: number) {
-  academicYears.value = academicYears.value.map((year) => ({
-    ...year,
-    semesters: year.semesters.map((semester) => ({ ...semester, current: semester.semesterId === semesterId }))
-  }));
+async function setCurrentSemester(semesterId: number) {
+  try {
+    await setAdminCurrentSemester(semesterId);
+    await loadSettings();
+    ElMessage.success('当前学期已更新');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '设置当前学期失败');
+  }
 }
 
-function setMajorStatus(majorId: number, enabled: boolean) {
-  majors.value = displayMajors.value.map((item) => (item.majorId === majorId ? { ...item, enabled } : item));
+async function setMajorStatus(majorId: number, enabled: boolean) {
+  try {
+    if (enabled) {
+      await enableAdminMajor(majorId);
+    } else {
+      await disableAdminMajor(majorId);
+    }
+    await loadSettings();
+    ElMessage.success(enabled ? '专业已启用' : '专业已禁用');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '专业状态更新失败');
+  }
 }
 
-function setClassStatus(classId: number, enabled: boolean) {
-  classes.value = displayClasses.value.map((item) => (item.classId === classId ? { ...item, enabled } : item));
+async function setClassStatus(classId: number, enabled: boolean) {
+  try {
+    if (enabled) {
+      await enableAdminClass(classId);
+    } else {
+      await disableAdminClass(classId);
+    }
+    await loadSettings();
+    ElMessage.success(enabled ? '班级已启用' : '班级已禁用');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '班级状态更新失败');
+  }
 }
 
-function removeCamera(id: number) {
-  localCameras.value = classroomCameraRows.value.filter((item) => item.id !== id);
+async function setJobRoleStatus(jobRoleId: number, enabled: boolean) {
+  try {
+    if (enabled) {
+      await enableAdminJobRole(jobRoleId);
+    } else {
+      await disableAdminJobRole(jobRoleId);
+    }
+    await loadSettings();
+    ElMessage.success(enabled ? '岗位角色已启用' : '岗位角色已禁用');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '岗位角色状态更新失败');
+  }
 }
 
-function editRoom(roomName: string) {
-  roomForm.roomName = roomName;
-  roomForm.cameras = classroomCameraRows.value.filter((item) => item.roomName === roomName).map((item) => ({ ...item }));
+async function removeCamera(id: number) {
+  const target = classroomCameraRows.value.find((item) => item.id === id);
+  if (!target?.classroomId) {
+    localCameras.value = classroomCameraRows.value.filter((item) => item.id !== id);
+    return;
+  }
+
+  const remaining = classroomCameraRows.value.filter((item) => item.classroomId === target.classroomId && item.id !== id);
+  try {
+    if (remaining.length === 0) {
+      await deleteAdminClassroom(target.classroomId);
+    } else {
+      await updateAdminClassroom(target.classroomId, toClassroomCommand(target.roomName, remaining));
+    }
+    await loadSettings();
+    ElMessage.success('教室摄像头配置已更新');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '删除摄像头失败');
+  }
+}
+
+function editRoom(camera: CameraRow) {
+  editingClassroomId.value = camera.classroomId ?? null;
+  roomForm.roomName = camera.roomName;
+  roomForm.cameras = classroomCameraRows.value.filter((item) => item.roomName === camera.roomName).map((item) => ({ ...item }));
   addKind.value = 'room';
   addVisible.value = true;
 }
@@ -683,6 +846,24 @@ function newCamera(id: number): CameraRow {
   return { id: Date.now() + id, roomName: roomForm.roomName || '101实训室', host: '', port: '', account: '', password: '', channel: '', url: '' };
 }
 
+function toClassroomCommand(roomName: string, cameras: CameraRow[]): AdminClassroomCommand {
+  return {
+    roomName: roomName.trim(),
+    cameras: cameras.map((camera): AdminCameraCommand => ({
+      nvrHost: camera.host.trim(),
+      nvrPort: Number(camera.port),
+      adminUsername: camera.account.trim(),
+      adminPassword: camera.password,
+      nvrChannel: camera.channel.trim(),
+      streamUrl: camera.url.trim() || undefined
+    }))
+  };
+}
+
+function currentSemesterId() {
+  return semesterRows.value.find((semester) => semester.current)?.semesterId ?? semesterRows.value[0]?.semesterId;
+}
+
 function addCamera() {
   roomForm.cameras.push(newCamera(roomForm.cameras.length + 1));
 }
@@ -691,44 +872,60 @@ function removeRoomCamera(id: number) {
   roomForm.cameras = roomForm.cameras.filter((item) => item.id !== id);
 }
 
-function saveAdd() {
-  if (addKind.value === 'year') {
-    const nextId = Date.now();
-    academicYears.value = [
-      { academicYearId: nextId, yearName: `${addYearValue.value}学年`, semesters: [
-        { semesterId: nextId + 1, academicYearId: nextId, semesterName: '上学期', current: false },
-        { semesterId: nextId + 2, academicYearId: nextId, semesterName: '下学期', current: false }
-      ] },
-      ...academicYears.value
-    ];
+async function saveAdd() {
+  try {
+    if (addKind.value === 'year') {
+      await createAdminAcademicYear({ yearName: `${addYearValue.value}学年` });
+    }
+    if (addKind.value === 'major') {
+      if (!addMajorName.value.trim()) return ElMessage.warning('请输入专业名称');
+      await createAdminMajor({ majorName: addMajorName.value.trim() });
+    }
+    if (addKind.value === 'class') {
+      if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
+      if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
+      await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
+    }
+    if (addKind.value === 'jobRole') {
+      if (!addJobRoleName.value.trim()) return ElMessage.warning('请输入岗位角色');
+      await createAdminJobRole({ roleName: addJobRoleName.value.trim(), sortOrder: addJobRoleSort.value });
+    }
+    if (addKind.value === 'room') {
+      if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
+      if (!roomForm.cameras.length) return ElMessage.warning('请至少添加一个摄像头');
+      const command = toClassroomCommand(roomForm.roomName, roomForm.cameras);
+      if (editingClassroomId.value) {
+        await updateAdminClassroom(editingClassroomId.value, command);
+      } else {
+        await createAdminClassroom(command);
+      }
+    }
+    addVisible.value = false;
+    await loadSettings();
+    ElMessage.success('已更新配置');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '配置更新失败');
   }
-  if (addKind.value === 'major') {
-    if (!addMajorName.value.trim()) return ElMessage.warning('请输入专业名称');
-    majors.value = [...displayMajors.value, { majorId: Date.now(), majorName: addMajorName.value.trim(), enabled: true }];
-  }
-  if (addKind.value === 'class') {
-    if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
-    classes.value = [...displayClasses.value, { classId: Date.now(), majorId: addClassMajorId.value || 0, className: addClassName.value.trim(), enabled: true }];
-  }
-  if (addKind.value === 'room') {
-    if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
-    localCameras.value = [
-      ...classroomCameraRows.value.filter((item) => item.roomName !== roomForm.roomName),
-      ...roomForm.cameras.map((camera) => ({ ...camera, roomName: roomForm.roomName }))
-    ];
-  }
-  addVisible.value = false;
-  ElMessage.success('已更新配置');
 }
 
-function saveWeight() {
+async function saveWeight() {
   if (weightTotal.value !== 100) {
     ElMessage.warning('四项权重之和需等于100%');
     return;
   }
-  scoreWeights.value = [{ weightId: Date.now(), ...weightForm }];
-  configVisible.value = false;
-  ElMessage.success('权重配置已更新');
+  const semesterId = currentSemesterId();
+  if (!semesterId) {
+    ElMessage.warning('请先配置学年学期');
+    return;
+  }
+  try {
+    await createAdminScoreWeight({ semesterId, ...weightForm });
+    await loadSettings();
+    configVisible.value = false;
+    ElMessage.success('权重配置已更新');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '权重配置更新失败');
+  }
 }
 
 onMounted(() => {

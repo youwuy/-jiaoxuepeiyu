@@ -37,6 +37,13 @@ import {
   updateAdminRole,
   updateAdminRolePermissions
 } from '../src/api/admin-role';
+import {
+  createAdminClassroom,
+  createAdminScoreWeight,
+  disableAdminClass,
+  enableAdminClass,
+  setAdminCurrentSemester
+} from '../src/api/admin-settings';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -688,6 +695,62 @@ describe('api http client', () => {
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ currentPassword: 'old-password', newPassword: 'new-password', confirmPassword: 'new-password' })
+      })
+    );
+  });
+});
+
+describe('admin settings API integration', () => {
+  it('uses documented education and facility config endpoints', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 0, data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await setAdminCurrentSemester(12);
+    await enableAdminClass(5);
+    await disableAdminClass(5);
+    await createAdminClassroom({
+      roomName: 'Training Room A',
+      cameras: [
+        {
+          nvrHost: '10.0.0.1',
+          nvrPort: 554,
+          adminUsername: 'admin',
+          adminPassword: 'input-from-admin',
+          nvrChannel: 'CH01',
+          streamUrl: 'rtsp://10.0.0.1/live/ch01'
+        }
+      ]
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/semesters/12/current', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/classes/5/enable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/classes/5/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/classrooms', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('posts score weight history with the selected semester', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 0, data: 91 }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await createAdminScoreWeight({
+      semesterId: 12,
+      coursewareWeight: 30,
+      trainingPracticeWeight: 30,
+      assignmentWeight: 30,
+      examWeight: 10
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/score-weights',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          semesterId: 12,
+          coursewareWeight: 30,
+          trainingPracticeWeight: 30,
+          assignmentWeight: 30,
+          examWeight: 10
+        })
       })
     );
   });
