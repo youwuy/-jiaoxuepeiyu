@@ -178,6 +178,7 @@ public class AdminAccountService {
         normalized.setRealName(like(normalized.getRealName()));
         normalized.setAccountNo(like(normalized.getAccountNo()));
         normalized.setPhone(like(normalized.getPhone()));
+        normalized.setJobTitle(like(normalized.getJobTitle()));
         if (normalized.getPage() < 1) {
             normalized.setPage(1);
         }

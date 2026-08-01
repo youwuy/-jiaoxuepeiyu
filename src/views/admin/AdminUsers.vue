@@ -88,6 +88,135 @@
       </footer>
     </section>
 
+    <section v-else-if="studentFormPageVisible" class="admin-user-student-form-page">
+      <nav class="admin-user-student-topbar">
+        <el-breadcrumb class="admin-user-student-breadcrumb" separator="/">
+          <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+          <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ formMode === 'create' ? '新增学员' : '编辑学员' }}</el-breadcrumb-item>
+        </el-breadcrumb>
+      </nav>
+
+      <main class="admin-user-student-content">
+        <section class="admin-user-student-card">
+          <h3><i></i>基本信息</h3>
+          <div class="admin-user-student-grid first">
+            <label>
+              <span>姓名 <b>*</b></span>
+              <el-input v-model="form.realName" maxlength="30" placeholder="请输入姓名" />
+              <small>最多输入30个字</small>
+            </label>
+            <label>
+              <span>学号 <b>*</b></span>
+              <el-input v-model="form.accountNo" :disabled="formMode === 'edit'" maxlength="30" placeholder="请输入学号" />
+              <small>最多输入30个字</small>
+            </label>
+            <label>
+              <span>手机号 <b>*</b></span>
+              <el-input v-model="form.phone" maxlength="11" placeholder="请输入11位手机号" />
+            </label>
+          </div>
+          <div class="admin-user-student-grid second">
+            <label>
+              <span>身份证号</span>
+              <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
+            </label>
+            <label>
+              <span>所在班级 <b>*</b></span>
+              <el-select v-model="form.classId" placeholder="请选择所在班级" filterable>
+                <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
+              </el-select>
+            </label>
+          </div>
+        </section>
+
+        <section class="admin-user-student-card bio">
+          <h3><i></i>生物信息录入</h3>
+          <div class="admin-user-student-bio-row">
+            <div class="admin-user-student-bio-item">
+              <span>人脸信息录入</span>
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFaceRecorded }" @click="markBioRecorded('face')">
+                <el-icon><Camera /></el-icon>
+                <strong>{{ bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
+              </button>
+              <p>状态：<b :class="{ recorded: bioFaceRecorded }">{{ bioFaceRecorded ? '已录入' : '未录入' }}</b></p>
+            </div>
+            <div class="admin-user-student-bio-item">
+              <span>指纹信息录入</span>
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFingerprintRecorded }" @click="markBioRecorded('fingerprint')">
+                <el-icon><Pointer /></el-icon>
+                <strong>{{ bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传照片' }}</strong>
+              </button>
+              <p>状态：<b :class="{ recorded: bioFingerprintRecorded }">{{ bioFingerprintRecorded ? '已录入' : '未录入' }}</b></p>
+            </div>
+          </div>
+        </section>
+
+        <footer class="admin-user-student-actions">
+          <el-button class="admin-user-student-cancel" @click="cancelStudentForm">取消</el-button>
+          <el-button class="admin-user-student-confirm" type="primary" :loading="saving" @click="saveAccount">确定</el-button>
+        </footer>
+      </main>
+    </section>
+
+    <section v-else-if="detailPageVisible" class="admin-user-detail-page">
+      <nav class="admin-user-detail-topbar">
+        <el-breadcrumb class="admin-user-detail-breadcrumb" separator="/">
+          <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+          <el-breadcrumb-item>用户管理</el-breadcrumb-item>
+          <el-breadcrumb-item>信息查看</el-breadcrumb-item>
+        </el-breadcrumb>
+      </nav>
+
+      <main v-if="detailAccount" class="admin-user-detail-content">
+        <section class="admin-user-detail-card">
+          <h3><i></i>基本信息</h3>
+          <dl class="admin-user-detail-grid">
+            <div><dt>姓名</dt><dd>{{ detailAccount.realName }}</dd></div>
+            <div><dt>{{ detailAccount.userType === 'student' ? '学号' : '工号/学号' }}</dt><dd>{{ detailAccount.accountNo }}</dd></div>
+            <div><dt>手机号</dt><dd>{{ detailAccount.maskedPhone || detailAccount.phone || '-' }}</dd></div>
+            <div><dt>身份证号</dt><dd>{{ detailAccount.maskedIdCard || '-' }}</dd></div>
+            <div v-if="detailAccount.userType === 'teacher'"><dt>岗位</dt><dd>{{ detailAccount.jobTitle || '-' }}</dd></div>
+            <div v-else><dt>所在班级</dt><dd>{{ detailAccount.className || '-' }}</dd></div>
+          </dl>
+        </section>
+
+        <section v-if="detailAccount.userType === 'teacher'" class="admin-user-detail-card">
+          <h3><i></i>组织信息</h3>
+          <dl class="admin-user-detail-grid">
+            <div><dt>所属组织</dt><dd>{{ detailAccount.orgName || '-' }}</dd></div>
+            <div><dt>管理组织</dt><dd>{{ orgNames(detailAccount.managedOrgIds) }}</dd></div>
+            <div><dt>授课班级</dt><dd>{{ classNames(detailAccount.teachingClassIds) }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="admin-user-detail-card bio">
+          <h3><i></i>生物信息</h3>
+          <div class="admin-user-detail-bio-row">
+            <div class="admin-user-detail-bio-item">
+              <span>人脸数据</span>
+              <div class="admin-user-detail-face" :class="{ empty: !detailAccount.faceRecorded }">
+                <img v-if="detailAccount.faceRecorded" :src="detailFaceImage" alt="人脸数据" />
+                <el-icon v-else><Camera /></el-icon>
+              </div>
+              <p :class="{ recorded: detailAccount.faceRecorded }"><i></i>{{ detailAccount.faceRecorded ? '已录入' : '未录入' }}</p>
+            </div>
+            <div class="admin-user-detail-bio-item">
+              <span>指纹数据</span>
+              <div class="admin-user-detail-fingerprint">
+                <el-icon><Pointer /></el-icon>
+              </div>
+              <p :class="{ recorded: detailAccount.fingerprintRecorded }"><i></i>{{ detailAccount.fingerprintRecorded ? '已录入' : '未录入' }}</p>
+            </div>
+          </div>
+        </section>
+
+        <footer class="admin-user-detail-actions">
+          <el-button @click="closeDetailPage">返回</el-button>
+        </footer>
+      </main>
+    </section>
+
     <section v-else class="admin-users-page">
       <el-breadcrumb class="admin-users-breadcrumb" separator="/">
         <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>
@@ -128,7 +257,7 @@
               <el-input v-model="draft.accountNo" :prefix-icon="Search" :placeholder="activeKind === 'teacher' ? '工号搜索' : '学号搜索'" clearable @keyup.enter="applySearch" />
               <el-input v-model="draft.phone" :prefix-icon="Search" placeholder="手机号搜索" clearable @keyup.enter="applySearch" />
               <el-input v-if="activeKind === 'teacher'" v-model="draftJobTitle" :prefix-icon="Search" placeholder="岗位搜索" clearable @keyup.enter="applySearch" />
-              <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="班级搜索" clearable filterable>
+              <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="所在班级" clearable filterable>
                 <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
               </el-select>
               <el-select v-model="draft.enabled" placeholder="账号状态" clearable>
@@ -144,7 +273,7 @@
               <el-button class="admin-users-lite-button" @click="openImport">批量导入</el-button>
               <el-button class="admin-users-lite-button" @click="exportRows">批量导出</el-button>
               <el-button class="admin-users-lite-button" @click="openBatchReset">批量重置密码</el-button>
-              <el-button class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
+              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
               <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchRole">批量修改角色</el-button>
               <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
               <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
@@ -168,8 +297,9 @@
                       <th>所属组织</th>
                       <th v-if="activeKind === 'teacher'">管理组织</th>
                       <th>{{ activeKind === 'teacher' ? '授课班级' : '班级' }}</th>
-                      <th>角色</th>
-                      <th>账号状态</th>
+                      <th v-if="activeKind === 'teacher'">角色</th>
+                      <th>状态</th>
+                      <th>创建时间</th>
                       <th>操作</th>
                     </tr>
                   </thead>
@@ -185,22 +315,23 @@
                       <td class="wrap-cell">{{ row.orgName || '-' }}</td>
                       <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ orgNames(row.managedOrgIds) }}</td>
                       <td class="wrap-cell">{{ activeKind === 'teacher' ? classNames(row.teachingClassIds) : row.className || '-' }}</td>
-                      <td class="wrap-cell">{{ compactList(row.roleNames) }}</td>
+                      <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ compactList(row.roleNames) }}</td>
                       <td>
                         <span class="admin-users-status" :class="row.enabled ? 'enabled' : 'disabled'">
                           <i></i>
                           {{ row.enabled ? '启用' : '禁用' }}
                         </span>
                       </td>
+                      <td>{{ formatAccountTime(row.createdAt) }}</td>
                       <td>
                         <div class="admin-users-row-actions">
-                          <el-button class="plain" @click="openDetail(row)">查看</el-button>
                           <el-button class="edit" @click="openEdit(row)">编辑</el-button>
                           <el-button v-if="activeKind === 'teacher'" class="edit" @click="openRole(row)">设置角色</el-button>
                           <el-button :class="row.enabled ? 'warn' : 'enable'" :loading="busyId === row.userId" @click="toggleEnabled(row)">
                             {{ row.enabled ? '禁用' : '启用' }}
                           </el-button>
                           <el-button class="plain" @click="openReset(row)">重置密码</el-button>
+                          <el-button class="plain" @click="openDetail(row)">查看</el-button>
                         </div>
                       </td>
                     </tr>
@@ -294,75 +425,80 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" class="admin-users-dialog" width="620px" :show-close="false" append-to-body>
+    <el-dialog v-model="resetVisible" class="admin-users-mini-dialog" width="480px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
-          <strong>{{ detailAccount?.realName || '用户详情' }}</strong>
-          <el-button text circle :icon="Close" @click="detailVisible = false" />
+          <strong>重置密码</strong>
+          <el-button text circle :icon="Close" @click="resetVisible = false" />
         </div>
       </template>
-      <dl v-if="detailAccount" class="admin-users-detail">
-        <div><dt>{{ detailAccount.userType === 'teacher' ? '工号' : '学号' }}</dt><dd>{{ detailAccount.accountNo }}</dd></div>
-        <div><dt>手机号</dt><dd>{{ detailAccount.maskedPhone || detailAccount.phone || '-' }}</dd></div>
-        <div><dt>所属组织</dt><dd>{{ detailAccount.orgName || '-' }}</dd></div>
-        <div><dt>班级</dt><dd>{{ detailAccount.className || '-' }}</dd></div>
-        <div><dt>岗位</dt><dd>{{ detailAccount.jobTitle || '-' }}</dd></div>
-        <div><dt>角色</dt><dd>{{ compactList(detailAccount.roleNames) }}</dd></div>
-        <div><dt>状态</dt><dd>{{ detailAccount.enabled ? '启用' : '禁用' }}</dd></div>
-        <div><dt>创建时间</dt><dd>{{ formatAccountTime(detailAccount.createdAt) }}</dd></div>
-      </dl>
+      <label class="admin-users-mini-field">
+        <span>重置后的密码</span>
+        <el-input v-model="resetPassword" placeholder="请输入重置后的密码" />
+      </label>
+      <template #footer>
+        <div class="admin-users-dialog-footer">
+          <el-button @click="resetVisible = false">关闭</el-button>
+          <el-button type="primary" :loading="saving" @click="saveResetPassword">确定</el-button>
+        </div>
+      </template>
     </el-dialog>
 
-    <el-dialog v-model="roleVisible" class="admin-users-dialog" width="520px" :show-close="false" append-to-body>
+    <el-dialog v-model="roleVisible" class="admin-users-mini-dialog" width="480px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
           <strong>{{ roleMode === 'batch' ? '批量修改角色' : '设置角色' }}</strong>
           <el-button text circle :icon="Close" @click="roleVisible = false" />
         </div>
       </template>
-      <p v-if="roleMode === 'batch'" class="admin-users-dialog-note">将为已选 {{ selectedIds.length }} 个教师设置角色。</p>
-      <el-select v-model="roleFormIds" class="admin-users-full-select" multiple placeholder="请选择角色">
+      <el-select v-model="roleFormId" class="admin-users-full-select" placeholder="请选择角色">
         <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
       </el-select>
       <template #footer>
         <div class="admin-users-dialog-footer">
-          <el-button @click="roleVisible = false">取消</el-button>
+          <el-button @click="roleVisible = false">关闭</el-button>
           <el-button type="primary" :loading="saving" @click="saveRole">确定</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="batchOrgVisible" class="admin-users-dialog" width="520px" :show-close="false" append-to-body>
+    <el-dialog v-model="batchOrgVisible" class="admin-users-mini-dialog" width="480px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
           <strong>批量设置所属组织</strong>
           <el-button text circle :icon="Close" @click="batchOrgVisible = false" />
         </div>
       </template>
-      <p class="admin-users-dialog-note">将为已选 {{ selectedIds.length }} 个用户设置所属组织。</p>
       <el-select v-model="batchOrgId" class="admin-users-full-select" placeholder="请选择所属组织" filterable>
         <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
       </el-select>
       <template #footer>
         <div class="admin-users-dialog-footer">
-          <el-button @click="batchOrgVisible = false">取消</el-button>
+          <el-button @click="batchOrgVisible = false">关闭</el-button>
           <el-button type="primary" :loading="saving" @click="saveBatchOrg">确定</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="importVisible" class="admin-users-dialog" width="720px" :show-close="false" append-to-body>
+    <el-dialog v-model="importVisible" class="admin-users-import-dialog" width="520px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
           <strong>导入{{ activeKindLabel }}</strong>
           <el-button text circle :icon="Close" @click="importVisible = false" />
         </div>
       </template>
-      <el-input v-model="importText" type="textarea" :rows="7" placeholder="每行一个用户：账号,姓名,手机号" />
-      <div class="admin-users-import-actions">
-        <el-button @click="previewImportRows">预览校验</el-button>
-        <span v-if="importPreview">共 {{ importPreview.totalCount }} 条，通过 {{ importPreview.validCount }} 条，异常 {{ importPreview.errorCount }} 条</span>
+      <div class="admin-users-import-tip">
+        <strong>操作说明</strong>
+        <span>请先下载导入模板，按模板格式填写{{ activeKindLabel }}信息后再上传文件</span>
       </div>
+      <button type="button" class="admin-users-template-button" @click="downloadImportTemplate">下载导入模板</button>
+      <div class="admin-users-upload-divider"><span>上传文件</span></div>
+      <label class="admin-users-upload-box">
+        <input ref="importFileInput" type="file" accept=".csv,.txt" @change="handleImportFile" />
+        <el-icon><UploadFilled /></el-icon>
+        <strong>{{ importFileName || '点击上传或拖拽文件到此处' }}</strong>
+        <span>仅支持 csv/txt 格式，文件大小不超过10MB</span>
+      </label>
       <div v-if="importPreview" class="admin-users-import-preview">
         <div v-for="row in importPreview.rows.slice(0, 5)" :key="row.rowNo" :class="{ error: row.valid === false }">
           第 {{ row.rowNo }} 行：{{ row.accountNo }} / {{ row.realName }}
@@ -372,7 +508,7 @@
       <template #footer>
         <div class="admin-users-dialog-footer">
           <el-button @click="importVisible = false">取消</el-button>
-          <el-button type="primary" :disabled="!importPreview || importPreview.errorCount > 0" :loading="saving" @click="submitImportRows">确认导入</el-button>
+          <el-button type="primary" :loading="saving" @click="submitImportRows">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -381,8 +517,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Camera, Close, Plus, Pointer, Search } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import { Camera, Close, Plus, Pointer, Search, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminAccount,
@@ -442,22 +578,29 @@ const orgTree = ref(mockAccountOrgTree);
 const classOptions = ref<AdminClassOption[]>(mockAdminClasses);
 const roleOptions = ref<AdminRoleOption[]>(mockAdminRoles);
 const teacherFormPageVisible = ref(false);
+const studentFormPageVisible = ref(false);
+const detailPageVisible = ref(false);
 const bioFaceRecorded = ref(false);
 const bioFingerprintRecorded = ref(false);
 const formVisible = ref(false);
 const formMode = ref<FormMode>('create');
 const editingId = ref<number | null>(null);
-const detailVisible = ref(false);
 const detailAccount = ref<AdminAccount | null>(null);
 const roleVisible = ref(false);
 const roleAccount = ref<AdminAccount | null>(null);
 const roleMode = ref<'single' | 'batch'>('single');
-const roleFormIds = ref<number[]>([]);
+const roleFormId = ref<number | null>(null);
 const batchOrgVisible = ref(false);
 const batchOrgId = ref<number | null>(null);
+const resetVisible = ref(false);
+const resetIds = ref<number[]>([]);
+const resetPassword = ref('Abc@12345');
 const importVisible = ref(false);
 const importText = ref('');
+const importFileName = ref('');
 const importPreview = ref<AdminAccountImportPreview | null>(null);
+const importFileInput = ref<HTMLInputElement | null>(null);
+const detailFaceImage = new URL('../../assets/resource-cover-manual.jpg', import.meta.url).href;
 
 const emptyForm = (): AdminAccountCommand => ({
   realName: '',
@@ -560,6 +703,8 @@ function updateTabCount(total: number) {
 
 function switchKind(kind: AdminAccountKind) {
   teacherFormPageVisible.value = false;
+  studentFormPageVisible.value = false;
+  detailPageVisible.value = false;
   activeKind.value = kind;
   page.page = 1;
   Object.assign(query, {});
@@ -608,12 +753,13 @@ function openCreate() {
   formMode.value = 'create';
   editingId.value = null;
   applyForm(emptyForm());
+  form.orgId = selectedOrgId.value || orgOptions.value[0]?.orgId || null;
   resetBioState();
   if (activeKind.value === 'teacher') {
     teacherFormPageVisible.value = true;
     return;
   }
-  formVisible.value = true;
+  studentFormPageVisible.value = true;
 }
 
 function openEdit(row: AdminAccount) {
@@ -638,7 +784,7 @@ function openEdit(row: AdminAccount) {
     teacherFormPageVisible.value = true;
     return;
   }
-  formVisible.value = true;
+  studentFormPageVisible.value = true;
 }
 
 function validateForm() {
@@ -651,7 +797,10 @@ function validateForm() {
   if (!form.orgId) {
     throw new Error('请选择所属组织');
   }
-  if (activeKind.value === 'teacher' && form.phone && !/^1\d{10}$/.test(form.phone)) {
+  if (!form.phone?.trim()) {
+    throw new Error('请输入11位手机号');
+  }
+  if (!/^1\d{10}$/.test(form.phone)) {
     throw new Error('请输入11位手机号');
   }
   if (activeKind.value === 'student' && !form.classId) {
@@ -661,6 +810,13 @@ function validateForm() {
 
 function cancelTeacherForm() {
   teacherFormPageVisible.value = false;
+  editingId.value = null;
+  applyForm(emptyForm());
+  resetBioState();
+}
+
+function cancelStudentForm() {
+  studentFormPageVisible.value = false;
   editingId.value = null;
   applyForm(emptyForm());
   resetBioState();
@@ -693,6 +849,7 @@ async function saveAccount() {
     }
     formVisible.value = false;
     teacherFormPageVisible.value = false;
+    studentFormPageVisible.value = false;
     await loadAccounts();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '保存失败');
@@ -721,7 +878,7 @@ async function toggleEnabled(row: AdminAccount) {
 
 async function openDetail(row: AdminAccount) {
   detailAccount.value = row;
-  detailVisible.value = true;
+  detailPageVisible.value = true;
   try {
     detailAccount.value = await fetchAdminAccountDetail(row.userId);
   } catch {
@@ -729,10 +886,15 @@ async function openDetail(row: AdminAccount) {
   }
 }
 
+function closeDetailPage() {
+  detailPageVisible.value = false;
+  detailAccount.value = null;
+}
+
 function openRole(row: AdminAccount) {
   roleMode.value = 'single';
   roleAccount.value = row;
-  roleFormIds.value = [...(row.roleIds ?? [])];
+  roleFormId.value = row.roleIds?.[0] ?? null;
   roleVisible.value = true;
 }
 
@@ -743,7 +905,7 @@ function openBatchRole() {
   }
   roleMode.value = 'batch';
   roleAccount.value = null;
-  roleFormIds.value = [];
+  roleFormId.value = null;
   roleVisible.value = true;
 }
 
@@ -751,12 +913,16 @@ async function saveRole() {
   if (roleMode.value === 'single' && !roleAccount.value) {
     return;
   }
+  if (!roleFormId.value) {
+    ElMessage.warning('请选择角色');
+    return;
+  }
   saving.value = true;
   try {
     if (roleMode.value === 'batch') {
-      await Promise.all(selectedIds.value.map((userId) => updateAdminTeacherRoles(userId, roleFormIds.value)));
+      await Promise.all(selectedIds.value.map((userId) => updateAdminTeacherRoles(userId, [roleFormId.value as number])));
     } else if (roleAccount.value) {
-      await updateAdminTeacherRoles(roleAccount.value.userId, roleFormIds.value);
+      await updateAdminTeacherRoles(roleAccount.value.userId, [roleFormId.value]);
     }
     ElMessage.success('角色设置成功');
     roleVisible.value = false;
@@ -773,15 +939,9 @@ async function openBatchReset() {
     ElMessage.warning('请先选择用户');
     return;
   }
-  try {
-    await ElMessageBox.confirm(`确认将已选 ${selectedIds.value.length} 个用户的密码重置为系统初始密码？`, '批量重置密码', { type: 'warning' });
-    await resetAdminAccountPasswords(selectedIds.value);
-    ElMessage.success('密码已批量重置');
-  } catch (error) {
-    if (error instanceof Error) {
-      ElMessage.error(error.message);
-    }
-  }
+  resetIds.value = [...selectedIds.value];
+  resetPassword.value = 'Abc@12345';
+  resetVisible.value = true;
 }
 
 function selectOrg(node: AdminOrgNode & { orgId: number }) {
@@ -808,15 +968,26 @@ function classNames(ids?: number[]) {
   return labels.length > 0 ? labels.join('、') : '-';
 }
 
-async function openReset(row: AdminAccount) {
+function openReset(row: AdminAccount) {
+  resetIds.value = [row.userId];
+  resetPassword.value = 'Abc@12345';
+  resetVisible.value = true;
+}
+
+async function saveResetPassword() {
+  if (!resetPassword.value.trim()) {
+    ElMessage.warning('请输入重置后的密码');
+    return;
+  }
+  saving.value = true;
   try {
-    await ElMessageBox.confirm(`确认将 ${row.realName} 的密码重置为系统初始密码？`, '重置密码', { type: 'warning' });
-    await resetAdminAccountPasswords([row.userId]);
-    ElMessage.success('密码已重置');
+    await resetAdminAccountPasswords(resetIds.value);
+    ElMessage.success(resetIds.value.length > 1 ? '密码已批量重置' : '密码已重置');
+    resetVisible.value = false;
   } catch (error) {
-    if (error instanceof Error) {
-      ElMessage.error(error.message);
-    }
+    ElMessage.error(error instanceof Error ? error.message : '重置密码失败');
+  } finally {
+    saving.value = false;
   }
 }
 
@@ -849,13 +1020,52 @@ async function saveBatchOrg() {
 
 function openImport() {
   importText.value = '';
+  importFileName.value = '';
   importPreview.value = null;
+  if (importFileInput.value) {
+    importFileInput.value.value = '';
+  }
   importVisible.value = true;
+}
+
+function downloadImportTemplate() {
+  const header = activeKind.value === 'teacher' ? '工号,姓名,手机号,岗位,所属组织' : '学号,姓名,手机号,所在班级,所属组织';
+  const example = activeKind.value === 'teacher' ? 'T20240001,张老师,13800000000,实训教师,交通与车辆工程学院' : 'S20240301,王欣欣,15000000000,城轨车辆2501班,交通与车辆工程学院';
+  const blob = new Blob([`${header}\n${example}\n`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${activeKindLabel.value}导入模板.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleImportFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) {
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning('文件大小不能超过10MB');
+    return;
+  }
+  importFileName.value = file.name;
+  const reader = new FileReader();
+  reader.onload = () => {
+    importText.value = String(reader.result || '');
+    previewImportRows();
+  };
+  reader.onerror = () => ElMessage.error('文件读取失败');
+  reader.readAsText(file);
 }
 
 function parseImportRows(): AdminAccountImportRow[] {
   return importText.value
     .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line, index) => index > 0 || !/^(工号|学号),姓名,手机号/.test(line))
     .map((line, index) => {
       const [accountNo = '', realName = '', phone = ''] = line.split(',').map((item) => item.trim());
       return { rowNo: index + 1, accountNo, realName, phone, orgId: orgOptions.value[0]?.orgId, classId: activeKind.value === 'student' ? classOptions.value[0]?.classId : undefined };
@@ -883,6 +1093,13 @@ async function previewImportRows() {
 
 async function submitImportRows() {
   if (!importPreview.value) {
+    await previewImportRows();
+  }
+  if (!importPreview.value) {
+    return;
+  }
+  if (importPreview.value.errorCount > 0) {
+    ElMessage.warning('导入文件存在异常，请修改后重新上传');
     return;
   }
   saving.value = true;

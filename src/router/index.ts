@@ -8,6 +8,7 @@ import AdminCourses from '../views/admin/AdminCourses.vue';
 import AdminOrganization from '../views/admin/AdminOrganization.vue';
 import AdminPermissions from '../views/admin/AdminPermissions.vue';
 import AdminRoles from '../views/admin/AdminRoles.vue';
+import AdminSettings from '../views/admin/AdminSettings.vue';
 import AdminPublicApplications from '../views/admin/AdminPublicApplications.vue';
 import AdminPublicResources from '../views/admin/AdminPublicResources.vue';
 import AdminResources from '../views/admin/AdminResources.vue';
@@ -86,6 +87,11 @@ export const router = createRouter({
       path: '/admin/roles',
       name: 'admin-roles',
       component: AdminRoles
+    },
+    {
+      path: '/admin/settings',
+      name: 'admin-settings',
+      component: AdminSettings
     },
     {
       path: '/admin/personal-resource',
