@@ -314,7 +314,7 @@ describe('api http client', () => {
       .mockImplementationOnce(() => mockJsonResponse({ data: null }));
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(fetchAdminAccounts('teacher', { realName: '李', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(fetchAdminAccounts('teacher', { realName: '李', jobTitle: '信号', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
       records: [{ userId: 101, accountNo: 'T20240001' }],
       total: 1
     });
@@ -328,7 +328,7 @@ describe('api http client', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      '/api/admin/accounts/teachers?realName=%E6%9D%8E&enabled=true&page=1&pageSize=20',
+      '/api/admin/accounts/teachers?realName=%E6%9D%8E&jobTitle=%E4%BF%A1%E5%8F%B7&enabled=true&page=1&pageSize=20',
       expect.any(Object)
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
