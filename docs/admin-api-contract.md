@@ -367,6 +367,7 @@ Query:
 - `realName` optional fuzzy match.
 - `accountNo` optional fuzzy match.
 - `phone` optional fuzzy match.
+- `jobTitle` optional fuzzy match.
 - `enabled` optional boolean.
 - `page` default `1`.
 - `pageSize` default `20`, maximum `100`.
@@ -382,6 +383,7 @@ Query:
 - `realName` optional fuzzy match.
 - `accountNo` optional fuzzy match.
 - `phone` optional fuzzy match.
+- `jobTitle` optional fuzzy match.
 - `enabled` optional boolean.
 - `page` default `1`.
 - `pageSize` default `20`, maximum `100`.

@@ -28,6 +28,7 @@ These items have code-level evidence in the repository:
 - Swagger annotations are present on controller methods, and `springdoc-openapi-ui` exposes runtime docs at `/v3/api-docs` and `/swagger-ui.html` after backend startup.
 - Deployment scripts exist for Linux/macOS and Windows, and packaging scripts require `JRE8_HOME` or `deploy/runtime/jre8` so generated packages include `runtime/jre8`.
 - Admin file export endpoints now provide Excel-compatible UTF-8 BOM CSV downloads at `/export/file` while preserving JSON export endpoints.
+- Admin account management now supports backend-level fuzzy `jobTitle` filtering for teacher/student paged lists, JSON exports, and CSV exports.
 - The latest completed backend module has been pushed to `origin/chen/backend` and fast-forwarded to `origin/main`.
 - First-admin bootstrap code creates an optional environment-configured admin at startup only when no admin exists, stores only the hashed password, and documents the one-time deployment variables.
 - Static backend and deployment verification scripts can check Java 8 compiler settings, OpenAPI dependency presence, MySQL target metadata, bundled JRE packaging rules, first-admin bootstrap configuration, and the absence of seeded `sys_user` rows in SQL init scripts without starting the service.
