@@ -11,11 +11,6 @@
           <h1>个人资源库</h1>
           <p>统一维护个人资源的类型、专业、课程归属和公示状态</p>
         </div>
-        <div class="admin-resource-head-stats">
-          <span><strong>{{ totalCount }}</strong> 条资源</span>
-          <span><strong>{{ publishedCount }}</strong> 条已公示</span>
-          <span><strong>{{ pendingCount }}</strong> 条审核中</span>
-        </div>
       </header>
 
       <section class="admin-resource-filter-card">
@@ -40,25 +35,25 @@
           <el-button class="admin-resource-query-button" @click="applyFilters">查询</el-button>
           <el-button class="admin-resource-reset-button" @click="resetFilters">重置</el-button>
         </div>
-
-        <div class="admin-resource-actions-row">
-          <div class="admin-resource-selection">
-            <span>已选 <strong>{{ selectedIds.length }}</strong> 条</span>
-            <span>当前显示 <strong>{{ pagedResources.length }}</strong> 条</span>
-          </div>
-          <div class="admin-resource-actions">
-            <el-button class="admin-resource-lite-button" @click="openBatchEdit">批量修改</el-button>
-            <el-button class="admin-resource-lite-button danger" @click="batchDeleteResources">批量删除</el-button>
-            <el-button class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
-              <el-icon><Plus /></el-icon>
-              新增资源
-            </el-button>
-          </div>
-        </div>
       </section>
 
       <div class="admin-resource-layout" :class="{ 'has-panel': panelVisible }">
         <section class="admin-resource-board">
+          <header class="admin-resource-board-head">
+            <div>
+              <strong>资源列表</strong>
+              <p>共 {{ totalCount }} 条资源，当前已选 {{ selectedIds.length }} 条</p>
+            </div>
+            <div class="admin-resource-board-actions">
+              <el-button class="admin-resource-lite-button" @click="openBatchEdit">批量修改</el-button>
+              <el-button class="admin-resource-lite-button danger" @click="batchDeleteResources">批量删除</el-button>
+              <el-button class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
+                <el-icon><Plus /></el-icon>
+                新增资源
+              </el-button>
+            </div>
+          </header>
+
           <div v-if="loading" class="admin-resource-empty">资源加载中...</div>
           <div v-else-if="pagedResources.length === 0" class="admin-resource-empty">
             <el-empty description="暂无匹配资源" />
@@ -442,8 +437,6 @@ const publicStatusOptions: ResourceOption[] = [
 ];
 
 const totalCount = computed(() => filteredResources.value.length);
-const publishedCount = computed(() => filteredResources.value.filter((item) => item.statusTone === 'published').length);
-const pendingCount = computed(() => filteredResources.value.filter((item) => item.statusTone === 'reviewing').length);
 const filteredResources = computed(() =>
   resources.value.filter((item) => {
     const keyword = appliedFilters.value.keyword.trim().toLowerCase();

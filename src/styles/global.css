@@ -8217,32 +8217,42 @@ a {
   color: #51647e;
 }
 
+.admin-resource-lite-button.danger.el-button {
+  color: #dc2626;
+  border-color: #f3d6d6;
+  background: #fff;
+}
+
 .admin-resource-primary-button.el-button {
   border: 0;
   background: #2f80ed;
   color: #ffffff;
 }
 
-.admin-resource-actions-row {
+.admin-resource-board-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-height: 58px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #edf2f8;
 }
 
-.admin-resource-selection {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #66778e;
-  font-size: 13px;
-}
-
-.admin-resource-selection strong {
+.admin-resource-board-head strong {
   color: #17233d;
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.admin-resource-actions {
+.admin-resource-board-head p {
+  margin: 4px 0 0;
+  color: #6b7a8f;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.admin-resource-board-actions {
   display: flex;
   align-items: center;
   gap: 10px;
