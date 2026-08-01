@@ -113,7 +113,7 @@ public class AdminOrgService {
         List<AdminOrg> all = new ArrayList<AdminOrg>();
         if (source != null) {
             for (AdminOrg org : source) {
-                all.add(copy(org));
+                all.add(copyNode(org));
             }
         }
         Collections.sort(all, new OrgComparator());
