@@ -74,6 +74,7 @@
 - 2026-08-01: Admin personal resource library frontend now lives at `/admin/personal-resource`, with filterable list, right-side add/edit panel, detail drawer, operation logs, batch edit/delete, and public-application actions wired to `admin-resource` APIs; resource queries now forward keyword, type, major, status, and paging parameters to the backend.
 - 2026-08-01: Admin resource public application frontend now lives at `/admin/public-application`, with a filterable application queue, right-side application detail/review panel, and approve/reject dialog; it uses `admin/public-applications` list/detail/review APIs and falls back to local mock rows when the backend is unavailable.
 - 2026-08-01: Admin public resource library frontend now lives at `/admin/public-resource`, with a filterable list, right-side detail panel, version/history tabs, preview dialog, operation log drawer, and take-down application dialog; it uses `admin/public-resources` plus shared resource detail/log APIs and falls back to local mock rows when the backend is unavailable.
+- 2026-08-01: Admin public application frontend now keeps a Calicat-style 11-column review table plus preview, record, batch-review, and single-review dialogs; the latest polish tightened the column widths and secondary dialog layouts to keep the module dense and consistent with the rest of the admin UI.
 
 ## Operational Notes
 
