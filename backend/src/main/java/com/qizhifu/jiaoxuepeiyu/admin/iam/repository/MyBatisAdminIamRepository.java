@@ -35,6 +35,16 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     }
 
     @Override
+    public Long findPermissionIdByNameAndParent(String permissionName, Long parentId) {
+        return mapper.findPermissionIdByNameAndParent(permissionName, parentId);
+    }
+
+    @Override
+    public Long findPermissionIdByRoutePath(String routePath) {
+        return mapper.findPermissionIdByRoutePath(routePath);
+    }
+
+    @Override
     public Long createPermission(AdminPermissionCommand command) {
         mapper.insertPermission(command);
         return command.getPermissionId();
@@ -49,6 +59,11 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     @Override
     public void updatePermissionStatus(Long permissionId, boolean visible) {
         mapper.updatePermissionStatus(permissionId, visible ? 1 : 0);
+    }
+
+    @Override
+    public void updatePermissionSort(Long permissionId, Integer sortOrder) {
+        mapper.updatePermissionSort(permissionId, sortOrder);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.AdminIamService;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -72,6 +73,14 @@ public class AdminIamController {
     @Operation(summary = "Delete permission node", description = "Deletes an unbound leaf permission node from the permission tree.")
     public ApiResponse<Void> deletePermission(@PathVariable Long permissionId, HttpServletRequest request) {
         service.deletePermission(permissionId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    @PutMapping("/api/admin/permissions/sort")
+    @Operation(summary = "Update permission sort order", description = "Persists drag-sort order for menu, page, or button permission nodes within their current parent group.")
+    public ApiResponse<Void> updatePermissionSorts(@RequestBody AdminPermissionSortCommand body,
+                                                   HttpServletRequest request) {
+        service.updatePermissionSorts(body, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 

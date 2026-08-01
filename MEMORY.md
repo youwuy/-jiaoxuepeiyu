@@ -78,6 +78,7 @@
 - 2026-08-01: Admin public resource library frontend now lives at `/admin/public-resource`, with a filterable list, right-side detail panel, version/history tabs, preview dialog, operation log drawer, and take-down application dialog; it uses `admin/public-resources` plus shared resource detail/log APIs and falls back to local mock rows when the backend is unavailable.
 - 2026-08-01: Admin public application frontend now keeps a Calicat-style 11-column review table plus preview, record, batch-review, and single-review dialogs; the latest polish tightened the column widths and secondary dialog layouts to keep the module dense and consistent with the rest of the admin UI.
 - 2026-08-01: Admin theory question frontend now lives at `/admin/theory-question`, with a Calicat-style question bank table, filters, create/edit side panel, question preview, import validation dialog, logs drawer, and enable/disable actions wired to `/api/admin/questions` with local fallback rows.
+- 2026-08-01: Admin function management uses `sys_permission` through `/api/admin/permissions/**`; backend enforces MENU/PAGE/BUTTON hierarchy, 8-character same-parent unique names, globally unique 100-character route paths, recursive hide for descendants, leaf-only delete, and `/api/admin/permissions/sort` for drag-sort persistence.
 
 ## Operational Notes
 

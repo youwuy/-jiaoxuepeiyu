@@ -30,6 +30,18 @@ public interface AdminIamMapper {
     @Select("SELECT id FROM sys_permission WHERE permission_code = #{permissionCode} LIMIT 1")
     Long findPermissionIdByCode(@Param("permissionCode") String permissionCode);
 
+    @Select("<script>"
+            + "SELECT id FROM sys_permission WHERE permission_name = #{permissionName} "
+            + "<choose><when test='parentId == null'>AND parent_id IS NULL</when>"
+            + "<otherwise>AND parent_id = #{parentId}</otherwise></choose> "
+            + "LIMIT 1"
+            + "</script>")
+    Long findPermissionIdByNameAndParent(@Param("permissionName") String permissionName,
+                                         @Param("parentId") Long parentId);
+
+    @Select("SELECT id FROM sys_permission WHERE route_path = #{routePath} LIMIT 1")
+    Long findPermissionIdByRoutePath(@Param("routePath") String routePath);
+
     @Insert("INSERT INTO sys_permission (parent_id, permission_name, permission_code, permission_type, "
             + "route_path, visible, sort_order, created_at, updated_at) "
             + "VALUES (#{parentId}, #{permissionName}, #{permissionCode}, #{permissionType}, "
@@ -45,6 +57,9 @@ public interface AdminIamMapper {
 
     @Update("UPDATE sys_permission SET visible = #{visible}, updated_at = NOW() WHERE id = #{permissionId}")
     void updatePermissionStatus(@Param("permissionId") Long permissionId, @Param("visible") int visible);
+
+    @Update("UPDATE sys_permission SET sort_order = #{sortOrder}, updated_at = NOW() WHERE id = #{permissionId}")
+    void updatePermissionSort(@Param("permissionId") Long permissionId, @Param("sortOrder") Integer sortOrder);
 
     @Delete("DELETE FROM sys_permission WHERE id = #{permissionId}")
     void deletePermission(@Param("permissionId") Long permissionId);

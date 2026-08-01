@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.controller.AdminIamController;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortItem;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -13,6 +15,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -52,9 +55,10 @@ class AdminIamControllerTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("X-User-Id", "9");
         AdminPermissionCommand command = new AdminPermissionCommand();
-        command.setPermissionName("Course Center");
+        command.setPermissionName("Courses");
         command.setPermissionCode("course:center");
         command.setPermissionType("MENU");
+        command.setRoutePath("/courses");
 
         Long permissionId = controller.createPermission(command, request).getData();
 
@@ -62,9 +66,30 @@ class AdminIamControllerTests {
         assertEquals("course:center", repository.savedPermissionCommand.getPermissionCode());
     }
 
+    @Test
+    void updatePermissionSortsPersistsSubmittedOrder() {
+        FakeIam repository = new FakeIam();
+        AdminIamController controller = new AdminIamController(new AdminIamService(repository));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-User-Id", "9");
+        AdminPermissionSortCommand command = new AdminPermissionSortCommand();
+        AdminPermissionSortItem item = new AdminPermissionSortItem();
+        item.setPermissionId(41L);
+        item.setParentId(null);
+        item.setSortOrder(2);
+        command.setItems(Arrays.asList(item));
+
+        controller.updatePermissionSorts(command, request);
+
+        assertEquals(41L, repository.sortedPermissionId.longValue());
+        assertEquals(2, repository.sortedOrder.intValue());
+    }
+
     private static class FakeIam implements AdminIamRepository {
         private Long operatorId;
         private AdminPermissionCommand savedPermissionCommand;
+        private Long sortedPermissionId;
+        private Integer sortedOrder;
 
         @Override
         public List<AdminPermission> findPermissions() {
@@ -84,6 +109,16 @@ class AdminIamControllerTests {
         }
 
         @Override
+        public Long findPermissionIdByNameAndParent(String permissionName, Long parentId) {
+            return null;
+        }
+
+        @Override
+        public Long findPermissionIdByRoutePath(String routePath) {
+            return null;
+        }
+
+        @Override
         public Long createPermission(AdminPermissionCommand command) {
             this.savedPermissionCommand = command;
             return 41L;
@@ -96,6 +131,12 @@ class AdminIamControllerTests {
 
         @Override
         public void updatePermissionStatus(Long permissionId, boolean visible) {
+        }
+
+        @Override
+        public void updatePermissionSort(Long permissionId, Integer sortOrder) {
+            this.sortedPermissionId = permissionId;
+            this.sortedOrder = sortOrder;
         }
 
         @Override

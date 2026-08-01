@@ -256,7 +256,7 @@
               <el-input v-model="draft.realName" :prefix-icon="Search" placeholder="姓名搜索" clearable @keyup.enter="applySearch" />
               <el-input v-model="draft.accountNo" :prefix-icon="Search" :placeholder="activeKind === 'teacher' ? '工号搜索' : '学号搜索'" clearable @keyup.enter="applySearch" />
               <el-input v-model="draft.phone" :prefix-icon="Search" placeholder="手机号搜索" clearable @keyup.enter="applySearch" />
-              <el-input v-if="activeKind === 'teacher'" v-model="draftJobTitle" :prefix-icon="Search" placeholder="岗位搜索" clearable @keyup.enter="applySearch" />
+              <el-input v-if="activeKind === 'teacher'" v-model="draft.jobTitle" :prefix-icon="Search" placeholder="岗位搜索" clearable @keyup.enter="applySearch" />
               <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="所在班级" clearable filterable>
                 <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
               </el-select>
@@ -571,8 +571,6 @@ const tabs = ref(mockAdminAccountTabs);
 const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminAccountQuery>({});
 const draft = reactive<AdminAccountQuery>({ enabled: null });
-const draftJobTitle = ref('');
-const jobTitleKeyword = ref('');
 const selectedOrgId = ref(0);
 const orgTree = ref(mockAccountOrgTree);
 const classOptions = ref<AdminClassOption[]>(mockAdminClasses);
@@ -630,13 +628,7 @@ const orgTreeWithAll = computed(() => [
     children: orgTree.value
   }
 ]);
-const visibleAccounts = computed(() => {
-  const keyword = jobTitleKeyword.value.trim();
-  if (activeKind.value !== 'teacher' || !keyword) {
-    return accounts.value;
-  }
-  return accounts.value.filter((row) => (row.jobTitle || '').includes(keyword));
-});
+const visibleAccounts = computed(() => accounts.value);
 const allCurrentSelected = computed(() => visibleAccounts.value.length > 0 && visibleAccounts.value.every((row) => selectedIds.value.includes(row.userId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
 
@@ -708,19 +700,17 @@ function switchKind(kind: AdminAccountKind) {
   activeKind.value = kind;
   page.page = 1;
   Object.assign(query, {});
-  draftJobTitle.value = '';
-  jobTitleKeyword.value = '';
   selectedOrgId.value = 0;
-  Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
+  Object.assign(draft, { realName: '', accountNo: '', phone: '', jobTitle: '', orgId: null, classId: null, enabled: null });
   loadAccounts();
 }
 
 function applySearch() {
-  jobTitleKeyword.value = draftJobTitle.value.trim();
   Object.assign(query, {
     realName: draft.realName?.trim() || undefined,
     accountNo: draft.accountNo?.trim() || undefined,
     phone: draft.phone?.trim() || undefined,
+    jobTitle: activeKind.value === 'teacher' ? draft.jobTitle?.trim() || undefined : undefined,
     orgId: draft.orgId || undefined,
     classId: activeKind.value === 'student' ? draft.classId || undefined : undefined,
     enabled: draft.enabled
@@ -730,11 +720,9 @@ function applySearch() {
 }
 
 function resetSearch() {
-  draftJobTitle.value = '';
-  jobTitleKeyword.value = '';
   selectedOrgId.value = 0;
-  Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
-  Object.assign(query, { realName: undefined, accountNo: undefined, phone: undefined, orgId: undefined, classId: undefined, enabled: undefined });
+  Object.assign(draft, { realName: '', accountNo: '', phone: '', jobTitle: '', orgId: null, classId: null, enabled: null });
+  Object.assign(query, { realName: undefined, accountNo: undefined, phone: undefined, jobTitle: undefined, orgId: undefined, classId: undefined, enabled: undefined });
   page.page = 1;
   loadAccounts();
 }

@@ -2,6 +2,8 @@ package com.qizhifu.jiaoxuepeiyu.admin.iam;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortItem;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -24,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminIamService {
 
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int MAX_PERMISSION_NAME_LENGTH = 8;
+    private static final int MAX_ROUTE_PATH_LENGTH = 100;
     private static final Set<String> DATA_SCOPES = new HashSet<String>(
             Arrays.asList("PERSONAL", "MANAGED_ORG", "ALL"));
     private static final Set<String> PERMISSION_TYPES = new HashSet<String>(
@@ -57,8 +61,10 @@ public class AdminIamService {
     public Long createPermission(AdminPermissionCommand command, Long operatorId) {
         requireOperator(operatorId);
         AdminPermissionCommand normalized = normalizedPermission(command, null);
-        assertParentExists(normalized.getParentId());
+        assertPermissionHierarchy(normalized, null);
+        assertPermissionNameAvailable(normalized.getPermissionName(), normalized.getParentId(), null);
         assertPermissionCodeAvailable(normalized.getPermissionCode(), null);
+        assertPermissionRoutePathAvailable(normalized.getRoutePath(), null);
         return repository.createPermission(normalized);
     }
 
@@ -67,8 +73,10 @@ public class AdminIamService {
         requireOperator(operatorId);
         getPermission(permissionId);
         AdminPermissionCommand normalized = normalizedPermission(command, permissionId);
-        assertParentExists(normalized.getParentId());
+        assertPermissionHierarchy(normalized, permissionId);
+        assertPermissionNameAvailable(normalized.getPermissionName(), normalized.getParentId(), permissionId);
         assertPermissionCodeAvailable(normalized.getPermissionCode(), permissionId);
+        assertPermissionRoutePathAvailable(normalized.getRoutePath(), permissionId);
         repository.updatePermission(permissionId, normalized);
     }
 
@@ -83,7 +91,9 @@ public class AdminIamService {
     public void disablePermission(Long permissionId, Long operatorId) {
         requireOperator(operatorId);
         getPermission(permissionId);
-        repository.updatePermissionStatus(permissionId, false);
+        for (Long id : collectPermissionSubtreeIds(permissionId)) {
+            repository.updatePermissionStatus(id, false);
+        }
     }
 
     @Transactional
@@ -97,6 +107,29 @@ public class AdminIamService {
             throw new BusinessException(400, "Permission is bound to roles");
         }
         repository.deletePermission(permissionId);
+    }
+
+    @Transactional
+    public void updatePermissionSorts(AdminPermissionSortCommand command, Long operatorId) {
+        requireOperator(operatorId);
+        if (command == null || command.getItems() == null) {
+            return;
+        }
+        Set<Long> seen = new HashSet<Long>();
+        for (AdminPermissionSortItem item : command.getItems()) {
+            if (item == null || item.getPermissionId() == null || item.getPermissionId().longValue() <= 0) {
+                continue;
+            }
+            if (seen.contains(item.getPermissionId())) {
+                continue;
+            }
+            seen.add(item.getPermissionId());
+            AdminPermission permission = getPermission(item.getPermissionId());
+            if (item.getParentId() != null && !item.getParentId().equals(permission.getParentId())) {
+                throw new BusinessException(400, "Permission parent cannot be changed by sorting");
+            }
+            repository.updatePermissionSort(item.getPermissionId(), item.getSortOrder() == null ? 0 : item.getSortOrder());
+        }
     }
 
     public PageResponse<AdminRole> listRoles(AdminRoleQuery query) {
@@ -221,6 +254,9 @@ public class AdminIamService {
         if (permissionName == null) {
             throw new BusinessException(400, "Permission name is required");
         }
+        if (permissionName.length() > MAX_PERMISSION_NAME_LENGTH) {
+            throw new BusinessException(400, "Permission name cannot exceed 8 characters");
+        }
         String permissionCode = trimToNull(command.getPermissionCode());
         if (permissionCode == null) {
             throw new BusinessException(400, "Permission code is required");
@@ -229,15 +265,50 @@ public class AdminIamService {
         if (!PERMISSION_TYPES.contains(permissionType)) {
             throw new BusinessException(400, "Permission type is invalid");
         }
+        String routePath = trimToNull(command.getRoutePath());
+        if (routePath == null) {
+            throw new BusinessException(400, "Permission route path is required");
+        }
+        if (routePath.length() > MAX_ROUTE_PATH_LENGTH) {
+            throw new BusinessException(400, "Permission route path cannot exceed 100 characters");
+        }
         AdminPermissionCommand normalized = new AdminPermissionCommand();
         normalized.setParentId(parentId);
         normalized.setPermissionName(permissionName);
         normalized.setPermissionCode(permissionCode);
         normalized.setPermissionType(permissionType);
-        normalized.setRoutePath(trimToNull(command.getRoutePath()));
+        normalized.setRoutePath(routePath);
         normalized.setVisible(command.getVisible() == null ? Boolean.TRUE : command.getVisible());
         normalized.setSortOrder(command.getSortOrder() == null ? 0 : command.getSortOrder());
         return normalized;
+    }
+
+    private void assertPermissionHierarchy(AdminPermissionCommand command, Long permissionId) {
+        if ("MENU".equals(command.getPermissionType())) {
+            if (command.getParentId() != null) {
+                throw new BusinessException(400, "Top-level menu cannot have parent");
+            }
+            return;
+        }
+        if (command.getParentId() == null) {
+            if ("PAGE".equals(command.getPermissionType())) {
+                throw new BusinessException(400, "Second-level menu parent is required");
+            }
+            throw new BusinessException(400, "Button parent is required");
+        }
+        AdminPermission parent = repository.findPermission(command.getParentId());
+        if (parent == null) {
+            throw new BusinessException(400, "Parent permission not found");
+        }
+        if (permissionId != null && isDescendant(command.getParentId(), permissionId)) {
+            throw new BusinessException(400, "Permission cannot use descendant as parent");
+        }
+        if ("PAGE".equals(command.getPermissionType()) && !"MENU".equals(parent.getPermissionType())) {
+            throw new BusinessException(400, "Second-level menu parent must be a MENU permission");
+        }
+        if ("BUTTON".equals(command.getPermissionType()) && !"PAGE".equals(parent.getPermissionType())) {
+            throw new BusinessException(400, "Button parent must be a PAGE permission");
+        }
     }
 
     private void assertPermissionCodeAvailable(String permissionCode, Long currentPermissionId) {
@@ -247,9 +318,59 @@ public class AdminIamService {
         }
     }
 
-    private void assertParentExists(Long parentId) {
-        if (parentId != null && repository.findPermission(parentId) == null) {
-            throw new BusinessException(400, "Parent permission not found");
+    private void assertPermissionNameAvailable(String permissionName, Long parentId, Long currentPermissionId) {
+        Long existingPermissionId = repository.findPermissionIdByNameAndParent(permissionName, parentId);
+        if (existingPermissionId != null && !existingPermissionId.equals(currentPermissionId)) {
+            throw new BusinessException(400, "Permission name already exists under parent");
+        }
+    }
+
+    private void assertPermissionRoutePathAvailable(String routePath, Long currentPermissionId) {
+        Long existingPermissionId = repository.findPermissionIdByRoutePath(routePath);
+        if (existingPermissionId != null && !existingPermissionId.equals(currentPermissionId)) {
+            throw new BusinessException(400, "Permission route path already exists");
+        }
+    }
+
+    private boolean isDescendant(Long candidateParentId, Long permissionId) {
+        for (AdminPermission permission : repository.findPermissions()) {
+            if (candidateParentId.equals(permission.getPermissionId())) {
+                Long parentId = permission.getParentId();
+                while (parentId != null) {
+                    if (permissionId.equals(parentId)) {
+                        return true;
+                    }
+                    AdminPermission parent = findPermissionInList(parentId);
+                    parentId = parent == null ? null : parent.getParentId();
+                }
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private AdminPermission findPermissionInList(Long permissionId) {
+        for (AdminPermission permission : repository.findPermissions()) {
+            if (permissionId.equals(permission.getPermissionId())) {
+                return permission;
+            }
+        }
+        return null;
+    }
+
+    private List<Long> collectPermissionSubtreeIds(Long permissionId) {
+        List<AdminPermission> permissions = repository.findPermissions();
+        List<Long> ids = new ArrayList<Long>();
+        collectPermissionSubtreeIds(permissionId, permissions, ids);
+        return ids;
+    }
+
+    private void collectPermissionSubtreeIds(Long permissionId, List<AdminPermission> permissions, List<Long> ids) {
+        ids.add(permissionId);
+        for (AdminPermission permission : permissions) {
+            if (permissionId.equals(permission.getParentId())) {
+                collectPermissionSubtreeIds(permission.getPermissionId(), permissions, ids);
+            }
         }
     }
 

@@ -14,6 +14,7 @@ import {
   disableAdminPermission,
   enableAdminPermission,
   fetchAdminPermissionTree,
+  updateAdminPermissionSorts,
   updateAdminPermission
 } from '../src/api/admin-permission';
 import {
@@ -256,6 +257,7 @@ describe('api http client', () => {
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }));
     globalThis.fetch = fetchMock as typeof fetch;
 
@@ -264,6 +266,7 @@ describe('api http client', () => {
     await updateAdminPermission(12, command);
     await disableAdminPermission(12);
     await enableAdminPermission(12);
+    await updateAdminPermissionSorts([{ permissionId: 12, parentId: null, sortOrder: 4 }]);
     await deleteAdminPermission(12);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/permissions/tree', expect.any(Object));
@@ -279,7 +282,12 @@ describe('api http client', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/permissions/12/disable', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/permissions/12/enable', expect.objectContaining({ method: 'POST' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/admin/permissions/12/delete', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      '/api/admin/permissions/sort',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ items: [{ permissionId: 12, parentId: null, sortOrder: 4 }] }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/permissions/12/delete', expect.objectContaining({ method: 'POST' }));
   });
 
   it('uses the documented admin account management endpoints', async () => {
@@ -314,7 +322,7 @@ describe('api http client', () => {
       .mockImplementationOnce(() => mockJsonResponse({ data: null }));
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(fetchAdminAccounts('teacher', { realName: '李', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(fetchAdminAccounts('teacher', { realName: '李', jobTitle: '信号', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
       records: [{ userId: 101, accountNo: 'T20240001' }],
       total: 1
     });
@@ -328,7 +336,7 @@ describe('api http client', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      '/api/admin/accounts/teachers?realName=%E6%9D%8E&enabled=true&page=1&pageSize=20',
+      '/api/admin/accounts/teachers?realName=%E6%9D%8E&jobTitle=%E4%BF%A1%E5%8F%B7&enabled=true&page=1&pageSize=20',
       expect.any(Object)
     );
     expect(fetchMock).toHaveBeenNthCalledWith(

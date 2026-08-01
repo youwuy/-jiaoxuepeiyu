@@ -210,7 +210,18 @@ const pagedRows = computed(() => flattenedRows.value.slice((currentPage.value - 
 const dialogTitle = computed(() => (drawerMode.value === 'edit' ? '编辑菜单' : '新增菜单'));
 const parentOptions = computed(() =>
   flattenAllAdminPermissions(permissionTree.value)
-    .filter((item) => item.permissionType !== 'BUTTON' && item.permissionId !== editingPermission.value?.permissionId)
+    .filter((item) => {
+      if (item.permissionId === editingPermission.value?.permissionId) {
+        return false;
+      }
+      if (form.permissionType === 'PAGE') {
+        return item.permissionType === 'MENU';
+      }
+      if (form.permissionType === 'BUTTON') {
+        return item.permissionType === 'PAGE';
+      }
+      return false;
+    })
     .map((item) => ({ ...item, label: `${'　'.repeat(findLevel(item.permissionId))}${item.permissionName}` }))
 );
 
@@ -332,8 +343,15 @@ function validateForm(): AdminPermissionCommand {
     throw new Error('请输入菜单名称');
   }
 
+  if (form.permissionType !== 'MENU' && !form.parentId) {
+    throw new Error('请选择父级菜单');
+  }
+
   if (form.permissionType !== 'BUTTON' && !routePath) {
     throw new Error('请输入路由地址');
+  }
+  if (form.permissionType === 'BUTTON' && !routePath) {
+    throw new Error('请输入按钮权限标识');
   }
 
   return {
