@@ -96,6 +96,16 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     }
 
     @Override
+    public Long findRoleIdByName(String roleName) {
+        return mapper.findRoleIdByName(roleName);
+    }
+
+    @Override
+    public Long findRoleIdByCode(String roleCode) {
+        return mapper.findRoleIdByCode(roleCode);
+    }
+
+    @Override
     public AdminRole findRole(Long roleId) {
         AdminRole role = mapper.findRole(roleId);
         if (role != null) {

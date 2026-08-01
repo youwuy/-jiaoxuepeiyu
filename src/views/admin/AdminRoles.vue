@@ -417,6 +417,9 @@ function validateForm() {
   if (!form.roleCode.trim()) {
     form.roleCode = roleCodeFromName(form.roleName);
   }
+  if (form.permissionIds.length === 0) {
+    throw new Error('请至少选择一项功能权限');
+  }
 }
 
 function roleCodeFromName(value: string) {

@@ -29,7 +29,7 @@ public class AdminIamService {
     private static final int MAX_PERMISSION_NAME_LENGTH = 8;
     private static final int MAX_ROUTE_PATH_LENGTH = 100;
     private static final Set<String> DATA_SCOPES = new HashSet<String>(
-            Arrays.asList("PERSONAL", "MANAGED_ORG", "ALL"));
+            Arrays.asList("SELF", "ORG_ONLY", "ALL", "PERSONAL", "MANAGED_ORG"));
     private static final Set<String> PERMISSION_TYPES = new HashSet<String>(
             Arrays.asList("MENU", "PAGE", "BUTTON"));
 
@@ -161,6 +161,9 @@ public class AdminIamService {
     public Long createRole(AdminRoleCommand command, Long operatorId) {
         requireOperator(operatorId);
         AdminRoleCommand normalized = normalizedRole(command);
+        assertNotReservedSuperAdmin(normalized);
+        assertRoleNameAvailable(normalized.getRoleName(), null);
+        assertRoleCodeAvailable(normalized.getRoleCode(), null);
         Long roleId = repository.createRole(normalized);
         repository.replacePermissions(roleId, normalized.getPermissionIds(), normalized.getDataScope());
         repository.appendRoleLog(roleId, operatorId, "CREATE", "Create role");
@@ -170,8 +173,12 @@ public class AdminIamService {
     @Transactional
     public void updateRole(Long roleId, AdminRoleCommand command, Long operatorId) {
         requireOperator(operatorId);
-        getRole(roleId);
+        AdminRole role = getRole(roleId);
+        assertMutableRole(role);
         AdminRoleCommand normalized = normalizedRole(command);
+        assertNotReservedSuperAdmin(normalized);
+        assertRoleNameAvailable(normalized.getRoleName(), roleId);
+        assertRoleCodeAvailable(normalized.getRoleCode(), roleId);
         repository.updateRole(roleId, normalized);
         repository.replacePermissions(roleId, normalized.getPermissionIds(), normalized.getDataScope());
         repository.appendRoleLog(roleId, operatorId, "UPDATE", "Update role");
@@ -180,7 +187,8 @@ public class AdminIamService {
     @Transactional
     public void enableRole(Long roleId, Long operatorId) {
         requireOperator(operatorId);
-        getRole(roleId);
+        AdminRole role = getRole(roleId);
+        assertMutableRole(role);
         repository.updateStatus(roleId, true);
         repository.appendRoleLog(roleId, operatorId, "ENABLE", "Enable role");
     }
@@ -188,7 +196,8 @@ public class AdminIamService {
     @Transactional
     public void disableRole(Long roleId, Long operatorId) {
         requireOperator(operatorId);
-        getRole(roleId);
+        AdminRole role = getRole(roleId);
+        assertMutableRole(role);
         repository.updateStatus(roleId, false);
         repository.appendRoleLog(roleId, operatorId, "DISABLE", "Disable role");
     }
@@ -196,7 +205,8 @@ public class AdminIamService {
     @Transactional
     public void deleteRole(Long roleId, Long operatorId) {
         requireOperator(operatorId);
-        getRole(roleId);
+        AdminRole role = getRole(roleId);
+        assertMutableRole(role);
         repository.deleteRole(roleId);
         repository.appendRoleLog(roleId, operatorId, "DELETE", "Delete role");
     }
@@ -205,7 +215,12 @@ public class AdminIamService {
     public void updateRolePermissions(Long roleId, AdminRolePermissionCommand command, Long operatorId) {
         requireOperator(operatorId);
         AdminRole role = getRole(roleId);
-        repository.replacePermissions(roleId, unique(command == null ? null : command.getPermissionIds()), role.getDataScope());
+        assertMutableRole(role);
+        List<Long> permissionIds = unique(command == null ? null : command.getPermissionIds());
+        if (permissionIds.isEmpty()) {
+            throw new BusinessException(400, "Role permissions are required");
+        }
+        repository.replacePermissions(roleId, permissionIds, role.getDataScope());
         repository.appendRoleLog(roleId, operatorId, "UPDATE_PERMISSIONS", "Update role permissions");
     }
 
@@ -228,18 +243,58 @@ public class AdminIamService {
         }
         String dataScope = upper(trimToNull(command.getDataScope()));
         if (dataScope == null) {
-            dataScope = "PERSONAL";
+            dataScope = "SELF";
         }
         if (!DATA_SCOPES.contains(dataScope)) {
             throw new BusinessException(400, "Role data scope is invalid");
         }
+        List<Long> permissionIds = unique(command.getPermissionIds());
+        if (permissionIds.isEmpty()) {
+            throw new BusinessException(400, "Role permissions are required");
+        }
         AdminRoleCommand normalized = new AdminRoleCommand();
         normalized.setRoleName(roleName);
         normalized.setRoleCode(roleCode);
-        normalized.setDataScope(dataScope);
+        normalized.setDataScope(normalizedDataScope(dataScope));
         normalized.setRemark(trimToNull(command.getRemark()));
-        normalized.setPermissionIds(unique(command.getPermissionIds()));
+        normalized.setPermissionIds(permissionIds);
         return normalized;
+    }
+
+    private String normalizedDataScope(String dataScope) {
+        if ("PERSONAL".equals(dataScope)) {
+            return "SELF";
+        }
+        if ("MANAGED_ORG".equals(dataScope)) {
+            return "ORG_ONLY";
+        }
+        return dataScope;
+    }
+
+    private void assertRoleNameAvailable(String roleName, Long currentRoleId) {
+        Long existingRoleId = repository.findRoleIdByName(roleName);
+        if (existingRoleId != null && !existingRoleId.equals(currentRoleId)) {
+            throw new BusinessException(400, "Role name already exists");
+        }
+    }
+
+    private void assertRoleCodeAvailable(String roleCode, Long currentRoleId) {
+        Long existingRoleId = repository.findRoleIdByCode(roleCode);
+        if (existingRoleId != null && !existingRoleId.equals(currentRoleId)) {
+            throw new BusinessException(400, "Role code already exists");
+        }
+    }
+
+    private void assertMutableRole(AdminRole role) {
+        if ("super_admin".equals(role.getRoleCode()) || "超级管理员".equals(role.getRoleName())) {
+            throw new BusinessException(400, "Built-in super admin role cannot be changed");
+        }
+    }
+
+    private void assertNotReservedSuperAdmin(AdminRoleCommand command) {
+        if ("super_admin".equals(command.getRoleCode()) || "超级管理员".equals(command.getRoleName())) {
+            throw new BusinessException(400, "Built-in super admin role is reserved");
+        }
     }
 
     private AdminPermissionCommand normalizedPermission(AdminPermissionCommand command, Long permissionId) {

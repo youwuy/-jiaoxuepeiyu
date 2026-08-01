@@ -42,7 +42,7 @@ class AdminIamServiceTests {
 
         assertEquals(31L, roleId.longValue());
         assertEquals("Teacher", repository.savedCommand.getRoleName());
-        assertEquals("MANAGED_ORG", repository.savedCommand.getDataScope());
+        assertEquals("ORG_ONLY", repository.savedCommand.getDataScope());
         assertEquals("CREATE", repository.lastLogAction);
     }
 
@@ -55,6 +55,70 @@ class AdminIamServiceTests {
         BusinessException exception = assertThrows(BusinessException.class, () -> service.createRole(command, 9L));
 
         assertEquals("Role data scope is invalid", exception.getMessage());
+    }
+
+    @Test
+    void rejectsRoleWithoutPermissions() {
+        AdminIamService service = new AdminIamService(new FakeIam());
+        AdminRoleCommand command = roleCommand();
+        command.setPermissionIds(new ArrayList<Long>());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createRole(command, 9L));
+
+        assertEquals("Role permissions are required", exception.getMessage());
+    }
+
+    @Test
+    void rejectsDuplicateRoleNameOrCode() {
+        FakeIam repository = new FakeIam();
+        repository.existingRoleIdByName = 32L;
+        AdminIamService service = new AdminIamService(repository);
+
+        BusinessException nameException = assertThrows(BusinessException.class,
+                () -> service.createRole(roleCommand(), 9L));
+        assertEquals("Role name already exists", nameException.getMessage());
+
+        repository.existingRoleIdByName = null;
+        repository.existingRoleIdByCode = 33L;
+        BusinessException codeException = assertThrows(BusinessException.class,
+                () -> service.createRole(roleCommand(), 9L));
+        assertEquals("Role code already exists", codeException.getMessage());
+    }
+
+    @Test
+    void protectsSuperAdminRoleFromMutation() {
+        FakeIam repository = new FakeIam();
+        repository.role = new AdminRole();
+        repository.role.setRoleId(1L);
+        repository.role.setRoleName("超级管理员");
+        repository.role.setRoleCode("super_admin");
+        repository.role.setDataScope("ALL");
+        AdminIamService service = new AdminIamService(repository);
+
+        BusinessException updateException = assertThrows(BusinessException.class,
+                () -> service.updateRole(1L, roleCommand(), 9L));
+        assertEquals("Built-in super admin role cannot be changed", updateException.getMessage());
+
+        BusinessException disableException = assertThrows(BusinessException.class,
+                () -> service.disableRole(1L, 9L));
+        assertEquals("Built-in super admin role cannot be changed", disableException.getMessage());
+
+        BusinessException deleteException = assertThrows(BusinessException.class,
+                () -> service.deleteRole(1L, 9L));
+        assertEquals("Built-in super admin role cannot be changed", deleteException.getMessage());
+    }
+
+    @Test
+    void rejectsCreatingReservedSuperAdminRole() {
+        AdminIamService service = new AdminIamService(new FakeIam());
+        AdminRoleCommand command = roleCommand();
+        command.setRoleCode("super_admin");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createRole(command, 9L));
+
+        assertEquals("Built-in super admin role is reserved", exception.getMessage());
     }
 
     @Test
@@ -238,7 +302,7 @@ class AdminIamServiceTests {
         AdminRoleCommand command = new AdminRoleCommand();
         command.setRoleName(" Teacher ");
         command.setRoleCode("teacher");
-        command.setDataScope("managed_org");
+        command.setDataScope("ORG_ONLY");
         command.setPermissionIds(Arrays.asList(1L, 2L));
         return command;
     }
@@ -299,6 +363,8 @@ class AdminIamServiceTests {
         private Long existingPermissionIdByCode;
         private Long existingPermissionIdByName;
         private Long existingPermissionIdByRoutePath;
+        private Long existingRoleIdByName;
+        private Long existingRoleIdByCode;
         private List<Long> statusPermissionIds = new ArrayList<Long>();
         private List<Boolean> statusValues = new ArrayList<Boolean>();
         private List<Long> sortedPermissionIds = new ArrayList<Long>();
@@ -382,6 +448,16 @@ class AdminIamServiceTests {
         @Override
         public long countRoles(AdminRoleQuery query) {
             return 0;
+        }
+
+        @Override
+        public Long findRoleIdByName(String roleName) {
+            return existingRoleIdByName;
+        }
+
+        @Override
+        public Long findRoleIdByCode(String roleCode) {
+            return existingRoleIdByCode;
         }
 
         @Override

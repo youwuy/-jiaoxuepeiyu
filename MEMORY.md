@@ -76,6 +76,7 @@
 - 2026-08-01: Admin personal resource library frontend now lives at `/admin/personal-resource`, with filterable list, right-side add/edit panel, detail drawer, operation logs, batch edit/delete, and public-application actions wired to `admin-resource` APIs; resource queries now forward keyword, type, major, status, and paging parameters to the backend.
 - 2026-08-01: Admin resource public application frontend now lives at `/admin/public-application`, with a filterable application queue, right-side application detail/review panel, and approve/reject dialog; it uses `admin/public-applications` list/detail/review APIs and falls back to local mock rows when the backend is unavailable.
 - 2026-08-01: Admin function management uses `sys_permission` through `/api/admin/permissions/**`; backend enforces MENU/PAGE/BUTTON hierarchy, 8-character same-parent unique names, globally unique 100-character route paths, recursive hide for descendants, leaf-only delete, and `/api/admin/permissions/sort` for drag-sort persistence.
+- 2026-08-01: Admin role management frontend and backend now use data scopes `SELF`, `ORG_ONLY`, and `ALL`; backend still accepts legacy `PERSONAL` and `MANAGED_ORG` inputs but normalizes responses and persisted new writes to frontend-facing values. Role creation/update requires non-empty permission ids, globally unique role name/code, and protects built-in `super_admin` from edit/disable/delete.
 
 ## Operational Notes
 

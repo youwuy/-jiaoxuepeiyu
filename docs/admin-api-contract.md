@@ -2109,7 +2109,7 @@ Each row:
 - `roleId`
 - `roleName`
 - `roleCode`
-- `dataScope`: `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `dataScope`: `SELF`, `ORG_ONLY`, or `ALL`.
 - `remark`
 - `enabled`
 - `userCount`
@@ -2131,9 +2131,16 @@ Request body:
 
 - `roleName` required.
 - `roleCode` required and unique.
-- `dataScope` optional, defaults to `PERSONAL`; accepts `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `dataScope` optional, defaults to `SELF`; accepts `SELF`, `ORG_ONLY`, or `ALL`. Legacy `PERSONAL` and `MANAGED_ORG` inputs are still accepted and normalized to `SELF` and `ORG_ONLY`.
 - `remark` optional.
-- `permissionIds` optional list of permission ids.
+- `permissionIds` required non-empty list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Rules:
+
+- `roleName` is trimmed and globally unique among non-deleted roles.
+- `roleCode` is trimmed and globally unique among non-deleted roles.
+- `roleCode = super_admin` and `roleName = 超级管理员` are reserved for the built-in role and cannot be used by custom roles.
+- Built-in super admin role (`roleCode = super_admin` or `roleName = 超级管理员`) cannot be edited, disabled, or deleted.
 
 Response `data`: created role id.
 
@@ -2181,7 +2188,12 @@ Header:
 
 Request body:
 
-- `permissionIds` optional list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+- `permissionIds` required list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Rules:
+
+- `permissionIds` must contain at least one valid permission id after normalization.
+- Built-in super admin role cannot have permissions replaced through this endpoint.
 
 Response `data`: `null`.
 
