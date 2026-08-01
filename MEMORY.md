@@ -73,6 +73,8 @@
 - 2026-08-01: The permissions page was further tightened with directory/menu/button type pills, denser table rows, and a cleaner right-side add/edit panel; `vue-tsc --noEmit` passes, but full Vite build and Chrome screenshot capture are still blocked by this machine's Node/Vite temporary-file and headless Chrome remote-debugging limitations.
 - 2026-08-01: Admin organization management keeps the existing `/api/admin/org` module and `sys_org` table instead of adding a duplicate module; it now covers PDF page 44-47 requirements for fuzzy tree search, enabled-only parent picker trees, 20-character trimmed names, sibling-name uniqueness, immutable parent on edit, audit fields, drag sort persistence, selected-node enable, and selected-node-plus-descendants disable.
 - 2026-08-01: Admin account management query contract includes backend-level fuzzy `jobTitle` filtering for teacher/student paged lists and exports; do not rely on frontend current-page filtering for岗位搜索.
+- 2026-08-01: Admin personal resource library frontend now lives at `/admin/personal-resource`, with filterable list, right-side add/edit panel, detail drawer, operation logs, batch edit/delete, and public-application actions wired to `admin-resource` APIs; resource queries now forward keyword, type, major, status, and paging parameters to the backend.
+- 2026-08-01: Admin resource public application frontend now lives at `/admin/public-application`, with a filterable application queue, right-side application detail/review panel, and approve/reject dialog; it uses `admin/public-applications` list/detail/review APIs and falls back to local mock rows when the backend is unavailable.
 
 ## Operational Notes
 
