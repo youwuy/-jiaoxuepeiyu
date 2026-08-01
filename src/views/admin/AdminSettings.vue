@@ -2,7 +2,6 @@
   <AdminShell activeKey="settings">
     <section class="admin-settings-page">
       <header class="admin-settings-header">
-        <h1>配置信息</h1>
         <el-breadcrumb class="admin-settings-breadcrumb" separator="/">
           <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>
           <el-breadcrumb-item>配置信息</el-breadcrumb-item>
@@ -28,7 +27,7 @@
                 </span>
               </div>
               <div class="admin-settings-actions">
-                <el-button class="admin-settings-edit" @click="openEdit(item)">
+                <el-button class="admin-settings-edit" @click="openConfig(item.key)">
                   <el-icon><Edit /></el-icon>
                   编辑
                 </el-button>
@@ -39,47 +38,314 @@
         </section>
       </section>
 
-      <el-dialog v-model="editorVisible" class="admin-settings-dialog" width="560px" :show-close="false" append-to-body>
+      <el-dialog v-model="configVisible" class="admin-settings-config-dialog" :width="configWidth" :show-close="false" append-to-body>
         <template #header>
           <div class="admin-settings-dialog-head">
-            <strong>编辑{{ activeSetting?.name }}</strong>
-            <el-button text circle :icon="Close" @click="editorVisible = false" />
+            <strong>{{ configTitle }}</strong>
+            <el-button text circle :icon="Close" @click="configVisible = false" />
           </div>
         </template>
-        <label class="admin-settings-dialog-field">
-          <span>当前配置值</span>
-          <el-input v-model="draftValue" type="textarea" :rows="5" />
-        </label>
-        <p class="admin-settings-dialog-tip">当前后端按配置项拆分接口维护，列表页先提供统一编辑入口，保存后会同步更新本页展示。</p>
-        <template #footer>
-          <el-button class="admin-settings-cancel" @click="editorVisible = false">取消</el-button>
-          <el-button class="admin-settings-confirm" type="primary" @click="saveDraft">确定</el-button>
+
+        <section v-if="activeConfig === 'semester'" class="admin-settings-panel">
+          <el-button class="admin-settings-add-button" @click="openAdd('year')">
+            <el-icon><Plus /></el-icon>
+            添加学年
+          </el-button>
+          <table class="admin-settings-modal-table semester">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>学年</th>
+                <th>学期</th>
+                <th>是否为当前学期</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in semesterRows" :key="row.semesterId">
+                <td>{{ row.index }}</td>
+                <td>{{ row.yearName }}</td>
+                <td>{{ row.semesterName }}</td>
+                <td>
+                  <button type="button" class="admin-settings-radio" :class="{ active: row.current }" @click="setCurrentSemester(row.semesterId)"></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section v-else-if="activeConfig === 'majors'" class="admin-settings-panel">
+          <el-button class="admin-settings-add-button" @click="openAdd('major')">
+            <el-icon><Plus /></el-icon>
+            添加专业
+          </el-button>
+          <table class="admin-settings-modal-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>专业名称</th>
+                <th>启用状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(major, index) in displayMajors" :key="major.majorId">
+                <td>{{ index + 1 }}</td>
+                <td>{{ major.majorName }}</td>
+                <td><span class="admin-settings-status" :class="{ disabled: !major.enabled }">{{ major.enabled ? '已启用' : '已禁用' }}</span></td>
+                <td>
+                  <button class="admin-settings-link" @click="setMajorStatus(major.majorId, true)">启用</button>
+                  <button class="admin-settings-link danger" @click="setMajorStatus(major.majorId, false)">禁用</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section v-else-if="activeConfig === 'classes'" class="admin-settings-panel">
+          <el-button class="admin-settings-add-button" @click="openAdd('class')">
+            <el-icon><Plus /></el-icon>
+            新增班级
+          </el-button>
+          <table class="admin-settings-modal-table classes">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>班级名称</th>
+                <th>启用状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in displayClasses" :key="item.classId">
+                <td>{{ index + 1 }}</td>
+                <td>{{ item.className }}</td>
+                <td>
+                  <span class="admin-settings-pill-status" :class="{ disabled: !item.enabled }">
+                    <i></i>
+                    {{ item.enabled ? '已启用' : '已禁用' }}
+                  </span>
+                </td>
+                <td>
+                  <el-button class="admin-settings-table-action" @click="setClassStatus(item.classId, true)">启用</el-button>
+                  <el-button class="admin-settings-table-action danger" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <footer class="admin-settings-modal-pagination">
+            <span>共 {{ displayClasses.length }} 条记录</span>
+            <el-pagination :current-page="1" :page-size="10" :total="displayClasses.length" layout="prev, pager, next" background />
+          </footer>
+        </section>
+
+        <section v-else-if="activeConfig === 'classrooms'" class="admin-settings-panel classroom">
+          <el-button class="admin-settings-add-button" @click="openAdd('room')">
+            <el-icon><Plus /></el-icon>
+            添加教室
+          </el-button>
+          <table class="admin-settings-modal-table classroom">
+            <thead>
+              <tr>
+                <th rowspan="2">序号</th>
+                <th rowspan="2">教室名称</th>
+                <th colspan="6">摄像头参数</th>
+                <th rowspan="2">操作</th>
+              </tr>
+              <tr>
+                <th>NVR主机IP</th>
+                <th>端口</th>
+                <th>管理员账号</th>
+                <th>管理员密码</th>
+                <th>NVR通道编号</th>
+                <th>NVR对外RTSP取流地址</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(camera, index) in classroomCameraRows" :key="camera.id">
+                <td>{{ index + 1 }}</td>
+                <td>{{ camera.roomName }}</td>
+                <td>{{ camera.host }}</td>
+                <td>{{ camera.port }}</td>
+                <td>{{ camera.account }}</td>
+                <td>{{ camera.password }}</td>
+                <td>{{ camera.channel }}</td>
+                <td class="wrap">{{ camera.url }}</td>
+                <td>
+                  <button class="admin-settings-link" @click="editRoom(camera.roomName)">编辑</button>
+                  <button class="admin-settings-link danger" @click="removeCamera(camera.id)">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section v-else-if="activeConfig === 'grades'" class="admin-settings-panel">
+          <table class="admin-settings-modal-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>等级名称</th>
+                <th>分数范围</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(rule, index) in displayGradeRules" :key="rule.ruleId">
+                <td>{{ index + 1 }}</td>
+                <td>{{ rule.gradeName }}</td>
+                <td>{{ rule.minScore }}%-{{ rule.maxScore }}%</td>
+                <td>
+                  <button class="admin-settings-link" @click="editGrade(rule)">编辑</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section v-else-if="activeConfig === 'weights'" class="admin-settings-weight-form">
+          <div class="admin-settings-alert">四项权重之和需等于100%，请合理分配</div>
+          <label>
+            <span>课件学习进度得分 <b>*</b></span>
+            <div><el-input-number v-model="weightForm.coursewareWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+          </label>
+          <label>
+            <span>实训练习得分 <b>*</b></span>
+            <div><el-input-number v-model="weightForm.trainingPracticeWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+          </label>
+          <label>
+            <span>课程作业得分 <b>*</b></span>
+            <div><el-input-number v-model="weightForm.assignmentWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+          </label>
+          <label>
+            <span>考试得分 <b>*</b></span>
+            <div><el-input-number v-model="weightForm.examWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+          </label>
+          <p>当前权重总和：<strong :class="{ error: weightTotal !== 100 }">{{ weightTotal }}%</strong></p>
+          <div class="admin-settings-effective">
+            <strong>生效范围</strong>
+            <span><i></i>权重修改后仅对本学期及未来学期的综合成绩生效</span>
+          </div>
+        </section>
+
+        <template v-if="activeConfig === 'weights'" #footer>
+          <div class="admin-settings-dialog-footer">
+            <el-button @click="configVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveWeight">确定</el-button>
+          </div>
         </template>
       </el-dialog>
 
-      <el-dialog v-model="logVisible" class="admin-settings-dialog logs" width="620px" :show-close="false" append-to-body>
+      <el-dialog v-model="addVisible" class="admin-settings-add-dialog" :width="addKind === 'room' ? '720px' : '480px'" :show-close="false" append-to-body>
         <template #header>
           <div class="admin-settings-dialog-head">
-            <strong>{{ activeSetting?.name }}操作日志</strong>
+            <strong>{{ addTitle }}</strong>
+            <el-button text circle :icon="Close" @click="addVisible = false" />
+          </div>
+        </template>
+
+        <section v-if="addKind === 'year'" class="admin-settings-add-form">
+          <label>
+            <span>学年 <b>*</b></span>
+            <el-select v-model="addYearValue" placeholder="请选择学年">
+              <el-option v-for="year in yearOptions" :key="year" :label="year" :value="year" />
+            </el-select>
+          </label>
+        </section>
+
+        <section v-else-if="addKind === 'major'" class="admin-settings-add-form">
+          <label>
+            <span>专业名称 <b>*</b></span>
+            <el-input v-model="addMajorName" maxlength="20" placeholder="请输入专业名称" />
+            <small>最多输入20个字</small>
+          </label>
+        </section>
+
+        <section v-else-if="addKind === 'class'" class="admin-settings-add-form">
+          <label>
+            <span>班级名称 <b>*</b></span>
+            <el-input v-model="addClassName" maxlength="20" placeholder="请输入班级名称" />
+            <small>最多输入20个字</small>
+          </label>
+          <label>
+            <span>所属专业 <b>*</b></span>
+            <el-select v-model="addClassMajorId" placeholder="请选择所属专业">
+              <el-option v-for="major in displayMajors" :key="major.majorId" :label="major.majorName" :value="major.majorId" />
+            </el-select>
+          </label>
+        </section>
+
+        <section v-else-if="addKind === 'room'" class="admin-settings-room-form">
+          <label class="wide">
+            <span>教室名称 <b>*</b></span>
+            <el-input v-model="roomForm.roomName" maxlength="20" placeholder="请输入教室名称" />
+            <small>最多输入20个字</small>
+          </label>
+          <div class="admin-settings-room-title">
+            <strong>摄像头参数</strong>
+            <el-button class="admin-settings-add-camera" @click="addCamera">
+              <el-icon><Plus /></el-icon>
+              添加摄像头
+            </el-button>
+          </div>
+          <section v-for="(camera, index) in roomForm.cameras" :key="camera.id" class="admin-settings-camera-card">
+            <header><strong>{{ index + 1 }}</strong><span>摄像头</span><button @click="removeRoomCamera(camera.id)">删除</button></header>
+            <div class="admin-settings-camera-grid">
+              <label class="host"><span>NVR主机IP <b>*</b></span><el-input v-model="camera.host" placeholder="请输入NVR主机IP" /></label>
+              <label><span>端口 <b>*</b></span><el-input v-model="camera.port" placeholder="请输入端口" /></label>
+              <label><span>管理员账号 <b>*</b></span><el-input v-model="camera.account" placeholder="请输入管理员账号" /></label>
+              <label><span>管理员密码 <b>*</b></span><el-input v-model="camera.password" placeholder="请输入管理员密码" /></label>
+              <label><span>NVR通道编号 <b>*</b></span><el-input v-model="camera.channel" placeholder="请输入通道编号" /></label>
+              <label class="url"><span>NVR对外RTSP/HTTP取流地址</span><el-input v-model="camera.url" placeholder="请输入RTSP/HTTP取流地址" /></label>
+            </div>
+          </section>
+        </section>
+
+        <template #footer>
+          <div class="admin-settings-dialog-footer">
+            <el-button @click="addVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveAdd">确定</el-button>
+          </div>
+        </template>
+      </el-dialog>
+
+      <el-dialog v-model="logVisible" class="admin-settings-log-dialog" width="720px" :show-close="false" append-to-body>
+        <template #header>
+          <div class="admin-settings-dialog-head">
+            <strong>操作日志</strong>
             <el-button text circle :icon="Close" @click="logVisible = false" />
           </div>
         </template>
-        <div class="admin-settings-log-list">
-          <div v-for="log in visibleLogs" :key="log.time" class="admin-settings-log-item">
-            <span>{{ log.time }}</span>
-            <strong>{{ log.operator }}</strong>
-            <p>{{ log.content }}</p>
-          </div>
-        </div>
+        <table class="admin-settings-modal-table logs">
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>操作内容</th>
+              <th>操作人</th>
+              <th>操作时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(log, index) in visibleLogs" :key="log.time">
+              <td>{{ index + 1 }}</td>
+              <td>{{ log.content }}</td>
+              <td>{{ log.operator }}</td>
+              <td>{{ log.time }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <footer class="admin-settings-modal-pagination">
+          <span>共 {{ visibleLogs.length }} 条记录</span>
+          <el-pagination :current-page="1" :page-size="10" :total="visibleLogs.length" layout="prev, pager, next" background />
+        </footer>
       </el-dialog>
     </section>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close, Edit } from '@element-plus/icons-vue';
+import { Close, Edit, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminAcademicYears,
@@ -99,9 +365,11 @@ import {
 } from '../../api/admin-settings';
 
 type SettingTone = 'blue' | 'amber' | 'rose' | 'violet' | 'green' | 'gray';
+type ConfigKey = 'semester' | 'majors' | 'classes' | 'classrooms' | 'grades' | 'weights';
+type AddKind = 'year' | 'major' | 'class' | 'room';
 
 interface SettingRow {
-  key: string;
+  key: ConfigKey;
   name: string;
   value: string;
   tone: SettingTone;
@@ -115,12 +383,36 @@ interface SettingLog {
   content: string;
 }
 
+interface SemesterDisplayRow {
+  semesterId: number;
+  index: number;
+  yearName: string;
+  semesterName: string;
+  current: boolean;
+}
+
+interface CameraRow {
+  id: number;
+  roomName: string;
+  host: string;
+  port: string;
+  account: string;
+  password: string;
+  channel: string;
+  url: string;
+}
+
 const loading = ref(false);
-const editorVisible = ref(false);
+const configVisible = ref(false);
+const addVisible = ref(false);
 const logVisible = ref(false);
+const activeConfig = ref<ConfigKey>('semester');
 const activeSetting = ref<SettingRow | null>(null);
-const draftValue = ref('');
-const localOverrides = ref<Record<string, string>>({});
+const addKind = ref<AddKind>('year');
+const addYearValue = ref('2025-2026');
+const addMajorName = ref('');
+const addClassName = ref('');
+const addClassMajorId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
 const majors = ref<AdminMajor[]>([]);
@@ -129,6 +421,19 @@ const classrooms = ref<AdminClassroom[]>([]);
 const jobRoles = ref<AdminJobRole[]>([]);
 const scoreWeights = ref<AdminScoreWeight[]>([]);
 const gradeRules = ref<AdminScoreGradeRule[]>([]);
+const localCameras = ref<CameraRow[]>([]);
+
+const weightForm = reactive({
+  coursewareWeight: 30,
+  trainingPracticeWeight: 30,
+  assignmentWeight: 30,
+  examWeight: 10
+});
+
+const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
+  roomName: '',
+  cameras: []
+});
 
 const fallbackRows: SettingRow[] = [
   { key: 'semester', name: '学年学期配置', value: '2024-2025学年 上学期', tone: 'blue', current: true },
@@ -136,26 +441,83 @@ const fallbackRows: SettingRow[] = [
   { key: 'classes', name: '班级配置', value: '城轨运营2501班、城轨运营2401班、城轨车辆2501班、城轨车辆2401班 等20个班级', tone: 'rose' },
   { key: 'classrooms', name: '教室配置', value: '101实训室', tone: 'violet' },
   { key: 'grades', name: '成绩等级配置', value: '优秀（85%-100%）、良好（75%-85%）、中等（60%-75%）、较差（0%-60%）', tone: 'green', loggable: true },
-  { key: 'weights', name: '综合成绩权重配置', value: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%', tone: 'gray', loggable: true },
-  { key: 'jobRoles', name: '地铁岗位角色配置', value: '值班站长、行车值班员、客运值班员、站务员 等8个角色', tone: 'blue', loggable: true }
+  { key: 'weights', name: '综合成绩权重配置', value: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%', tone: 'gray', loggable: true }
 ];
 
-const settingRows = computed<SettingRow[]>(() => {
-  const rows = [
-    buildSemesterRow(),
-    buildMajorRow(),
-    buildClassRow(),
-    buildClassroomRow(),
-    buildGradeRow(),
-    buildWeightRow(),
-    buildJobRoleRow()
-  ];
-  return rows.map((row) => ({ ...row, value: localOverrides.value[row.key] || row.value }));
+const yearOptions = ['2025-2026', '2024-2025', '2023-2024', '2022-2023', '2021-2022', '2020-2021'];
+
+const settingRows = computed<SettingRow[]>(() => [
+  buildSemesterRow(),
+  buildMajorRow(),
+  buildClassRow(),
+  buildClassroomRow(),
+  buildGradeRow(),
+  buildWeightRow()
+]);
+
+const configTitle = computed(() => {
+  const titles: Record<ConfigKey, string> = {
+    semester: '编辑学年学期',
+    majors: '专业目录配置',
+    classes: '班级配置',
+    classrooms: '教室配置',
+    grades: '成绩等级配置',
+    weights: '综合成绩权重配置'
+  };
+  return titles[activeConfig.value];
 });
 
+const configWidth = computed(() => (activeConfig.value === 'classrooms' ? '1080px' : activeConfig.value === 'weights' ? '520px' : '560px'));
+const addTitle = computed(() => ({ year: '添加学年', major: '添加专业', class: '新增班级', room: '添加教室' })[addKind.value]);
+const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
+
+const semesterRows = computed<SemesterDisplayRow[]>(() => {
+  const rows: SemesterDisplayRow[] = [];
+  academicYears.value.forEach((year, index) => {
+    const semesters = year.semesters?.length ? year.semesters : [
+      { semesterId: year.academicYearId * 10 + 1, academicYearId: year.academicYearId, semesterName: '上学期', current: false },
+      { semesterId: year.academicYearId * 10 + 2, academicYearId: year.academicYearId, semesterName: '下学期', current: false }
+    ];
+    semesters.forEach((semester) => {
+      rows.push({ semesterId: semester.semesterId, index: index + 1, yearName: year.yearName.replace('学年', ''), semesterName: semester.semesterName, current: semester.current });
+    });
+  });
+  return rows;
+});
+
+const displayMajors = computed(() => majors.value.length ? majors.value : [
+  { majorId: 1, majorName: '城市轨道交通运营管理', enabled: true },
+  { majorId: 2, majorName: '城市轨道交通信号技术', enabled: true },
+  { majorId: 3, majorName: '城市轨道交通车辆技术', enabled: true },
+  { majorId: 4, majorName: '城市轨道交通供配电技术', enabled: true },
+  { majorId: 5, majorName: '城市轨道交通通信信号技术', enabled: true },
+  { majorId: 6, majorName: '城市轨道交通工程技术', enabled: true },
+  { majorId: 7, majorName: '城市轨道交通机电技术', enabled: true },
+  { majorId: 8, majorName: '高速铁路客运乘务', enabled: true }
+]);
+
+const displayClasses = computed(() => classes.value.length ? classes.value : [
+  { classId: 1, majorId: 1, className: '城轨运营2101班', enabled: true },
+  { classId: 2, majorId: 2, className: '城轨信号2101班', enabled: true },
+  { classId: 3, majorId: 3, className: '城轨车辆2101班', enabled: false },
+  { classId: 4, majorId: 4, className: '城轨供电2101班', enabled: true },
+  { classId: 5, majorId: 6, className: '城轨工程2101班', enabled: true },
+  { classId: 6, majorId: 7, className: '城轨机电2101班', enabled: false }
+]);
+
+const displayGradeRules = computed(() => gradeRules.value.length ? gradeRules.value : [
+  { ruleId: 1, gradeName: '优秀', minScore: 85, maxScore: 100, sortOrder: 1 },
+  { ruleId: 2, gradeName: '良好', minScore: 75, maxScore: 85, sortOrder: 2 },
+  { ruleId: 3, gradeName: '中等', minScore: 60, maxScore: 75, sortOrder: 3 },
+  { ruleId: 4, gradeName: '较差', minScore: 0, maxScore: 60, sortOrder: 4 }
+]);
+
+const classroomCameraRows = computed(() => localCameras.value.length ? localCameras.value : buildClassroomCameras());
+
 const visibleLogs = computed<SettingLog[]>(() => [
-  { time: '2026-08-01 16:42', operator: '李教师', content: `更新${activeSetting.value?.name || '配置项'}展示值` },
-  { time: '2026-07-31 18:20', operator: '系统管理员', content: `初始化${activeSetting.value?.name || '配置项'}默认配置` }
+  { time: '2025-01-15 14:30:22', operator: '张建国', content: '课件学习进度得分*30%+实训练习得分*20%+课程作业得分*25%+考试得分*25%' },
+  { time: '2025-01-10 09:15:08', operator: '李明辉', content: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%' },
+  { time: '2025-01-05 16:42:35', operator: '王思远', content: '课件学习进度得分*25%+实训练习得分*25%+课程作业得分*25%+考试得分*25%' }
 ]);
 
 function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: T) => string) {
@@ -172,23 +534,19 @@ function summarize(names: string[], unit: string, fallback: SettingRow) {
 
 function buildSemesterRow(): SettingRow {
   const fallback = fallbackRows[0];
-  const years = academicYears.value;
-  const currentYear = years.find((year) => year.semesters?.some((semester) => semester.current));
+  const currentYear = academicYears.value.find((year) => year.semesters?.some((semester) => semester.current));
   const currentSemester = currentYear?.semesters.find((semester) => semester.current);
-  return {
-    ...fallback,
-    value: currentYear && currentSemester ? `${currentYear.yearName} ${currentSemester.semesterName}` : fallback.value
-  };
+  return { ...fallback, value: currentYear && currentSemester ? `${currentYear.yearName} ${currentSemester.semesterName}` : fallback.value };
 }
 
 function buildMajorRow(): SettingRow {
   const fallback = fallbackRows[1];
-  return { ...fallback, value: summarize(enabledNames(majors.value, (item) => item.majorName), '专业', fallback) };
+  return { ...fallback, value: summarize(enabledNames(displayMajors.value, (item) => item.majorName), '专业', fallback) };
 }
 
 function buildClassRow(): SettingRow {
   const fallback = fallbackRows[2];
-  return { ...fallback, value: summarize(enabledNames(classes.value, (item) => item.className), '班级', fallback) };
+  return { ...fallback, value: summarize(enabledNames(displayClasses.value, (item) => item.className), '班级', fallback) };
 }
 
 function buildClassroomRow(): SettingRow {
@@ -198,31 +556,25 @@ function buildClassroomRow(): SettingRow {
 
 function buildGradeRow(): SettingRow {
   const fallback = fallbackRows[4];
-  const rules = gradeRules.value;
-  if (rules.length === 0) {
-    return fallback;
-  }
-  return {
-    ...fallback,
-    value: rules.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、')
-  };
+  return { ...fallback, value: displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') };
 }
 
 function buildWeightRow(): SettingRow {
-  const fallback = fallbackRows[5];
-  const latest = scoreWeights.value[0];
-  if (!latest) {
-    return fallback;
-  }
-  return {
-    ...fallback,
-    value: `课件学习进度得分*${latest.coursewareWeight}%+实训练习得分*${latest.trainingPracticeWeight}%+课程作业得分*${latest.assignmentWeight}%+考试得分*${latest.examWeight}%`
-  };
+  return { ...fallbackRows[5], value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%` };
 }
 
-function buildJobRoleRow(): SettingRow {
-  const fallback = fallbackRows[6];
-  return { ...fallback, value: summarize(enabledNames(jobRoles.value, (item) => item.roleName), '角色', fallback) };
+function buildClassroomCameras(): CameraRow[] {
+  const roomName = classrooms.value[0]?.roomName || '101实训室';
+  return [0, 1, 2, 3, 4].map((item) => ({
+    id: item + 1,
+    roomName,
+    host: `192.168.1.10${item}`,
+    port: '8000',
+    account: 'admin',
+    password: ['Adm@101!', 'Pwd#202!', 'Rmt$303!', 'Sec%404!', 'Cam^505!'][item],
+    channel: `CH0${item + 1}`,
+    url: `rtsp://192.168.1.10${item}:554/stream1`
+  }));
 }
 
 async function safeLoad<T>(loader: () => Promise<T[]>) {
@@ -245,36 +597,138 @@ async function loadSettings() {
       safeLoad(fetchAdminScoreWeights),
       safeLoad(fetchAdminScoreGradeRules)
     ]);
-    academicYears.value = yearRows;
+    academicYears.value = yearRows.length ? yearRows : seedYears();
     majors.value = majorRows;
     classes.value = classRows;
     classrooms.value = classroomRows;
     jobRoles.value = jobRoleRows;
     scoreWeights.value = weightRows;
     gradeRules.value = gradeRuleRows;
+    const latest = weightRows[0];
+    if (latest) {
+      Object.assign(weightForm, latest);
+    }
   } finally {
     loading.value = false;
   }
 }
 
-function openEdit(item: SettingRow) {
-  activeSetting.value = item;
-  draftValue.value = item.value;
-  editorVisible.value = true;
+function seedYears(): AdminAcademicYear[] {
+  return yearOptions.slice(1).map((year, index) => ({
+    academicYearId: index + 1,
+    yearName: `${year}学年`,
+    semesters: [
+      { semesterId: (index + 1) * 10 + 1, academicYearId: index + 1, semesterName: '上学期', current: index === 0 },
+      { semesterId: (index + 1) * 10 + 2, academicYearId: index + 1, semesterName: '下学期', current: false }
+    ]
+  }));
 }
 
-function saveDraft() {
-  if (!activeSetting.value) {
-    return;
+function openConfig(key: ConfigKey) {
+  activeConfig.value = key;
+  configVisible.value = true;
+}
+
+function openAdd(kind: AddKind) {
+  addKind.value = kind;
+  if (kind === 'year') addYearValue.value = '2025-2026';
+  if (kind === 'major') addMajorName.value = '';
+  if (kind === 'class') {
+    addClassName.value = '';
+    addClassMajorId.value = displayMajors.value[0]?.majorId ?? null;
   }
-  localOverrides.value = { ...localOverrides.value, [activeSetting.value.key]: draftValue.value.trim() || activeSetting.value.value };
-  editorVisible.value = false;
-  ElMessage.success('配置展示值已更新');
+  if (kind === 'room') {
+    roomForm.roomName = '';
+    roomForm.cameras = [newCamera(1), newCamera(2)];
+  }
+  addVisible.value = true;
 }
 
 function openLogs(item: SettingRow) {
   activeSetting.value = item;
   logVisible.value = true;
+}
+
+function setCurrentSemester(semesterId: number) {
+  academicYears.value = academicYears.value.map((year) => ({
+    ...year,
+    semesters: year.semesters.map((semester) => ({ ...semester, current: semester.semesterId === semesterId }))
+  }));
+}
+
+function setMajorStatus(majorId: number, enabled: boolean) {
+  majors.value = displayMajors.value.map((item) => (item.majorId === majorId ? { ...item, enabled } : item));
+}
+
+function setClassStatus(classId: number, enabled: boolean) {
+  classes.value = displayClasses.value.map((item) => (item.classId === classId ? { ...item, enabled } : item));
+}
+
+function removeCamera(id: number) {
+  localCameras.value = classroomCameraRows.value.filter((item) => item.id !== id);
+}
+
+function editRoom(roomName: string) {
+  roomForm.roomName = roomName;
+  roomForm.cameras = classroomCameraRows.value.filter((item) => item.roomName === roomName).map((item) => ({ ...item }));
+  addKind.value = 'room';
+  addVisible.value = true;
+}
+
+function editGrade(rule: AdminScoreGradeRule) {
+  ElMessage.info(`编辑${rule.gradeName}等级`);
+}
+
+function newCamera(id: number): CameraRow {
+  return { id: Date.now() + id, roomName: roomForm.roomName || '101实训室', host: '', port: '', account: '', password: '', channel: '', url: '' };
+}
+
+function addCamera() {
+  roomForm.cameras.push(newCamera(roomForm.cameras.length + 1));
+}
+
+function removeRoomCamera(id: number) {
+  roomForm.cameras = roomForm.cameras.filter((item) => item.id !== id);
+}
+
+function saveAdd() {
+  if (addKind.value === 'year') {
+    const nextId = Date.now();
+    academicYears.value = [
+      { academicYearId: nextId, yearName: `${addYearValue.value}学年`, semesters: [
+        { semesterId: nextId + 1, academicYearId: nextId, semesterName: '上学期', current: false },
+        { semesterId: nextId + 2, academicYearId: nextId, semesterName: '下学期', current: false }
+      ] },
+      ...academicYears.value
+    ];
+  }
+  if (addKind.value === 'major') {
+    if (!addMajorName.value.trim()) return ElMessage.warning('请输入专业名称');
+    majors.value = [...displayMajors.value, { majorId: Date.now(), majorName: addMajorName.value.trim(), enabled: true }];
+  }
+  if (addKind.value === 'class') {
+    if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
+    classes.value = [...displayClasses.value, { classId: Date.now(), majorId: addClassMajorId.value || 0, className: addClassName.value.trim(), enabled: true }];
+  }
+  if (addKind.value === 'room') {
+    if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
+    localCameras.value = [
+      ...classroomCameraRows.value.filter((item) => item.roomName !== roomForm.roomName),
+      ...roomForm.cameras.map((camera) => ({ ...camera, roomName: roomForm.roomName }))
+    ];
+  }
+  addVisible.value = false;
+  ElMessage.success('已更新配置');
+}
+
+function saveWeight() {
+  if (weightTotal.value !== 100) {
+    ElMessage.warning('四项权重之和需等于100%');
+    return;
+  }
+  scoreWeights.value = [{ weightId: Date.now(), ...weightForm }];
+  configVisible.value = false;
+  ElMessage.success('权重配置已更新');
 }
 
 onMounted(() => {
