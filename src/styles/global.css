@@ -12805,6 +12805,113 @@ a {
   min-width: 80px;
 }
 
+.admin-theory-paper-preview-meta > i {
+  width: 1px;
+  height: 28px;
+  background: #dbe3ee;
+}
+
+.admin-theory-paper-preview-meta > div {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.admin-theory-paper-preview-meta > div .el-button {
+  min-width: 72px;
+  height: 36px;
+  margin-left: 0;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-preview-layout {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.admin-theory-paper-preview-stack {
+  min-width: 0;
+}
+
+.admin-theory-paper-answer-card {
+  align-self: start;
+  padding: 18px 16px;
+  border: 1px solid #dbe3ee;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-theory-paper-answer-card > header {
+  margin-bottom: 14px;
+}
+
+.admin-theory-paper-answer-card > header strong {
+  color: #152238;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-answer-card section {
+  margin-top: 14px;
+}
+
+.admin-theory-paper-answer-card p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: #52657d;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-answer-card p span {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+}
+
+.admin-theory-paper-answer-card section.multiple p span {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.admin-theory-paper-answer-card section.judge p span {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.admin-theory-paper-answer-card section.blank p span {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.admin-theory-paper-answer-card section > div {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  gap: 8px;
+}
+
+.admin-theory-paper-answer-card button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-answer-card button.active {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
 .admin-theory-paper-preview-card {
   margin-bottom: 20px;
   padding: 20px;
@@ -13012,6 +13119,25 @@ a {
   gap: 16px;
 }
 
+.admin-theory-paper-create-basic {
+  display: grid;
+  grid-template-columns: minmax(260px, 332px);
+  gap: 22px;
+}
+
+.admin-theory-paper-field.is-mode .el-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 28px;
+}
+
+.admin-theory-paper-field.is-mode .el-radio {
+  margin-right: 0;
+  color: #334155;
+  font-weight: 900;
+}
+
 .admin-theory-paper-rule-table,
 .admin-theory-paper-question-table {
   width: 100%;
@@ -13044,6 +13170,31 @@ a {
   width: 150px;
 }
 
+.admin-theory-paper-rule-table.is-auto th:first-child,
+.admin-theory-paper-rule-table.is-auto td:first-child {
+  width: 170px;
+}
+
+.admin-theory-paper-rule-table.is-auto .el-input-number {
+  width: 100px;
+}
+
+.admin-theory-paper-rule-summary {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #eef2f7;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-rule-summary b {
+  margin: 0 4px;
+  color: #152238;
+}
+
 .admin-theory-paper-rule-table .warn,
 .admin-theory-paper-selected-question .warn {
   color: #ef4444;
@@ -13056,6 +13207,38 @@ a {
   gap: 16px;
 }
 
+.admin-theory-paper-manage-filter {
+  display: grid;
+  grid-template-columns: 150px minmax(240px, 300px) 170px 170px 68px 68px;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-theory-paper-manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0 0 18px;
+}
+
+.admin-theory-paper-manage-actions p,
+.admin-theory-paper-manage-actions span {
+  margin: 0;
+  color: #52657d;
+  font-size: 14px;
+}
+
+.admin-theory-paper-manage-actions b {
+  color: #4f46e5;
+  font-weight: 900;
+}
+
+.admin-theory-paper-builder-card.is-manage-table {
+  padding: 0;
+  overflow: hidden;
+}
+
 .admin-theory-paper-question-filter {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 160px;
@@ -13066,6 +13249,70 @@ a {
 .admin-theory-paper-question-table .el-button {
   color: #2563eb;
   font-weight: 900;
+}
+
+.admin-theory-paper-question-table.is-manage th,
+.admin-theory-paper-question-table.is-manage td {
+  height: 48px;
+}
+
+.admin-theory-paper-question-table.is-manage .check-col {
+  width: 52px;
+  text-align: center;
+}
+
+.admin-theory-paper-type-pill {
+  min-width: 52px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-theory-paper-type-pill.single {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.admin-theory-paper-type-pill.multiple {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.admin-theory-paper-type-pill.judge {
+  background: #dcfce7;
+  color: #10b981;
+}
+
+.admin-theory-paper-type-pill.blank {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.admin-theory-paper-type-pill.essay {
+  background: #f3e8ff;
+  color: #8b5cf6;
+}
+
+.admin-theory-paper-manage-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  color: #52657d;
+  font-size: 14px;
+}
+
+.admin-theory-paper-manage-bottom p {
+  margin: 0;
+}
+
+.admin-theory-paper-manage-bottom b {
+  color: #1f2d3d;
 }
 
 .admin-theory-paper-selected-question {
@@ -13119,6 +13366,11 @@ a {
   gap: 12px;
   padding: 16px 0 0;
   background: linear-gradient(180deg, rgba(249,250,251,0), #f9fafb 28%);
+}
+
+.admin-theory-paper-builder-footer.is-center {
+  justify-content: center;
+  padding-top: 26px;
 }
 
 .admin-theory-paper-builder-footer button {

@@ -36,15 +36,7 @@
 
       <section class="admin-theory-paper-actions">
         <div>
-          <el-dropdown trigger="click" @command="openCreate">
-            <el-button class="admin-theory-paper-primary" :icon="Plus">新增</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="auto">自动组卷</el-dropdown-item>
-                <el-dropdown-item command="manual">手动组卷</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <el-button class="admin-theory-paper-primary" :icon="Plus" @click="openCreate">新增</el-button>
           <el-button class="admin-theory-paper-primary" :icon="UploadFilled" @click="openImport">导入试卷</el-button>
           <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(true)">批量启用</el-button>
           <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(false)">批量禁用</el-button>
@@ -107,42 +99,59 @@
       <BuilderHeader title="新增试卷" subtitle="自动组卷" @back="backToList" />
       <section class="admin-theory-paper-builder-card">
         <header><strong>基础信息</strong></header>
-        <div class="admin-theory-paper-builder-grid">
+        <div class="admin-theory-paper-create-basic">
           <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
-          <label class="admin-theory-paper-field"><span>所属课程 <b>*</b></span><el-input v-model="builder.courseName" placeholder="请输入所属课程" /></label>
-          <label class="admin-theory-paper-field"><span>试卷总分 <b>*</b></span><el-input-number v-model="builder.totalScore" :min="1" :max="200" controls-position="right" /></label>
-          <label class="admin-theory-paper-field"><span>及格分 <b>*</b></span><el-input-number v-model="builder.passScore" :min="1" :max="200" controls-position="right" /></label>
+          <label class="admin-theory-paper-field is-mode">
+            <span>组卷方式 <b>*</b></span>
+            <el-radio-group :model-value="viewMode" @change="switchCreateMode">
+              <el-radio label="auto">自动组卷</el-radio>
+              <el-radio label="manual">手动组卷</el-radio>
+            </el-radio-group>
+          </label>
         </div>
       </section>
       <section class="admin-theory-paper-builder-card">
-        <header><strong>题型配置</strong><el-button class="admin-theory-paper-lite" @click="addRule">新增题型</el-button></header>
-        <table class="admin-theory-paper-rule-table">
-          <thead><tr><th>题型</th><th>试题数量</th><th>每题分值</th><th>难度</th><th>操作</th></tr></thead>
+        <header><strong>选题设置</strong></header>
+        <table class="admin-theory-paper-rule-table is-auto">
+          <thead><tr><th>题型</th><th>选题数量</th></tr></thead>
           <tbody>
-            <tr v-for="(rule, index) in builder.rules" :key="rule.type">
-              <td><el-select v-model="rule.type"><el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" /></el-select></td>
-              <td><el-input-number v-model="rule.count" :min="1" :max="100" controls-position="right" /></td>
-              <td><el-input-number v-model="rule.score" :min="1" :max="20" controls-position="right" /></td>
-              <td><el-select v-model="rule.difficulty"><el-option label="全部" value="全部" /><el-option label="基础" value="基础" /><el-option label="提高" value="提高" /></el-select></td>
-              <td><el-button text class="warn" :disabled="builder.rules.length <= 1" @click="removeRule(index)">删除</el-button></td>
+            <tr v-for="rule in builder.rules" :key="rule.type">
+              <td><el-checkbox v-model="rule.selected">{{ rule.type }}</el-checkbox></td>
+              <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" controls-position="right" /></td>
             </tr>
           </tbody>
         </table>
+        <footer class="admin-theory-paper-rule-summary">选题数量合计：<b>{{ autoQuestionTotal }}</b>题</footer>
       </section>
-      <BuilderFooter @cancel="backToList" @preview="openPreview('auto')" @save="saveBuilder" />
+      <footer class="admin-theory-paper-builder-footer is-center">
+        <button type="button" class="ghost" @click="backToList">取消</button>
+        <button type="button" class="primary" @click="openPreview('auto')">下一步</button>
+      </footer>
     </section>
 
     <section v-else-if="viewMode === 'manual'" class="admin-theory-paper-builder-page">
       <BuilderHeader title="新增试卷" subtitle="手动组卷" @back="backToList" />
       <section class="admin-theory-paper-builder-card">
         <header><strong>基础信息</strong></header>
-        <div class="admin-theory-paper-builder-grid">
+        <div class="admin-theory-paper-create-basic">
           <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
-          <label class="admin-theory-paper-field"><span>所属课程 <b>*</b></span><el-input v-model="builder.courseName" placeholder="请输入所属课程" /></label>
-          <label class="admin-theory-paper-field"><span>试卷总分</span><el-input-number v-model="selectedScore" disabled controls-position="right" /></label>
-          <label class="admin-theory-paper-field"><span>试题数量</span><el-input-number v-model="selectedQuestions.length" disabled controls-position="right" /></label>
+          <label class="admin-theory-paper-field is-mode">
+            <span>组卷方式 <b>*</b></span>
+            <el-radio-group :model-value="viewMode" @change="switchCreateMode">
+              <el-radio label="auto">自动组卷</el-radio>
+              <el-radio label="manual">手动组卷</el-radio>
+            </el-radio-group>
+          </label>
         </div>
       </section>
+      <footer class="admin-theory-paper-builder-footer is-center">
+        <button type="button" class="ghost" @click="backToList">取消</button>
+        <button type="button" class="primary" @click="viewMode = 'manual-select'">下一步</button>
+      </footer>
+    </section>
+
+    <section v-else-if="viewMode === 'manual-select'" class="admin-theory-paper-builder-page">
+      <BuilderHeader title="新增试卷" subtitle="手动组卷" @back="() => { viewMode = 'manual'; }" />
       <section class="admin-theory-paper-manual-layout">
         <section class="admin-theory-paper-builder-card">
           <header><strong>题库选择</strong></header>
@@ -171,6 +180,73 @@
 
     <section v-else-if="viewMode === 'manage'" class="admin-theory-paper-builder-page">
       <BuilderHeader title="管理试题" :subtitle="activePaper?.paperName || '理论试卷'" @back="backToList" />
+      <section class="admin-theory-paper-manage-filter">
+        <label class="admin-theory-paper-field">
+          <span>题型</span>
+          <el-select v-model="questionType" placeholder="全部题型" clearable>
+            <el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </label>
+        <label class="admin-theory-paper-field is-question-search">
+          <span>题干搜索</span>
+          <el-input v-model="questionKeyword" placeholder="请输入题干关键词搜索" clearable />
+        </label>
+        <label class="admin-theory-paper-field">
+          <span>添加人</span>
+          <el-input v-model="manageCreator" placeholder="请输入添加人" clearable />
+        </label>
+        <label class="admin-theory-paper-field">
+          <span>所属课程</span>
+          <el-input v-model="manageCourse" placeholder="请输入所属课程" clearable />
+        </label>
+        <el-button class="admin-theory-paper-query-button">查询</el-button>
+        <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
+      </section>
+
+      <section class="admin-theory-paper-manage-actions">
+        <el-button class="admin-theory-paper-primary" :icon="Plus" @click="addFilteredQuestions">加入试题篮</el-button>
+        <p>已加入试题篮：<b>{{ selectedQuestions.length }}</b> 题</p>
+        <span v-for="item in questionStats" :key="item.type">{{ item.short }} <b>{{ item.count }}</b></span>
+      </section>
+
+      <section class="admin-theory-paper-builder-card is-manage-table">
+        <table class="admin-theory-paper-question-table is-manage">
+          <thead>
+            <tr>
+              <th class="check-col"><el-checkbox :model-value="allQuestionSelected" :indeterminate="partQuestionSelected" @change="toggleAllQuestions" /></th>
+              <th>序号</th>
+              <th>题型</th>
+              <th>题干</th>
+              <th>所属课程</th>
+              <th>启用状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in filteredQuestionBank" :key="item.id">
+              <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
+              <td>{{ index + 1 }}</td>
+              <td><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
+              <td>{{ item.title }}</td>
+              <td>{{ item.courseName }}</td>
+              <td><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer class="admin-theory-paper-manage-bottom">
+        <p>共 <b>156</b> 条记录</p>
+        <el-pagination v-model:current-page="managePage" :page-size="6" :total="156" layout="prev, pager, next" background />
+      </footer>
+
+      <footer class="admin-theory-paper-builder-footer is-center">
+        <button type="button" class="primary" @click="openPreview('manage')">预览试卷</button>
+        <button type="button" class="ghost" @click="backToList">取消</button>
+      </footer>
+    </section>
+
+    <section v-else-if="viewMode === 'manage-edit'" class="admin-theory-paper-builder-page">
+      <BuilderHeader title="试卷信息" :subtitle="activePaper?.paperName || '理论试卷'" @back="backToList" />
       <section class="admin-theory-paper-builder-card">
         <header><strong>试卷信息</strong><el-button class="admin-theory-paper-primary" @click="openPreview('manage')">组卷预览</el-button></header>
         <div class="admin-theory-paper-builder-grid">
@@ -181,7 +257,7 @@
         </div>
       </section>
       <section class="admin-theory-paper-builder-card">
-        <header><strong>试题列表</strong><el-button class="admin-theory-paper-lite" @click="viewMode = 'manual'">添加试题</el-button></header>
+        <header><strong>试题列表</strong><el-button class="admin-theory-paper-lite" @click="viewMode = 'manual-select'">添加试题</el-button></header>
         <table class="admin-theory-paper-rule-table">
           <thead><tr><th>序号</th><th>题干</th><th>题型</th><th>分值</th><th>操作</th></tr></thead>
           <tbody>
@@ -221,16 +297,33 @@
         </header>
         <section class="admin-theory-paper-preview-meta">
           <p><span>试卷名称：</span><strong>{{ previewPaper.paperName }}</strong></p>
-          <p><span>所属课程：</span><strong>{{ previewPaper.courseName }}</strong></p>
-          <el-button class="admin-theory-paper-primary" @click="submitImport">提交</el-button>
+          <i></i>
+          <p><span>总分：</span><strong>100</strong><span>分</span></p>
+          <div>
+            <el-button @click="previewVisible = false">返回</el-button>
+            <el-button class="admin-theory-paper-primary" @click="submitImport">保存</el-button>
+          </div>
         </section>
-        <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
-          <header><strong>{{ group.type }}</strong><span>{{ group.questions.length }}题</span><el-button text>批量修改分值</el-button></header>
-          <article v-for="question in group.questions" :key="question.index">
-            <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
-            <label><span>分值</span><el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" /></label>
-          </article>
-        </section>
+        <main class="admin-theory-paper-preview-layout">
+          <aside class="admin-theory-paper-answer-card">
+            <header><strong>答题卡</strong></header>
+            <section v-for="item in answerCardGroups" :key="item.type" :class="item.tone">
+              <p><span>{{ item.short }}</span>{{ item.count }}题 · {{ item.score }}分</p>
+              <div>
+                <button v-for="num in item.numbers" :key="num" :class="{ active: num === 1 }">{{ num }}</button>
+              </div>
+            </section>
+          </aside>
+          <div class="admin-theory-paper-preview-stack">
+            <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
+              <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
+              <article v-for="question in group.questions" :key="question.index">
+                <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
+                <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" /></label>
+              </article>
+            </section>
+          </div>
+        </main>
       </section>
     </el-dialog>
 
@@ -247,8 +340,7 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft, Close, Plus, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 
-type ViewMode = 'list' | 'auto' | 'manual' | 'manage';
-type CreateMode = 'auto' | 'manual';
+type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
 
 interface TheoryPaper {
   paperId: number;
@@ -266,6 +358,7 @@ interface QuestionItem {
   title: string;
   type: string;
   score: number;
+  courseName: string;
 }
 
 const BuilderHeader = defineComponent({
@@ -303,6 +396,10 @@ const logsVisible = ref(false);
 const activePaper = ref<TheoryPaper | null>(null);
 const questionKeyword = ref('');
 const questionType = ref('');
+const manageCreator = ref('');
+const manageCourse = ref('');
+const managePage = ref(1);
+const selectedQuestionIds = ref<number[]>([]);
 
 const draft = reactive({ keyword: '', courseName: '', creator: '', enabled: undefined as boolean | undefined });
 const applied = ref({ ...draft });
@@ -312,9 +409,11 @@ const builder = reactive({
   totalScore: 100,
   passScore: 60,
   rules: [
-    { type: '单选题', count: 20, score: 2, difficulty: '全部' },
-    { type: '多选题', count: 10, score: 3, difficulty: '全部' },
-    { type: '判断题', count: 10, score: 1, difficulty: '基础' }
+    { type: '单选题', count: 20, score: 2, difficulty: '全部', selected: true },
+    { type: '多选题', count: 10, score: 3, difficulty: '全部', selected: true },
+    { type: '判断题', count: 10, score: 1, difficulty: '基础', selected: true },
+    { type: '填空题', count: 5, score: 2, difficulty: '全部', selected: true },
+    { type: '简答题', count: 0, score: 10, difficulty: '全部', selected: false }
   ]
 });
 const manageForm = reactive({ paperName: '', courseName: '' });
@@ -335,21 +434,22 @@ const papers = ref<TheoryPaper[]>([
   { paperId: 12, paperName: '城市轨道交通法规与标准知识测试', courseName: '城轨信号系统', questionCount: 46, totalScore: 88, creatorName: '赵志强', createdAt: '2025-01-04 16:30:51', enabled: true }
 ]);
 const questionBank = ref<QuestionItem[]>([
-  { id: 1, type: '单选题', score: 2, title: '城市轨道交通中，CBTC系统的全称是什么？' },
-  { id: 2, type: '单选题', score: 2, title: '列车自动防护子系统（ATP）的主要功能是什么？' },
-  { id: 3, type: '多选题', score: 3, title: '以下哪些属于城市轨道交通信号系统的组成部分？' },
-  { id: 4, type: '判断题', score: 1, title: 'CBTC系统可以实现列车精确定位和实时追踪。' },
-  { id: 5, type: '填空题', score: 2, title: '城市轨道交通信号机一般设置在______和______位置。' }
+  { id: 1, type: '单选题', score: 2, courseName: '城轨信号系统', title: '城市轨道交通中，CBTC系统的全称是什么？其核心工作原理是什么？' },
+  { id: 2, type: '多选题', score: 3, courseName: '城轨信号系统', title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）' },
+  { id: 3, type: '判断题', score: 1, courseName: '城轨信号系统', title: 'CBTC系统可以实现列车精确定位和实时追踪。（判断正误）' },
+  { id: 4, type: '填空题', score: 2, courseName: '轨道交通基础', title: '城市轨道交通信号机一般设置在______和______位置。' },
+  { id: 5, type: '简答题', score: 10, courseName: '城轨信号系统', title: '请简述城市轨道交通信号系统联锁的基本概念及其主要功能。' },
+  { id: 6, type: '单选题', score: 2, courseName: '城轨信号系统', title: '列车自动防护子系统（ATP）的主要功能是什么？' }
 ]);
 const selectedQuestions = ref<QuestionItem[]>(questionBank.value.slice(0, 5).map((item) => ({ ...item })));
 const previewGroups = reactive([
-  { type: '单选题', tone: 'single', questions: [
+  { type: '单选题', title: '一、单选题', meta: '20题 · 每题2分', tone: 'single', questions: [
     { index: 1, title: '城市轨道交通中，CBTC系统的全称是什么？', score: 2, options: ['A. Communication-Based Train Control', 'B. Centralized Block Traffic Control', 'C. Computer-Based Train Communication', 'D. Continuous Braking Train Control'] },
     { index: 2, title: '列车自动防护子系统（ATP）的主要功能是什么？', score: 2, options: ['A. 列车超速防护和间隔控制', 'B. 列车自动驾驶', 'C. 列车自动监控', 'D. 列车自动调度'] }
   ] },
-  { type: '多选题', tone: 'multiple', questions: [{ index: 3, title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）', score: 3, options: ['A. ATP列车自动防护', 'B. ATO列车自动驾驶', 'C. ATS列车自动监控', 'D. ATC列车自动控制'] }] },
-  { type: '判断题', tone: 'judge', questions: [{ index: 4, title: 'CBTC系统可以实现列车精确定位和实时追踪。', score: 1, options: [] }] },
-  { type: '填空题', tone: 'blank', questions: [{ index: 5, title: '城市轨道交通信号机一般设置在______和______位置。', score: 2, options: [] }] }
+  { type: '多选题', title: '二、多选题', meta: '10题 · 每题3分', tone: 'multiple', questions: [{ index: 21, title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）', score: 3, options: ['A. ATP列车自动防护', 'B. ATO列车自动驾驶', 'C. ATS列车自动监控', 'D. ATC列车自动控制'] }] },
+  { type: '判断题', title: '三、判断题', meta: '10题 · 每题1分', tone: 'judge', questions: [{ index: 31, title: 'CBTC系统可以实现列车精确定位和实时追踪。', score: 1, options: [] }] },
+  { type: '填空题', title: '四、填空题', meta: '5题 · 每题2分', tone: 'blank', questions: [{ index: 41, title: '城市轨道交通信号机一般设置在______和______位置。', score: 2, options: [] }] }
 ]);
 
 const creatorOptions = computed(() => Array.from(new Set(papers.value.map((item) => item.creatorName))));
@@ -361,7 +461,21 @@ const partSelected = computed(() => selectedIds.value.length > 0 && !allSelected
 const pageStart = computed(() => (filteredPapers.value.length === 0 ? 0 : (page.value - 1) * pageSize + 1));
 const pageEnd = computed(() => Math.min(page.value * pageSize, filteredPapers.value.length));
 const selectedScore = computed(() => selectedQuestions.value.reduce((sum, item) => sum + Number(item.score || 0), 0));
-const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value)));
+const autoQuestionTotal = computed(() => builder.rules.reduce((sum, rule) => sum + (rule.selected ? Number(rule.count || 0) : 0), 0));
+const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value) && (!manageCourse.value || item.courseName.includes(manageCourse.value))));
+const allQuestionSelected = computed(() => filteredQuestionBank.value.length > 0 && filteredQuestionBank.value.every((item) => selectedQuestionIds.value.includes(item.id)));
+const partQuestionSelected = computed(() => selectedQuestionIds.value.length > 0 && !allQuestionSelected.value);
+const questionStats = computed(() => questionTypeOptions.map((type) => ({
+  type,
+  short: type.replace('题', ''),
+  count: selectedQuestions.value.filter((item) => item.type === type).length
+})));
+const answerCardGroups = computed(() => [
+  { type: '单选题', short: '单选', tone: 'single', count: 20, score: 40, numbers: Array.from({ length: 19 }, (_, index) => index + 1) },
+  { type: '多选题', short: '多选', tone: 'multiple', count: 10, score: 30, numbers: Array.from({ length: 10 }, (_, index) => index + 21) },
+  { type: '判断题', short: '判断', tone: 'judge', count: 10, score: 10, numbers: Array.from({ length: 10 }, (_, index) => index + 31) },
+  { type: '填空题', short: '填空', tone: 'blank', count: 5, score: 10, numbers: Array.from({ length: 5 }, (_, index) => index + 41) }
+]);
 const logRows = computed(() => [
   { action: '修改试卷', time: '2025-01-15 14:30:22', content: `${activePaper.value?.paperName || '试卷'} 信息更新` },
   { action: '启用状态变更', time: '2025-01-14 09:15:08', content: '管理员调整启用状态' }
@@ -373,14 +487,18 @@ function applyFilters() { applied.value = { ...draft }; page.value = 1; selected
 function resetFilters() { Object.assign(draft, { keyword: '', courseName: '', creator: '', enabled: undefined }); applyFilters(); }
 function toggleOne(id: number) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter((item) => item !== id) : [...selectedIds.value, id]; }
 function toggleAll(value: string | number | boolean) { selectedIds.value = value ? Array.from(new Set([...selectedIds.value, ...pagedPapers.value.map((item) => item.paperId)])) : selectedIds.value.filter((id) => !pagedPapers.value.some((item) => item.paperId === id)); }
-function openCreate(command: CreateMode) { resetBuilder(); viewMode.value = command; }
+function openCreate() { resetBuilder(); viewMode.value = 'auto'; }
+function switchCreateMode(value: string | number | boolean) { viewMode.value = value === 'manual' ? 'manual' : 'auto'; }
 function openManage(row: TheoryPaper) { activePaper.value = row; Object.assign(manageForm, { paperName: row.paperName, courseName: row.courseName }); previewPaper.paperName = row.paperName; previewPaper.courseName = row.courseName; selectedQuestions.value = questionBank.value.slice(0, 5).map((item) => ({ ...item })); viewMode.value = 'manage'; }
 function backToList() { viewMode.value = 'list'; }
 function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '铁道概论', totalScore: 100, passScore: 60 }); }
-function addRule() { builder.rules.push({ type: '简答题', count: 1, score: 10, difficulty: '全部' }); }
-function removeRule(index: number) { builder.rules.splice(index, 1); }
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
+function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }
+function toggleAllQuestions(value: string | number | boolean) { selectedQuestionIds.value = value ? Array.from(new Set([...selectedQuestionIds.value, ...filteredQuestionBank.value.map((item) => item.id)])) : selectedQuestionIds.value.filter((id) => !filteredQuestionBank.value.some((item) => item.id === id)); }
+function addFilteredQuestions() { filteredQuestionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
+function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; selectedQuestionIds.value = []; }
+function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
 function saveBuilder() { ElMessage.success('试卷已保存'); backToList(); }
 function saveManage() { if (activePaper.value) Object.assign(activePaper.value, { paperName: manageForm.paperName, courseName: manageForm.courseName, questionCount: selectedQuestions.value.length, totalScore: selectedScore.value }); ElMessage.success('试卷已修改'); backToList(); }
 function openImport() { importVisible.value = true; }
