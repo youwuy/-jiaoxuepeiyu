@@ -6,276 +6,260 @@
         <el-breadcrumb-item>个人资源库</el-breadcrumb-item>
       </el-breadcrumb>
 
-      <header class="admin-resource-head">
-        <div>
-          <h1>个人资源库</h1>
-          <p>统一维护个人资源的类型、专业、课程归属和公示状态</p>
-        </div>
-      </header>
-
       <section class="admin-resource-filter-card">
         <div class="admin-resource-filter-row">
-          <el-input
-            v-model="draft.keyword"
-            class="admin-resource-search"
-            :prefix-icon="Search"
-            placeholder="搜索资源名称、课程或上传人"
-            clearable
-            @keyup.enter="applyFilters"
-          />
-          <el-select v-model="draft.resourceType" class="admin-resource-select" placeholder="资源类型" clearable>
-            <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.majorId" class="admin-resource-select" placeholder="所属专业" clearable filterable>
-            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.publicStatus" class="admin-resource-select" placeholder="公示状态" clearable>
-            <el-option v-for="item in publicStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-button class="admin-resource-query-button" @click="applyFilters">查询</el-button>
-          <el-button class="admin-resource-reset-button" @click="resetFilters">重置</el-button>
+          <label>
+            <span>资源名称</span>
+            <el-input
+              v-model="draft.keyword"
+              class="admin-resource-search"
+              :prefix-icon="Search"
+              placeholder="请输入资源名称"
+              clearable
+              @keyup.enter="applyFilters"
+            />
+          </label>
+          <label>
+            <span>分类</span>
+            <el-select v-model="draft.resourceType" class="admin-resource-select" placeholder="请选择分类" clearable>
+              <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label>
+            <span>所属专业</span>
+            <el-select v-model="draft.majorId" class="admin-resource-select" placeholder="请选择专业" clearable filterable>
+              <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label>
+            <span>所属课程</span>
+            <el-input v-model="draft.courseName" class="admin-resource-select" placeholder="请选择课程" clearable />
+          </label>
+          <label>
+            <span>上传时间段</span>
+            <el-date-picker
+              v-model="draft.uploadDateRange"
+              class="admin-resource-date-range"
+              type="daterange"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              unlink-panels
+            />
+          </label>
+          <div class="admin-resource-filter-actions">
+            <el-button class="admin-resource-query-button" @click="applyFilters">查询</el-button>
+            <el-button class="admin-resource-reset-button" @click="resetFilters">重置</el-button>
+          </div>
         </div>
       </section>
 
-      <div class="admin-resource-layout" :class="{ 'has-panel': panelVisible }">
-        <section class="admin-resource-board">
-          <header class="admin-resource-board-head">
-            <div>
-              <strong>资源列表</strong>
-              <p>共 {{ totalCount }} 条资源，当前已选 {{ selectedIds.length }} 条</p>
-            </div>
-            <div class="admin-resource-board-actions">
-              <el-button class="admin-resource-lite-button" @click="openBatchEdit">批量修改</el-button>
-              <el-button class="admin-resource-lite-button danger" @click="batchDeleteResources">批量删除</el-button>
-              <el-button class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
-                <el-icon><Plus /></el-icon>
-                新增资源
-              </el-button>
-            </div>
-          </header>
+      <section class="admin-resource-actions-row">
+        <el-button class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
+          <el-icon><Plus /></el-icon>
+          上传资源
+        </el-button>
+        <el-button class="admin-resource-lite-button" @click="openBatchEdit">
+          <el-icon><Setting /></el-icon>
+          批量设置
+        </el-button>
+        <el-button class="admin-resource-lite-button danger" @click="batchDeleteResources">
+          <el-icon><Delete /></el-icon>
+          批量删除
+        </el-button>
+      </section>
 
-          <div v-if="loading" class="admin-resource-empty">资源加载中...</div>
-          <div v-else-if="pagedResources.length === 0" class="admin-resource-empty">
-            <el-empty description="暂无匹配资源" />
+      <section class="admin-resource-board">
+        <div v-if="loading" class="admin-resource-empty">资源加载中...</div>
+        <div v-else-if="pagedResources.length === 0" class="admin-resource-empty">
+          <el-empty description="暂无匹配资源" />
+        </div>
+        <template v-else>
+          <div class="admin-resource-table-scroll">
+            <table class="admin-resource-table design">
+              <thead>
+                <tr>
+                  <th class="check-col">
+                    <el-checkbox :model-value="allCurrentSelected" :indeterminate="partCurrentSelected" @change="toggleAllCurrent" />
+                  </th>
+                  <th>序号</th>
+                  <th>封面</th>
+                  <th>名称</th>
+                  <th>分类</th>
+                  <th>所属专业</th>
+                  <th>所属课程</th>
+                  <th>是否公开</th>
+                  <th>上传日期</th>
+                  <th>上传人</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in pagedResources" :key="row.resourceId" :class="{ selected: selectedIds.includes(row.resourceId) }">
+                  <td class="check-col">
+                    <el-checkbox :model-value="selectedIds.includes(row.resourceId)" @change="toggleOne(row.resourceId)" />
+                  </td>
+                  <td>{{ (page - 1) * pageSize + index + 1 }}</td>
+                  <td>
+                    <img class="admin-resource-cover-thumb" :src="row.coverResolved" :alt="row.resourceName" />
+                  </td>
+                  <td class="admin-resource-title-cell">{{ row.resourceName }}</td>
+                  <td>
+                    <span class="admin-resource-type-pill" :class="row.typeTone">{{ row.typeLabel }}</span>
+                  </td>
+                  <td class="wrap-cell">{{ row.majorLabel }}</td>
+                  <td class="wrap-cell">{{ row.courseName || '-' }}</td>
+                  <td>
+                    <span class="admin-resource-public-text" :class="row.statusTone">{{ row.statusLabel }}</span>
+                  </td>
+                  <td>{{ row.updatedAtLabel }}</td>
+                  <td>{{ row.uploaderName || '-' }}</td>
+                  <td>
+                    <div class="admin-resource-row-actions design">
+                      <el-button class="plain" @click="openPreview(row)">预览</el-button>
+                      <el-button class="plain" @click="openEditPanel(row)">编辑</el-button>
+                      <el-button class="plain" :loading="busyId === row.resourceId" @click="deleteResource(row)">删除</el-button>
+                      <el-button v-if="row.publicStatus !== 'PUBLISHED'" class="warn" @click="applyPublic(row)">申请公开</el-button>
+                      <el-button v-else-if="row.publicStatus === 'PUBLISHED'" class="warn" @click="applyPublic(row)">申请公开最新版</el-button>
+                      <el-button class="log" @click="openLogs(row)">操作日志</el-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <template v-else>
-            <div class="admin-resource-table-scroll">
-              <table class="admin-resource-table">
-                <thead>
-                  <tr>
-                    <th class="check-col">
-                      <el-checkbox :model-value="allCurrentSelected" :indeterminate="partCurrentSelected" @change="toggleAllCurrent" />
-                    </th>
-                    <th>资源名称</th>
-                    <th>类型</th>
-                    <th>所属专业</th>
-                    <th>课程名称</th>
-                    <th>上传人</th>
-                    <th>公示状态</th>
-                    <th>版本</th>
-                    <th>文件大小</th>
-                    <th>更新时间</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in pagedResources" :key="row.resourceId" :class="{ selected: selectedIds.includes(row.resourceId) }">
-                    <td class="check-col">
-                      <el-checkbox :model-value="selectedIds.includes(row.resourceId)" @change="toggleOne(row.resourceId)" />
-                    </td>
-                    <td>
-                      <div class="admin-resource-name-cell">
-                        <img :src="row.coverResolved" :alt="row.resourceName" />
-                        <div>
-                          <strong>{{ row.resourceName }}</strong>
-                          <span>{{ row.fileName || row.previewUrl || row.fileUrl || '-' }}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="admin-resource-type-pill" :class="row.typeTone">{{ row.typeLabel }}</span>
-                    </td>
-                    <td class="wrap-cell">{{ row.majorLabel }}</td>
-                    <td class="wrap-cell">{{ row.courseName || '-' }}</td>
-                    <td>{{ row.uploaderName || '-' }}</td>
-                    <td>
-                      <span class="admin-resource-status" :class="row.statusTone">
-                        <i></i>
-                        {{ row.statusLabel }}
-                      </span>
-                    </td>
-                    <td class="admin-resource-version">
-                      <strong>V{{ row.currentVersion ?? 1 }}</strong>
-                      <span>公示 V{{ row.publicVersion ?? row.currentVersion ?? 1 }}</span>
-                    </td>
-                    <td>{{ row.fileSizeLabel }}</td>
-                    <td>{{ row.updatedAtLabel }}</td>
-                    <td>
-                      <div class="admin-resource-row-actions">
-                        <el-button class="plain" @click="openDetail(row)">查看</el-button>
-                        <el-button class="edit" @click="openEditPanel(row)">编辑</el-button>
-                        <el-button class="plain" @click="openLogs(row)">日志</el-button>
-                        <el-button class="warn" @click="applyPublic(row)">公示申请</el-button>
-                        <el-button class="danger" :loading="busyId === row.resourceId" @click="deleteResource(row)">删除</el-button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
 
-            <footer class="admin-resource-footer">
-              <p>共 {{ totalCount }} 条记录</p>
-              <el-pagination
-                v-model:current-page="page"
-                :page-size="pageSize"
-                :total="totalCount"
-                layout="prev, pager, next"
-                background
-              />
-            </footer>
-          </template>
-        </section>
+          <footer class="admin-resource-footer design">
+            <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="totalCount"
+              layout="prev, pager, next, sizes"
+              background
+            />
+          </footer>
+        </template>
+      </section>
 
-        <aside v-if="panelVisible" class="admin-resource-panel">
-          <div class="admin-resource-panel-head">
+      <el-dialog v-model="resourceFormVisible" class="admin-resource-design-dialog" width="600px" :show-close="false" append-to-body>
+        <template #header>
+          <div class="admin-resource-design-dialog-head">
+            <span v-if="panelMode === 'create'" class="admin-resource-dialog-icon upload">
+              <el-icon><UploadFilled /></el-icon>
+            </span>
             <div>
-              <strong>{{ panelTitle }}</strong>
-              <p>维护资源元数据、文件信息和公示状态</p>
+              <strong>{{ panelMode === 'create' ? '上传资源' : '编辑资源' }}</strong>
+              <p v-if="panelMode === 'create'">请填写资源信息并上传文件</p>
             </div>
             <el-button text circle :icon="Close" @click="closePanel" />
           </div>
+        </template>
 
-          <div class="admin-resource-form">
-            <label class="admin-resource-field wide">
-              <span>资源名称 <b>*</b></span>
-              <el-input v-model="form.resourceName" maxlength="40" placeholder="请输入资源名称" />
-            </label>
+        <div class="admin-resource-upload-form">
+          <label class="admin-resource-modal-field">
+            <span>资源名称 <b>*</b></span>
+            <el-input v-model="form.resourceName" maxlength="20" show-word-limit placeholder="请输入资源名称" />
+          </label>
 
-            <div class="admin-resource-form-grid">
-              <label class="admin-resource-field">
-                <span>资源类型 <b>*</b></span>
-                <el-select v-model="form.resourceType" placeholder="请选择资源类型">
-                  <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </label>
-              <label class="admin-resource-field">
-                <span>所属专业 <b>*</b></span>
-                <el-select v-model="form.majorId" placeholder="请选择专业" filterable>
-                  <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </label>
-              <label class="admin-resource-field">
-                <span>课程名称</span>
-                <el-input v-model="form.courseName" maxlength="40" placeholder="请输入课程名称" />
-              </label>
-              <label class="admin-resource-field">
-                <span>上传人</span>
-                <el-input v-model="form.uploaderName" maxlength="20" placeholder="请输入上传人" />
-              </label>
-              <label class="admin-resource-field">
-                <span>文件名称 <b>*</b></span>
-                <el-input v-model="form.fileName" maxlength="80" placeholder="请输入文件名称" />
-              </label>
-              <label class="admin-resource-field">
-                <span>文件大小(KB) <b>*</b></span>
-                <el-input v-model="form.fileSize" type="number" min="0" placeholder="请输入文件大小" />
-              </label>
-              <label class="admin-resource-field wide">
-                <span>封面地址</span>
-                <el-input v-model="form.coverUrl" placeholder="请输入封面地址" />
-              </label>
-              <label class="admin-resource-field wide">
-                <span>文件地址 <b>*</b></span>
-                <el-input v-model="form.fileUrl" placeholder="请输入文件地址" />
-              </label>
-              <label class="admin-resource-field wide">
-                <span>预览地址</span>
-                <el-input v-model="form.previewUrl" placeholder="请输入预览地址" />
-              </label>
-              <label class="admin-resource-field">
-                <span>公示状态</span>
-                <el-select v-model="form.publicStatus" placeholder="请选择状态">
-                  <el-option v-for="item in publicStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </label>
-              <label class="admin-resource-field">
-                <span>当前版本</span>
-                <el-input v-model="form.currentVersion" type="number" min="1" />
-              </label>
-              <label class="admin-resource-field">
-                <span>公示版本</span>
-                <el-input v-model="form.publicVersion" type="number" min="1" />
-              </label>
-            </div>
-          </div>
-
-          <div class="admin-resource-panel-footer">
-            <el-button class="admin-resource-panel-cancel" @click="closePanel">取消</el-button>
-            <el-button class="admin-resource-panel-confirm" type="primary" :loading="saving" @click="saveResource">确定</el-button>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <el-drawer v-model="detailVisible" class="admin-resource-drawer" direction="rtl" size="720px" :with-header="false">
-      <div class="admin-drawer-head">
-        <div>
-          <p>资源详情</p>
-          <h3>{{ detailResource?.resourceName || '资源详情' }}</h3>
-        </div>
-        <el-button text :icon="Close" @click="detailVisible = false" />
-      </div>
-
-      <div v-if="detailLoading" class="admin-resource-empty drawer-state">详情加载中...</div>
-      <template v-else-if="detailResource">
-        <section class="admin-resource-detail-summary">
-          <div>
-            <span>公示状态</span>
-            <strong>{{ detailResource.statusLabel }}</strong>
-          </div>
-          <div>
-            <span>资源类型</span>
-            <strong>{{ detailResource.typeLabel }}</strong>
-          </div>
-          <div>
-            <span>所属专业</span>
-            <strong>{{ detailResource.majorLabel }}</strong>
-          </div>
-          <div>
-            <span>更新时间</span>
-            <strong>{{ detailResource.updatedAtLabel }}</strong>
-          </div>
-        </section>
-
-        <section class="admin-resource-detail-grid">
-          <div class="admin-resource-detail-card">
-            <p>基础信息</p>
-            <dl>
-              <div><dt>课程名称</dt><dd>{{ detailResource.courseName || '-' }}</dd></div>
-              <div><dt>上传人</dt><dd>{{ detailResource.uploaderName || '-' }}</dd></div>
-              <div><dt>文件名称</dt><dd>{{ detailResource.fileName || '-' }}</dd></div>
-              <div><dt>文件大小</dt><dd>{{ detailResource.fileSizeLabel }}</dd></div>
-              <div><dt>当前版本</dt><dd>V{{ detailResource.currentVersion ?? 1 }}</dd></div>
-              <div><dt>公示版本</dt><dd>V{{ detailResource.publicVersion ?? detailResource.currentVersion ?? 1 }}</dd></div>
-            </dl>
-          </div>
-
-          <div class="admin-resource-detail-card">
-            <p>封面与文件</p>
-            <div class="admin-resource-preview-box">
-              <img :src="detailResource.coverResolved" :alt="detailResource.resourceName" />
+          <label class="admin-resource-modal-field">
+            <span>封面图 <b>*</b></span>
+            <div v-if="panelMode === 'edit' && form.coverUrl" class="admin-resource-file-card cover">
+              <img :src="form.coverUrl" alt="封面图" />
               <div>
-                <strong>{{ detailResource.resourceName }}</strong>
-                <p>{{ detailResource.fileName || '-' }}</p>
-                <div class="admin-resource-detail-actions">
-                  <el-button class="plain" @click="previewResource(detailResource)">预览</el-button>
-                  <el-button class="plain" @click="copyFileLink(detailResource)">复制链接</el-button>
-                </div>
+                <strong>{{ form.coverName || 'resource-cover.jpg' }}</strong>
+                <p>{{ form.coverSize || '2.4 MB' }}</p>
               </div>
+              <el-button text circle :icon="Delete" @click="clearCover" />
             </div>
+            <button v-else type="button" class="admin-resource-upload-drop cover" @click="mockSelectCover">
+              <el-icon><Picture /></el-icon>
+              <strong>点击或拖拽上传封面图</strong>
+              <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
+            </button>
+          </label>
+
+          <label class="admin-resource-modal-field">
+            <span>资源内容 <b>*</b></span>
+            <div v-if="panelMode === 'edit' && form.fileName" class="admin-resource-file-card content">
+              <span class="admin-resource-file-icon">
+                <el-icon><Document /></el-icon>
+              </span>
+              <div>
+                <strong>{{ form.fileName }}</strong>
+                <p>{{ form.fileSizeLabel || form.fileSize || '18.5 MB' }} <i></i> 上传完成 <em>✓</em></p>
+              </div>
+              <el-button text circle :icon="Delete" @click="clearFile" />
+            </div>
+            <button v-else type="button" class="admin-resource-upload-drop content" @click="mockSelectFile">
+              <el-icon><UploadFilled /></el-icon>
+              <strong>点击或拖拽上传资源文件</strong>
+              <span>支持 PDF、Word、PPT、视频等多种格式，大小不超过 200MB</span>
+            </button>
+          </label>
+
+          <label class="admin-resource-modal-field">
+            <span>所属专业 <b>*</b></span>
+            <el-select v-model="form.majorId" placeholder="请选择所属专业" filterable>
+              <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+
+          <label class="admin-resource-modal-field">
+            <span>所属课程</span>
+            <el-input v-model="form.courseName" maxlength="30" show-word-limit placeholder="请输入所属课程名称" />
+          </label>
+        </div>
+
+        <template #footer>
+          <div class="admin-resource-design-footer">
+            <el-button @click="closePanel">取消</el-button>
+            <el-button type="primary" :loading="saving" @click="saveResource">
+              <el-icon v-if="panelMode === 'create'"><UploadFilled /></el-icon>
+              {{ panelMode === 'create' ? '确认上传' : '确认' }}
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
+
+      <el-dialog v-model="previewVisible" class="admin-resource-preview-dialog" width="820px" :show-close="false" append-to-body>
+        <template #header>
+          <div class="admin-resource-preview-head">
+            <strong>{{ detailResource?.resourceName || '资源预览' }}</strong>
+            <el-button text circle :icon="Close" @click="previewVisible = false" />
+          </div>
+        </template>
+
+        <section class="admin-resource-preview-content">
+          <div class="admin-resource-preview-document">
+            <h2>第一章 转向架结构与原理</h2>
+            <p>§ 1.1 转向架的组成与分类</p>
+            <article v-for="item in previewSections" :key="item.index" :class="item.tone">
+              <span>{{ item.index }}</span>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.content }}</p>
+              </div>
+            </article>
           </div>
         </section>
+
+        <template #footer>
+          <div class="admin-resource-preview-footer">
+            <el-button type="primary" @click="downloadResource">下载</el-button>
+          </div>
+        </template>
+      </el-dialog>
+
+      <el-drawer v-model="detailVisible" class="admin-resource-drawer" direction="rtl" size="720px" :with-header="false">
+        <div class="admin-drawer-head">
+          <div>
+            <p>操作日志</p>
+            <h3>{{ detailResource?.resourceName || '资源日志' }}</h3>
+          </div>
+          <el-button text :icon="Close" @click="detailVisible = false" />
+        </div>
 
         <section class="admin-resource-detail-card admin-resource-log-card">
           <p>操作日志</p>
@@ -289,44 +273,55 @@
             <small>{{ item.operatorName }}</small>
           </article>
         </section>
-      </template>
-    </el-drawer>
+      </el-drawer>
 
-    <el-dialog v-model="batchEditVisible" class="admin-resource-dialog" width="560px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-resource-dialog-head">
-          <strong>批量修改资源</strong>
-          <el-button text circle :icon="Close" @click="batchEditVisible = false" />
+      <el-dialog v-model="batchEditVisible" class="admin-resource-design-dialog" width="600px" :show-close="false" append-to-body>
+        <template #header>
+          <div class="admin-resource-design-dialog-head">
+            <div>
+              <strong>批量设置</strong>
+              <p>你可以设置以下一项或多项</p>
+            </div>
+            <el-button text circle :icon="Close" @click="batchEditVisible = false" />
+          </div>
+        </template>
+
+        <div class="admin-resource-upload-form batch">
+          <label class="admin-resource-modal-field">
+            <span>封面图</span>
+            <button type="button" class="admin-resource-upload-drop cover" @click="mockBatchCover">
+              <el-icon><Picture /></el-icon>
+              <strong>点击或拖拽上传封面图</strong>
+              <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
+            </button>
+          </label>
+          <label class="admin-resource-modal-field">
+            <span>所属专业</span>
+            <el-select v-model="batchForm.majorId" placeholder="请选择所属专业" filterable>
+              <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="admin-resource-modal-field">
+            <span>所属课程</span>
+            <el-input v-model="batchForm.courseName" maxlength="30" show-word-limit placeholder="请输入所属课程名称" />
+          </label>
         </div>
-      </template>
 
-      <div class="admin-resource-batch-grid">
-        <label>
-          <span>所属专业</span>
-          <el-select v-model="batchForm.majorId" placeholder="请选择专业" filterable>
-            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </label>
-        <label class="wide">
-          <span>课程名称</span>
-          <el-input v-model="batchForm.courseName" placeholder="请输入课程名称" />
-        </label>
-      </div>
-
-      <template #footer>
-        <div class="admin-resource-dialog-footer">
-          <el-button @click="batchEditVisible = false">取消</el-button>
-          <el-button type="primary" :loading="saving" @click="saveBatchEdit">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
+        <template #footer>
+          <div class="admin-resource-design-footer">
+            <el-button @click="batchEditVisible = false">取消</el-button>
+            <el-button type="primary" :loading="saving" @click="saveBatchEdit">确认</el-button>
+          </div>
+        </template>
+      </el-dialog>
+    </section>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Close, Plus, Search } from '@element-plus/icons-vue';
+import { Close, Delete, Document, Picture, Plus, Search, Setting, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   batchUpdateAdminResources,
@@ -379,21 +374,24 @@ interface ResourceForm {
   previewUrl: string;
   fileName: string;
   fileSize: string;
+  fileSizeLabel: string;
+  coverName: string;
+  coverSize: string;
   publicStatus: ResourceStatus;
   currentVersion: string;
   publicVersion: string;
 }
 
-const pageSize = 8;
+const pageSize = ref(10);
 const loading = ref(false);
 const saving = ref(false);
-const detailLoading = ref(false);
 const page = ref(1);
 const resources = ref<ResourceRow[]>([]);
 const detailResource = ref<ResourceRow | null>(null);
 const detailLogs = ref<AdminResourceLog[]>([]);
 const detailVisible = ref(false);
-const panelVisible = ref(true);
+const resourceFormVisible = ref(false);
+const previewVisible = ref(false);
 const panelMode = ref<PanelMode>('create');
 const editingId = ref<number | null>(null);
 const busyId = ref<number | null>(null);
@@ -404,7 +402,9 @@ const draft = reactive({
   keyword: '',
   resourceType: '',
   majorId: null as number | null,
-  publicStatus: '' as '' | ResourceStatus
+  courseName: '',
+  publicStatus: '' as '' | ResourceStatus,
+  uploadDateRange: [] as string[]
 });
 
 const majorOptions: MajorOption[] = [
@@ -423,12 +423,6 @@ const resourceTypeOptions: ResourceOption[] = [
   { label: '实训试题', value: '实训试题' }
 ];
 
-const publicStatusOptions: ResourceOption[] = [
-  { label: '未公示', value: 'DRAFT' },
-  { label: '审核中', value: 'REVIEWING' },
-  { label: '已公示', value: 'PUBLISHED' }
-];
-
 const appliedFilters = ref({ ...draft });
 const form = reactive<ResourceForm>(createEmptyForm());
 const batchForm = reactive({
@@ -445,14 +439,34 @@ const filteredResources = computed(() =>
       [item.resourceName, item.courseName, item.uploaderName, item.fileName, item.majorLabel].some((text) => String(text || '').toLowerCase().includes(keyword));
     const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
     const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
+    const matchesCourse = !appliedFilters.value.courseName || String(item.courseName || '').includes(appliedFilters.value.courseName);
     const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    return matchesKeyword && matchesType && matchesMajor && matchesStatus;
+    return matchesKeyword && matchesType && matchesMajor && matchesCourse && matchesStatus;
   })
 );
-const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize, page.value * pageSize));
-const panelTitle = computed(() => (panelMode.value === 'edit' ? '编辑资源' : '新增资源'));
+const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value));
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
+const previewSections = [
+  {
+    index: 1,
+    tone: 'blue',
+    title: '转向架定义',
+    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全运行。'
+  },
+  {
+    index: 2,
+    tone: 'green',
+    title: '转向架主要部件',
+    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
+  },
+  {
+    index: 3,
+    tone: 'orange',
+    title: '转向架检修流程',
+    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
+  }
+];
 
 function createEmptyForm(): ResourceForm {
   return {
@@ -466,6 +480,9 @@ function createEmptyForm(): ResourceForm {
     previewUrl: '',
     fileName: '',
     fileSize: '',
+    fileSizeLabel: '',
+    coverName: '',
+    coverSize: '',
     publicStatus: 'DRAFT',
     currentVersion: '1',
     publicVersion: '1'
@@ -698,18 +715,17 @@ function openCreatePanel() {
   panelMode.value = 'create';
   editingId.value = null;
   Object.assign(form, createEmptyForm());
-  form.coverUrl = coverForResourceType(form.resourceType);
-  panelVisible.value = true;
+  resourceFormVisible.value = true;
 }
 
 function closePanel() {
-  panelVisible.value = false;
+  resourceFormVisible.value = false;
 }
 
 function openEditPanel(row: ResourceRow) {
   panelMode.value = 'edit';
   editingId.value = row.resourceId;
-  panelVisible.value = true;
+  resourceFormVisible.value = true;
   Object.assign(form, {
     resourceName: row.resourceName,
     resourceType: row.resourceType || '文本文档',
@@ -717,10 +733,13 @@ function openEditPanel(row: ResourceRow) {
     courseName: row.courseName || '',
     uploaderName: row.uploaderName || '',
     coverUrl: row.coverUrl || '',
+    coverName: row.coverUrl ? 'math-cover.jpg' : '',
+    coverSize: row.coverUrl ? '2.4 MB' : '',
     fileUrl: row.fileUrl || '',
     previewUrl: row.previewUrl || '',
     fileName: row.fileName || '',
     fileSize: row.fileSize ? String(row.fileSize) : '',
+    fileSizeLabel: row.fileSizeLabel,
     publicStatus: row.publicStatus || 'DRAFT',
     currentVersion: String(row.currentVersion ?? 1),
     publicVersion: String(row.publicVersion ?? row.currentVersion ?? 1)
@@ -743,7 +762,9 @@ function applyFilters() {
     keyword: draft.keyword,
     resourceType: draft.resourceType,
     majorId: draft.majorId,
-    publicStatus: draft.publicStatus
+    courseName: draft.courseName,
+    publicStatus: draft.publicStatus,
+    uploadDateRange: [...draft.uploadDateRange]
   };
   page.value = 1;
   void loadResources();
@@ -753,12 +774,16 @@ function resetFilters() {
   draft.keyword = '';
   draft.resourceType = '';
   draft.majorId = null;
+  draft.courseName = '';
   draft.publicStatus = '';
+  draft.uploadDateRange = [];
   appliedFilters.value = {
     keyword: '',
     resourceType: '',
     majorId: null,
-    publicStatus: ''
+    courseName: '',
+    publicStatus: '',
+    uploadDateRange: []
   };
   page.value = 1;
   void loadResources();
@@ -851,7 +876,7 @@ async function saveResource() {
       ElMessage.success('资源已新增');
     }
     await loadResources();
-    panelVisible.value = true;
+    resourceFormVisible.value = false;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '保存失败');
   } finally {
@@ -866,7 +891,10 @@ async function loadResources() {
       keyword: appliedFilters.value.keyword.trim() || undefined,
       resourceType: appliedFilters.value.resourceType || undefined,
       majorId: appliedFilters.value.majorId ?? undefined,
+      courseName: appliedFilters.value.courseName.trim() || undefined,
       publicStatus: appliedFilters.value.publicStatus || undefined,
+      uploadStartDate: appliedFilters.value.uploadDateRange[0],
+      uploadEndDate: appliedFilters.value.uploadDateRange[1],
       page: 1,
       pageSize: 999
     };
@@ -881,21 +909,16 @@ async function loadResources() {
 }
 
 async function openDetail(row: ResourceRow) {
-  detailVisible.value = true;
-  detailLoading.value = true;
   try {
     detailResource.value = mapResourceRow(await fetchAdminResource(row.resourceId));
   } catch {
     detailResource.value = row;
   }
+}
 
-  try {
-    detailLogs.value = await fetchAdminResourceLogs(row.resourceId);
-  } catch {
-    detailLogs.value = [];
-  } finally {
-    detailLoading.value = false;
-  }
+async function openPreview(row: ResourceRow) {
+  await openDetail(row);
+  previewVisible.value = true;
 }
 
 async function openLogs(row: ResourceRow) {
@@ -1009,25 +1032,47 @@ async function saveBatchEdit() {
   }
 }
 
-function previewResource(row: ResourceRow) {
-  const url = row.previewUrl || row.fileUrl;
-  if (url) {
-    window.open(url, '_blank', 'noopener');
-    return;
-  }
-
-  ElMessage.info(`正在打开资源：${row.resourceName}`);
+function mockSelectCover() {
+  form.coverUrl = coverForResourceType(form.resourceType);
+  form.coverName = 'resource-cover.jpg';
+  form.coverSize = '2.4 MB';
+  ElMessage.success('封面图已选择');
 }
 
-function copyFileLink(row: ResourceRow) {
-  const url = row.fileUrl || row.previewUrl;
-  if (!url) {
-    ElMessage.warning('暂无可复制链接');
+function mockSelectFile() {
+  form.fileName = form.resourceName ? `${form.resourceName}.pdf` : '资源文件.pdf';
+  form.fileUrl = form.fileUrl || 'https://example.com/resource/uploaded';
+  form.previewUrl = form.previewUrl || form.fileUrl;
+  form.fileSize = '18500';
+  form.fileSizeLabel = '18.5 MB';
+  ElMessage.success('资源文件已选择');
+}
+
+function mockBatchCover() {
+  ElMessage.success('批量封面已选择');
+}
+
+function clearCover() {
+  form.coverUrl = '';
+  form.coverName = '';
+  form.coverSize = '';
+}
+
+function clearFile() {
+  form.fileUrl = '';
+  form.previewUrl = '';
+  form.fileName = '';
+  form.fileSize = '';
+  form.fileSizeLabel = '';
+}
+
+function downloadResource() {
+  if (detailResource.value?.fileUrl) {
+    window.open(detailResource.value.fileUrl, '_blank', 'noopener');
     return;
   }
 
-  void navigator.clipboard?.writeText(url);
-  ElMessage.success('链接已复制');
+  ElMessage.info('正在下载资源');
 }
 
 watch(

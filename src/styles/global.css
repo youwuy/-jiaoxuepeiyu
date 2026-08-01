@@ -10875,3 +10875,533 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.admin-resource-page {
+  min-height: 100vh;
+  padding: 0 24px 42px;
+  background: #f6f8fc;
+}
+
+.admin-resource-breadcrumb {
+  height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-resource-filter-card {
+  margin: 24px 0 16px;
+  padding: 22px 24px;
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-resource-filter-row {
+  display: grid;
+  grid-template-columns: 200px 184px 184px 184px 260px auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.admin-resource-filter-row label,
+.admin-resource-modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-resource-filter-row label > span,
+.admin-resource-modal-field > span {
+  color: #1f2d3d;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 800;
+}
+
+.admin-resource-modal-field b {
+  color: #ef4444;
+}
+
+.admin-resource-search,
+.admin-resource-select,
+.admin-resource-date-range {
+  width: 100%;
+}
+
+.admin-resource-filter-card .el-input__wrapper,
+.admin-resource-filter-card .el-select__wrapper,
+.admin-resource-filter-card .el-date-editor.el-input__wrapper,
+.admin-resource-modal-field .el-input__wrapper,
+.admin-resource-modal-field .el-select__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #d9e1ec inset;
+}
+
+.admin-resource-filter-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-resource-query-button.el-button,
+.admin-resource-reset-button.el-button,
+.admin-resource-primary-button.el-button,
+.admin-resource-lite-button.el-button {
+  height: 40px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.admin-resource-query-button.el-button,
+.admin-resource-primary-button.el-button {
+  border-color: #3478f6;
+  background: #3478f6;
+  color: #ffffff;
+}
+
+.admin-resource-reset-button.el-button,
+.admin-resource-lite-button.el-button {
+  border-color: #dbe3ee;
+  background: #ffffff;
+  color: #52657d;
+}
+
+.admin-resource-lite-button.danger.el-button {
+  color: #52657d;
+}
+
+.admin-resource-actions-row {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.admin-resource-board {
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.admin-resource-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-resource-table.design {
+  min-width: 1440px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-resource-table.design th {
+  height: 48px;
+  padding: 0 14px;
+  background: #f8fafc;
+  color: #4b5f7a;
+  font-size: 13px;
+  text-align: left;
+  font-weight: 800;
+}
+
+.admin-resource-table.design td {
+  height: 64px;
+  padding: 10px 14px;
+  border-top: 1px solid #eef2f7;
+  color: #223148;
+  font-size: 14px;
+}
+
+.admin-resource-table.design .check-col {
+  width: 54px;
+  text-align: center;
+}
+
+.admin-resource-cover-thumb {
+  width: 58px;
+  height: 42px;
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #edf2f7;
+}
+
+.admin-resource-title-cell {
+  min-width: 190px;
+  color: #142033;
+  font-weight: 800;
+}
+
+.admin-resource-public-text {
+  font-weight: 800;
+}
+
+.admin-resource-public-text.draft {
+  color: #8b9ab0;
+}
+
+.admin-resource-public-text.reviewing {
+  color: #f59e0b;
+}
+
+.admin-resource-public-text.published {
+  color: #00a862;
+}
+
+.admin-resource-row-actions.design {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.admin-resource-row-actions.design .el-button {
+  height: 28px;
+  margin: 0;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #eef5ff;
+  color: #2373f6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-resource-row-actions.design .warn.el-button {
+  min-width: max-content;
+}
+
+.admin-resource-row-actions.design .log.el-button {
+  border: 1px solid #dce6f3;
+  background: #f8fafc;
+  color: #40536d;
+}
+
+.admin-resource-footer.design {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-top: 1px solid #eef2f7;
+  background: #ffffff;
+}
+
+.admin-resource-footer.design p {
+  margin: 0;
+  color: #63748b;
+  font-size: 14px;
+}
+
+.admin-resource-footer.design b {
+  color: #1f2d3d;
+}
+
+.admin-resource-design-dialog .el-dialog,
+.admin-resource-preview-dialog .el-dialog {
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 18px 70px rgba(15, 23, 42, 0.18);
+}
+
+.admin-resource-design-dialog .el-dialog__header,
+.admin-resource-preview-dialog .el-dialog__header {
+  margin: 0;
+  padding: 22px 24px 12px;
+}
+
+.admin-resource-design-dialog .el-dialog__body {
+  padding: 20px 24px 22px;
+}
+
+.admin-resource-design-dialog .el-dialog__footer,
+.admin-resource-preview-dialog .el-dialog__footer {
+  padding: 0 24px 24px;
+}
+
+.admin-resource-design-dialog-head,
+.admin-resource-preview-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.admin-resource-design-dialog-head > div,
+.admin-resource-preview-head strong {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-resource-design-dialog-head strong,
+.admin-resource-preview-head strong {
+  color: #152238;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 900;
+}
+
+.admin-resource-design-dialog-head p {
+  margin: 2px 0 0;
+  color: #8190a6;
+  font-size: 14px;
+}
+
+.admin-resource-design-dialog-head .el-button,
+.admin-resource-preview-head .el-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f3f6fa;
+  color: #8190a6;
+}
+
+.admin-resource-dialog-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #5b5cf6;
+  font-size: 22px;
+}
+
+.admin-resource-upload-form {
+  display: grid;
+  gap: 22px;
+}
+
+.admin-resource-upload-form.batch {
+  gap: 24px;
+}
+
+.admin-resource-upload-drop {
+  width: 100%;
+  min-height: 136px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid #d8e0eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+  color: #788aa4;
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-resource-upload-drop.content {
+  min-height: 168px;
+}
+
+.admin-resource-upload-drop .el-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #6257f6;
+  font-size: 25px;
+}
+
+.admin-resource-upload-drop.content .el-icon,
+.admin-resource-file-icon {
+  background: #fff3e6;
+  color: #f97316;
+}
+
+.admin-resource-upload-drop strong {
+  color: #2a3950;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-resource-upload-drop span {
+  color: #8190a6;
+  font-size: 13px;
+}
+
+.admin-resource-file-card {
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #dfe6f0;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.admin-resource-file-card img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.admin-resource-file-card strong {
+  display: block;
+  color: #24344d;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 800;
+}
+
+.admin-resource-file-card p {
+  margin: 4px 0 0;
+  color: #70839c;
+  font-size: 13px;
+}
+
+.admin-resource-file-card p i {
+  width: 4px;
+  height: 4px;
+  display: inline-block;
+  margin: 0 8px;
+  border-radius: 50%;
+  background: #cad3df;
+  vertical-align: middle;
+}
+
+.admin-resource-file-card p em {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #ddfbea;
+  color: #14b87a;
+  font-style: normal;
+  font-size: 12px;
+}
+
+.admin-resource-file-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 24px;
+}
+
+.admin-resource-file-card .el-button {
+  color: #ef4444;
+  background: #fff1f1;
+}
+
+.admin-resource-design-footer,
+.admin-resource-preview-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-resource-design-footer .el-button,
+.admin-resource-preview-footer .el-button {
+  min-width: 78px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.admin-resource-design-footer .el-button--primary,
+.admin-resource-preview-footer .el-button--primary {
+  border-color: #6257f6;
+  background: #6257f6;
+  box-shadow: 0 8px 18px rgba(98, 87, 246, 0.28);
+}
+
+.admin-resource-preview-dialog .el-dialog__body {
+  padding: 40px 48px 34px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.admin-resource-preview-content {
+  padding: 0;
+}
+
+.admin-resource-preview-document {
+  min-height: 420px;
+  padding: 32px 52px;
+  border: 1px solid #dde5ef;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.admin-resource-preview-document h2 {
+  margin: 0 0 8px;
+  color: #172033;
+  font-size: 28px;
+  line-height: 38px;
+  font-weight: 900;
+}
+
+.admin-resource-preview-document > p {
+  margin: 0 0 28px;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.admin-resource-preview-document article {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+}
+
+.admin-resource-preview-document article.blue {
+  background: #eef2ff;
+}
+
+.admin-resource-preview-document article.green {
+  background: #ecfdf3;
+}
+
+.admin-resource-preview-document article.orange {
+  background: #fff7ed;
+}
+
+.admin-resource-preview-document article > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.admin-resource-preview-document article.green > span {
+  background: #10b981;
+}
+
+.admin-resource-preview-document article.orange > span {
+  background: #f59e0b;
+}
+
+.admin-resource-preview-document article strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-resource-preview-document article p {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (max-width: 1360px) {
+  .admin-resource-filter-row {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+}
