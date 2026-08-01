@@ -12080,3 +12080,324 @@ a {
   background: #6257f6;
   box-shadow: 0 8px 18px rgba(98, 87, 246, 0.28);
 }
+
+.admin-public-resource-head,
+.admin-public-resource-board-head,
+.admin-public-resource-panel,
+.admin-public-resource-drawer,
+.admin-public-resource-dialog:not(.admin-public-resource-preview-modal) {
+  display: none;
+}
+
+.admin-public-resource-page {
+  min-height: 100vh;
+  padding: 0 24px 42px;
+  background: #f5f7fb;
+}
+
+.admin-public-resource-breadcrumb {
+  height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-public-resource-filter-card {
+  margin: 24px 0 14px;
+  padding: 20px 24px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-public-resource-filter-row {
+  display: grid;
+  grid-template-columns: 200px 164px 184px 184px 164px auto auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.admin-public-resource-filter-row::before {
+  content: "资源名称";
+  position: absolute;
+  opacity: 0;
+}
+
+.admin-public-resource-search,
+.admin-public-resource-select {
+  width: 100%;
+}
+
+.admin-public-resource-range {
+  display: none;
+}
+
+.admin-public-resource-search .el-input__wrapper,
+.admin-public-resource-select .el-select__wrapper,
+.admin-public-resource-select .el-input__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #dbe3ee inset;
+}
+
+.admin-public-resource-query-button.el-button,
+.admin-public-resource-reset-button.el-button {
+  height: 40px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-weight: 900;
+}
+
+.admin-public-resource-query-button.el-button {
+  border-color: #3478f6;
+  background: #3478f6;
+  color: #ffffff;
+}
+
+.admin-public-resource-reset-button.el-button {
+  border-color: #dbe3ee;
+  background: #ffffff;
+  color: #52657d;
+}
+
+.admin-public-resource-count {
+  margin: 0 0 14px;
+  color: #63748b;
+  font-size: 14px;
+}
+
+.admin-public-resource-count b {
+  color: #3478f6;
+}
+
+.admin-public-resource-workspace {
+  display: block;
+}
+
+.admin-public-resource-board {
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.admin-public-resource-table {
+  min-width: 1180px;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-public-resource-table th {
+  height: 46px;
+  padding: 0 16px;
+  background: #f8fafc;
+  color: #40536d;
+  font-size: 13px;
+  text-align: left;
+  font-weight: 900;
+}
+
+.admin-public-resource-table td {
+  height: 64px;
+  padding: 10px 16px;
+  border-top: 1px solid #edf2f7;
+  color: #223148;
+  font-size: 14px;
+}
+
+.admin-public-resource-table .check-col {
+  width: 54px;
+  text-align: center;
+}
+
+.admin-public-resource-cover {
+  width: 58px;
+  height: 42px;
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #edf2f7;
+}
+
+.admin-public-resource-name-cell img,
+.admin-public-resource-name-cell span {
+  display: none;
+}
+
+.admin-public-resource-name-cell strong {
+  color: #142033;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-public-resource-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-public-resource-row-actions .el-button {
+  height: 28px;
+  margin: 0;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #eef5ff;
+  color: #2373f6;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-public-resource-footer {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px 24px;
+  border: 1px solid #e3e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-public-resource-footer p {
+  margin: 0;
+  color: #63748b;
+  font-size: 14px;
+}
+
+.admin-public-resource-footer b {
+  color: #1f2d3d;
+}
+
+.admin-public-resource-preview-modal .el-dialog {
+  border-radius: 0 0 10px 10px;
+}
+
+.admin-public-resource-preview-modal .el-dialog__header {
+  margin: 0;
+  padding: 22px 24px 12px;
+}
+
+.admin-public-resource-preview-modal .el-dialog__body {
+  padding: 40px 48px 34px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.admin-public-resource-preview-modal .el-dialog__footer {
+  padding: 0 24px 24px;
+}
+
+.admin-public-resource-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-public-resource-dialog-head strong {
+  color: #152238;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.admin-public-resource-dialog-head .el-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f3f6fa;
+  color: #8190a6;
+}
+
+.admin-public-resource-preview-doc {
+  min-height: 442px;
+  padding: 32px 52px;
+  border: 1px solid #dfe6f0;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.admin-public-resource-preview-doc h2 {
+  margin: 0 0 8px;
+  color: #172033;
+  font-size: 28px;
+  line-height: 38px;
+  font-weight: 900;
+}
+
+.admin-public-resource-preview-doc > p {
+  margin: 0 0 28px;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.admin-public-resource-preview-doc article {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+}
+
+.admin-public-resource-preview-doc article.blue {
+  background: #eef2ff;
+}
+
+.admin-public-resource-preview-doc article.green {
+  background: #ecfdf3;
+}
+
+.admin-public-resource-preview-doc article.orange {
+  background: #fff7ed;
+}
+
+.admin-public-resource-preview-doc article > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.admin-public-resource-preview-doc article.green > span {
+  background: #10b981;
+}
+
+.admin-public-resource-preview-doc article.orange > span {
+  background: #f59e0b;
+}
+
+.admin-public-resource-preview-doc article strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-public-resource-preview-doc article p {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.admin-public-resource-preview-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-public-resource-preview-footer .el-button {
+  min-width: 78px;
+  height: 40px;
+  border-radius: 8px;
+  border-color: #6257f6;
+  background: #6257f6;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(98, 87, 246, 0.28);
+}

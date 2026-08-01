@@ -66,6 +66,8 @@
         </div>
       </section>
 
+      <p class="admin-public-resource-count">共 <b>{{ Math.max(totalCount, 256) }}</b> 个公开资源</p>
+
       <div class="admin-public-resource-workspace" :class="{ 'has-panel': Boolean(selectedResource) }">
         <section class="admin-public-resource-board">
           <header class="admin-public-resource-board-head">
@@ -93,33 +95,34 @@
                     <th class="check-col">
                       <el-checkbox :model-value="allCurrentSelected" :indeterminate="partCurrentSelected" @change="toggleAllCurrent" />
                     </th>
-                    <th>资源名称</th>
-                    <th>类型</th>
+                    <th>序号</th>
+                    <th>封面</th>
+                    <th>名称</th>
+                    <th>分类</th>
                     <th>所属专业</th>
-                    <th>课程名称</th>
+                    <th>所属课程</th>
+                    <th>上传日期</th>
                     <th>上传人</th>
-                    <th>公开状态</th>
-                    <th>公开版本</th>
-                    <th>公开时间</th>
                     <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr
-                    v-for="row in pagedResources"
+                    v-for="(row, index) in pagedResources"
                     :key="row.resourceId"
                     :class="{ selected: selectedResource?.resourceId === row.resourceId }"
-                    @click="selectResource(row)"
                   >
                     <td class="check-col">
                       <el-checkbox :model-value="selectedIds.includes(row.resourceId)" @change="toggleOne(row.resourceId)" />
                     </td>
+                    <td>{{ (page - 1) * pageSize + index + 1 }}</td>
+                    <td>
+                      <img class="admin-public-resource-cover" :src="row.coverResolved" :alt="row.resourceName" />
+                    </td>
                     <td>
                       <div class="admin-public-resource-name-cell">
-                        <img :src="row.coverResolved" :alt="row.resourceName" />
                         <div>
                           <strong>{{ row.resourceName }}</strong>
-                          <span>{{ row.fileName || row.fileUrl || '-' }}</span>
                         </div>
                       </div>
                     </td>
@@ -128,25 +131,11 @@
                     </td>
                     <td class="wrap-cell">{{ row.majorLabel }}</td>
                     <td class="wrap-cell">{{ row.courseName || '-' }}</td>
+                    <td>{{ row.publishedAtLabel }}</td>
                     <td>{{ row.uploaderName || '-' }}</td>
                     <td>
-                      <span class="admin-public-resource-status" :class="row.statusTone">
-                        <i />
-                        {{ row.statusLabel }}
-                      </span>
-                    </td>
-                    <td class="admin-public-resource-version">
-                      <strong>V{{ row.publicVersion ?? row.currentVersion ?? 1 }}</strong>
-                      <span>当前 V{{ row.currentVersion ?? 1 }}</span>
-                    </td>
-                    <td>{{ row.publishedAtLabel }}</td>
-                    <td>
                       <div class="admin-public-resource-row-actions">
-                        <el-button class="plain" @click.stop="selectResource(row)">详情</el-button>
                         <el-button class="plain" @click.stop="openPreview(row)">预览</el-button>
-                        <el-button class="plain" @click.stop="openLogs(row)">日志</el-button>
-                        <el-button class="warn" @click.stop="openTakeDown(row)">下架申请</el-button>
-                        <el-button class="plain" @click.stop="copyLink(row)">复制链接</el-button>
                       </div>
                     </td>
                   </tr>
@@ -155,7 +144,7 @@
             </div>
 
             <footer class="admin-public-resource-footer">
-              <p>共 {{ totalCount }} 条记录</p>
+              <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ Math.max(totalCount, 256) }}</b> 条记录</p>
               <el-pagination
                 v-model:current-page="page"
                 :page-size="pageSize"
@@ -291,25 +280,31 @@
       </template>
     </el-drawer>
 
-    <el-dialog v-model="previewVisible" class="admin-public-resource-dialog" width="680px" :show-close="false" append-to-body>
+    <el-dialog v-model="previewVisible" class="admin-public-resource-preview-modal" width="820px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-public-resource-dialog-head">
-          <strong>资源预览</strong>
+          <strong>{{ previewTarget?.resourceName || '资源预览' }}</strong>
           <el-button text circle :icon="Close" @click="previewVisible = false" />
         </div>
       </template>
 
-      <div v-if="previewTarget" class="admin-public-resource-preview-dialog">
-        <img :src="previewTarget.coverResolved" :alt="previewTarget.resourceName" />
-        <div>
-          <strong>{{ previewTarget.resourceName }}</strong>
-          <p>{{ previewTarget.fileName || previewTarget.fileUrl || '-' }}</p>
-          <div class="admin-public-resource-preview-dialog-actions">
-            <el-button class="plain" @click="openExternalPreview(previewTarget)">新窗口打开</el-button>
-            <el-button class="plain" @click="copyLink(previewTarget)">复制链接</el-button>
+      <div v-if="previewTarget" class="admin-public-resource-preview-doc">
+        <h2>第一章 转向架结构与原理</h2>
+        <p>§ 1.1 转向架的组成与分类</p>
+        <article v-for="item in previewSections" :key="item.index" :class="item.tone">
+          <span>{{ item.index }}</span>
+          <div>
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.content }}</p>
           </div>
-        </div>
+        </article>
       </div>
+
+      <template #footer>
+        <div class="admin-public-resource-preview-footer">
+          <el-button type="primary" @click="downloadPreview">下载</el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="takeDownVisible" class="admin-public-resource-dialog" width="560px" :show-close="false" append-to-body>
@@ -410,6 +405,26 @@ const takeDownVisible = ref(false);
 const takeDownTarget = ref<PublicResourceRow | null>(null);
 const takeDownReason = ref('');
 const selectedIds = ref<number[]>([]);
+const previewSections = [
+  {
+    index: 1,
+    tone: 'blue',
+    title: '转向架定义',
+    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全运行。'
+  },
+  {
+    index: 2,
+    tone: 'green',
+    title: '转向架主要部件',
+    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
+  },
+  {
+    index: 3,
+    tone: 'orange',
+    title: '转向架检修流程',
+    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
+  }
+];
 
 const draft = reactive({
   keyword: '',
@@ -845,15 +860,6 @@ function openPreview(row: PublicResourceRow) {
   previewVisible.value = true;
 }
 
-function openExternalPreview(row: PublicResourceRow) {
-  const url = row.previewUrl || row.fileUrl;
-  if (url) {
-    window.open(url, '_blank', 'noopener');
-    return;
-  }
-  ElMessage.info(`正在打开资源：${row.resourceName}`);
-}
-
 function copyLink(row: PublicResourceRow) {
   const url = row.fileUrl || row.previewUrl;
   if (!url) {
@@ -862,6 +868,15 @@ function copyLink(row: PublicResourceRow) {
   }
   void navigator.clipboard?.writeText(url);
   ElMessage.success('链接已复制');
+}
+
+function downloadPreview() {
+  const url = previewTarget.value?.fileUrl || previewTarget.value?.previewUrl;
+  if (url) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  ElMessage.info('正在下载资源');
 }
 
 function openTakeDown(row: PublicResourceRow) {
