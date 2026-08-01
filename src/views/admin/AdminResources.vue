@@ -407,13 +407,6 @@ const draft = reactive({
   publicStatus: '' as '' | ResourceStatus
 });
 
-const appliedFilters = ref({ ...draft });
-const form = reactive<ResourceForm>(createEmptyForm());
-const batchForm = reactive({
-  majorId: null as number | null,
-  courseName: ''
-});
-
 const majorOptions: MajorOption[] = [
   { label: '城市轨道交通运营管理', value: 1 },
   { label: '城市轨道交通车辆技术', value: 2 },
@@ -435,6 +428,13 @@ const publicStatusOptions: ResourceOption[] = [
   { label: '审核中', value: 'REVIEWING' },
   { label: '已公示', value: 'PUBLISHED' }
 ];
+
+const appliedFilters = ref({ ...draft });
+const form = reactive<ResourceForm>(createEmptyForm());
+const batchForm = reactive({
+  majorId: null as number | null,
+  courseName: ''
+});
 
 const totalCount = computed(() => filteredResources.value.length);
 const filteredResources = computed(() =>
