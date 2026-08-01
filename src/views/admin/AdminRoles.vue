@@ -1,21 +1,95 @@
 <template>
   <AdminShell activeKey="roles">
-    <section class="admin-roles-page">
+    <section v-if="roleFormPageVisible" class="admin-role-form-page">
+      <header class="admin-role-form-topbar">
+        <el-breadcrumb class="admin-role-form-breadcrumb" separator="/">
+          <el-breadcrumb-item>系统管理</el-breadcrumb-item>
+          <el-breadcrumb-item>角色管理</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ formMode === 'create' ? '新增角色' : '编辑角色' }}</el-breadcrumb-item>
+        </el-breadcrumb>
+        <div class="admin-role-form-user">
+          <span>管</span>
+          <strong>管理员</strong>
+        </div>
+      </header>
+
+      <section class="admin-role-form-card">
+        <h3><i></i>基本信息</h3>
+        <div class="admin-role-basic-grid">
+          <label>
+            <span>角色名称 <b>*</b></span>
+            <el-input v-model="form.roleName" maxlength="20" placeholder="请输入角色名称" />
+          </label>
+          <label>
+            <span>角色描述</span>
+            <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="120" placeholder="请输入角色描述" />
+          </label>
+        </div>
+      </section>
+
+      <section class="admin-role-form-card permissions">
+        <h3><i></i>权限配置</h3>
+        <div class="admin-role-permission-matrix">
+          <table>
+            <thead>
+              <tr>
+                <th>模块</th>
+                <th>页面</th>
+                <th>功能权限</th>
+                <th>数据权限配置</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in permissionRows" :key="row.rowKey">
+                <td class="module-cell">
+                  <el-checkbox v-if="row.moduleName" :model-value="isModuleChecked(row.moduleIds)" @change="toggleModule(row.moduleIds, $event)">
+                    {{ row.moduleName }}
+                  </el-checkbox>
+                </td>
+                <td>
+                  <el-checkbox :model-value="isPermissionChecked(row.pageId)" @change="togglePermission(row.pageId, $event)">
+                    {{ row.pageName }}
+                  </el-checkbox>
+                </td>
+                <td>
+                  <div class="admin-role-action-checks">
+                    <el-checkbox
+                      v-for="action in row.actions"
+                      :key="action.key"
+                      :model-value="isActionChecked(action)"
+                      :disabled="action.virtual"
+                      @change="toggleAction(action, $event)"
+                    >
+                      {{ action.label }}
+                    </el-checkbox>
+                  </div>
+                </td>
+                <td>
+                  <el-radio-group v-model="form.dataScope" class="admin-role-data-scope">
+                    <el-radio label="SELF">个人</el-radio>
+                    <el-radio label="ORG_ONLY">管理组织</el-radio>
+                    <el-radio label="ALL">全部</el-radio>
+                  </el-radio-group>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="admin-role-form-actions">
+        <el-button class="admin-role-form-cancel" @click="cancelRoleForm">取消</el-button>
+        <el-button class="admin-role-form-confirm" type="primary" :loading="saving" @click="saveRole">确定</el-button>
+      </footer>
+    </section>
+
+    <section v-else class="admin-roles-page">
       <el-breadcrumb class="admin-roles-breadcrumb" separator="/">
         <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>
         <el-breadcrumb-item>角色管理</el-breadcrumb-item>
       </el-breadcrumb>
 
       <section class="admin-roles-toolbar">
-        <div class="admin-roles-filter">
-          <el-input v-model="draft.keyword" class="admin-roles-search" :prefix-icon="Search" placeholder="搜索角色名称/编码" clearable @keyup.enter="applySearch" />
-          <el-select v-model="draft.enabled" class="admin-roles-status-filter" placeholder="状态" clearable>
-            <el-option label="启用" :value="true" />
-            <el-option label="禁用" :value="false" />
-          </el-select>
-          <el-button class="admin-roles-ghost-button" @click="applySearch">查询</el-button>
-          <el-button class="admin-roles-ghost-button" @click="resetSearch">重置</el-button>
-        </div>
         <el-button class="admin-roles-primary-button" type="primary" @click="openCreate">
           <el-icon><Plus /></el-icon>
           新增角色
@@ -31,8 +105,6 @@
                 <tr>
                   <th>角色名称</th>
                   <th>角色描述</th>
-                  <th>数据权限</th>
-                  <th>用户数</th>
                   <th>状态</th>
                   <th>创建时间</th>
                   <th>操作</th>
@@ -40,15 +112,8 @@
               </thead>
               <tbody>
                 <tr v-for="role in roles" :key="role.roleId" :class="{ disabled: role.enabled === false }">
-                  <td>
-                    <div class="admin-roles-name">
-                      <strong>{{ role.roleName }}</strong>
-                      <span>{{ role.roleCode }}</span>
-                    </div>
-                  </td>
+                  <td class="strong-cell">{{ role.roleName }}</td>
                   <td class="admin-roles-remark">{{ role.remark || '-' }}</td>
-                  <td>{{ dataScopeLabels[role.dataScope || ''] || role.dataScope || '-' }}</td>
-                  <td>{{ role.userCount ?? 0 }}</td>
                   <td>
                     <span class="admin-roles-status" :class="role.enabled === false ? 'disabled' : 'enabled'">
                       <i></i>
@@ -61,10 +126,9 @@
                       <el-button class="plain" @click="openDetail(role)">查看</el-button>
                       <template v-if="!isBuiltInRole(role)">
                         <el-button class="plain" @click="openEdit(role)">编辑</el-button>
-                        <el-button :class="role.enabled === false ? 'enable' : 'warn'" :loading="busyId === role.roleId" @click="toggleRole(role)">
+                        <el-button class="warn" :loading="busyId === role.roleId" @click="toggleRole(role)">
                           {{ role.enabled === false ? '启用' : '禁用' }}
                         </el-button>
-                        <el-button class="danger" :loading="busyId === role.roleId" @click="removeRole(role)">删除</el-button>
                       </template>
                     </div>
                   </td>
@@ -77,7 +141,7 @@
             <p>共 <strong>{{ page.total }}</strong> 条记录</p>
             <el-pagination
               v-model:current-page="page.page"
-              v-model:page-size="page.pageSize"
+              :page-size="page.pageSize"
               :total="page.total"
               layout="prev, pager, next"
               background
@@ -88,121 +152,45 @@
       </section>
     </section>
 
-    <el-drawer v-model="drawerVisible" class="admin-roles-drawer" size="720px" :with-header="false" append-to-body>
-      <section class="admin-roles-drawer-page">
-        <header class="admin-roles-drawer-head">
-          <div>
-            <p>系统基础设置 / 角色管理</p>
-            <h2>{{ drawerTitle }}</h2>
-          </div>
-          <el-button text circle :icon="Close" @click="drawerVisible = false" />
-        </header>
-
-        <template v-if="drawerMode === 'detail' && detailRole">
-          <section class="admin-roles-detail-card">
-            <dl class="admin-roles-detail">
-              <div><dt>角色名称</dt><dd>{{ detailRole.roleName }}</dd></div>
-              <div><dt>角色编码</dt><dd>{{ detailRole.roleCode }}</dd></div>
-              <div><dt>数据权限</dt><dd>{{ dataScopeLabels[detailRole.dataScope || ''] || detailRole.dataScope || '-' }}</dd></div>
-              <div><dt>授权功能</dt><dd>{{ detailRole.permissionIds?.length || 0 }} / {{ permissionTotal }} 项</dd></div>
-              <div><dt>绑定用户</dt><dd>{{ detailRole.userCount ?? 0 }} 人</dd></div>
-              <div><dt>状态</dt><dd>{{ detailRole.enabled === false ? '禁用' : '启用' }}</dd></div>
-            </dl>
-            <p>{{ detailRole.remark || '暂无描述' }}</p>
-          </section>
-
-          <section class="admin-roles-log-card">
-            <h3>操作日志</h3>
-            <div v-if="roleLogs.length === 0" class="admin-roles-log-empty">暂无操作记录</div>
-            <div v-for="log in roleLogs" :key="log.logId" class="admin-roles-log-row">
-              <strong>{{ log.action }}</strong>
-              <span>{{ log.operatorName || '-' }} · {{ formatRoleTime(log.createdAt) }}</span>
-              <p>{{ log.content || '-' }}</p>
-            </div>
-          </section>
-        </template>
-
-        <template v-else>
-          <section class="admin-roles-form-card">
-            <div class="admin-roles-form-grid">
-              <label>
-                <span>角色名称 <b>*</b></span>
-                <el-input v-model="form.roleName" maxlength="20" placeholder="请输入角色名称" />
-              </label>
-              <label>
-                <span>角色编码 <b>*</b></span>
-                <el-input v-model="form.roleCode" maxlength="50" placeholder="如 training_teacher" :disabled="drawerMode === 'edit'" />
-              </label>
-              <label>
-                <span>数据权限 <b>*</b></span>
-                <el-select v-model="form.dataScope" placeholder="请选择数据权限">
-                  <el-option label="全部数据" value="ALL" />
-                  <el-option label="本组织及下级" value="ORG_AND_CHILDREN" />
-                  <el-option label="仅本组织" value="ORG_ONLY" />
-                  <el-option label="仅本人数据" value="SELF" />
-                </el-select>
-              </label>
-              <label class="wide">
-                <span>角色描述</span>
-                <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="120" show-word-limit placeholder="请输入角色描述" />
-              </label>
-            </div>
-          </section>
-
-          <section class="admin-roles-permission-card">
-            <header>
-              <div>
-                <h3>功能权限</h3>
-                <p>已选择 {{ form.permissionIds.length }} 项权限</p>
-              </div>
-              <el-checkbox :model-value="allPermissionsChecked" :indeterminate="partialPermissionsChecked" @change="toggleAllPermissions">全选</el-checkbox>
-            </header>
-            <el-tree
-              ref="permissionTreeRef"
-              class="admin-roles-permission-tree"
-              :data="permissionTree"
-              node-key="permissionId"
-              show-checkbox
-              default-expand-all
-              :props="{ label: 'permissionName', children: 'children' }"
-              :default-checked-keys="form.permissionIds"
-              @check="syncCheckedPermissions"
-            />
-          </section>
-
-          <footer class="admin-roles-drawer-footer">
-            <el-button @click="drawerVisible = false">取消</el-button>
-            <el-button type="primary" :loading="saving" @click="saveRole">保存</el-button>
-          </footer>
-        </template>
-      </section>
-    </el-drawer>
+    <el-dialog v-model="detailVisible" class="admin-roles-dialog" width="620px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-roles-dialog-head">
+          <strong>角色详情</strong>
+          <el-button text circle :icon="Close" @click="detailVisible = false" />
+        </div>
+      </template>
+      <dl v-if="detailRole" class="admin-roles-detail">
+        <div><dt>角色名称</dt><dd>{{ detailRole.roleName }}</dd></div>
+        <div><dt>角色编码</dt><dd>{{ detailRole.roleCode }}</dd></div>
+        <div><dt>状态</dt><dd>{{ detailRole.enabled === false ? '禁用' : '启用' }}</dd></div>
+        <div><dt>数据权限</dt><dd>{{ dataScopeLabels[detailRole.dataScope || ''] || '-' }}</dd></div>
+        <div><dt>授权权限</dt><dd>{{ detailRole.permissionIds?.length || 0 }} 项</dd></div>
+        <div><dt>创建时间</dt><dd>{{ formatRoleTime(detailRole.createdAt) }}</dd></div>
+      </dl>
+      <p v-if="detailRole" class="admin-roles-detail-remark">{{ detailRole.remark || '暂无描述' }}</p>
+    </el-dialog>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox, type ElTree } from 'element-plus';
-import { Close, Plus, Search } from '@element-plus/icons-vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Close, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 import {
   createAdminRole,
-  deleteAdminRole,
   disableAdminRole,
   enableAdminRole,
   fetchAdminRoleDetail,
-  fetchAdminRoleLogs,
   fetchAdminRoles,
   updateAdminRole,
   type AdminRole,
   type AdminRoleCommand,
-  type AdminRoleLog,
   type AdminRoleQuery
 } from '../../api/admin-role';
-import { collectAdminPermissionIds, mockAdminPermissions } from '../../features/admin/permissions';
+import { mockAdminPermissions } from '../../features/admin/permissions';
 import {
-  countPermissionNodes,
   dataScopeLabels,
   formatRoleTime,
   isBuiltInRole,
@@ -210,42 +198,48 @@ import {
   toRolePage
 } from '../../features/admin/roles';
 
-type DrawerMode = 'create' | 'edit' | 'detail';
+type FormMode = 'create' | 'edit';
 
+interface PermissionMatrixAction {
+  key: string;
+  id: number;
+  label: string;
+  virtual?: boolean;
+}
+
+interface PermissionMatrixRow {
+  rowKey: string;
+  moduleName: string;
+  moduleIds: number[];
+  pageId: number;
+  pageName: string;
+  actions: PermissionMatrixAction[];
+}
+
+const defaultActions = ['列表', '新增', '删除', '修改', '启用', '禁用'];
 const loading = ref(false);
 const saving = ref(false);
 const busyId = ref<number | null>(null);
 const roles = ref<AdminRole[]>(mockAdminRoles);
 const permissionTree = ref<AdminPermissionNode[]>(mockAdminPermissions);
-const permissionTreeRef = ref<InstanceType<typeof ElTree>>();
-const drawerVisible = ref(false);
-const drawerMode = ref<DrawerMode>('create');
+const roleFormPageVisible = ref(false);
+const formMode = ref<FormMode>('create');
 const editingRole = ref<AdminRole | null>(null);
+const detailVisible = ref(false);
 const detailRole = ref<AdminRole | null>(null);
-const roleLogs = ref<AdminRoleLog[]>([]);
 const page = reactive({ page: 1, pageSize: 20, total: mockAdminRoles.length });
 const query = reactive<AdminRoleQuery>({});
-const draft = reactive<AdminRoleQuery>({ enabled: null });
 
 const emptyForm = (): AdminRoleCommand => ({
   roleName: '',
   roleCode: '',
-  dataScope: 'ORG_AND_CHILDREN',
+  dataScope: 'SELF',
   remark: '',
   permissionIds: []
 });
 
 const form = reactive<AdminRoleCommand>(emptyForm());
-const permissionTotal = computed(() => countPermissionNodes(permissionTree.value));
-const allPermissionIds = computed(() => collectAdminPermissionIds(permissionTree.value));
-const allPermissionsChecked = computed(() => allPermissionIds.value.length > 0 && form.permissionIds.length === allPermissionIds.value.length);
-const partialPermissionsChecked = computed(() => form.permissionIds.length > 0 && !allPermissionsChecked.value);
-const drawerTitle = computed(() => {
-  if (drawerMode.value === 'detail') {
-    return '角色详情';
-  }
-  return drawerMode.value === 'edit' ? '编辑角色' : '新增角色';
-});
+const permissionRows = computed(() => buildPermissionRows(permissionTree.value));
 
 function currentQuery() {
   return { ...query, page: page.page, pageSize: page.pageSize };
@@ -253,7 +247,8 @@ function currentQuery() {
 
 async function loadPermissions() {
   try {
-    permissionTree.value = await fetchAdminPermissionTree();
+    const nextTree = await fetchAdminPermissionTree();
+    permissionTree.value = nextTree.length > 0 ? nextTree : mockAdminPermissions;
   } catch {
     permissionTree.value = mockAdminPermissions;
   }
@@ -276,38 +271,105 @@ async function loadRoles() {
   }
 }
 
-function applySearch() {
-  query.keyword = draft.keyword?.trim() || undefined;
-  query.enabled = draft.enabled;
-  page.page = 1;
-  loadRoles();
+function buildPermissionRows(tree: AdminPermissionNode[]): PermissionMatrixRow[] {
+  return tree.flatMap((module) => {
+    const pages = module.children && module.children.length > 0 ? module.children : [module];
+    const moduleIds = collectNodeIds([module]);
+    return pages.map((pageNode, index) => ({
+      rowKey: `${module.permissionId}-${pageNode.permissionId}`,
+      moduleName: index === 0 ? module.permissionName : '',
+      moduleIds,
+      pageId: pageNode.permissionId,
+      pageName: pageNode.permissionName,
+      actions: buildActions(pageNode)
+    }));
+  });
 }
 
-function resetSearch() {
-  draft.keyword = '';
-  draft.enabled = null;
-  query.keyword = undefined;
-  query.enabled = undefined;
-  page.page = 1;
-  loadRoles();
+function buildActions(pageNode: AdminPermissionNode): PermissionMatrixAction[] {
+  const children = pageNode.children ?? [];
+  if (children.length > 0) {
+    return [
+      { key: `page-${pageNode.permissionId}`, id: pageNode.permissionId, label: '列表' },
+      ...children.map((child) => ({
+        key: `action-${child.permissionId}`,
+        id: child.permissionId,
+        label: normalizeActionName(child.permissionName)
+      }))
+    ];
+  }
+  return [
+    { key: `page-${pageNode.permissionId}`, id: pageNode.permissionId, label: '列表' },
+    ...defaultActions.slice(1).map((label, index) => ({
+      key: `virtual-${pageNode.permissionId}-${index}`,
+      id: pageNode.permissionId,
+      label,
+      virtual: true
+    }))
+  ];
+}
+
+function normalizeActionName(value: string) {
+  return value.replace(/^新增.*$/, '新增').replace(/^删除.*$/, '删除').replace(/^修改.*$/, '修改').replace(/^编辑.*$/, '修改').replace(/^禁用.*$/, '禁用').replace(/^启用.*$/, '启用');
+}
+
+function collectNodeIds(nodes: AdminPermissionNode[]): number[] {
+  return nodes.flatMap((node) => [node.permissionId, ...collectNodeIds(node.children ?? [])]);
+}
+
+function isModuleChecked(ids: number[]) {
+  return ids.every((id) => form.permissionIds.includes(id));
+}
+
+function isPermissionChecked(id: number) {
+  return form.permissionIds.includes(id);
+}
+
+function isActionChecked(action: PermissionMatrixAction) {
+  return action.virtual ? false : isPermissionChecked(action.id);
+}
+
+function setPermission(id: number, value: string | number | boolean) {
+  const next = new Set(form.permissionIds);
+  if (value) {
+    next.add(id);
+  } else {
+    next.delete(id);
+  }
+  form.permissionIds = [...next];
+}
+
+function togglePermission(id: number, value: string | number | boolean) {
+  setPermission(id, value);
+}
+
+function toggleAction(action: PermissionMatrixAction, value: string | number | boolean) {
+  if (!action.virtual) {
+    setPermission(action.id, value);
+  }
+}
+
+function toggleModule(ids: number[], value: string | number | boolean) {
+  const next = new Set(form.permissionIds);
+  ids.forEach((id) => {
+    if (value) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+  });
+  form.permissionIds = [...next];
 }
 
 function applyForm(next: AdminRoleCommand) {
   Object.assign(form, emptyForm(), next);
 }
 
-async function hydrateTreeSelection() {
-  await nextTick();
-  permissionTreeRef.value?.setCheckedKeys(form.permissionIds);
-}
-
 function openCreate() {
-  drawerMode.value = 'create';
+  formMode.value = 'create';
   editingRole.value = null;
-  detailRole.value = null;
   applyForm(emptyForm());
-  drawerVisible.value = true;
-  hydrateTreeSelection();
+  roleFormPageVisible.value = true;
 }
 
 async function openEdit(role: AdminRole) {
@@ -315,33 +377,23 @@ async function openEdit(role: AdminRole) {
     openDetail(role);
     return;
   }
-  drawerMode.value = 'edit';
+  formMode.value = 'edit';
   editingRole.value = role;
-  detailRole.value = null;
-  drawerVisible.value = true;
+  roleFormPageVisible.value = true;
   const detail = await safeRoleDetail(role);
   applyForm({
     roleName: detail.roleName,
     roleCode: detail.roleCode,
-    dataScope: detail.dataScope || 'ORG_AND_CHILDREN',
+    dataScope: detail.dataScope || 'SELF',
     remark: detail.remark || '',
     permissionIds: detail.permissionIds || []
   });
-  hydrateTreeSelection();
 }
 
 async function openDetail(role: AdminRole) {
-  drawerMode.value = 'detail';
-  editingRole.value = null;
   detailRole.value = role;
-  roleLogs.value = [];
-  drawerVisible.value = true;
+  detailVisible.value = true;
   detailRole.value = await safeRoleDetail(role);
-  try {
-    roleLogs.value = await fetchAdminRoleLogs(role.roleId);
-  } catch {
-    roleLogs.value = [];
-  }
 }
 
 async function safeRoleDetail(role: AdminRole) {
@@ -352,13 +404,10 @@ async function safeRoleDetail(role: AdminRole) {
   }
 }
 
-function syncCheckedPermissions(_: unknown, payload: { checkedKeys: number[]; halfCheckedKeys: number[] }) {
-  form.permissionIds = [...new Set([...payload.checkedKeys, ...payload.halfCheckedKeys])];
-}
-
-function toggleAllPermissions(value: string | number | boolean) {
-  form.permissionIds = value ? allPermissionIds.value : [];
-  permissionTreeRef.value?.setCheckedKeys(form.permissionIds);
+function cancelRoleForm() {
+  roleFormPageVisible.value = false;
+  editingRole.value = null;
+  applyForm(emptyForm());
 }
 
 function validateForm() {
@@ -366,11 +415,12 @@ function validateForm() {
     throw new Error('请输入角色名称');
   }
   if (!form.roleCode.trim()) {
-    throw new Error('请输入角色编码');
+    form.roleCode = roleCodeFromName(form.roleName);
   }
-  if (!form.dataScope) {
-    throw new Error('请选择数据权限');
-  }
+}
+
+function roleCodeFromName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, '_') || `role_${Date.now()}`;
 }
 
 async function saveRole() {
@@ -383,14 +433,14 @@ async function saveRole() {
 
   saving.value = true;
   try {
-    if (drawerMode.value === 'create') {
+    if (formMode.value === 'create') {
       await createAdminRole(form);
       ElMessage.success('新增角色成功');
     } else if (editingRole.value) {
       await updateAdminRole(editingRole.value.roleId, form);
       ElMessage.success('编辑角色成功');
     }
-    drawerVisible.value = false;
+    roleFormPageVisible.value = false;
     await loadRoles();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '保存失败');
@@ -406,23 +456,10 @@ async function toggleRole(role: AdminRole) {
       await enableAdminRole(role.roleId);
       ElMessage.success('角色已启用');
     } else {
+      await ElMessageBox.confirm(`确认禁用角色「${role.roleName}」？`, '禁用角色', { type: 'warning' });
       await disableAdminRole(role.roleId);
       ElMessage.success('角色已禁用');
     }
-    await loadRoles();
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '操作失败');
-  } finally {
-    busyId.value = null;
-  }
-}
-
-async function removeRole(role: AdminRole) {
-  try {
-    await ElMessageBox.confirm(`确认删除角色「${role.roleName}」？`, '删除角色', { type: 'warning' });
-    busyId.value = role.roleId;
-    await deleteAdminRole(role.roleId);
-    ElMessage.success('角色已删除');
     await loadRoles();
   } catch (error) {
     if (error instanceof Error) {

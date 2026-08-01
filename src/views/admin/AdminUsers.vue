@@ -94,133 +94,140 @@
         <el-breadcrumb-item>用户管理</el-breadcrumb-item>
       </el-breadcrumb>
 
-      <section class="admin-users-tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          type="button"
-          :class="{ active: activeKind === tab.key }"
-          @click="switchKind(tab.key)"
-        >
-          <span>{{ tab.label }}</span>
-          <em>{{ tab.count }}</em>
-        </button>
-      </section>
+      <section class="admin-users-workspace">
+        <aside class="admin-users-org-panel">
+          <h2>所属组织</h2>
+          <el-tree
+            class="admin-users-org-tree"
+            :data="orgTreeWithAll"
+            node-key="orgId"
+            default-expand-all
+            highlight-current
+            :current-node-key="selectedOrgId"
+            :props="{ label: 'orgName', children: 'children', disabled: 'disabled' }"
+            @node-click="selectOrg"
+          />
+        </aside>
 
-      <section class="admin-users-toolbar">
-        <div class="admin-users-filter-grid">
-          <el-input v-model="draft.realName" :prefix-icon="Search" placeholder="姓名" clearable @keyup.enter="applySearch" />
-          <el-input v-model="draft.accountNo" :prefix-icon="Search" :placeholder="activeKind === 'teacher' ? '工号' : '学号'" clearable @keyup.enter="applySearch" />
-          <el-input v-model="draft.phone" :prefix-icon="Iphone" placeholder="手机号" clearable @keyup.enter="applySearch" />
-          <el-select v-model="draft.orgId" placeholder="所属组织" clearable filterable>
-            <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
-          </el-select>
-          <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="班级" clearable filterable>
-            <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
-          </el-select>
-          <el-select v-model="draft.enabled" placeholder="状态" clearable>
-            <el-option label="启用" :value="true" />
-            <el-option label="禁用" :value="false" />
-          </el-select>
-        </div>
-        <div class="admin-users-toolbar-actions">
-          <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
-          <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
-        </div>
-      </section>
+        <section class="admin-users-main-panel">
+          <section class="admin-users-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              type="button"
+              :class="{ active: activeKind === tab.key }"
+              @click="switchKind(tab.key)"
+            >
+              <span>{{ tab.label.replace('管理', '') }}</span>
+            </button>
+          </section>
 
-      <section class="admin-users-table-card">
-        <header class="admin-users-table-head">
-          <div>
-            <strong>{{ activeKind === 'teacher' ? '教师列表' : '学员列表' }}</strong>
-            <span>已选 {{ selectedIds.length }} 项</span>
-          </div>
-          <div class="admin-users-head-actions">
-            <el-button class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
-            <el-button class="admin-users-lite-button" @click="openImport">导入{{ activeKindLabel }}</el-button>
-            <el-button class="admin-users-lite-button" @click="exportRows">导出</el-button>
-            <el-button class="admin-users-primary-button" type="primary" @click="openCreate">
-              <el-icon><Plus /></el-icon>
-              新增{{ activeKindLabel }}
-            </el-button>
-          </div>
-        </header>
+          <section class="admin-users-toolbar">
+            <div class="admin-users-filter-grid">
+              <el-input v-model="draft.realName" :prefix-icon="Search" placeholder="姓名搜索" clearable @keyup.enter="applySearch" />
+              <el-input v-model="draft.accountNo" :prefix-icon="Search" :placeholder="activeKind === 'teacher' ? '工号搜索' : '学号搜索'" clearable @keyup.enter="applySearch" />
+              <el-input v-model="draft.phone" :prefix-icon="Search" placeholder="手机号搜索" clearable @keyup.enter="applySearch" />
+              <el-input v-if="activeKind === 'teacher'" v-model="draftJobTitle" :prefix-icon="Search" placeholder="岗位搜索" clearable @keyup.enter="applySearch" />
+              <el-select v-if="activeKind === 'student'" v-model="draft.classId" placeholder="班级搜索" clearable filterable>
+                <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
+              </el-select>
+              <el-select v-model="draft.enabled" placeholder="账号状态" clearable>
+                <el-option label="启用" :value="true" />
+                <el-option label="禁用" :value="false" />
+              </el-select>
+            </div>
+            <div class="admin-users-head-actions">
+              <el-button class="admin-users-primary-button" type="primary" @click="openCreate">
+                <el-icon><Plus /></el-icon>
+                新增{{ activeKindLabel }}
+              </el-button>
+              <el-button class="admin-users-lite-button" @click="openImport">批量导入</el-button>
+              <el-button class="admin-users-lite-button" @click="exportRows">批量导出</el-button>
+              <el-button class="admin-users-lite-button" @click="openBatchReset">批量重置密码</el-button>
+              <el-button class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
+              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchRole">批量修改角色</el-button>
+              <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
+              <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
+            </div>
+          </section>
 
-        <div v-if="loading" class="admin-course-empty">用户加载中...</div>
-        <template v-else>
-          <div class="admin-users-table-scroll">
-            <table class="admin-users-table">
-              <thead>
-                <tr>
-                  <th class="check-col">
-                    <el-checkbox :model-value="allCurrentSelected" :indeterminate="partSelected" @change="toggleAll" />
-                  </th>
-                  <th>姓名</th>
-                  <th>{{ activeKind === 'teacher' ? '工号' : '学号' }}</th>
-                  <th>手机号</th>
-                  <th v-if="activeKind === 'teacher'">岗位</th>
-                  <th>所属组织</th>
-                  <th v-if="activeKind === 'student'">班级</th>
-                  <th>身份证</th>
-                  <th v-if="activeKind === 'teacher'">角色</th>
-                  <th v-if="activeKind === 'student'">人脸/指纹</th>
-                  <th>状态</th>
-                  <th>创建时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in accounts" :key="row.userId" :class="{ disabled: !row.enabled }">
-                  <td class="check-col">
-                    <el-checkbox :model-value="selectedIds.includes(row.userId)" @change="toggleOne(row.userId)" />
-                  </td>
-                  <td class="strong-cell">{{ row.realName }}</td>
-                  <td>{{ row.accountNo }}</td>
-                  <td>{{ row.maskedPhone || row.phone || '-' }}</td>
-                  <td v-if="activeKind === 'teacher'">{{ row.jobTitle || '-' }}</td>
-                  <td class="wrap-cell">{{ row.orgName || '-' }}</td>
-                  <td v-if="activeKind === 'student'">{{ row.className || '-' }}</td>
-                  <td>{{ row.maskedIdCard || '-' }}</td>
-                  <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ compactList(row.roleNames) }}</td>
-                  <td v-if="activeKind === 'student'">
-                    <span class="admin-users-capture" :class="{ ok: row.faceRecorded }">人脸</span>
-                    <span class="admin-users-capture" :class="{ ok: row.fingerprintRecorded }">指纹</span>
-                  </td>
-                  <td>
-                    <span class="admin-users-status" :class="row.enabled ? 'enabled' : 'disabled'">
-                      <i></i>
-                      {{ row.enabled ? '启用' : '禁用' }}
-                    </span>
-                  </td>
-                  <td>{{ formatAccountTime(row.createdAt) }}</td>
-                  <td>
-                    <div class="admin-users-row-actions">
-                      <el-button class="edit" @click="openEdit(row)">编辑</el-button>
-                      <el-button v-if="activeKind === 'teacher'" class="edit" @click="openRole(row)">设置角色</el-button>
-                      <el-button :class="row.enabled ? 'warn' : 'enable'" :loading="busyId === row.userId" @click="toggleEnabled(row)">
-                        {{ row.enabled ? '禁用' : '启用' }}
-                      </el-button>
-                      <el-button class="plain" @click="openReset(row)">重置密码</el-button>
-                      <el-button class="plain" @click="openDetail(row)">查看</el-button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <section class="admin-users-table-card">
+            <div v-if="loading" class="admin-course-empty">用户加载中...</div>
+            <template v-else>
+              <div class="admin-users-table-scroll">
+                <table class="admin-users-table">
+                  <thead>
+                    <tr>
+                      <th class="check-col">
+                        <el-checkbox :model-value="allCurrentSelected" :indeterminate="partSelected" @change="toggleAll" />
+                      </th>
+                      <th>姓名</th>
+                      <th>{{ activeKind === 'teacher' ? '工号' : '学号' }}</th>
+                      <th>手机号</th>
+                      <th v-if="activeKind === 'teacher'">岗位</th>
+                      <th>所属组织</th>
+                      <th v-if="activeKind === 'teacher'">管理组织</th>
+                      <th>{{ activeKind === 'teacher' ? '授课班级' : '班级' }}</th>
+                      <th>角色</th>
+                      <th>账号状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in visibleAccounts" :key="row.userId" :class="{ disabled: !row.enabled }">
+                      <td class="check-col">
+                        <el-checkbox :model-value="selectedIds.includes(row.userId)" @change="toggleOne(row.userId)" />
+                      </td>
+                      <td class="strong-cell">{{ row.realName }}</td>
+                      <td>{{ row.accountNo }}</td>
+                      <td>{{ row.maskedPhone || row.phone || '-' }}</td>
+                      <td v-if="activeKind === 'teacher'">{{ row.jobTitle || '-' }}</td>
+                      <td class="wrap-cell">{{ row.orgName || '-' }}</td>
+                      <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ orgNames(row.managedOrgIds) }}</td>
+                      <td class="wrap-cell">{{ activeKind === 'teacher' ? classNames(row.teachingClassIds) : row.className || '-' }}</td>
+                      <td class="wrap-cell">{{ compactList(row.roleNames) }}</td>
+                      <td>
+                        <span class="admin-users-status" :class="row.enabled ? 'enabled' : 'disabled'">
+                          <i></i>
+                          {{ row.enabled ? '启用' : '禁用' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="admin-users-row-actions">
+                          <el-button class="plain" @click="openDetail(row)">查看</el-button>
+                          <el-button class="edit" @click="openEdit(row)">编辑</el-button>
+                          <el-button v-if="activeKind === 'teacher'" class="edit" @click="openRole(row)">设置角色</el-button>
+                          <el-button :class="row.enabled ? 'warn' : 'enable'" :loading="busyId === row.userId" @click="toggleEnabled(row)">
+                            {{ row.enabled ? '禁用' : '启用' }}
+                          </el-button>
+                          <el-button class="plain" @click="openReset(row)">重置密码</el-button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-          <footer class="admin-users-footer">
-            <p>共 <strong>{{ page.total }}</strong> 条记录，每页 {{ page.pageSize }} 条</p>
-            <el-pagination
-              v-model:current-page="page.page"
-              v-model:page-size="page.pageSize"
-              :total="page.total"
-              layout="prev, pager, next"
-              background
-              @current-change="loadAccounts"
-            />
-          </footer>
-        </template>
+              <footer class="admin-users-footer">
+                <p>共 <strong>{{ page.total }}</strong> 条记录，每页</p>
+                <el-select v-model="page.pageSize" class="admin-users-page-size" @change="loadAccounts">
+                  <el-option label="10" :value="10" />
+                  <el-option label="20" :value="20" />
+                  <el-option label="50" :value="50" />
+                </el-select>
+                <p>条</p>
+                <el-pagination
+                  v-model:current-page="page.page"
+                  :page-size="page.pageSize"
+                  :total="page.total"
+                  layout="prev, pager, next"
+                  background
+                  @current-change="loadAccounts"
+                />
+              </footer>
+            </template>
+          </section>
+        </section>
       </section>
     </section>
 
@@ -309,10 +316,11 @@
     <el-dialog v-model="roleVisible" class="admin-users-dialog" width="520px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
-          <strong>设置角色</strong>
+          <strong>{{ roleMode === 'batch' ? '批量修改角色' : '设置角色' }}</strong>
           <el-button text circle :icon="Close" @click="roleVisible = false" />
         </div>
       </template>
+      <p v-if="roleMode === 'batch'" class="admin-users-dialog-note">将为已选 {{ selectedIds.length }} 个教师设置角色。</p>
       <el-select v-model="roleFormIds" class="admin-users-full-select" multiple placeholder="请选择角色">
         <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
       </el-select>
@@ -374,7 +382,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Camera, Close, Iphone, Plus, Pointer, Search } from '@element-plus/icons-vue';
+import { Camera, Close, Plus, Pointer, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminAccount,
@@ -401,6 +409,7 @@ import {
   type AdminRoleOption
 } from '../../api/admin-account';
 import { fetchAdminOrgTree } from '../../api/admin-org';
+import type { AdminOrgNode } from '../../api/admin-org';
 import {
   accountKindLabel,
   compactList,
@@ -426,6 +435,9 @@ const tabs = ref(mockAdminAccountTabs);
 const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminAccountQuery>({});
 const draft = reactive<AdminAccountQuery>({ enabled: null });
+const draftJobTitle = ref('');
+const jobTitleKeyword = ref('');
+const selectedOrgId = ref(0);
 const orgTree = ref(mockAccountOrgTree);
 const classOptions = ref<AdminClassOption[]>(mockAdminClasses);
 const roleOptions = ref<AdminRoleOption[]>(mockAdminRoles);
@@ -439,6 +451,7 @@ const detailVisible = ref(false);
 const detailAccount = ref<AdminAccount | null>(null);
 const roleVisible = ref(false);
 const roleAccount = ref<AdminAccount | null>(null);
+const roleMode = ref<'single' | 'batch'>('single');
 const roleFormIds = ref<number[]>([]);
 const batchOrgVisible = ref(false);
 const batchOrgId = ref<number | null>(null);
@@ -464,7 +477,24 @@ const emptyForm = (): AdminAccountCommand => ({
 const form = reactive<AdminAccountCommand>(emptyForm());
 const activeKindLabel = computed(() => accountKindLabel(activeKind.value));
 const orgOptions = computed(() => flattenOrgOptions(orgTree.value));
-const allCurrentSelected = computed(() => accounts.value.length > 0 && accounts.value.every((row) => selectedIds.value.includes(row.userId)));
+const orgTreeWithAll = computed(() => [
+  {
+    orgId: 0,
+    orgName: '全部',
+    parentId: null,
+    sortOrder: 0,
+    enabled: true,
+    children: orgTree.value
+  }
+]);
+const visibleAccounts = computed(() => {
+  const keyword = jobTitleKeyword.value.trim();
+  if (activeKind.value !== 'teacher' || !keyword) {
+    return accounts.value;
+  }
+  return accounts.value.filter((row) => (row.jobTitle || '').includes(keyword));
+});
+const allCurrentSelected = computed(() => visibleAccounts.value.length > 0 && visibleAccounts.value.every((row) => selectedIds.value.includes(row.userId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
 
 function applyForm(next: AdminAccountCommand) {
@@ -533,11 +563,15 @@ function switchKind(kind: AdminAccountKind) {
   activeKind.value = kind;
   page.page = 1;
   Object.assign(query, {});
+  draftJobTitle.value = '';
+  jobTitleKeyword.value = '';
+  selectedOrgId.value = 0;
   Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
   loadAccounts();
 }
 
 function applySearch() {
+  jobTitleKeyword.value = draftJobTitle.value.trim();
   Object.assign(query, {
     realName: draft.realName?.trim() || undefined,
     accountNo: draft.accountNo?.trim() || undefined,
@@ -551,6 +585,9 @@ function applySearch() {
 }
 
 function resetSearch() {
+  draftJobTitle.value = '';
+  jobTitleKeyword.value = '';
+  selectedOrgId.value = 0;
   Object.assign(draft, { realName: '', accountNo: '', phone: '', orgId: null, classId: null, enabled: null });
   Object.assign(query, { realName: undefined, accountNo: undefined, phone: undefined, orgId: undefined, classId: undefined, enabled: undefined });
   page.page = 1;
@@ -558,7 +595,7 @@ function resetSearch() {
 }
 
 function toggleAll(value: string | number | boolean) {
-  selectedIds.value = value ? accounts.value.map((row) => row.userId) : [];
+  selectedIds.value = value ? visibleAccounts.value.map((row) => row.userId) : [];
 }
 
 function toggleOne(userId: number) {
@@ -693,18 +730,34 @@ async function openDetail(row: AdminAccount) {
 }
 
 function openRole(row: AdminAccount) {
+  roleMode.value = 'single';
   roleAccount.value = row;
   roleFormIds.value = [...(row.roleIds ?? [])];
   roleVisible.value = true;
 }
 
+function openBatchRole() {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择教师');
+    return;
+  }
+  roleMode.value = 'batch';
+  roleAccount.value = null;
+  roleFormIds.value = [];
+  roleVisible.value = true;
+}
+
 async function saveRole() {
-  if (!roleAccount.value) {
+  if (roleMode.value === 'single' && !roleAccount.value) {
     return;
   }
   saving.value = true;
   try {
-    await updateAdminTeacherRoles(roleAccount.value.userId, roleFormIds.value);
+    if (roleMode.value === 'batch') {
+      await Promise.all(selectedIds.value.map((userId) => updateAdminTeacherRoles(userId, roleFormIds.value)));
+    } else if (roleAccount.value) {
+      await updateAdminTeacherRoles(roleAccount.value.userId, roleFormIds.value);
+    }
     ElMessage.success('角色设置成功');
     roleVisible.value = false;
     await loadAccounts();
@@ -713,6 +766,46 @@ async function saveRole() {
   } finally {
     saving.value = false;
   }
+}
+
+async function openBatchReset() {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请先选择用户');
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认将已选 ${selectedIds.value.length} 个用户的密码重置为系统初始密码？`, '批量重置密码', { type: 'warning' });
+    await resetAdminAccountPasswords(selectedIds.value);
+    ElMessage.success('密码已批量重置');
+  } catch (error) {
+    if (error instanceof Error) {
+      ElMessage.error(error.message);
+    }
+  }
+}
+
+function selectOrg(node: AdminOrgNode & { orgId: number }) {
+  selectedOrgId.value = node.orgId;
+  draft.orgId = node.orgId === 0 ? null : node.orgId;
+  query.orgId = node.orgId === 0 ? undefined : node.orgId;
+  page.page = 1;
+  loadAccounts();
+}
+
+function orgNames(ids?: number[]) {
+  if (!ids || ids.length === 0) {
+    return '-';
+  }
+  const labels = ids.map((id) => orgOptions.value.find((item) => item.orgId === id)?.orgName).filter(Boolean);
+  return labels.length > 0 ? labels.join('、') : '-';
+}
+
+function classNames(ids?: number[]) {
+  if (!ids || ids.length === 0) {
+    return '-';
+  }
+  const labels = ids.map((id) => classOptions.value.find((item) => item.classId === id)?.className).filter(Boolean);
+  return labels.length > 0 ? labels.join('、') : '-';
 }
 
 async function openReset(row: AdminAccount) {
