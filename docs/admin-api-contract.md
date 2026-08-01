@@ -283,6 +283,11 @@ Behavior:
 
 ### `GET /api/admin/org/tree`
 
+Query:
+
+- `keyword` optional fuzzy organization name.
+- `enabledOnly` optional boolean. Use `true` for enabled parent organization picker options.
+
 Response `data`: array of root organization nodes.
 
 Each node:
@@ -292,6 +297,12 @@ Each node:
 - `orgName`
 - `sortOrder`
 - `enabled`
+- `createdBy`
+- `createdName`
+- `updatedBy`
+- `updatedName`
+- `createdAt`
+- `updatedAt`
 - `children`
 
 ### `POST /api/admin/org`
@@ -306,17 +317,45 @@ Request body:
 }
 ```
 
+Behavior:
+
+- `orgName` is required, trimmed, and limited to 20 characters.
+- Sibling organizations under the same parent cannot use the same name.
+- New organizations are enabled by default.
+- Child organizations can only be created under enabled parent organizations.
+- Creator/updater and create/update time are filled by the backend.
+
 ### `PUT /api/admin/org/{orgId}`
 
 Request body: same as create.
 
+Behavior:
+
+- Updates organization name and sort order.
+- Parent organization is read-only and cannot be changed.
+
+### `PUT /api/admin/org/sort`
+
+Request body:
+
+```json
+[
+  {
+    "orgId": 1,
+    "sortOrder": 1
+  }
+]
+```
+
+Persists drag-and-drop organization sort order.
+
 ### `POST /api/admin/org/{orgId}/enable`
 
-Enables an organization.
+Enables the selected organization only. Descendant organization statuses are unchanged.
 
 ### `POST /api/admin/org/{orgId}/disable`
 
-Disables an organization.
+Disables the selected organization and all descendant organizations.
 
 ## Account Management
 
@@ -328,6 +367,7 @@ Query:
 - `realName` optional fuzzy match.
 - `accountNo` optional fuzzy match.
 - `phone` optional fuzzy match.
+- `jobTitle` optional fuzzy match.
 - `enabled` optional boolean.
 - `page` default `1`.
 - `pageSize` default `20`, maximum `100`.
@@ -343,6 +383,7 @@ Query:
 - `realName` optional fuzzy match.
 - `accountNo` optional fuzzy match.
 - `phone` optional fuzzy match.
+- `jobTitle` optional fuzzy match.
 - `enabled` optional boolean.
 - `page` default `1`.
 - `pageSize` default `20`, maximum `100`.

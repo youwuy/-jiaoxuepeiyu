@@ -8,6 +8,7 @@ public class AdminAccountQuery {
     private String realName;
     private String accountNo;
     private String phone;
+    private String jobTitle;
     private Boolean enabled;
     private int page = 1;
     private int pageSize = 20;
@@ -58,6 +59,14 @@ public class AdminAccountQuery {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getJobTitle() {
+        return jobTitle;
+    }
+
+    public void setJobTitle(String jobTitle) {
+        this.jobTitle = jobTitle;
     }
 
     public Boolean getEnabled() {

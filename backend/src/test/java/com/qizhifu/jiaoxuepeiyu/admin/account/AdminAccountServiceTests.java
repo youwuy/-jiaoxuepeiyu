@@ -163,6 +163,20 @@ class AdminAccountServiceTests {
         assertEquals("1101**********1234", rows.get(0).getMaskedIdCard());
     }
 
+    @Test
+    void normalizesJobTitleForPagedAccountSearch() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+        AdminAccountQuery query = new AdminAccountQuery();
+        query.setJobTitle(" Instructor ");
+
+        service.listTeachers(query);
+
+        assertEquals("teacher", repository.lastFindQuery.getUserType());
+        assertEquals("%Instructor%", repository.lastFindQuery.getJobTitle());
+        assertEquals("%Instructor%", repository.lastCountQuery.getJobTitle());
+    }
+
     private AdminAccountCommand teacher() {
         AdminAccountCommand command = new AdminAccountCommand();
         command.setRealName("Teacher One");
@@ -225,9 +239,12 @@ class AdminAccountServiceTests {
         private String resetPasswordHash;
         private List<String> existingAccountNos = new ArrayList<String>();
         private List<AdminAccount> exportAccounts = new ArrayList<AdminAccount>();
+        private AdminAccountQuery lastFindQuery;
+        private AdminAccountQuery lastCountQuery;
 
         @Override
         public List<AdminAccount> findAccounts(AdminAccountQuery query) {
+            this.lastFindQuery = query;
             return Arrays.asList();
         }
 
@@ -238,6 +255,7 @@ class AdminAccountServiceTests {
 
         @Override
         public long countAccounts(AdminAccountQuery query) {
+            this.lastCountQuery = query;
             return 0;
         }
 

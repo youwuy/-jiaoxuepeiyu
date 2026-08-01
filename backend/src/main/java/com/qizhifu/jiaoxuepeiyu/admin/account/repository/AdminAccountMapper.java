@@ -32,6 +32,7 @@ public interface AdminAccountMapper {
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
             + "<if test='accountNo != null'>AND u.username LIKE #{accountNo}</if> "
             + "<if test='phone != null'>AND u.phone LIKE #{phone}</if> "
+            + "<if test='jobTitle != null'>AND u.job_title LIKE #{jobTitle}</if> "
             + "ORDER BY u.created_at DESC, u.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     List<AdminAccount> findAccounts(AdminAccountQuery query);
@@ -53,6 +54,7 @@ public interface AdminAccountMapper {
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
             + "<if test='accountNo != null'>AND u.username LIKE #{accountNo}</if> "
             + "<if test='phone != null'>AND u.phone LIKE #{phone}</if> "
+            + "<if test='jobTitle != null'>AND u.job_title LIKE #{jobTitle}</if> "
             + "ORDER BY u.created_at DESC, u.id DESC "
             + "</script>")
     List<AdminAccount> findAccountsForExport(AdminAccountQuery query);
@@ -65,6 +67,7 @@ public interface AdminAccountMapper {
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
             + "<if test='accountNo != null'>AND u.username LIKE #{accountNo}</if> "
             + "<if test='phone != null'>AND u.phone LIKE #{phone}</if> "
+            + "<if test='jobTitle != null'>AND u.job_title LIKE #{jobTitle}</if> "
             + "</script>")
     long countAccounts(AdminAccountQuery query);
 

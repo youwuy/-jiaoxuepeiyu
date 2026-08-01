@@ -21,10 +21,13 @@ CREATE TABLE IF NOT EXISTS `sys_org` (
   `org_name` VARCHAR(128) NOT NULL,
   `sort_order` INT NOT NULL DEFAULT 0,
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '1 enabled, 0 disabled',
+  `created_by` BIGINT DEFAULT NULL,
+  `updated_by` BIGINT DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_sys_org_parent` (`parent_id`)
+  KEY `idx_sys_org_parent` (`parent_id`, `sort_order`),
+  KEY `idx_sys_org_name_parent` (`parent_id`, `org_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='organization tree';
 
 CREATE TABLE IF NOT EXISTS `sys_role` (

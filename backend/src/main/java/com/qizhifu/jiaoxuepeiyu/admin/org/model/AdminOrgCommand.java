@@ -1,11 +1,13 @@
 package com.qizhifu.jiaoxuepeiyu.admin.org.model;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
 public class AdminOrgCommand {
 
     private Long parentId;
     @NotBlank
+    @Size(max = 20)
     private String orgName;
     private int sortOrder;
 
