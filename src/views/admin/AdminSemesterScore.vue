@@ -10,14 +10,14 @@
         <div class="admin-semester-score-filter-row">
           <label class="admin-semester-score-field">
             <span>学年学期</span>
-            <el-select v-model="draft.term" placeholder="请选择学年学期" clearable>
-              <el-option v-for="item in termOptions" :key="item" :label="item" :value="item" />
+            <el-select v-model="draft.semesterId" placeholder="请选择学年学期" clearable>
+              <el-option v-for="item in semesterOptions" :key="item.semesterId" :label="item.label" :value="item.semesterId" />
             </el-select>
           </label>
           <label class="admin-semester-score-field">
             <span>所属班级</span>
-            <el-select v-model="draft.className" placeholder="请选择班级" clearable>
-              <el-option v-for="item in classOptions" :key="item" :label="item" :value="item" />
+            <el-select v-model="draft.classId" placeholder="请选择班级" clearable>
+              <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
             </el-select>
           </label>
           <label class="admin-semester-score-field">
@@ -38,22 +38,22 @@
       </section>
 
       <section class="admin-semester-score-summary">
-        <article><span>总人数</span><strong>{{ filteredScores.length }}</strong></article>
-        <article><span>优秀人数</span><strong>{{ excellentCount }}</strong></article>
-        <article><span>及格人数</span><strong>{{ passCount }}</strong></article>
-        <article><span>平均分</span><strong>{{ averageScore }}</strong></article>
-        <article><span>最高分</span><strong>{{ maxScore }}</strong></article>
+        <article><span>总人数</span><strong>{{ statistics.studentCount }}</strong></article>
+        <article><span>优秀人数</span><strong>{{ statistics.excellentCount }}</strong></article>
+        <article><span>及格人数</span><strong>{{ statistics.passCount }}</strong></article>
+        <article><span>平均分</span><strong>{{ formatScore(statistics.averageScore) }}</strong></article>
+        <article><span>最高分</span><strong>{{ formatScore(statistics.maxScore) }}</strong></article>
       </section>
 
       <section class="admin-semester-score-actions">
-        <p>共 <b>{{ filteredScores.length }}</b> 条综合成绩</p>
+        <p>共 <b>{{ total }}</b> 条综合成绩</p>
         <div>
           <el-button class="admin-semester-score-lite" @click="openWeightDialog">成绩权重</el-button>
           <el-button class="admin-semester-score-primary" @click="openExport">导出成绩</el-button>
         </div>
       </section>
 
-      <section class="admin-semester-score-board">
+      <section class="admin-semester-score-board" v-loading="loading">
         <div class="admin-semester-score-table-scroll">
           <table class="admin-semester-score-table">
             <thead>
@@ -74,7 +74,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, index) in pagedScores" :key="row.studentNo + row.courseName">
+              <tr v-for="(row, index) in scores" :key="row.scoreId || `${row.studentNo}-${row.semesterId}`">
                 <td>{{ (page - 1) * pageSize + index + 1 }}</td>
                 <td><strong>{{ row.studentName }}</strong></td>
                 <td>{{ row.studentNo }}</td>
@@ -98,8 +98,8 @@
           </table>
         </div>
         <footer class="admin-semester-score-footer">
-          <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ filteredScores.length }}</b> 条记录</p>
-          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="filteredScores.length" layout="prev, pager, next" background />
+          <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ total }}</b> 条记录</p>
+          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total" layout="prev, pager, next" background @current-change="loadScores" />
         </footer>
       </section>
     </section>
@@ -120,7 +120,7 @@
         </header>
         <section class="admin-semester-score-formula">
           <strong>综合成绩计算公式</strong>
-          <p>课件学习进度得分 × 30% + 实训练习得分 × 30% + 课程作业得分 × 30% + 考试得分 × 10%</p>
+          <p>{{ scoreFormula }}</p>
         </section>
         <div class="admin-semester-score-detail-grid">
           <article v-for="part in scoreParts(currentScore)" :key="part.name">
@@ -149,7 +149,7 @@
         <label><span>导出范围</span><el-radio-group v-model="exportForm.scope"><el-radio label="current">当前筛选结果</el-radio><el-radio label="all">全部成绩</el-radio></el-radio-group></label>
         <label><span>文件格式</span><el-select v-model="exportForm.format"><el-option label="Excel文件" value="xlsx" /><el-option label="CSV文件" value="csv" /></el-select></label>
       </div>
-      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="exportVisible = false">取消</el-button><el-button type="primary" @click="confirmExport">确认导出</el-button></div></template>
+      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="exportVisible = false">取消</el-button><el-button type="primary" :loading="exporting" @click="confirmExport">确认导出</el-button></div></template>
     </el-dialog>
 
     <el-dialog v-model="weightVisible" class="admin-semester-score-export-dialog" width="620px" :show-close="false" append-to-body>
@@ -158,18 +158,39 @@
         <label v-for="item in weights" :key="item.name"><span>{{ item.name }}</span><el-input-number v-model="item.value" :min="0" :max="100" controls-position="right" /><em>%</em></label>
         <p>合计：<b>{{ weightTotal }}</b>%</p>
       </div>
-      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="weightVisible = false">取消</el-button><el-button type="primary" @click="saveWeights">保存</el-button></div></template>
+      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="weightVisible = false">取消</el-button><el-button type="primary" :loading="savingWeights" @click="saveWeights">保存</el-button></div></template>
     </el-dialog>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Close } from '@element-plus/icons-vue';
+import { useRouter } from 'vue-router';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  exportAdminSemesterScores,
+  fetchAdminSemesterScores,
+  fetchAdminSemesterScoreStatistics,
+  type AdminSemesterScore,
+  type AdminSemesterScoreQuery,
+  type AdminSemesterScoreStatistics
+} from '../../api/admin-semester-score';
+import {
+  createAdminScoreWeight,
+  fetchAdminAcademicYears,
+  fetchAdminClasses,
+  fetchAdminScoreWeights,
+  type AdminClass,
+  type AdminScoreWeight
+} from '../../api/admin-settings';
 
 interface SemesterScoreRow {
+  scoreId: number;
+  semesterId?: number;
+  classId?: number;
+  studentId?: number;
   studentName: string;
   studentNo: string;
   className: string;
@@ -179,68 +200,264 @@ interface SemesterScoreRow {
   trainingScore: number;
   assignmentScore: number;
   examScore: number;
+  coursewareWeight: number;
+  trainingPracticeWeight: number;
+  assignmentWeight: number;
+  examWeight: number;
   totalScore: number;
   grade: string;
 }
 
+interface SemesterOption {
+  semesterId: number;
+  label: string;
+  current: boolean;
+}
+
+interface ScoreFilters {
+  semesterId: number | null;
+  classId: number | null;
+  courseName: string;
+  studentName: string;
+  studentNo: string;
+}
+
+const router = useRouter();
 const page = ref(1);
 const pageSize = 10;
+const total = ref(0);
+const loading = ref(false);
+const exporting = ref(false);
+const savingWeights = ref(false);
 const detailVisible = ref(false);
 const exportVisible = ref(false);
 const weightVisible = ref(false);
 const currentScore = ref<SemesterScoreRow | null>(null);
-const draft = reactive({ term: '', className: '', courseName: '', studentName: '', studentNo: '' });
-const applied = ref({ ...draft });
+const draft = reactive<ScoreFilters>({ semesterId: null, classId: null, courseName: '', studentName: '', studentNo: '' });
+const applied = ref<ScoreFilters>({ ...draft });
 const exportForm = reactive({ scope: 'current', format: 'xlsx' });
+const semesterOptions = ref<SemesterOption[]>([]);
+const classOptions = ref<AdminClass[]>([]);
 const weights = reactive([
   { name: '课件学习', value: 30 },
   { name: '实训练习', value: 30 },
   { name: '课程作业', value: 30 },
   { name: '考试', value: 10 }
 ]);
+const statistics = reactive<AdminSemesterScoreStatistics>({
+  studentCount: 0,
+  averageScore: 0,
+  maxScore: 0,
+  minScore: 0,
+  excellentCount: 0,
+  passCount: 0
+});
 
-const scores = ref<SemesterScoreRow[]>([
-  { studentName: '张明远', studentNo: '2024CGXH001', className: '信号1班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 96, trainingScore: 92, assignmentScore: 90, examScore: 88, totalScore: 92.1, grade: '优秀' },
-  { studentName: '李晓婷', studentNo: '2024CGXH002', className: '信号1班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 90, trainingScore: 85, assignmentScore: 86, examScore: 82, totalScore: 86.7, grade: '优秀' },
-  { studentName: '王志强', studentNo: '2024CGXH003', className: '信号2班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 84, trainingScore: 78, assignmentScore: 80, examScore: 76, totalScore: 80.2, grade: '良好' },
-  { studentName: '赵雨涵', studentNo: '2024CGXH004', className: '信号1班', term: '2024-2025学年 下学期', courseName: '车站运营管理', coursewareScore: 98, trainingScore: 95, assignmentScore: 94, examScore: 92, totalScore: 95.1, grade: '优秀' },
-  { studentName: '陈浩然', studentNo: '2024CGXH005', className: '信号2班', term: '2024-2025学年 下学期', courseName: '城轨车辆构造', coursewareScore: 65, trainingScore: 58, assignmentScore: 62, examScore: 60, totalScore: 61.7, grade: '中等' },
-  { studentName: '刘思琪', studentNo: '2024CGXH006', className: '信号1班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 88, trainingScore: 90, assignmentScore: 84, examScore: 80, totalScore: 86.6, grade: '优秀' },
-  { studentName: '周子轩', studentNo: '2024CGXH007', className: '信号2班', term: '2024-2025学年 下学期', courseName: '城轨供电系统', coursewareScore: 76, trainingScore: 72, assignmentScore: 70, examScore: 68, totalScore: 72.0, grade: '中等' },
-  { studentName: '吴嘉豪', studentNo: '2024CGXH008', className: '信号1班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 100, trainingScore: 96, assignmentScore: 98, examScore: 95, totalScore: 97.8, grade: '优秀' },
-  { studentName: '孙悦然', studentNo: '2024CGXH009', className: '信号3班', term: '2024-2025学年 下学期', courseName: '行车组织', coursewareScore: 82, trainingScore: 76, assignmentScore: 78, examScore: 74, totalScore: 78.4, grade: '良好' },
-  { studentName: '黄俊杰', studentNo: '2024CGXH010', className: '信号3班', term: '2024-2025学年 下学期', courseName: '信号设备维护', coursewareScore: 58, trainingScore: 55, assignmentScore: 60, examScore: 52, totalScore: 57.2, grade: '较差' },
-  { studentName: '马欣怡', studentNo: '2024CGXH011', className: '信号1班', term: '2024-2025学年 下学期', courseName: '城市轨道交通信号系统', coursewareScore: 89, trainingScore: 84, assignmentScore: 88, examScore: 86, totalScore: 86.9, grade: '优秀' },
-  { studentName: '朱博文', studentNo: '2024CGXH012', className: '信号2班', term: '2024-2025学年 下学期', courseName: '信号系统原理', coursewareScore: 74, trainingScore: 70, assignmentScore: 69, examScore: 72, totalScore: 71.2, grade: '中等' }
-]);
+const scores = ref<SemesterScoreRow[]>([]);
 
-const termOptions = computed(() => Array.from(new Set(scores.value.map((item) => item.term))));
-const classOptions = computed(() => Array.from(new Set(scores.value.map((item) => item.className))));
-const filteredScores = computed(() => scores.value.filter((item) => (!applied.value.term || item.term === applied.value.term) && (!applied.value.className || item.className === applied.value.className) && (!applied.value.courseName || item.courseName.includes(applied.value.courseName)) && (!applied.value.studentName || item.studentName.includes(applied.value.studentName)) && (!applied.value.studentNo || item.studentNo.includes(applied.value.studentNo))));
-const pagedScores = computed(() => filteredScores.value.slice((page.value - 1) * pageSize, page.value * pageSize));
-const pageStart = computed(() => filteredScores.value.length ? (page.value - 1) * pageSize + 1 : 0);
-const pageEnd = computed(() => Math.min(page.value * pageSize, filteredScores.value.length));
-const excellentCount = computed(() => filteredScores.value.filter((item) => item.totalScore >= 85).length);
-const passCount = computed(() => filteredScores.value.filter((item) => item.totalScore >= 60).length);
-const averageScore = computed(() => filteredScores.value.length ? (filteredScores.value.reduce((sum, item) => sum + item.totalScore, 0) / filteredScores.value.length).toFixed(1) : '0');
-const maxScore = computed(() => filteredScores.value.length ? Math.max(...filteredScores.value.map((item) => item.totalScore)).toFixed(1) : '0');
+const pageStart = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0);
+const pageEnd = computed(() => Math.min(page.value * pageSize, total.value));
 const weightTotal = computed(() => weights.reduce((sum, item) => sum + Number(item.value || 0), 0));
+const scoreFormula = computed(() => `课件学习进度得分 × ${weights[0].value}% + 实训练习得分 × ${weights[1].value}% + 课程作业得分 × ${weights[2].value}% + 考试得分 × ${weights[3].value}%`);
 
-function applyFilters() { applied.value = { ...draft }; page.value = 1; }
-function resetFilters() { Object.assign(draft, { term: '', className: '', courseName: '', studentName: '', studentNo: '' }); applyFilters(); }
+function currentQuery(includePage = true): AdminSemesterScoreQuery {
+  const keyword = [applied.value.courseName, applied.value.studentName, applied.value.studentNo]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(' ');
+
+  return {
+    semesterId: applied.value.semesterId,
+    classId: applied.value.classId,
+    keyword: keyword || undefined,
+    page: includePage ? page.value : undefined,
+    pageSize: includePage ? pageSize : undefined
+  };
+}
+
+function mapScore(score: AdminSemesterScore): SemesterScoreRow {
+  const totalScore = numberValue(score.comprehensiveScore);
+  return {
+    scoreId: score.scoreId,
+    semesterId: score.semesterId,
+    classId: score.classId,
+    studentId: score.studentId,
+    studentName: score.studentName || '-',
+    studentNo: score.studentNo || '-',
+    className: score.className || '-',
+    term: score.academicTerm || '-',
+    courseName: '综合成绩',
+    coursewareScore: numberValue(score.coursewareLearningScore),
+    trainingScore: numberValue(score.trainingPracticeScore),
+    assignmentScore: numberValue(score.courseAssignmentScore),
+    examScore: numberValue(score.examScore),
+    coursewareWeight: score.coursewareWeight ?? weights[0].value,
+    trainingPracticeWeight: score.trainingPracticeWeight ?? weights[1].value,
+    assignmentWeight: score.assignmentWeight ?? weights[2].value,
+    examWeight: score.examWeight ?? weights[3].value,
+    totalScore,
+    grade: gradeForScore(totalScore)
+  };
+}
+
+function numberValue(value: number | string | undefined | null): number {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function gradeForScore(score: number) {
+  if (score >= 90) return '优秀';
+  if (score >= 80) return '良好';
+  if (score >= 60) return '及格';
+  return '不及格';
+}
+
+function formatScore(value: number | string | undefined | null) {
+  return numberValue(value).toFixed(1);
+}
+
+async function loadOptions() {
+  try {
+    const [years, classes] = await Promise.all([fetchAdminAcademicYears(), fetchAdminClasses()]);
+    semesterOptions.value = years.flatMap((year) =>
+      year.semesters.map((semester) => ({
+        semesterId: semester.semesterId,
+        label: `${year.yearName} ${semester.semesterName}`,
+        current: semester.current
+      }))
+    );
+    classOptions.value = classes;
+    if (!draft.semesterId) {
+      const currentSemester = semesterOptions.value.find((item) => item.current);
+      draft.semesterId = currentSemester?.semesterId ?? semesterOptions.value[0]?.semesterId ?? null;
+      applied.value.semesterId = draft.semesterId;
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '筛选选项加载失败');
+  }
+}
+
+async function loadWeights() {
+  try {
+    const rows = await fetchAdminScoreWeights();
+    const latest = [...rows].sort((left, right) => Number(right.weightId || 0) - Number(left.weightId || 0))[0];
+    applyWeightRow(latest);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '成绩权重加载失败');
+  }
+}
+
+function applyWeightRow(row?: AdminScoreWeight) {
+  if (!row) {
+    return;
+  }
+  weights[0].value = row.coursewareWeight;
+  weights[1].value = row.trainingPracticeWeight;
+  weights[2].value = row.assignmentWeight;
+  weights[3].value = row.examWeight;
+}
+
+async function loadStatistics() {
+  try {
+    Object.assign(statistics, await fetchAdminSemesterScoreStatistics(currentQuery(false)));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '综合成绩统计加载失败');
+  }
+}
+
+async function loadScores() {
+  loading.value = true;
+  try {
+    const result = await fetchAdminSemesterScores(currentQuery());
+    scores.value = (result.records || []).map(mapScore);
+    total.value = result.total || 0;
+  } catch (error) {
+    scores.value = [];
+    total.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '综合成绩加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadPageData() {
+  await Promise.all([loadScores(), loadStatistics()]);
+}
+
+function applyFilters() {
+  applied.value = { ...draft };
+  page.value = 1;
+  loadPageData();
+}
+
+function resetFilters() {
+  Object.assign(draft, { semesterId: null, classId: null, courseName: '', studentName: '', studentNo: '' });
+  const currentSemester = semesterOptions.value.find((item) => item.current);
+  draft.semesterId = currentSemester?.semesterId ?? semesterOptions.value[0]?.semesterId ?? null;
+  applyFilters();
+}
+
 function scoreTone(score: number) { if (score >= 85) return 'excellent'; if (score >= 75) return 'good'; if (score >= 60) return 'normal'; return 'bad'; }
 function openDetail(row: SemesterScoreRow) { currentScore.value = row; detailVisible.value = true; }
-function openArchive(row: SemesterScoreRow) { ElMessage.info(`${row.studentName} 的学习档案入口已预留`); }
+function openArchive(row: SemesterScoreRow) {
+  router.push({ path: '/admin/training-archive', query: { keyword: row.studentNo } });
+}
 function openExport() { exportVisible.value = true; }
 function openWeightDialog() { weightVisible.value = true; }
-function confirmExport() { exportVisible.value = false; ElMessage.success('成绩导出任务已创建'); }
-function saveWeights() { weightVisible.value = false; ElMessage.success('成绩权重已保存'); }
+async function confirmExport() {
+  exporting.value = true;
+  try {
+    await exportAdminSemesterScores(exportForm.scope === 'all' ? {} : currentQuery(false));
+    exportVisible.value = false;
+    ElMessage.success('成绩文件已导出');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '成绩导出失败');
+  } finally {
+    exporting.value = false;
+  }
+}
+
+async function saveWeights() {
+  if (weightTotal.value !== 100) {
+    ElMessage.warning('成绩权重合计必须为100%');
+    return;
+  }
+  if (!draft.semesterId && !applied.value.semesterId) {
+    ElMessage.warning('请选择学年学期');
+    return;
+  }
+
+  savingWeights.value = true;
+  try {
+    await createAdminScoreWeight({
+      semesterId: (draft.semesterId || applied.value.semesterId) as number,
+      coursewareWeight: Number(weights[0].value || 0),
+      trainingPracticeWeight: Number(weights[1].value || 0),
+      assignmentWeight: Number(weights[2].value || 0),
+      examWeight: Number(weights[3].value || 0)
+    });
+    weightVisible.value = false;
+    await loadWeights();
+    await loadPageData();
+    ElMessage.success('成绩权重已保存');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '成绩权重保存失败');
+  } finally {
+    savingWeights.value = false;
+  }
+}
+
 function scoreParts(row: SemesterScoreRow) {
   return [
-    { name: '课件学习', score: row.coursewareScore, weight: 30, weighted: (row.coursewareScore * 0.3).toFixed(1), status: '已完成' },
-    { name: '实训练习', score: row.trainingScore, weight: 30, weighted: (row.trainingScore * 0.3).toFixed(1), status: '已完成' },
-    { name: '课程作业', score: row.assignmentScore, weight: 30, weighted: (row.assignmentScore * 0.3).toFixed(1), status: '已批阅' },
-    { name: '考试', score: row.examScore, weight: 10, weighted: (row.examScore * 0.1).toFixed(1), status: '已完成' }
+    { name: '课件学习', score: row.coursewareScore, weight: row.coursewareWeight, weighted: (row.coursewareScore * row.coursewareWeight / 100).toFixed(1), status: '已完成' },
+    { name: '实训练习', score: row.trainingScore, weight: row.trainingPracticeWeight, weighted: (row.trainingScore * row.trainingPracticeWeight / 100).toFixed(1), status: '已完成' },
+    { name: '课程作业', score: row.assignmentScore, weight: row.assignmentWeight, weighted: (row.assignmentScore * row.assignmentWeight / 100).toFixed(1), status: '已批阅' },
+    { name: '考试', score: row.examScore, weight: row.examWeight, weighted: (row.examScore * row.examWeight / 100).toFixed(1), status: '已完成' }
   ];
 }
+
+onMounted(async () => {
+  await Promise.all([loadOptions(), loadWeights()]);
+  await loadPageData();
+});
 </script>

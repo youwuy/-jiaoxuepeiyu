@@ -51,6 +51,11 @@ import {
   enableAdminClass,
   setAdminCurrentSemester
 } from '../src/api/admin-settings';
+import {
+  exportAdminSemesterScores,
+  fetchAdminSemesterScores,
+  fetchAdminSemesterScoreStatistics
+} from '../src/api/admin-semester-score';
 import { clearAuthSession, requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -870,6 +875,86 @@ describe('admin settings API integration', () => {
           semesterId: 12,
           coursewareWeight: 30,
           trainingPracticeWeight: 30,
+          assignmentWeight: 30,
+          examWeight: 10
+        })
+      })
+    );
+  });
+
+  it('uses documented semester score list, statistics, export, and weight endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [{ scoreId: 1, studentName: '张明远', studentNo: 'S001', comprehensiveScore: 92.1 }],
+            total: 1,
+            page: 1,
+            pageSize: 10
+          }
+        })
+      )
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            studentCount: 1,
+            averageScore: 92.1,
+            maxScore: 92.1,
+            minScore: 92.1,
+            excellentCount: 1,
+            passCount: 1
+          }
+        })
+      )
+      .mockImplementationOnce(() => Promise.resolve(new Response('scoreId,studentNo\n1,S001', {
+        status: 200,
+        headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="semester-scores.csv"' }
+      })))
+      .mockImplementationOnce(() => mockJsonResponse({ code: 0, data: 92 }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminSemesterScores({ semesterId: 12, classId: 5, keyword: 'S001', page: 1, pageSize: 10 })).resolves.toMatchObject({
+      records: [{ scoreId: 1, studentNo: 'S001' }],
+      total: 1
+    });
+    await expect(fetchAdminSemesterScoreStatistics({ semesterId: 12, classId: 5, keyword: 'S001' })).resolves.toMatchObject({
+      studentCount: 1,
+      averageScore: 92.1
+    });
+    await exportAdminSemesterScores({ semesterId: 12, classId: 5, keyword: 'S001' });
+    await createAdminScoreWeight({
+      semesterId: 12,
+      coursewareWeight: 25,
+      trainingPracticeWeight: 35,
+      assignmentWeight: 30,
+      examWeight: 10
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/admin/scores/semester?semesterId=12&classId=5&keyword=S001&page=1&pageSize=10',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/scores/semester/statistics?semesterId=12&classId=5&keyword=S001',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/scores/semester/export/file?semesterId=12&classId=5&keyword=S001',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      '/api/admin/score-weights',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          semesterId: 12,
+          coursewareWeight: 25,
+          trainingPracticeWeight: 35,
           assignmentWeight: 30,
           examWeight: 10
         })
