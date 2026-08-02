@@ -92,4 +92,4 @@
 ## Operational Notes
 
 - Do not store secret values in this file.
-- The repository contains `backend/`, `frontend/`, `database/`, `deploy/`, `docs/`, and `scripts/`.
+- The repository contains the Vue frontend at root `src/`, plus `backend/`, `database/`, `deploy/`, `docs/`, and `scripts/`.

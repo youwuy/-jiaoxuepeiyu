@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/deploy/dist"
 BACKEND_JAR="$ROOT/backend/target/jiaoxuepeiyu-backend-0.1.0.jar"
-FRONTEND_DIST="$ROOT/frontend/dist"
+FRONTEND_DIST="$ROOT/dist"
 RUNTIME_SOURCE="${JRE8_HOME:-$ROOT/deploy/runtime/jre8}"
 
 if [ ! -f "$BACKEND_JAR" ]; then
@@ -34,8 +34,8 @@ if [ -d "$FRONTEND_DIST" ]; then
   cp -R "$FRONTEND_DIST/." "$DIST/web/"
 else
   cat > "$DIST/web/README.txt" <<'EOF'
-Frontend static files were not packaged because frontend/dist was not found.
-Build the Vue frontend before release packaging when a full web bundle is required.
+Frontend static files were not packaged because root dist was not found.
+Build the Vue frontend from the repository root before release packaging when a full web bundle is required.
 EOF
 fi
 
@@ -55,7 +55,7 @@ Web education support platform deployment package
 3. Edit config/application.yml or set MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, APP_ACCOUNT_INITIAL_PASSWORD, and one-time APP_BOOTSTRAP_ADMIN_USERNAME / APP_BOOTSTRAP_ADMIN_PASSWORD for first admin creation.
 4. Run start-backend.sh on Linux/macOS or start-backend.bat on Windows.
 5. Runtime logs are written under logs/.
-6. The web directory contains frontend static files for Nginx or another web server when frontend/dist exists at packaging time.
+6. The web directory contains frontend static files for Nginx or another web server when root dist exists at packaging time.
 EOF
 
 echo "Deployment package generated: $DIST"

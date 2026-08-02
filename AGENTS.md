@@ -12,7 +12,7 @@
 ## Repository Layout
 
 - `backend/`: Java backend service.
-- `frontend/`: Vue frontend.
+- root `src/`: Vue frontend application.
 - `database/`: database initialization and migration assets.
 - `deploy/`: deployment and packaging scripts.
 - `docs/`: project documentation.

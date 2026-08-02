@@ -4,6 +4,16 @@
 
 项目启动说明见 [docs/project-division.md](docs/project-division.md)。
 开发环境说明见 [docs/environment.md](docs/environment.md)。
+交付核查清单见 [docs/delivery-checklist.md](docs/delivery-checklist.md)。
+
+## 目录结构
+
+- `src/`：Vue 3 前端主工程，根目录执行 `npm run dev` / `npm run build`。
+- `backend/`：Java 8 + Spring Boot 后端服务。
+- `database/`：MySQL 5.7.42 初始化和迁移脚本。
+- `deploy/`：离线部署包脚本和启动脚本。
+- `docs/`：接口、分工、环境和交付说明。
+- `scripts/`：开发、构建和校验脚本。
 
 ## 分支
 

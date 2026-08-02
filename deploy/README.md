@@ -110,7 +110,7 @@ Build the backend first:
 scripts/build-backend.sh
 ```
 
-Build the frontend before full web release packaging:
+Build the frontend from the repository root before full web release packaging:
 
 ```bash
 scripts/build-frontend.sh

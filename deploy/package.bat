@@ -5,7 +5,7 @@ set ROOT=%~dp0..
 for %%I in ("%ROOT%") do set ROOT=%%~fI
 set DIST=%ROOT%\deploy\dist
 set BACKEND_JAR=%ROOT%\backend\target\jiaoxuepeiyu-backend-0.1.0.jar
-set FRONTEND_DIST=%ROOT%\frontend\dist
+set FRONTEND_DIST=%ROOT%\dist
 
 if defined JRE8_HOME (
   set RUNTIME_SOURCE=%JRE8_HOME%
@@ -40,8 +40,8 @@ xcopy "%RUNTIME_SOURCE%\*" "%DIST%\runtime\jre8\" /E /I /Y >nul
 if exist "%FRONTEND_DIST%\" (
   xcopy "%FRONTEND_DIST%\*" "%DIST%\web\" /E /I /Y >nul
 ) else (
-  > "%DIST%\web\README.txt" echo Frontend static files were not packaged because frontend\dist was not found.
-  >> "%DIST%\web\README.txt" echo Build the Vue frontend before release packaging when a full web bundle is required.
+  > "%DIST%\web\README.txt" echo Frontend static files were not packaged because root dist was not found.
+  >> "%DIST%\web\README.txt" echo Build the Vue frontend from the repository root before release packaging when a full web bundle is required.
 )
 
 copy /y "%ROOT%\deploy\config\application.yml.example" "%DIST%\config\application.yml" >nul
@@ -58,6 +58,6 @@ xcopy "%ROOT%\database" "%DIST%\database\" /E /I /Y >nul
 >> "%DIST%\README.txt" echo 3. Edit config\application.yml or set MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, APP_ACCOUNT_INITIAL_PASSWORD, and one-time APP_BOOTSTRAP_ADMIN_USERNAME / APP_BOOTSTRAP_ADMIN_PASSWORD for first admin creation.
 >> "%DIST%\README.txt" echo 4. Run start-backend.bat on Windows or start-backend.sh on Linux/macOS.
 >> "%DIST%\README.txt" echo 5. Runtime logs are written under logs\.
->> "%DIST%\README.txt" echo 6. The web directory contains frontend static files for IIS, Nginx, or another web server when frontend\dist exists at packaging time.
+>> "%DIST%\README.txt" echo 6. The web directory contains frontend static files for IIS, Nginx, or another web server when root dist exists at packaging time.
 
 echo Deployment package generated: %DIST%
