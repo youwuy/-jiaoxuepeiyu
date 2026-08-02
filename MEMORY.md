@@ -78,6 +78,7 @@
 - 2026-08-01: Admin public resource library frontend now lives at `/admin/public-resource`, with a filterable list, right-side detail panel, version/history tabs, preview dialog, operation log drawer, and take-down application dialog; it uses `admin/public-resources` plus shared resource detail/log APIs and falls back to local mock rows when the backend is unavailable.
 - 2026-08-01: Admin public application frontend now keeps a Calicat-style 11-column review table plus preview, record, batch-review, and single-review dialogs; the latest polish tightened the column widths and secondary dialog layouts to keep the module dense and consistent with the rest of the admin UI.
 - 2026-08-01: Admin theory question frontend now lives at `/admin/theory-question`, with a Calicat-style question bank table, filters, create/edit side panel, question preview, import validation dialog, logs drawer, and enable/disable actions wired to `/api/admin/questions` with local fallback rows.
+- 2026-08-02: Admin training course frontend at `/admin/training` now includes a Calicat-style training composition flow for "新增实训课": base-info drawer steps, training task/resource/paper selectors, class/teacher/room selectors, collaborative role dialog, preview, import validation, publish confirmation, logs, marking, statistics, and monitor drawers using local fallback data for UI review.
 
 ## Operational Notes
 
