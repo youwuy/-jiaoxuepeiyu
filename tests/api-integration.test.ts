@@ -338,7 +338,7 @@ describe('api http client', () => {
     await updateAdminAccount('teacher', 101, command);
     await disableAdminAccount(101);
     await enableAdminAccount(101);
-    await resetAdminAccountPasswords([101, 102]);
+    await resetAdminAccountPasswords([101, 102], 'Abc@12345');
     await updateAdminAccountOrg([101, 102], 11);
     await updateAdminTeacherRoles(101, [1, 3]);
 

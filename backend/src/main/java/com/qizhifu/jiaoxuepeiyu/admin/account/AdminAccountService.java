@@ -101,11 +101,16 @@ public class AdminAccountService {
     }
 
     public void resetPasswords(List<Long> userIds) {
+        resetPasswords(userIds, requireInitialPassword());
+    }
+
+    public void resetPasswords(List<Long> userIds, String password) {
         List<Long> normalizedUserIds = unique(userIds);
         if (normalizedUserIds.isEmpty()) {
             throw new BusinessException(400, "Accounts are required");
         }
-        repository.resetPasswords(normalizedUserIds, passwordHasher.hash(requireInitialPassword()));
+        String normalizedPassword = normalizedResetPassword(password);
+        repository.resetPasswords(normalizedUserIds, passwordHasher.hash(normalizedPassword));
     }
 
     public void updateOrg(List<Long> userIds, Long orgId) {
@@ -372,6 +377,31 @@ public class AdminAccountService {
             throw new BusinessException(500, "Initial password is not configured");
         }
         return initialPassword;
+    }
+
+    private String normalizedResetPassword(String password) {
+        String normalized = trimToNull(password);
+        if (normalized == null) {
+            throw new BusinessException(400, "Password is required");
+        }
+        if (normalized.length() < 8 || normalized.length() > 20) {
+            throw new BusinessException(400, "Password length must be 8-20 characters");
+        }
+        boolean hasLetter = false;
+        boolean hasDigit = false;
+        for (int i = 0; i < normalized.length(); i++) {
+            char ch = normalized.charAt(i);
+            if (Character.isLetter(ch)) {
+                hasLetter = true;
+            }
+            if (Character.isDigit(ch)) {
+                hasDigit = true;
+            }
+        }
+        if (!hasLetter || !hasDigit) {
+            throw new BusinessException(400, "Password must contain letters and digits");
+        }
+        return normalized;
     }
 
     private void ensureAccountNoAvailable(String accountNo) {

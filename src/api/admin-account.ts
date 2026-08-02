@@ -153,10 +153,10 @@ export async function disableAdminAccount(userId: number) {
   });
 }
 
-export async function resetAdminAccountPasswords(userIds: number[]) {
+export async function resetAdminAccountPasswords(userIds: number[], password: string) {
   return requestJson<void>('/admin/accounts/batch/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ userIds }),
+    body: JSON.stringify({ userIds, password }),
     fallbackLabel: '重置密码'
   });
 }

@@ -103,6 +103,26 @@ class AdminAccountServiceTests {
     }
 
     @Test
+    void batchResetPasswordUsesSubmittedPassword() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        service.resetPasswords(Arrays.asList(1L), "Abc@12345");
+
+        assertEquals(Arrays.asList(1L), repository.resetUserIds);
+        assertEquals("hashed:Abc@12345", repository.resetPasswordHash);
+    }
+
+    @Test
+    void rejectsInvalidResetPassword() {
+        AdminAccountService service = new AdminAccountService(new FakeAccounts(), new PrefixHasher(), "InitPass123");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.resetPasswords(Arrays.asList(1L), "12345678"));
+
+        assertEquals("Password must contain letters and digits", exception.getMessage());
+    }
+
+    @Test
     void updatesTeacherWithoutAccountNumber() {
         FakeAccounts repository = new FakeAccounts();
         AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");

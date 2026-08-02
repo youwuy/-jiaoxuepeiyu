@@ -968,7 +968,7 @@ async function saveResetPassword() {
   }
   saving.value = true;
   try {
-    await resetAdminAccountPasswords(resetIds.value);
+    await resetAdminAccountPasswords(resetIds.value, resetPassword.value.trim());
     ElMessage.success(resetIds.value.length > 1 ? '密码已批量重置' : '密码已重置');
     resetVisible.value = false;
   } catch (error) {
