@@ -86,6 +86,15 @@ export interface AdminResourceLog {
   createdAt: string;
 }
 
+export interface UploadedFile {
+  fileUrl: string;
+  fileName: string;
+  storedFileName?: string;
+  fileSize?: number;
+  contentType?: string;
+  category?: string;
+}
+
 function buildQuery(params: Record<string, string | number | boolean | null | undefined>): string {
   const search = new URLSearchParams();
 
@@ -250,5 +259,17 @@ export async function rejectAdminPublicApplication(applicationId: number, comman
 export async function fetchAdminResourceLogs(resourceId: number) {
   return requestJson<AdminResourceLog[]>(`/admin/resources/${resourceId}/logs`, {
     fallbackLabel: '资源日志'
+  });
+}
+
+export async function uploadAdminFile(file: File, category: string) {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('category', category);
+
+  return requestJson<UploadedFile>('/files', {
+    method: 'POST',
+    body,
+    fallbackLabel: '文件上传'
   });
 }

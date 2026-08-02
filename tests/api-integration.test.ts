@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loginAdmin, loginStudent } from '../src/api/auth';
 import {
   cancelPublishAdminCourse,
+  exportAdminCourseStudentStatistics,
   fetchAdminCourseLogs,
   fetchAdminCourseStatistics,
+  fetchAdminCourseStudentStatistics,
   fetchAdminCourses,
   publishAdminCourse
 } from '../src/api/admin-course';
@@ -65,6 +67,9 @@ import {
   fetchAdminSemesterScores,
   fetchAdminSemesterScoreStatistics
 } from '../src/api/admin-semester-score';
+import { uploadAdminFile } from '../src/api/admin-resource';
+import { fetchAdminDeviceEfficiencyReport } from '../src/api/admin-device';
+import { fetchAdminTrainingArchiveDetail, fetchAdminTrainingArchives } from '../src/api/admin-archive';
 import { clearAuthSession, requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -250,6 +255,154 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/courses/3/cancel-publish', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/courses/3/logs', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/courses/3/statistics', expect.any(Object));
+  });
+
+  it('uses real admin course student statistics endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [
+              {
+                studentId: 6,
+                studentName: '占同学',
+                studentNo: '0012',
+                className: '城轨运营2401班',
+                progressPercent: 80,
+                progressScore: 24,
+                assignmentCount: 2,
+                assignmentScore: 88
+              }
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 10
+          }
+        })
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve(
+          new Response('student_no,student_name\r\n0012,占同学\r\n', {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/csv;charset=UTF-8',
+              'Content-Disposition': 'attachment; filename="course-student-statistics.csv"'
+            }
+          })
+        )
+      );
+    const appendChild = vi.fn();
+    const removeChild = vi.fn();
+    const click = vi.fn();
+    const anchor = { href: '', download: '', click };
+    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:course-students');
+    globalThis.URL.revokeObjectURL = vi.fn();
+    globalThis.document = {
+      createElement: vi.fn(() => anchor),
+      body: { appendChild, removeChild }
+    } as unknown as Document;
+
+    await expect(
+      fetchAdminCourseStudentStatistics(3, { studentName: '占', studentNo: '0012', className: '城轨运营2401班', page: 1, pageSize: 10 })
+    ).resolves.toMatchObject({
+      records: [{ studentId: 6, studentNo: '0012', studentName: '占同学' }],
+      total: 1
+    });
+    await exportAdminCourseStudentStatistics(3, { studentNo: '0012' });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/admin/courses/3/student-statistics?studentName=%E5%8D%A0&studentNo=0012&className=%E5%9F%8E%E8%BD%A8%E8%BF%90%E8%90%A52401%E7%8F%AD&page=1&pageSize=10',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/courses/3/student-statistics/export/file?studentNo=0012',
+      expect.any(Object)
+    );
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('uploads admin files with multipart form data', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: {
+          fileUrl: '/uploads/resources/demo.pdf',
+          fileName: 'demo.pdf',
+          fileSize: 12,
+          category: 'resources'
+        }
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(uploadAdminFile(new File(['demo'], 'demo.pdf', { type: 'application/pdf' }), 'resources')).resolves.toMatchObject({
+      fileUrl: '/uploads/resources/demo.pdf',
+      fileName: 'demo.pdf'
+    });
+
+    const request = (fetchMock.mock.calls as unknown as Array<[string, RequestInit]>)[0][1];
+    expect(fetchMock).toHaveBeenCalledWith('/api/files', expect.objectContaining({ method: 'POST' }));
+    expect(request.body).toBeInstanceOf(FormData);
+    expect((request.headers as Headers).has('Content-Type')).toBe(false);
+  });
+
+  it('loads admin device efficiency dashboard from the backend', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: {
+          summary: { totalDeviceCount: 60, onlineDeviceCount: 45, activeDeviceCount: 8, totalUsageMinutes: 1950 },
+          realtimeStates: [{ deviceId: 1, deviceName: 'DESKTOP-168QTC2', deviceType: '电脑', deviceStatus: 'USING' }],
+          monthlyTrends: [{ month: '2026-08', usageMinutes: 600, usageCount: 10, utilizationRate: 72 }],
+          heatRanking: [{ deviceId: 1, deviceName: 'DESKTOP-168QTC2', usageMinutes: 600, utilizationRate: 72 }]
+        }
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminDeviceEfficiencyReport()).resolves.toMatchObject({
+      summary: { totalDeviceCount: 60 },
+      realtimeStates: [{ deviceName: 'DESKTOP-168QTC2' }]
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/devices/efficiency', expect.any(Object));
+  });
+
+  it('loads admin training archives and archive details from backend endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [{ archiveId: 9, trainingName: 'CBTC信号系统操作实训', studentNo: '0012', studentName: '占同学' }],
+            total: 1,
+            page: 1,
+            pageSize: 10
+          }
+        })
+      )
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            archiveId: 9,
+            recordingUrl: '/uploads/training/9.mp4',
+            steps: [{ stepId: 1, stepName: '穿戴安全防护用品', score: 1 }]
+          }
+        })
+      );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminTrainingArchives({ keyword: '0012', page: 1, pageSize: 10 })).resolves.toMatchObject({
+      records: [{ archiveId: 9, studentNo: '0012' }],
+      total: 1
+    });
+    await expect(fetchAdminTrainingArchiveDetail(9)).resolves.toMatchObject({
+      archiveId: 9,
+      steps: [{ stepName: '穿戴安全防护用品' }]
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/archives?keyword=0012&page=1&pageSize=10', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/archives/9', expect.any(Object));
   });
 
   it('uses the documented admin paper endpoints', async () => {

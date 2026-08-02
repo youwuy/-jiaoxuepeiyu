@@ -55,6 +55,7 @@ export interface AdminAccountCommand {
   classId?: number | null;
   faceFileId?: number | null;
   fingerprintFileId?: number | null;
+  initialPassword?: string;
   roleIds?: number[];
   managedOrgIds?: number[];
   teachingClassIds?: number[];

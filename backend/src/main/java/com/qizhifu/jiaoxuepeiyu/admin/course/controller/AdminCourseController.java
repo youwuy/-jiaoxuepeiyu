@@ -7,12 +7,18 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
+import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -93,9 +99,48 @@ public class AdminCourseController {
         return ApiResponse.ok(service.getStatistics(courseId));
     }
 
+    @GetMapping("/{courseId}/student-statistics")
+    @Operation(summary = "List course student statistics", description = "Returns paged student learning progress and assignment scores for one course.")
+    public ApiResponse<PageResponse<AdminCourseStudentStatistics>> listStudentStatistics(
+            @PathVariable Long courseId,
+            @ModelAttribute AdminCourseStudentStatisticsQuery query) {
+        return ApiResponse.ok(service.listStudentStatistics(courseId, query));
+    }
+
+    @GetMapping("/{courseId}/student-statistics/export/file")
+    @Operation(summary = "Download course student statistics CSV", description = "Downloads filtered student course statistics rows as an Excel-compatible CSV file.")
+    public ResponseEntity<byte[]> exportStudentStatistics(@PathVariable Long courseId,
+                                                          @ModelAttribute AdminCourseStudentStatisticsQuery query) {
+        List<List<String>> rows = new ArrayList<List<String>>();
+        for (AdminCourseStudentStatistics item : service.exportStudentStatistics(courseId, query)) {
+            rows.add(Arrays.asList(
+                    value(item.getStudentId()),
+                    value(item.getStudentName()),
+                    value(item.getStudentNo()),
+                    value(item.getClassName()),
+                    value(item.getProgressPercent()),
+                    value(item.getProgressScore()),
+                    value(item.getAssignmentCount()),
+                    value(item.getAssignmentScore())));
+        }
+        return CsvExporter.toAttachment("course-student-statistics.csv", Arrays.asList(
+                "Student ID",
+                "Student Name",
+                "Student No",
+                "Class",
+                "Progress Percent",
+                "Progress Score",
+                "Assignment Count",
+                "Assignment Score"), rows);
+    }
+
     @GetMapping("/{courseId}/logs")
     @Operation(summary = "List course logs", description = "Returns operation logs for one course sorted by newest first.")
     public ApiResponse<List<AdminCourseLog>> listCourseLogs(@PathVariable Long courseId) {
         return ApiResponse.ok(service.listCourseLogs(courseId));
+    }
+
+    private String value(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

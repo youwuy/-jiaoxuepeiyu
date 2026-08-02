@@ -174,11 +174,11 @@ import {
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminAssignmentAttempts,
+  fetchAdminCourseDetail,
   fetchAdminClasses,
   type AdminAssignmentAttempt,
   type AdminClassOption
 } from '../../api/admin-course';
-import { mockAdminCourses } from '../../features/admin/courses';
 
 type ReviewTabKey = 'all' | 'pending' | 'reviewed' | 'notSubmitted';
 
@@ -197,8 +197,7 @@ interface AssignmentReviewRow {
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
-const currentCourse = computed(() => mockAdminCourses.find((item) => item.courseId === courseId.value));
-const courseTitle = computed(() => (route.query.title as string) || currentCourse.value?.courseName || '城市轨道交通信号系统原理');
+const courseTitle = ref((route.query.title as string) || '教学课程');
 
 const page = ref(1);
 const pageSize = ref(10);
@@ -370,6 +369,18 @@ async function loadClassOptions() {
   }
 }
 
+async function loadCourseDetail() {
+  if (!courseId.value) {
+    return;
+  }
+  try {
+    const detail = await fetchAdminCourseDetail(courseId.value);
+    courseTitle.value = detail.courseName || courseTitle.value;
+  } catch {
+    // Keep the route title when the course detail endpoint is unavailable.
+  }
+}
+
 function handlePageSizeChange() {
   page.value = 1;
   void loadRows();
@@ -381,6 +392,7 @@ function goToPage(nextPage: number) {
 }
 
 onMounted(() => {
+  void loadCourseDetail();
   void loadClassOptions();
   void loadRows();
 });

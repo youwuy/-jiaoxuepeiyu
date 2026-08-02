@@ -61,21 +61,16 @@ function inferPortal(path: string): AuthPortal | undefined {
 
 function getStoredToken(portal?: AuthPortal): string {
   if (!portal) {
-    return '';
+    return globalThis.localStorage?.getItem(legacyAuthTokenKey) || '';
   }
 
-  return globalThis.localStorage?.getItem(authStorageKeys[portal].token)
-    || globalThis.localStorage?.getItem(legacyAuthTokenKey)
-    || '';
+  return globalThis.localStorage?.getItem(authStorageKeys[portal].token) || '';
 }
 
 function getStoredUserId(portal?: AuthPortal): string {
-  if (!portal) {
-    return '';
-  }
-
-  const storedUser = globalThis.localStorage?.getItem(authStorageKeys[portal].user)
-    || globalThis.localStorage?.getItem(legacyAuthUserKey);
+  const storedUser = portal
+    ? globalThis.localStorage?.getItem(authStorageKeys[portal].user)
+    : globalThis.localStorage?.getItem(legacyAuthUserKey);
 
   if (!storedUser) {
     return '';
@@ -125,7 +120,7 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
   const token = getStoredToken(portal);
   const headers = new Headers(options.headers);
 
-  if (options.body && !headers.has('Content-Type')) {
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 

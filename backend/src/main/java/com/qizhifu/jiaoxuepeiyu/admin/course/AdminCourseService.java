@@ -7,6 +7,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
@@ -122,6 +124,24 @@ public class AdminCourseService {
     public List<AdminCourseLog> listCourseLogs(Long courseId) {
         getCourse(courseId);
         return repository.findCourseLogs(courseId);
+    }
+
+    public PageResponse<AdminCourseStudentStatistics> listStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+        getCourse(courseId);
+        AdminCourseStudentStatisticsQuery normalized = normalizedStudentStatisticsQuery(query);
+        return new PageResponse<AdminCourseStudentStatistics>(
+                repository.findStudentStatistics(courseId, normalized),
+                normalized.getPage(),
+                normalized.getPageSize(),
+                repository.countStudentStatistics(courseId, normalized));
+    }
+
+    public List<AdminCourseStudentStatistics> exportStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+        getCourse(courseId);
+        AdminCourseStudentStatisticsQuery normalized = normalizedStudentStatisticsQuery(query);
+        normalized.setPage(1);
+        normalized.setPageSize(MAX_PAGE_SIZE);
+        return repository.findStudentStatistics(courseId, normalized);
     }
 
     private AdminCourseCommand normalizedCourse(AdminCourseCommand command) {
@@ -273,6 +293,27 @@ public class AdminCourseService {
         }
         validateContentTime(normalized.getTeachingStartTime(), normalized.getTeachingEndTime(),
                 "Course teaching filter end time must be after start time");
+        if (normalized.getPage() < 1) {
+            normalized.setPage(1);
+        }
+        if (normalized.getPageSize() < 1) {
+            normalized.setPageSize(20);
+        }
+        if (normalized.getPageSize() > MAX_PAGE_SIZE) {
+            normalized.setPageSize(MAX_PAGE_SIZE);
+        }
+        return normalized;
+    }
+
+    private AdminCourseStudentStatisticsQuery normalizedStudentStatisticsQuery(AdminCourseStudentStatisticsQuery query) {
+        AdminCourseStudentStatisticsQuery normalized = new AdminCourseStudentStatisticsQuery();
+        if (query != null) {
+            normalized.setStudentName(trimToNull(query.getStudentName()));
+            normalized.setStudentNo(trimToNull(query.getStudentNo()));
+            normalized.setClassName(trimToNull(query.getClassName()));
+            normalized.setPage(query.getPage());
+            normalized.setPageSize(query.getPageSize());
+        }
         if (normalized.getPage() < 1) {
             normalized.setPage(1);
         }

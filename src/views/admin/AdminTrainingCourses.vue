@@ -48,7 +48,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="course in filteredCourses" :key="course.id">
+              <tr v-for="course in courses" :key="course.id">
                 <td>
                   <div class="admin-training-name-cell">
                     <strong>{{ course.name }}</strong>
@@ -113,8 +113,8 @@
         </div>
 
         <div class="admin-pagination">
-          <span>共 {{ filteredCourses.length }} 条记录</span>
-          <el-pagination layout="prev, pager, next" :total="filteredCourses.length" :page-size="8" />
+          <span>共 {{ total }} 条记录</span>
+          <el-pagination v-model:current-page="page" layout="prev, pager, next" :total="total" :page-size="pageSize" @current-change="loadCourses" />
         </div>
       </div>
 
@@ -407,10 +407,10 @@
       <el-drawer v-model="statsVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
         <div class="admin-training-drawer-head compact"><div><span>成绩统计</span><h3>{{ selectedCourse?.name || '成绩统计' }}</h3></div><el-button text circle :icon="Close" @click="statsVisible = false" /></div>
         <div class="admin-training-stats-grid">
-          <article><span>应参加</span><strong>48</strong></article>
-          <article><span>已完成</span><strong>43</strong></article>
-          <article><span>平均分</span><strong>86.5</strong></article>
-          <article><span>通过率</span><strong>91%</strong></article>
+          <article><span>应参加</span><strong>{{ statsSummary.participantCount || 0 }}</strong></article>
+          <article><span>已完成</span><strong>{{ statsSummary.submittedAttemptCount || 0 }}</strong></article>
+          <article><span>平均分</span><strong>{{ formatNumber(statsSummary.averageScore) }}</strong></article>
+          <article><span>通过率</span><strong>{{ passRate(statsSummary) }}</strong></article>
         </div>
         <el-table :data="statsRows">
           <el-table-column prop="className" label="班级" min-width="160" />
@@ -425,10 +425,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, Close, Document, FolderOpened, Monitor, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  cancelPublishAdminTraining,
+  createAdminTraining,
+  deleteAdminTraining,
+  fetchAdminTraining,
+  fetchAdminTrainingLogs,
+  fetchAdminTrainingMonitor,
+  fetchAdminTrainings,
+  fetchAdminTrainingStatistics,
+  publishAdminTraining,
+  updateAdminTraining,
+  type AdminTraining,
+  type AdminTrainingCameraState,
+  type AdminTrainingLog,
+  type AdminTrainingStatistics,
+  type AdminTrainingStudentState
+} from '../../api/admin-training';
 
 type CourseStatus = '已发布' | '未发布';
 type SelectorKind = 'topic' | 'resource' | 'paper' | 'class' | 'teacher' | 'room';
@@ -473,6 +490,10 @@ interface TrainingFlowNode {
 }
 
 const filters = reactive({ keyword: '', type: '', time: '', status: '' });
+const loading = ref(false);
+const page = ref(1);
+const pageSize = 8;
+const total = ref(0);
 const formVisible = ref(false);
 const formMode = ref<'create' | 'edit'>('create');
 const activeStep = ref<StepKey>('base');
@@ -526,13 +547,7 @@ const steps = [
 
 const semesters = ['2024-2025学年 第二学期', '2024-2025学年 第一学期', '2023-2024学年 第二学期'];
 
-const courses = ref<CourseRow[]>([
-  { id: 1, name: '期末考试', type: '考试', mode: '单人实训', time: '2025-03-20 08:00\n至 2025-03-20 10:00', target: '城轨信号2401班', teacher: '李明峰、王志强', room: '实训室A-301', status: '已发布', createdAt: '2025-03-15 10:00', topicCount: 3, exam: true },
-  { id: 2, name: '信号故障处理综合实训', type: '考试', mode: '协同实训', time: '2025-03-20 08:00\n至 2025-03-20 10:00', target: '城轨信号2401班', teacher: '李明峰、王志强', room: '实训室A-301', status: '已发布', createdAt: '2025-03-15 10:00', topicCount: 4 },
-  { id: 3, name: '列车驾驶模拟实训考核', type: '考试', mode: '单人实训', time: '2025-03-12 09:00\n至 2025-03-13 11:00', target: '城轨车辆2401班', teacher: '赵建国', room: '驾驶模拟室B-101', status: '未发布', createdAt: '2025-03-18 14:30', topicCount: 2 },
-  { id: 4, name: '站务应急处置实训', type: '练习', mode: '协同实训', time: '2025-03-10 14:00\n至 2025-03-10 16:00', target: '张明亮、孙志强、王欣欣', teacher: '陈志远、李明峰', room: '实训室C-201', status: '已发布', createdAt: '2025-03-05 09:00', topicCount: 5 },
-  { id: 5, name: '调度指挥综合实训', type: '练习', mode: '协同实训', time: '2025-03-08 08:30\n至 2025-03-08 11:30', target: '城轨运营2401班', teacher: '陈志远', room: '调度实训室D-401', status: '已发布', createdAt: '2025-03-01 10:00', topicCount: 4 }
-]);
+const courses = ref<CourseRow[]>([]);
 
 const topicOptions: SelectableItem[] = [
   { id: 1, name: '信号机故障应急处置', meta: '信号 / 45 分钟 / 30 分', category: '信号', duration: 45, score: 30 },
@@ -577,24 +592,11 @@ const selectedClassIds = ref([31]);
 const selectedTeacherIds = ref([41, 42]);
 const selectedRoomId = ref(51);
 
-const cameras = [
-  { name: '教室全景摄像头 01', location: '第一实训室 / 前方' },
-  { name: '操作区摄像头 02', location: '第一实训室 / 操作台' },
-  { name: '走廊入口摄像头 03', location: '第一实训室 / 入口' },
-  { name: '教师端摄像头 04', location: '第一实训室 / 讲台' }
-];
+const cameras = ref<Array<{ name: string; location: string; online: boolean; streamUrl?: string }>>([]);
 
-const students = [
-  { name: '李明', studentNo: '202601001', topic: '设备停送电流程', mode: '协同', room: 'A-01', ip: '192.168.1.21', online: true },
-  { name: '周雨', studentNo: '202601002', topic: '安全隔离确认', mode: '协同', room: 'A-01', ip: '192.168.1.22', online: true },
-  { name: '陈晓', studentNo: '202601003', topic: '故障票填写', mode: '单人', room: 'B-03', ip: '192.168.1.47', online: false }
-];
+const students = ref<Array<{ name: string; studentNo: string; topic: string; mode: string; room: string; ip: string; online: boolean }>>([]);
 
-const logs = [
-  { time: '2025-03-15 10:00', operator: '张建国', action: '创建实训课', content: '新增信号故障处理综合实训，保存为草稿。' },
-  { time: '2025-03-16 09:20', operator: '李明峰', action: '发布实训课', content: '发布到城轨信号2401班，并通知监考教师。' },
-  { time: '2025-03-20 08:02', operator: '系统', action: '开始实训', content: '实训教室在线状态正常，已允许学生进入。' }
-];
+const logs = ref<Array<{ time: string; operator: string; action: string; content: string }>>([]);
 
 const markingRows = [
   { student: '李明', className: '城轨信号2401班', submitAt: '2025-03-20 10:01', score: 92, status: '已阅' },
@@ -602,17 +604,8 @@ const markingRows = [
   { student: '陈晓', className: '城轨信号2401班', submitAt: '2025-03-20 10:05', score: '-', status: '待阅' }
 ];
 
-const statsRows = [
-  { className: '城轨信号2401班', total: 48, finished: 43, avg: 86.5, passRate: '91%' },
-  { className: '城轨车辆2401班', total: 42, finished: 39, avg: 83.2, passRate: '88%' }
-];
-
-const filteredCourses = computed(() => courses.value.filter((course) => {
-  const keywordMatched = !filters.keyword || course.name.includes(filters.keyword) || course.target.includes(filters.keyword);
-  const typeMatched = !filters.type || course.type === filters.type;
-  const statusMatched = !filters.status || course.status === filters.status;
-  return keywordMatched && typeMatched && statusMatched;
-}));
+const statsSummary = ref<AdminTrainingStatistics>({});
+const statsRows = ref<Array<{ className: string; total: number; finished: number; avg: string; passRate: string }>>([]);
 
 const selectedTopics = computed(() => topicOptions.filter((item) => selectedTopicIds.value.includes(item.id)));
 const selectedResources = computed(() => resourceOptions.filter((item) => selectedResourceIds.value.includes(item.id)));
@@ -654,10 +647,13 @@ function resetFilters() {
   filters.type = '';
   filters.time = '';
   filters.status = '';
+  page.value = 1;
+  void loadCourses();
 }
 
 function refreshCourses() {
-  ElMessage.success('查询条件已应用');
+  page.value = 1;
+  void loadCourses();
 }
 
 function resetForm() {
@@ -695,31 +691,25 @@ function openEdit(course: CourseRow) {
   formVisible.value = true;
 }
 
-function saveDraft() {
+async function saveDraft() {
   if (!form.name.trim()) {
     ElMessage.warning('请输入实训课名称');
     return;
   }
 
-  if (formMode.value === 'create') {
-    courses.value.unshift({
-      id: Date.now(),
-      name: form.name,
-      type: form.type,
-      mode: form.mode,
-      time: formatRange.value,
-      target: selectedClasses.value.map((item) => item.name).join('、') || '-',
-      teacher: selectedTeachers.value.map((item) => item.name).join('、') || '-',
-      room: selectedRoom.value?.name || '-',
-      status: '未发布',
-      createdAt: '2026-08-02 10:00',
-      topicCount: selectedTopics.value.length,
-      exam: form.type === '考试'
-    });
+  try {
+    const command = buildTrainingCommand('DRAFT');
+    if (formMode.value === 'edit' && form.id) {
+      await updateAdminTraining(form.id, command);
+    } else {
+      await createAdminTraining(command);
+    }
+    ElMessage.success('草稿已保存');
+    formVisible.value = false;
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '保存草稿失败');
   }
-
-  ElMessage.success('草稿已保存');
-  formVisible.value = false;
 }
 
 function openSelector(kind: SelectorKind) {
@@ -796,14 +786,24 @@ function openPublish(course?: CourseRow) {
   publishVisible.value = true;
 }
 
-function confirmPublish() {
-  if (publishTarget.value) {
-    publishTarget.value.status = '已发布';
-  } else {
-    saveDraft();
+async function confirmPublish() {
+  try {
+    if (publishTarget.value) {
+      await publishAdminTraining(publishTarget.value.id);
+    } else {
+      const command = buildTrainingCommand('PUBLISHED');
+      const result = formMode.value === 'edit' && form.id
+        ? (await updateAdminTraining(form.id, command), { trainingId: form.id })
+        : await createAdminTraining(command);
+      await publishAdminTraining(result.trainingId);
+      formVisible.value = false;
+    }
+    publishVisible.value = false;
+    ElMessage.success(publishNotify.value ? '已发布并发送通知' : '已发布');
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '发布失败');
   }
-  publishVisible.value = false;
-  ElMessage.success(publishNotify.value ? '已发布并发送通知' : '已发布');
 }
 
 function openImport() {
@@ -813,11 +813,21 @@ function openImport() {
 
 function confirmImport() {
   importVisible.value = false;
-  ElMessage.success('导入预览已确认，已生成草稿');
+  ElMessage.warning('实训课导入接口暂未提供，当前不能生成真实草稿');
 }
 
-function openMonitor(row: CourseRow) {
+async function openMonitor(row: CourseRow) {
   selectedCourse.value = row;
+  try {
+    const snapshot = await fetchAdminTrainingMonitor(row.id);
+    cameras.value = (snapshot.cameras || []).map(mapCamera);
+    students.value = (snapshot.students || []).map(mapStudent);
+    statsSummary.value = snapshot.statistics || {};
+  } catch (error) {
+    cameras.value = [];
+    students.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '实训监控加载失败');
+  }
   monitorVisible.value = true;
 }
 
@@ -826,31 +836,233 @@ function openMarking(row: CourseRow) {
   markingVisible.value = true;
 }
 
-function openStats(row: CourseRow) {
+async function openStats(row: CourseRow) {
   selectedCourse.value = row;
+  try {
+    statsSummary.value = await fetchAdminTrainingStatistics(row.id);
+    statsRows.value = [{
+      className: row.target || '-',
+      total: Number(statsSummary.value.participantCount || 0),
+      finished: Number(statsSummary.value.submittedAttemptCount || 0),
+      avg: formatNumber(statsSummary.value.averageScore),
+      passRate: passRate(statsSummary.value)
+    }];
+  } catch (error) {
+    statsSummary.value = {};
+    statsRows.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '成绩统计加载失败');
+  }
   statsVisible.value = true;
 }
 
-function openLogs(row: CourseRow) {
+async function openLogs(row: CourseRow) {
   selectedCourse.value = row;
+  try {
+    logs.value = (await fetchAdminTrainingLogs(row.id)).map(mapLog);
+  } catch (error) {
+    logs.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '操作日志加载失败');
+  }
   logVisible.value = true;
 }
 
 async function confirmDelete(course: CourseRow) {
   await ElMessageBox.confirm(`确认删除实训课「${course.name}」？`, '删除实训课', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' });
-  courses.value = courses.value.filter((item) => item.id !== course.id);
-  ElMessage.success('实训课已删除');
+  try {
+    await deleteAdminTraining(course.id);
+    ElMessage.success('实训课已删除');
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '删除失败');
+  }
 }
 
-function copyCourse(course: CourseRow) {
-  courses.value.unshift({ ...course, id: Date.now(), name: `${course.name} 副本`, status: '未发布', createdAt: '2026-08-02 10:00' });
-  ElMessage.success('已复制为草稿');
+async function copyCourse(course: CourseRow) {
+  try {
+    const detail = await fetchAdminTraining(course.id);
+    await createAdminTraining({
+      trainingName: `${detail.trainingName || course.name} 副本`,
+      academicYearId: detail.academicYearId,
+      semesterId: detail.semesterId,
+      majorId: detail.majorId,
+      coverUrl: detail.coverUrl,
+      trainingType: detail.trainingType,
+      trainingMode: detail.trainingMode,
+      paperMode: detail.paperMode,
+      paperId: detail.paperId,
+      openStartTime: detail.openStartTime,
+      openEndTime: detail.openEndTime,
+      teamSize: detail.teamSize,
+      appRequired: detail.appRequired,
+      classIds: detail.classIds || [],
+      roles: detail.roles || [],
+      publishStatus: 'DRAFT'
+    });
+    ElMessage.success('已复制为草稿');
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '复制失败');
+  }
 }
 
-function withdrawCourse(course: CourseRow) {
-  course.status = '未发布';
-  ElMessage.success('已撤回发布');
+async function withdrawCourse(course: CourseRow) {
+  try {
+    await cancelPublishAdminTraining(course.id);
+    ElMessage.success('已撤回发布');
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '撤回失败');
+  }
 }
+
+async function loadCourses() {
+  loading.value = true;
+  try {
+    const result = await fetchAdminTrainings({
+      keyword: filters.keyword.trim() || undefined,
+      trainingType: trainingTypeToApi(filters.type),
+      publishStatus: statusToApi(filters.status),
+      page: page.value,
+      pageSize
+    });
+    courses.value = result.records.map(mapCourse);
+    total.value = result.total;
+  } catch (error) {
+    courses.value = [];
+    total.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '实训课列表加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function mapCourse(item: AdminTraining): CourseRow {
+  const type = apiTrainingTypeToText(item.trainingType);
+  return {
+    id: item.trainingId,
+    name: item.trainingName || '-',
+    type,
+    mode: apiTrainingModeToText(item.trainingMode),
+    time: `${formatDateTime(item.openStartTime)}\n至 ${formatDateTime(item.openEndTime)}`,
+    target: item.classNames || '-',
+    teacher: item.creatorName || '-',
+    room: `${item.roomCount || 0} 间`,
+    status: apiStatusToText(item.publishStatus),
+    createdAt: formatDateTime(item.createdAt),
+    topicCount: Math.max(1, item.roles?.length || 1),
+    exam: type === '考试'
+  };
+}
+
+function buildTrainingCommand(publishStatus: string) {
+  return {
+    trainingName: form.name.trim(),
+    semesterId: semesterIdFromLabel(form.semester),
+    trainingType: trainingTypeToApi(form.type),
+    trainingMode: trainingModeToApi(form.mode),
+    paperMode: selectedPaperId.value ? 'THEORY_PAPER' : 'NONE',
+    paperId: selectedPaperId.value || undefined,
+    openStartTime: form.range[0],
+    openEndTime: form.range[1],
+    teamSize: form.roles.reduce((sum, role) => sum + Number(role.capacity || 0), 0) || 1,
+    appRequired: true,
+    classIds: [...selectedClassIds.value],
+    roles: form.roles.map((role, index) => ({
+      roleName: role.name,
+      roleCode: role.name,
+      capacity: Number(role.capacity || 1),
+      aiFillEnabled: true,
+      sortOrder: index + 1
+    })),
+    publishStatus
+  };
+}
+
+function mapCamera(item: AdminTrainingCameraState) {
+  return {
+    name: item.cameraName || `摄像头${item.cameraId || ''}`,
+    location: item.classroomName || '-',
+    online: item.cameraStatus !== 'OFFLINE',
+    streamUrl: item.streamUrl
+  };
+}
+
+function mapStudent(item: AdminTrainingStudentState) {
+  return {
+    name: item.studentName || '-',
+    studentNo: item.studentNo || '-',
+    topic: item.roleName || '-',
+    mode: apiTrainingModeToText(item.roomStatus),
+    room: item.roomId ? `房间 ${item.roomId}` : '-',
+    ip: item.deskStatus || '-',
+    online: item.progressStatus !== 'OFFLINE'
+  };
+}
+
+function mapLog(item: AdminTrainingLog) {
+  return {
+    time: formatDateTime(item.createdAt),
+    operator: item.operatorName || '-',
+    action: item.action || '-',
+    content: item.content || '-'
+  };
+}
+
+function apiStatusToText(status?: string): CourseStatus {
+  return status === 'PUBLISHED' || status === 'published' ? '已发布' : '未发布';
+}
+
+function statusToApi(status?: string) {
+  if (status === '已发布') return 'PUBLISHED';
+  if (status === '未发布') return 'DRAFT';
+  return undefined;
+}
+
+function trainingTypeToApi(type?: string) {
+  if (type === '考试') return 'EXAM';
+  if (type === '练习') return 'PRACTICE';
+  return undefined;
+}
+
+function apiTrainingTypeToText(type?: string): '考试' | '练习' {
+  return type === 'PRACTICE' ? '练习' : '考试';
+}
+
+function trainingModeToApi(mode?: string) {
+  if (mode === '单人实训') return 'SINGLE';
+  if (mode === '协同实训') return 'COLLABORATIVE';
+  return undefined;
+}
+
+function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {
+  return mode === 'SINGLE' ? '单人实训' : '协同实训';
+}
+
+function semesterIdFromLabel(label: string) {
+  const index = semesters.indexOf(label);
+  return index >= 0 ? index + 1 : undefined;
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return '-';
+  return value.replace('T', ' ').slice(0, 16);
+}
+
+function formatNumber(value?: number) {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) return '-';
+  return Number(value).toFixed(1).replace(/\.0$/, '');
+}
+
+function passRate(stats: AdminTrainingStatistics) {
+  const totalCount = Number(stats.participantCount || 0);
+  const finishedCount = Number(stats.submittedAttemptCount || 0);
+  if (!totalCount) return '0%';
+  return `${Math.round((finishedCount / totalCount) * 100)}%`;
+}
+
+onMounted(() => {
+  void loadCourses();
+});
 </script>
 
 <style scoped>

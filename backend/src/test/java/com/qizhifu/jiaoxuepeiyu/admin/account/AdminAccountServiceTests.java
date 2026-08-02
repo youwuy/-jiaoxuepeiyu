@@ -36,6 +36,20 @@ class AdminAccountServiceTests {
     }
 
     @Test
+    void createUsesSubmittedInitialPasswordWhenPresent() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+        AdminAccountCommand command = student();
+        command.setInitialPassword("admin123");
+
+        Long userId = service.createStudent(command);
+
+        assertEquals(10L, userId.longValue());
+        assertEquals("hashed:admin123", repository.createdPasswordHash);
+        assertEquals("student", repository.createdCommand.getUserType());
+    }
+
+    @Test
     void rejectsInvalidPhone() {
         AdminAccountService service = new AdminAccountService(new FakeAccounts(), new PrefixHasher(), "InitPass123");
         AdminAccountCommand command = teacher();

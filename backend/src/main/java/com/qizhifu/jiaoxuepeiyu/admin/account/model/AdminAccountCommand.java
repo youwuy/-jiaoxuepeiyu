@@ -16,6 +16,7 @@ public class AdminAccountCommand {
     private Long classId;
     private Long faceFileId;
     private Long fingerprintFileId;
+    private String initialPassword;
     private List<Long> roleIds = new ArrayList<Long>();
     private List<Long> managedOrgIds = new ArrayList<Long>();
     private List<Long> teachingClassIds = new ArrayList<Long>();
@@ -106,6 +107,14 @@ public class AdminAccountCommand {
 
     public void setFingerprintFileId(Long fingerprintFileId) {
         this.fingerprintFileId = fingerprintFileId;
+    }
+
+    public String getInitialPassword() {
+        return initialPassword;
+    }
+
+    public void setInitialPassword(String initialPassword) {
+        this.initialPassword = initialPassword;
     }
 
     public List<Long> getRoleIds() {

@@ -16,7 +16,7 @@
         <el-button class="admin-training-archive-reset" @click="resetFilters">重置</el-button>
       </section>
 
-      <section class="admin-training-archive-board">
+      <section v-loading="loading" class="admin-training-archive-board">
         <table class="admin-training-archive-table">
           <thead>
             <tr>
@@ -56,7 +56,7 @@
 
         <footer class="admin-training-archive-footer">
           <span></span>
-          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="filteredArchives.length" layout="prev, pager, next" background />
+          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total" layout="prev, pager, next" background @current-change="loadArchives" />
         </footer>
       </section>
     </section>
@@ -157,9 +157,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import { Back, Close, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  fetchAdminTrainingArchiveDetail,
+  fetchAdminTrainingArchives,
+  type AdminTrainingArchive,
+  type AdminTrainingArchiveStep
+} from '../../api/admin-archive';
 
 interface TrainingArchiveRow {
   id: number;
@@ -175,6 +182,7 @@ interface TrainingArchiveRow {
   durationSeconds: number;
   personalScore: string;
   teamScore: string;
+  recordingUrl?: string;
 }
 
 interface ArchiveStep {
@@ -187,6 +195,8 @@ interface ArchiveStep {
 
 const page = ref(1);
 const pageSize = 10;
+const total = ref(0);
+const loading = ref(false);
 const viewMode = ref<'list' | 'detail'>('list');
 const activeArchive = ref<TrainingArchiveRow | null>(null);
 const videoVisible = ref(false);
@@ -194,33 +204,16 @@ const previewTitle = ref('实训操作视频');
 const draft = reactive({ className: '', studentNo: '', studentName: '' });
 const applied = ref({ ...draft });
 
-const archives = ref<TrainingArchiveRow[]>([
-  { id: 1, className: '城轨运营2401班', studentNo: 'S20240301', studentName: '王成祥', trainingName: 'CBTC信号系统操作实训', detailTitle: 'CBTC信号系统操作实训（乘客角色）', trainingMode: '多人实训', roleName: '乘客', submittedAt: '2025-01-15 09:00', submitType: '正常提交', durationSeconds: 12, personalScore: '8', teamScore: '21' },
-  { id: 2, className: '城轨运营2401班', studentNo: 'S20240456', studentName: '陈松', trainingName: '轨道交通信号设备维护', detailTitle: '轨道交通信号设备维护（站台员角色）', trainingMode: '多人实训', roleName: '站台员', submittedAt: '2025-01-10 14:13', submitType: '异常退出', durationSeconds: 90, personalScore: '9', teamScore: '32' },
-  { id: 3, className: '城轨运营2402班', studentNo: 'S20240322', studentName: '赵立申', trainingName: '列车自动控制系统调试', detailTitle: '列车自动控制系统调试（司机角色）', trainingMode: '多人实训', roleName: '司机', submittedAt: '2025-01-08 08:30', submitType: '正常提交', durationSeconds: 18, personalScore: '6', teamScore: '19' },
-  { id: 4, className: '城轨信号2401班', studentNo: 'S20240501', studentName: '周莹莹', trainingName: '车站联锁设备故障排查', detailTitle: '车站联锁设备故障排查（运营人员角色）', trainingMode: '多人实训', roleName: '运营人员', submittedAt: '2025-01-05 13:00', submitType: '房间解散', durationSeconds: 15, personalScore: '3', teamScore: '28' },
-  { id: 5, className: '城轨车辆2401班', studentNo: 'S20240610', studentName: '吴石磊', trainingName: '轨道电路检测与维修', detailTitle: '轨道电路检测与维修', trainingMode: '单人实训', roleName: '-', submittedAt: '2025-01-03 10:09', submitType: '正常提交', durationSeconds: 60, personalScore: '4', teamScore: '-' }
-]);
-
-const archiveSteps: ArchiveStep[] = [
-  { name: '穿戴安全防护用品', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 45 },
-  { name: '检查工具准备情况', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 32 },
-  { name: '确认信号机断电状态', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 18 },
-  { name: '拆卸信号机外壳', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 56 },
-  { name: '检查内部接线端子', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 78 },
-  { name: '清洁透镜组表面', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 22 },
-  { name: '检测灯泡工作状态', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 41 },
-  { name: '测量电路电压参数', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 63 },
-  { name: '调整灯丝转换继电器', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 15 }
-];
+const archives = ref<TrainingArchiveRow[]>([]);
+const archiveSteps = ref<ArchiveStep[]>([]);
 
 const classOptions = computed(() => Array.from(new Set(archives.value.map((item) => item.className))));
-const filteredArchives = computed(() => archives.value.filter((item) => (!applied.value.className || item.className === applied.value.className) && (!applied.value.studentNo || item.studentNo.includes(applied.value.studentNo)) && (!applied.value.studentName || item.studentName.includes(applied.value.studentName))));
-const pagedArchives = computed(() => filteredArchives.value.slice((page.value - 1) * pageSize, page.value * pageSize));
+const pagedArchives = computed(() => archives.value);
 
 function applyFilters() {
   applied.value = { ...draft };
   page.value = 1;
+  void loadArchives();
 }
 
 function resetFilters() {
@@ -228,8 +221,16 @@ function resetFilters() {
   applyFilters();
 }
 
-function openDetail(row: TrainingArchiveRow) {
-  activeArchive.value = row;
+async function openDetail(row: TrainingArchiveRow) {
+  try {
+    const detail = await fetchAdminTrainingArchiveDetail(row.id);
+    activeArchive.value = mapArchive(detail);
+    archiveSteps.value = (detail.steps || []).map(mapStep);
+  } catch (error) {
+    activeArchive.value = row;
+    archiveSteps.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '实训档案详情加载失败');
+  }
   viewMode.value = 'detail';
 }
 
@@ -238,6 +239,10 @@ function backToList() {
 }
 
 function openVideoPreview() {
+  if (activeArchive.value?.recordingUrl) {
+    window.open(activeArchive.value.recordingUrl, '_blank', 'noopener');
+    return;
+  }
   previewTitle.value = '实训操作视频';
   videoVisible.value = true;
 }
@@ -246,4 +251,73 @@ function openStepVideo(step: ArchiveStep) {
   previewTitle.value = `${step.name} - 操作视频`;
   videoVisible.value = true;
 }
+
+async function loadArchives() {
+  loading.value = true;
+  try {
+    const keyword = [applied.value.className, applied.value.studentNo, applied.value.studentName]
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .join(' ');
+    const result = await fetchAdminTrainingArchives({
+      keyword: keyword || undefined,
+      page: page.value,
+      pageSize
+    });
+    archives.value = result.records.map(mapArchive);
+    total.value = result.total;
+  } catch (error) {
+    archives.value = [];
+    total.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '实训档案加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function mapArchive(item: AdminTrainingArchive): TrainingArchiveRow {
+  const title = item.trainingName || '-';
+  return {
+    id: item.archiveId,
+    className: item.className || '-',
+    studentNo: item.studentNo || '-',
+    studentName: item.studentName || '-',
+    trainingName: title,
+    detailTitle: item.roleName ? `${title}（${item.roleName}）` : title,
+    trainingMode: item.trainingMode || '-',
+    roleName: item.roleName || '-',
+    submittedAt: formatDateTime(item.submittedAt),
+    submitType: item.submitType || '-',
+    durationSeconds: Number(item.durationSeconds || 0),
+    personalScore: formatScore(item.personalScore),
+    teamScore: item.teamScore === undefined || item.teamScore === null ? '-' : formatScore(item.teamScore),
+    recordingUrl: (item as { recordingUrl?: string }).recordingUrl
+  };
+}
+
+function mapStep(step: AdminTrainingArchiveStep): ArchiveStep {
+  return {
+    name: step.stepName || '-',
+    expected: step.standardOperation || '-',
+    actual: step.actualOperation || '-',
+    score: Number(step.score || 0),
+    seconds: Number(step.durationSeconds || 0)
+  };
+}
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return '-';
+  }
+  return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
+}
+
+function formatScore(value?: number | string) {
+  const score = Number(value || 0);
+  return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
+
+onMounted(() => {
+  void loadArchives();
+});
 </script>

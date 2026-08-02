@@ -9,6 +9,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,6 +89,16 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
     @Override
     public AdminCourseStatistics calculateStatistics(Long courseId) {
         return mapper.calculateStatistics(courseId);
+    }
+
+    @Override
+    public List<AdminCourseStudentStatistics> findStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+        return mapper.findStudentStatistics(courseId, likeStudentStatisticsQuery(query));
+    }
+
+    @Override
+    public long countStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+        return mapper.countStudentStatistics(courseId, likeStudentStatisticsQuery(query));
     }
 
     @Override
@@ -286,6 +298,18 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         query.setPublishStatus(source.getPublishStatus());
         query.setPage(source.getPage());
         query.setPageSize(source.getPageSize());
+        return query;
+    }
+
+    private AdminCourseStudentStatisticsQuery likeStudentStatisticsQuery(AdminCourseStudentStatisticsQuery source) {
+        AdminCourseStudentStatisticsQuery query = new AdminCourseStudentStatisticsQuery();
+        if (source != null) {
+            query.setStudentName(like(source.getStudentName()));
+            query.setStudentNo(like(source.getStudentNo()));
+            query.setClassName(like(source.getClassName()));
+            query.setPage(source.getPage());
+            query.setPageSize(source.getPageSize());
+        }
         return query;
     }
 

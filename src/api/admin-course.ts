@@ -1,4 +1,4 @@
-import { requestJson } from './http';
+import { requestBlob, requestJson } from './http';
 import type {
   AdminCourseChapter,
   AdminCourseContent,
@@ -38,6 +38,26 @@ export interface AdminCourseStatistics {
   notStartedCount: number;
   pendingReviewCount: number;
   averageScore: number;
+}
+
+export interface AdminCourseStudentStatisticsQuery {
+  studentName?: string;
+  studentNo?: string;
+  className?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface AdminCourseStudentStatistics {
+  studentId: number;
+  studentName: string;
+  studentNo: string;
+  classId?: number;
+  className?: string;
+  progressPercent?: number;
+  progressScore?: number;
+  assignmentCount?: number;
+  assignmentScore?: number;
 }
 
 export interface AdminCourseLog {
@@ -175,7 +195,7 @@ export interface AdminAssignmentReviewCommand {
   }>;
 }
 
-function buildQuery(params: AdminCourseQuery): string {
+function buildQuery(params: object): string {
   const search = new URLSearchParams();
   Object.entries(params as Record<string, string | number | boolean | undefined>).forEach(([key, value]) => {
     if (value !== undefined && value !== '') {
@@ -268,10 +288,45 @@ export async function fetchAdminCourseStatistics(courseId: number) {
   });
 }
 
+export async function fetchAdminCourseStudentStatistics(courseId: number, query: AdminCourseStudentStatisticsQuery = {}) {
+  const result = await requestJson<AdminCoursePage>(`/admin/courses/${courseId}/student-statistics${buildQuery(query)}`, {
+    fallbackLabel: '课程学员成绩'
+  });
+
+  return {
+    records: normalizeListResponse<AdminCourseStudentStatistics>(result),
+    total: result.total ?? normalizeListResponse<AdminCourseStudentStatistics>(result).length,
+    page: result.page ?? query.page ?? 1,
+    pageSize: result.pageSize ?? query.pageSize ?? 20
+  };
+}
+
+export async function exportAdminCourseStudentStatistics(courseId: number, query: AdminCourseStudentStatisticsQuery = {}) {
+  const result = await requestBlob(`/admin/courses/${courseId}/student-statistics/export/file${buildQuery(query)}`, {
+    fallbackLabel: '导出课程学员成绩'
+  });
+  downloadBlob(result.blob, result.filename || 'course-student-statistics.csv');
+}
+
 export async function fetchAdminCourseLogs(courseId: number) {
   return requestJson<AdminCourseLog[]>(`/admin/courses/${courseId}/logs`, {
     fallbackLabel: '课程日志'
   });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  if (!globalThis.document || !globalThis.URL) {
+    return;
+  }
+
+  const url = globalThis.URL.createObjectURL(blob);
+  const link = globalThis.document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  globalThis.document.body.appendChild(link);
+  link.click();
+  globalThis.document.body.removeChild(link);
+  globalThis.URL.revokeObjectURL(url);
 }
 
 export async function fetchAdminAcademicYears() {

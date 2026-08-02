@@ -28,6 +28,10 @@
             <span>身份证号</span>
             <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
           </label>
+          <label v-if="formMode === 'create'">
+            <span>初始密码 <b>*</b></span>
+            <el-input v-model="form.initialPassword" maxlength="20" placeholder="请输入初始密码" show-password />
+          </label>
           <label>
             <span>岗位</span>
             <el-input v-model="form.jobTitle" maxlength="10" placeholder="请输入岗位" />
@@ -120,6 +124,10 @@
             <label>
               <span>身份证号</span>
               <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
+            </label>
+            <label v-if="formMode === 'create'">
+              <span>初始密码 <b>*</b></span>
+              <el-input v-model="form.initialPassword" maxlength="20" placeholder="请输入初始密码" show-password />
             </label>
             <label>
               <span>所在班级 <b>*</b></span>
@@ -403,6 +411,10 @@
             <el-option v-for="item in classOptions" :key="item.classId" :label="`${item.majorName || ''} ${item.className}`" :value="item.classId" />
           </el-select>
         </label>
+        <label v-if="formMode === 'create'">
+          <span>初始密码 <b>*</b></span>
+          <el-input v-model="form.initialPassword" placeholder="请输入初始密码" show-password />
+        </label>
         <label v-if="activeKind === 'teacher'">
           <span>授课班级</span>
           <el-select v-model="form.teachingClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择班级">
@@ -588,7 +600,8 @@ const batchOrgVisible = ref(false);
 const batchOrgId = ref<number | null>(null);
 const resetVisible = ref(false);
 const resetIds = ref<number[]>([]);
-const resetPassword = ref('Abc@12345');
+const defaultAccountPassword = 'admin123';
+const resetPassword = ref(defaultAccountPassword);
 const importVisible = ref(false);
 const importText = ref('');
 const importFileName = ref('');
@@ -606,6 +619,7 @@ const emptyForm = (): AdminAccountCommand => ({
   classId: null,
   faceFileId: null,
   fingerprintFileId: null,
+  initialPassword: defaultAccountPassword,
   roleIds: [],
   managedOrgIds: [],
   teachingClassIds: []
@@ -793,6 +807,9 @@ function validateForm() {
   if (activeKind.value === 'student' && !form.classId) {
     throw new Error('请选择班级');
   }
+  if (formMode.value === 'create') {
+    validateAccountPassword(form.initialPassword || '');
+  }
 }
 
 function cancelTeacherForm() {
@@ -927,7 +944,7 @@ async function openBatchReset() {
     return;
   }
   resetIds.value = [...selectedIds.value];
-  resetPassword.value = 'Abc@12345';
+  resetPassword.value = defaultAccountPassword;
   resetVisible.value = true;
 }
 
@@ -957,13 +974,15 @@ function classNames(ids?: number[]) {
 
 function openReset(row: AdminAccount) {
   resetIds.value = [row.userId];
-  resetPassword.value = 'Abc@12345';
+  resetPassword.value = defaultAccountPassword;
   resetVisible.value = true;
 }
 
 async function saveResetPassword() {
-  if (!resetPassword.value.trim()) {
-    ElMessage.warning('请输入重置后的密码');
+  try {
+    validateAccountPassword(resetPassword.value);
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '请输入有效密码');
     return;
   }
   saving.value = true;
@@ -975,6 +994,19 @@ async function saveResetPassword() {
     ElMessage.error(error instanceof Error ? error.message : '重置密码失败');
   } finally {
     saving.value = false;
+  }
+}
+
+function validateAccountPassword(password: string) {
+  const normalized = password.trim();
+  if (!normalized) {
+    throw new Error('请输入初始密码');
+  }
+  if (normalized.length < 8 || normalized.length > 20) {
+    throw new Error('密码长度需为8-20位');
+  }
+  if (!/[A-Za-z]/.test(normalized) || !/\d/.test(normalized)) {
+    throw new Error('密码需同时包含字母和数字');
   }
 }
 

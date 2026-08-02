@@ -6,6 +6,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContent;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import java.util.List;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
@@ -310,6 +312,47 @@ public interface AdminCourseMapper {
             + "LEFT JOIN course_learning_progress p ON p.course_id = c.id AND p.student_id = u.id "
             + "WHERE c.id = #{courseId}")
     AdminCourseStatistics calculateStatistics(@Param("courseId") Long courseId);
+
+    @Select("<script>"
+            + "SELECT u.id AS student_id, u.real_name AS student_name, u.username AS student_no, "
+            + "u.class_id, ec.class_name, "
+            + "ROUND(CASE WHEN (c.courseware_count + c.assignment_count) > 0 "
+            + "THEN COALESCE(p.completed_items, 0) * 100 / (c.courseware_count + c.assignment_count) ELSE 0 END, 1) AS progress_percent, "
+            + "ROUND(CASE WHEN (c.courseware_count + c.assignment_count) > 0 "
+            + "THEN COALESCE(p.completed_items, 0) * c.courseware_score_cap / (c.courseware_count + c.assignment_count) ELSE 0 END, 1) AS progress_score, "
+            + "COALESCE(a.assignment_count, 0) AS assignment_count, COALESCE(a.assignment_score, 0) AS assignment_score "
+            + "FROM course c "
+            + "JOIN course_class cc ON cc.course_id = c.id "
+            + "JOIN sys_user u ON u.class_id = cc.class_id AND u.user_type = 'student' AND u.status = 1 "
+            + "LEFT JOIN edu_class ec ON ec.id = u.class_id "
+            + "LEFT JOIN course_learning_progress p ON p.course_id = c.id AND p.student_id = u.id "
+            + "LEFT JOIN ("
+            + "SELECT aa.student_id, COUNT(*) AS assignment_count, SUM(COALESCE(aa.score, 0)) AS assignment_score "
+            + "FROM assignment_attempt aa JOIN course_assignment ca ON ca.id = aa.assignment_id "
+            + "WHERE ca.course_id = #{courseId} GROUP BY aa.student_id"
+            + ") a ON a.student_id = u.id "
+            + "WHERE c.id = #{courseId} "
+            + "<if test='query.studentName != null'>AND u.real_name LIKE #{query.studentName}</if> "
+            + "<if test='query.studentNo != null'>AND u.username LIKE #{query.studentNo}</if> "
+            + "<if test='query.className != null'>AND ec.class_name LIKE #{query.className}</if> "
+            + "ORDER BY ec.class_name ASC, u.username ASC LIMIT #{query.pageSize} OFFSET #{query.offset} "
+            + "</script>")
+    List<AdminCourseStudentStatistics> findStudentStatistics(@Param("courseId") Long courseId,
+                                                             @Param("query") AdminCourseStudentStatisticsQuery query);
+
+    @Select("<script>"
+            + "SELECT COUNT(DISTINCT u.id) "
+            + "FROM course c "
+            + "JOIN course_class cc ON cc.course_id = c.id "
+            + "JOIN sys_user u ON u.class_id = cc.class_id AND u.user_type = 'student' AND u.status = 1 "
+            + "LEFT JOIN edu_class ec ON ec.id = u.class_id "
+            + "WHERE c.id = #{courseId} "
+            + "<if test='query.studentName != null'>AND u.real_name LIKE #{query.studentName}</if> "
+            + "<if test='query.studentNo != null'>AND u.username LIKE #{query.studentNo}</if> "
+            + "<if test='query.className != null'>AND ec.class_name LIKE #{query.className}</if> "
+            + "</script>")
+    long countStudentStatistics(@Param("courseId") Long courseId,
+                                @Param("query") AdminCourseStudentStatisticsQuery query);
 
     @Insert("INSERT INTO course_log (course_id, operator_id, action, content, created_at) "
             + "VALUES (#{courseId}, #{operatorId}, #{action}, #{content}, NOW())")

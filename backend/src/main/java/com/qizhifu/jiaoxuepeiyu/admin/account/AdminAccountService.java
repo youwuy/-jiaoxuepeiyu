@@ -61,7 +61,7 @@ public class AdminAccountService {
     public Long createTeacher(AdminAccountCommand command) {
         AdminAccountCommand normalized = normalized(command, "teacher", true);
         ensureAccountNoAvailable(normalized.getAccountNo());
-        String passwordHash = passwordHasher.hash(requireInitialPassword());
+        String passwordHash = passwordHasher.hash(resolveInitialPassword(normalized));
         Long userId = createAccount(normalized, passwordHash);
         repository.replaceRoles(userId, normalized.getRoleIds());
         repository.replaceManagedOrgs(userId, normalized.getManagedOrgIds());
@@ -73,7 +73,7 @@ public class AdminAccountService {
     public Long createStudent(AdminAccountCommand command) {
         AdminAccountCommand normalized = normalized(command, "student", true);
         ensureAccountNoAvailable(normalized.getAccountNo());
-        String passwordHash = passwordHasher.hash(requireInitialPassword());
+        String passwordHash = passwordHasher.hash(resolveInitialPassword(normalized));
         return createAccount(normalized, passwordHash);
     }
 
@@ -230,6 +230,7 @@ public class AdminAccountService {
         normalized.setClassId("student".equals(userType) ? command.getClassId() : null);
         normalized.setFaceFileId(command.getFaceFileId());
         normalized.setFingerprintFileId(command.getFingerprintFileId());
+        normalized.setInitialPassword(trimToNull(command.getInitialPassword()));
         normalized.setRoleIds(unique(command.getRoleIds()));
         normalized.setManagedOrgIds(unique(command.getManagedOrgIds()));
         normalized.setTeachingClassIds(unique(command.getTeachingClassIds()));
@@ -377,6 +378,13 @@ public class AdminAccountService {
             throw new BusinessException(500, "Initial password is not configured");
         }
         return initialPassword;
+    }
+
+    private String resolveInitialPassword(AdminAccountCommand command) {
+        if (InputValidator.hasText(command.getInitialPassword())) {
+            return normalizedResetPassword(command.getInitialPassword());
+        }
+        return requireInitialPassword();
     }
 
     private String normalizedResetPassword(String password) {

@@ -6,7 +6,7 @@
           <el-breadcrumb-item>成绩统计</el-breadcrumb-item>
           <el-breadcrumb-item>实训设备效能分析</el-breadcrumb-item>
         </el-breadcrumb>
-        <button type="button" class="admin-device-efficiency-live" @click="refreshData">
+        <button type="button" class="admin-device-efficiency-live" :disabled="loading" @click="refreshData">
           <i></i>
           数据实时更新
         </button>
@@ -61,7 +61,7 @@
           <div class="admin-device-efficiency-line-chart">
             <div class="line-axis"></div>
             <svg viewBox="0 0 560 220" role="img" aria-label="设备月度使用走势">
-              <polyline points="26,166 116,142 206,112 296,84 386,54 476,34" />
+              <polyline :points="trendPolyline" />
               <g v-for="point in monthPoints" :key="point.month" :transform="`translate(${point.x} ${point.y})`">
                 <circle r="5" />
                 <text x="-18" y="-10">{{ point.value }}h</text>
@@ -141,7 +141,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, ref } from 'vue';
+import { computed, defineComponent, h, onMounted, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import {
   Clock,
   Close,
@@ -156,6 +157,10 @@ import {
   User
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  fetchAdminDeviceEfficiencyReport,
+  type AdminDeviceEfficiencyReport
+} from '../../api/admin-device';
 
 interface LiveDevice {
   name: string;
@@ -192,58 +197,93 @@ const activeRankPeriod = ref('近一周');
 const activeRatePeriod = ref('近一周');
 const detailTitle = ref('');
 const detailRows = ref<{ label: string; value: string }[]>([]);
+const loading = ref(false);
+const report = ref<AdminDeviceEfficiencyReport>({
+  summary: {},
+  realtimeStates: [],
+  monthlyTrends: [],
+  heatRanking: []
+});
 const periods = ['近一周', '近半年', '近一年', '自定义时段'];
 
-const metrics = [
-  { label: '今日实训数', value: '8', delta: '较昨日 +2', tone: 'blue', icon: DataLine },
-  { label: '今日实训总时长', value: '32.5h', delta: '较昨日 +5.2h', tone: 'green', icon: Clock },
-  { label: '今日使用设备总数', value: '45', delta: '', tone: 'orange', icon: Monitor },
-  { label: '今日实训学生人数', value: '186', delta: '较昨日 +24', tone: 'purple', icon: User },
-  { label: '今日空闲设备', value: '2', delta: '', tone: 'gray', icon: SetUp }
-];
+const metrics = computed(() => {
+  const summary = report.value.summary || {};
+  const total = Number(summary.totalDeviceCount || 0);
+  const active = Number(summary.activeDeviceCount || 0);
+  const online = Number(summary.onlineDeviceCount || 0);
+  const idle = Math.max(0, total - active);
+  return [
+    { label: '当前实训数', value: String(summary.activeTrainingCount || 0), delta: '', tone: 'blue', icon: DataLine },
+    { label: '累计实训总时长', value: formatHours(summary.totalUsageMinutes || 0), delta: '', tone: 'green', icon: Clock },
+    { label: '设备总数', value: String(total), delta: '', tone: 'orange', icon: Monitor },
+    { label: '在线设备数', value: String(online), delta: '', tone: 'purple', icon: User },
+    { label: '当前空闲设备', value: String(idle), delta: '', tone: 'gray', icon: SetUp }
+  ];
+});
 
-const liveDevices: LiveDevice[] = [
-  { name: 'DESKTOP-168QTC2', type: '电脑', status: '使用中', usedToday: '1.5h', ip: '192.168.10.21', user: '王成祥', heartbeat: '30秒前' },
-  { name: 'DESKTOP-micro', type: '电脑', status: '使用中', usedToday: '1.2h', ip: '192.168.10.26', user: '陈松', heartbeat: '22秒前' },
-  { name: '我的电脑179', type: '电脑', status: '空闲', ip: '192.168.10.79', heartbeat: '1分钟前' }
-];
+const liveDevices = computed<LiveDevice[]>(() => (report.value.realtimeStates || []).map((item) => ({
+  name: item.deviceName || item.deviceCode || `设备${item.deviceId || ''}`,
+  type: item.deviceType || '设备',
+  status: normalizeDeviceStatus(item.deviceStatus),
+  usedToday: item.currentUsageMinutes ? formatHours(item.currentUsageMinutes) : undefined,
+  ip: item.deviceCode || '-',
+  user: item.currentStudentName,
+  heartbeat: formatHeartbeat(item.lastHeartbeatAt)
+})));
 
-const buildStats: NamedCount[] = [
-  { name: '电脑', count: 60, icon: Monitor },
-  { name: '仿真驾驶台', count: 5, icon: OfficeBuilding }
-];
+const buildStats = computed<NamedCount[]>(() => {
+  const counts = new Map<string, number>();
+  (report.value.realtimeStates || []).forEach((item) => {
+    const type = item.deviceType || '设备';
+    counts.set(type, (counts.get(type) || 0) + 1);
+  });
+  return Array.from(counts.entries()).map(([name, count]) => ({ name, count, icon: name.includes('电脑') ? Monitor : OfficeBuilding }));
+});
 
-const monthPoints = [
-  { month: '9月', value: 320, x: 26, y: 166 },
-  { month: '10月', value: 380, x: 116, y: 142 },
-  { month: '11月', value: 450, x: 206, y: 112 },
-  { month: '12月', value: 520, x: 296, y: 84 },
-  { month: '1月', value: 610, x: 386, y: 54 },
-  { month: '2月', value: 680, x: 476, y: 34 }
-];
+const monthPoints = computed(() => {
+  const trends = (report.value.monthlyTrends || []).slice(-6);
+  const maxMinutes = Math.max(1, ...trends.map((item) => Number(item.usageMinutes || 0)));
+  return trends.map((item, index) => {
+    const x = 26 + index * 90;
+    const value = Math.round(Number(item.usageMinutes || 0) / 60);
+    const y = 190 - Math.round((Number(item.usageMinutes || 0) / maxMinutes) * 156);
+    return { month: item.month, value, x, y };
+  });
+});
 
-const rankings: RankingItem[] = [
-  { name: '驾驶模拟器A型', hours: 1280, percent: 94 },
-  { name: '信号控制台', hours: 1120, percent: 82 },
-  { name: '站务模拟终端', hours: 980, percent: 78 },
-  { name: '调度指挥终端', hours: 820, percent: 64 },
-  { name: '调度操作台', hours: 690, percent: 52 }
-];
+const rankings = computed<RankingItem[]>(() => {
+  const rows = report.value.heatRanking || [];
+  const maxMinutes = Math.max(1, ...rows.map((item) => Number(item.usageMinutes || 0)));
+  return rows.map((item) => ({
+    name: item.deviceName || item.deviceCode || `设备${item.deviceId || ''}`,
+    hours: Math.round(Number(item.usageMinutes || 0) / 60),
+    percent: Math.round((Number(item.usageMinutes || 0) / maxMinutes) * 100)
+  }));
+});
 
-const roomRates: RoomRate[] = [
-  { name: '实训室A-301', rate: 92, color: '#3b82f6' },
-  { name: '驾驶模拟室B-101', rate: 85, color: '#18a8df' },
-  { name: '实训室C-201', rate: 78, color: '#8b5cf6' },
-  { name: '调度实训室D-401', rate: 72, color: '#f59e0b' },
-  { name: '实训室E-501', rate: 45, color: '#ef4444' }
-];
+const roomRates = computed<RoomRate[]>(() => {
+  const colors = ['#3b82f6', '#18a8df', '#8b5cf6', '#f59e0b', '#ef4444'];
+  const rooms = new Map<string, number[]>();
+  (report.value.heatRanking || []).forEach((item) => {
+    const room = item.classroomName || '未分配实训室';
+    const values = rooms.get(room) || [];
+    values.push(Number(item.utilizationRate || 0));
+    rooms.set(room, values);
+  });
+  return Array.from(rooms.entries()).map(([name, rates], index) => ({
+    name,
+    rate: Math.round(rates.reduce((sum, item) => sum + item, 0) / Math.max(1, rates.length)),
+    color: colors[index % colors.length]
+  }));
+});
 
-const trendRows = computed(() => monthPoints.map((item, index) => ({
+const trendRows = computed(() => monthPoints.value.map((item, index) => ({
   month: item.month,
   hours: item.value,
-  growth: index === 0 ? '-' : `+${item.value - monthPoints[index - 1].value}h`,
-  device: rankings[index % rankings.length].name
+  growth: index === 0 ? '-' : `${item.value - monthPoints.value[index - 1].value}h`,
+  device: rankings.value[index % Math.max(1, rankings.value.length)]?.name || '-'
 })));
+const trendPolyline = computed(() => monthPoints.value.map((item) => `${item.x},${item.y}`).join(' '));
 
 const DialogHead = defineComponent({
   props: { title: { type: String, required: true } },
@@ -256,7 +296,8 @@ const DialogHead = defineComponent({
   }
 });
 
-function refreshData() {
+async function refreshData() {
+  await loadDashboard();
   detailTitle.value = '数据实时更新';
   detailRows.value = [
     { label: '更新时间', value: '刚刚' },
@@ -264,6 +305,35 @@ function refreshData() {
     { label: '统计口径', value: '仅统计在线人数、IP、在线状态' }
   ];
   detailVisible.value = true;
+}
+
+async function loadDashboard() {
+  loading.value = true;
+  try {
+    report.value = await fetchAdminDeviceEfficiencyReport();
+  } catch (error) {
+    report.value = { summary: {}, realtimeStates: [], monthlyTrends: [], heatRanking: [] };
+    ElMessage.error(error instanceof Error ? error.message : '设备效能分析加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function normalizeDeviceStatus(status?: string): '使用中' | '空闲' {
+  const value = String(status || '').toUpperCase();
+  return value === 'USING' || value === 'ACTIVE' || value === 'ONLINE' || value === '使用中' ? '使用中' : '空闲';
+}
+
+function formatHours(minutes: number) {
+  const hours = Number(minutes || 0) / 60;
+  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
+}
+
+function formatHeartbeat(value?: string) {
+  if (!value) {
+    return '-';
+  }
+  return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
 }
 
 function openDevice(device: LiveDevice) {
@@ -307,4 +377,8 @@ function openRoom(item: RoomRate) {
   ];
   detailVisible.value = true;
 }
+
+onMounted(() => {
+  void loadDashboard();
+});
 </script>

@@ -9,6 +9,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.time.LocalDateTime;
@@ -329,6 +331,16 @@ class AdminCourseServiceTests {
         @Override
         public AdminCourseStatistics calculateStatistics(Long courseId) {
             return statistics;
+        }
+
+        @Override
+        public List<AdminCourseStudentStatistics> findStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+            return new ArrayList<AdminCourseStudentStatistics>();
+        }
+
+        @Override
+        public long countStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
+            return 0;
         }
 
         @Override

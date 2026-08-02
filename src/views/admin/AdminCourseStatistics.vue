@@ -76,13 +76,13 @@
             <el-icon><Tickets /></el-icon>
             <strong>成绩列表</strong>
           </div>
-          <el-button class="admin-course-stats-export" @click="exportData">
+          <el-button class="admin-course-stats-export" :loading="exporting" @click="exportData">
             <el-icon><Download /></el-icon>
             导出数据
           </el-button>
         </header>
 
-        <div class="admin-course-stats-table-scroll">
+        <div v-loading="loading" class="admin-course-stats-table-scroll">
           <table class="admin-course-stats-table">
             <thead>
               <tr>
@@ -98,7 +98,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(student, index) in pagedStudents" :key="student.studentNo">
+              <tr v-for="(student, index) in students" :key="student.studentId || student.studentNo">
                 <td>{{ (page - 1) * pageSize + index + 1 }}</td>
                 <td class="admin-course-stats-name">{{ student.name }}</td>
                 <td>{{ student.studentNo }}</td>
@@ -118,14 +118,14 @@
         </div>
 
         <footer class="admin-course-stats-pagination">
-          <p>显示 {{ pageStart }} 到 {{ pageEnd }} 条，共 {{ filteredStudents.length }} 条记录</p>
+          <p>显示 {{ pageStart }} 到 {{ pageEnd }} 条，共 {{ total }} 条记录</p>
           <div class="admin-course-stats-pager">
             <el-button :icon="DArrowLeft" :disabled="page === 1" @click="page = 1" />
             <el-button :icon="ArrowLeft" :disabled="page === 1" @click="page = Math.max(1, page - 1)" />
             <el-pagination
               v-model:current-page="page"
               :page-size="pageSize"
-              :total="filteredStudents.length"
+              :total="total"
               layout="pager"
               background
             />
@@ -159,10 +159,17 @@ import {
   Tickets
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
-import { fetchAdminCourseStatistics, type AdminCourseStatistics } from '../../api/admin-course';
-import { mockAdminCourses } from '../../features/admin/courses';
+import {
+  exportAdminCourseStudentStatistics,
+  fetchAdminCourseDetail,
+  fetchAdminCourseStatistics,
+  fetchAdminCourseStudentStatistics,
+  type AdminCourseStatistics,
+  type AdminCourseStudentStatistics
+} from '../../api/admin-course';
 
 interface StudentScoreRow {
+  studentId: number;
   name: string;
   studentNo: string;
   className: string;
@@ -175,11 +182,13 @@ interface StudentScoreRow {
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
-const currentCourse = computed(() => mockAdminCourses.find((item) => item.courseId === courseId.value));
-const courseTitle = computed(() => (route.query.title as string) || currentCourse.value?.courseName || '城市轨道交通信号系统原理');
+const courseTitle = ref((route.query.title as string) || '教学课程');
 
 const page = ref(1);
 const pageSize = ref(10);
+const total = ref(0);
+const loading = ref(false);
+const exporting = ref(false);
 const filters = reactive({
   studentName: '',
   studentNo: '',
@@ -199,37 +208,18 @@ const courseStats = ref<AdminCourseStatistics>({
 const students = ref<StudentScoreRow[]>([]);
 
 const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredStudents.value.length / pageSize.value)));
-const filteredStudents = computed(() => {
-  const name = normalize(appliedFilters.value.studentName);
-  const no = normalize(appliedFilters.value.studentNo);
-  return students.value.filter((item) => {
-    const matchesName = !name || normalize(item.name).includes(name);
-    const matchesNo = !no || normalize(item.studentNo).includes(no);
-    const matchesClass = !appliedFilters.value.className || item.className === appliedFilters.value.className;
-    return matchesName && matchesNo && matchesClass;
-  });
-});
-const pagedStudents = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return filteredStudents.value.slice(start, start + pageSize.value);
-});
-const pageStart = computed(() => (filteredStudents.value.length === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
-const pageEnd = computed(() => Math.min(page.value * pageSize.value, filteredStudents.value.length));
+const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+const pageStart = computed(() => (total.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
+const pageEnd = computed(() => Math.min(page.value * pageSize.value, total.value));
 
 watch(pageSize, () => {
   page.value = 1;
+  void loadStudents();
 });
 
-watch(filteredStudents, () => {
-  if (page.value > pageCount.value) {
-    page.value = pageCount.value;
-  }
+watch(page, () => {
+  void loadStudents();
 });
-
-function normalize(value: string) {
-  return value.replace(/\s+/g, '').toLowerCase();
-}
 
 function formatScore(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -238,6 +228,7 @@ function formatScore(value: number) {
 function applyFilters() {
   appliedFilters.value = { ...filters };
   page.value = 1;
+  void loadStudents();
 }
 
 function resetFilters() {
@@ -246,18 +237,33 @@ function resetFilters() {
   filters.className = '';
   appliedFilters.value = { ...filters };
   page.value = 1;
+  void loadStudents();
 }
 
 function goBack() {
   router.push('/admin/courses');
 }
 
-function exportData() {
-  ElMessage.success('成绩数据导出任务已创建');
+async function exportData() {
+  exporting.value = true;
+  try {
+    await exportAdminCourseStudentStatistics(courseId.value, currentQuery(false));
+    ElMessage.success('成绩文件已导出');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '成绩导出失败');
+  } finally {
+    exporting.value = false;
+  }
 }
 
 function showDetail(student: StudentScoreRow) {
-  ElMessage.info(`${student.name} 的成绩详情待接入接口`);
+  router.push({
+    path: `/admin/courses/${courseId.value}/reviews`,
+    query: {
+      title: courseTitle.value,
+      studentNo: student.studentNo
+    }
+  });
 }
 
 async function loadCourseStatistics() {
@@ -268,7 +274,65 @@ async function loadCourseStatistics() {
   }
 }
 
+async function loadCourseDetail() {
+  if (!courseId.value) {
+    return;
+  }
+  try {
+    const detail = await fetchAdminCourseDetail(courseId.value);
+    courseTitle.value = detail.courseName || courseTitle.value;
+  } catch {
+    // The statistics page can still render when the detail endpoint is unavailable.
+  }
+}
+
+async function loadStudents() {
+  if (!courseId.value) {
+    return;
+  }
+  loading.value = true;
+  try {
+    const result = await fetchAdminCourseStudentStatistics(courseId.value, currentQuery(true));
+    students.value = result.records.map(mapStudent);
+    total.value = result.total;
+    if (page.value > pageCount.value) {
+      page.value = pageCount.value;
+    }
+  } catch (error) {
+    students.value = [];
+    total.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '课程学员成绩接口暂不可用');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function currentQuery(withPage: boolean) {
+  return {
+    studentName: appliedFilters.value.studentName.trim() || undefined,
+    studentNo: appliedFilters.value.studentNo.trim() || undefined,
+    className: appliedFilters.value.className.trim() || undefined,
+    page: withPage ? page.value : undefined,
+    pageSize: withPage ? pageSize.value : undefined
+  };
+}
+
+function mapStudent(row: AdminCourseStudentStatistics): StudentScoreRow {
+  return {
+    studentId: row.studentId,
+    name: row.studentName || '-',
+    studentNo: row.studentNo || '-',
+    className: row.className || '-',
+    progress: Number(row.progressPercent || 0),
+    progressScore: Number(row.progressScore || 0),
+    assignmentCount: Number(row.assignmentCount || 0),
+    assignmentScore: Number(row.assignmentScore || 0)
+  };
+}
+
 onMounted(() => {
+  void loadCourseDetail();
   void loadCourseStatistics();
+  void loadStudents();
 });
 </script>

@@ -173,11 +173,12 @@
               </div>
               <el-button text circle :icon="Delete" @click="clearCover" />
             </div>
-            <button v-else type="button" class="admin-resource-upload-drop cover" @click="mockSelectCover">
+            <button v-else type="button" class="admin-resource-upload-drop cover" :disabled="uploadingCover" @click="coverInput?.click()">
               <el-icon><Picture /></el-icon>
-              <strong>点击或拖拽上传封面图</strong>
+              <strong>{{ uploadingCover ? '封面上传中...' : '点击或拖拽上传封面图' }}</strong>
               <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
             </button>
+            <input ref="coverInput" class="admin-resource-hidden-file" type="file" accept="image/jpeg,image/png,image/jpg" hidden @change="uploadCoverFile" />
           </label>
 
           <label class="admin-resource-modal-field">
@@ -192,11 +193,12 @@
               </div>
               <el-button text circle :icon="Delete" @click="clearFile" />
             </div>
-            <button v-else type="button" class="admin-resource-upload-drop content" @click="mockSelectFile">
+            <button v-else type="button" class="admin-resource-upload-drop content" :disabled="uploadingFile" @click="fileInput?.click()">
               <el-icon><UploadFilled /></el-icon>
-              <strong>点击或拖拽上传资源文件</strong>
+              <strong>{{ uploadingFile ? '资源上传中...' : '点击或拖拽上传资源文件' }}</strong>
               <span>支持 PDF、Word、PPT、视频等多种格式，大小不超过 200MB</span>
             </button>
+            <input ref="fileInput" class="admin-resource-hidden-file" type="file" hidden @change="uploadResourceFile" />
           </label>
 
           <label class="admin-resource-modal-field">
@@ -289,11 +291,12 @@
         <div class="admin-resource-upload-form batch">
           <label class="admin-resource-modal-field">
             <span>封面图</span>
-            <button type="button" class="admin-resource-upload-drop cover" @click="mockBatchCover">
+            <button type="button" class="admin-resource-upload-drop cover" :disabled="uploadingBatchCover" @click="batchCoverInput?.click()">
               <el-icon><Picture /></el-icon>
-              <strong>点击或拖拽上传封面图</strong>
-              <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
+              <strong>{{ uploadingBatchCover ? '封面上传中...' : batchForm.coverName || '点击或拖拽上传封面图' }}</strong>
+              <span>{{ batchForm.coverSize || '支持 JPG、PNG 格式，大小不超过 5MB' }}</span>
             </button>
+            <input ref="batchCoverInput" class="admin-resource-hidden-file" type="file" accept="image/jpeg,image/png,image/jpg" hidden @change="uploadBatchCoverFile" />
           </label>
           <label class="admin-resource-modal-field">
             <span>所属专业</span>
@@ -332,6 +335,7 @@ import {
   fetchAdminResources,
   submitAdminResourcePublicApplication,
   updateAdminResource,
+  uploadAdminFile,
   type AdminResource,
   type AdminResourceCommand,
   type AdminResourceLog,
@@ -397,6 +401,12 @@ const editingId = ref<number | null>(null);
 const busyId = ref<number | null>(null);
 const batchEditVisible = ref(false);
 const selectedIds = ref<number[]>([]);
+const coverInput = ref<HTMLInputElement | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+const batchCoverInput = ref<HTMLInputElement | null>(null);
+const uploadingCover = ref(false);
+const uploadingFile = ref(false);
+const uploadingBatchCover = ref(false);
 
 const draft = reactive({
   keyword: '',
@@ -427,7 +437,10 @@ const appliedFilters = ref({ ...draft });
 const form = reactive<ResourceForm>(createEmptyForm());
 const batchForm = reactive({
   majorId: null as number | null,
-  courseName: ''
+  courseName: '',
+  coverUrl: '',
+  coverName: '',
+  coverSize: ''
 });
 
 const totalCount = computed(() => filteredResources.value.length);
@@ -642,6 +655,9 @@ function openBatchEdit() {
 
   batchForm.majorId = null;
   batchForm.courseName = '';
+  batchForm.coverUrl = '';
+  batchForm.coverName = '';
+  batchForm.coverSize = '';
   batchEditVisible.value = true;
 }
 
@@ -908,6 +924,7 @@ async function saveBatchEdit() {
   try {
     await batchUpdateAdminResources({
       resourceIds: selectedIds.value,
+      coverUrl: batchForm.coverUrl || undefined,
       majorId: batchForm.majorId ?? undefined,
       courseName: batchForm.courseName.trim() || undefined
     });
@@ -921,24 +938,77 @@ async function saveBatchEdit() {
   }
 }
 
-function mockSelectCover() {
-  form.coverUrl = coverForResourceType(form.resourceType);
-  form.coverName = 'resource-cover.jpg';
-  form.coverSize = '2.4 MB';
-  ElMessage.success('封面图已选择');
+async function uploadCoverFile(event: Event) {
+  const file = firstSelectedFile(event);
+  if (!file) {
+    return;
+  }
+  uploadingCover.value = true;
+  try {
+    const uploaded = await uploadAdminFile(file, 'covers');
+    form.coverUrl = uploaded.fileUrl;
+    form.coverName = uploaded.fileName || file.name;
+    form.coverSize = formatFileSize(uploaded.fileSize ?? file.size);
+    ElMessage.success('封面图已上传');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '封面上传失败');
+  } finally {
+    uploadingCover.value = false;
+    clearFileInput(event);
+  }
 }
 
-function mockSelectFile() {
-  form.fileName = form.resourceName ? `${form.resourceName}.pdf` : '资源文件.pdf';
-  form.fileUrl = form.fileUrl || 'https://example.com/resource/uploaded';
-  form.previewUrl = form.previewUrl || form.fileUrl;
-  form.fileSize = '18500';
-  form.fileSizeLabel = '18.5 MB';
-  ElMessage.success('资源文件已选择');
+async function uploadResourceFile(event: Event) {
+  const file = firstSelectedFile(event);
+  if (!file) {
+    return;
+  }
+  uploadingFile.value = true;
+  try {
+    const uploaded = await uploadAdminFile(file, 'resources');
+    form.fileUrl = uploaded.fileUrl;
+    form.previewUrl = uploaded.fileUrl;
+    form.fileName = uploaded.fileName || file.name;
+    form.fileSize = String(uploaded.fileSize ?? file.size);
+    form.fileSizeLabel = formatFileSize(uploaded.fileSize ?? file.size);
+    ElMessage.success('资源文件已上传');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '资源文件上传失败');
+  } finally {
+    uploadingFile.value = false;
+    clearFileInput(event);
+  }
 }
 
-function mockBatchCover() {
-  ElMessage.success('批量封面已选择');
+async function uploadBatchCoverFile(event: Event) {
+  const file = firstSelectedFile(event);
+  if (!file) {
+    return;
+  }
+  uploadingBatchCover.value = true;
+  try {
+    const uploaded = await uploadAdminFile(file, 'covers');
+    batchForm.coverUrl = uploaded.fileUrl;
+    batchForm.coverName = uploaded.fileName || file.name;
+    batchForm.coverSize = formatFileSize(uploaded.fileSize ?? file.size);
+    ElMessage.success('批量封面已上传');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '批量封面上传失败');
+  } finally {
+    uploadingBatchCover.value = false;
+    clearFileInput(event);
+  }
+}
+
+function firstSelectedFile(event: Event) {
+  return (event.target as HTMLInputElement | null)?.files?.[0] || null;
+}
+
+function clearFileInput(event: Event) {
+  const input = event.target as HTMLInputElement | null;
+  if (input) {
+    input.value = '';
+  }
 }
 
 function clearCover() {
