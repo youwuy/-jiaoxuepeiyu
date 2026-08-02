@@ -8,6 +8,9 @@ VALUES
   (3, 2, '新增组织', 'system:org:create', 'BUTTON', NULL, 1, 1),
   (4, 2, '编辑组织', 'system:org:update', 'BUTTON', NULL, 1, 2),
   (5, 2, '注销组织', 'system:org:disable', 'BUTTON', NULL, 1, 3),
+  (33, 1, '用户管理', 'system:user', 'PAGE', '/admin/users', 1, 2),
+  (34, 1, '功能管理', 'system:permission', 'PAGE', '/admin/permissions', 1, 3),
+  (35, 1, '配置管理', 'system:settings', 'PAGE', '/admin/settings', 1, 4),
   (6, NULL, '资源管理', 'resource', 'MENU', '/resource', 1, 2),
   (7, 6, '个人资源库', 'resource:personal', 'PAGE', '/admin/personal-resource', 1, 1),
   (8, 6, '资源公开申请', 'resource:public-apply', 'PAGE', '/admin/public-application', 1, 2),
@@ -40,6 +43,4 @@ ON DUPLICATE KEY UPDATE
   `permission_name` = VALUES(`permission_name`),
   `permission_type` = VALUES(`permission_type`),
   `route_path` = VALUES(`route_path`),
-  `visible` = VALUES(`visible`),
   `sort_order` = VALUES(`sort_order`);
-

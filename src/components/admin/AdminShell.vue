@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Coin,
@@ -55,12 +56,15 @@ import {
   SwitchButton,
   User
 } from '@element-plus/icons-vue';
+import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 
 defineProps<{
   activeKey: string;
 }>();
 
 const router = useRouter();
+const permissionTree = ref<AdminPermissionNode[]>([]);
+const permissionsLoaded = ref(false);
 
 function goTo(path: string) {
   if (path.startsWith('/')) {
@@ -68,7 +72,19 @@ function goTo(path: string) {
   }
 }
 
-const navGroups = [
+interface NavItem {
+  key: string;
+  label: string;
+  path: string;
+  icon: typeof Operation;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const staticNavGroups: NavGroup[] = [
   {
     title: '系统基础设置',
     items: [
@@ -105,4 +121,45 @@ const navGroups = [
     ]
   }
 ];
+
+const navGroups = computed(() => {
+  const visibleRoutes = collectVisibleRoutes(permissionTree.value);
+  if (!permissionsLoaded.value) {
+    return staticNavGroups;
+  }
+
+  return staticNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => visibleRoutes.has(item.path))
+    }))
+    .filter((group) => group.items.length > 0);
+});
+
+function collectVisibleRoutes(tree: AdminPermissionNode[]) {
+  const routes = new Set<string>();
+
+  const walk = (nodes: AdminPermissionNode[], ancestorsVisible: boolean) => {
+    nodes.forEach((node) => {
+      const visible = ancestorsVisible && node.visible !== false;
+      if (visible && node.routePath?.startsWith('/admin')) {
+        routes.add(node.routePath);
+      }
+      walk(node.children ?? [], visible);
+    });
+  };
+
+  walk(tree, true);
+  return routes;
+}
+
+onMounted(async () => {
+  try {
+    permissionTree.value = await fetchAdminPermissionTree();
+  } catch {
+    permissionTree.value = [];
+  } finally {
+    permissionsLoaded.value = true;
+  }
+});
 </script>
