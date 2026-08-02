@@ -23,7 +23,7 @@ export async function loginStudent(mode: StudentLoginMode, form: StudentLoginFor
     fallbackLabel: '学员登录'
   });
 
-  saveAuthSession(normalizeToken(result), result.user);
+  saveAuthSession('student', normalizeToken(result), result.user);
   return result;
 }
 
@@ -38,6 +38,6 @@ export async function loginAdmin(form: AdminLoginForm, loginType = 'username'): 
     fallbackLabel: '管理端登录'
   });
 
-  saveAuthSession(normalizeToken(result), result.user);
+  saveAuthSession('admin', normalizeToken(result), result.user);
   return result;
 }

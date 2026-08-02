@@ -59,27 +59,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, reactive, ref } from 'vue';
+import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Close, EditPen, InfoFilled, Lock } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  fetchAdminProfile,
+  updateAdminPassword,
+  updateAdminProfileIdCard,
+  updateAdminProfilePhone
+} from '../../api/admin-profile';
 
 type EditKey = 'phone' | 'idCard' | 'password' | 'name' | 'workNo' | 'organization';
 
 const phoneVisible = ref(false);
 const idCardVisible = ref(false);
 const passwordVisible = ref(false);
+const saving = ref(false);
 const user = reactive({
-  name: '张鸣',
-  workNo: 'J201938432',
-  organization: '交通与车辆工程院/运输管理教研室/车辆管理',
-  phone: '132****3209',
-  idCard: '410***********1234',
+  name: '-',
+  workNo: '-',
+  organization: '-',
+  phone: '-',
+  idCard: '-',
   password: '••••••••'
 });
 const forms = reactive({
-  phone: '13208948888',
-  idCard: '410322201005124734',
+  phone: '',
+  idCard: '',
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
@@ -116,28 +123,83 @@ const DialogFooter = defineComponent({
 });
 
 function openEdit(key: EditKey) {
-  if (key === 'phone') phoneVisible.value = true;
-  if (key === 'idCard') idCardVisible.value = true;
+  if (key === 'phone') {
+    forms.phone = '';
+    phoneVisible.value = true;
+  }
+  if (key === 'idCard') {
+    forms.idCard = '';
+    idCardVisible.value = true;
+  }
   if (key === 'password') passwordVisible.value = true;
 }
 
-function savePhone() {
-  user.phone = forms.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
-  phoneVisible.value = false;
-  ElMessage.success('手机号已修改');
+async function loadProfile() {
+  try {
+    const profile = await fetchAdminProfile();
+    user.name = profile.realName || '-';
+    user.workNo = profile.accountNo || '-';
+    user.organization = profile.orgName || profile.jobTitle || '-';
+    user.phone = profile.phone || '-';
+    user.idCard = profile.idCard || '-';
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '个人中心加载失败');
+  }
 }
 
-function saveIdCard() {
-  user.idCard = forms.idCard.replace(/^(.{3}).+(.{4})$/, '$1***********$2');
-  idCardVisible.value = false;
-  ElMessage.success('身份证号已修改');
+async function savePhone() {
+  if (!forms.phone.trim()) {
+    ElMessage.warning('请输入手机号');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    await updateAdminProfilePhone(forms.phone.trim());
+    await loadProfile();
+    phoneVisible.value = false;
+    ElMessage.success('手机号已修改');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '手机号修改失败');
+  } finally {
+    saving.value = false;
+  }
 }
 
-function savePassword() {
-  passwordVisible.value = false;
-  forms.oldPassword = '';
-  forms.newPassword = '';
-  forms.confirmPassword = '';
-  ElMessage.success('密码已修改');
+async function saveIdCard() {
+  if (!forms.idCard.trim()) {
+    ElMessage.warning('请输入身份证号');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    await updateAdminProfileIdCard(forms.idCard.trim());
+    await loadProfile();
+    idCardVisible.value = false;
+    ElMessage.success('身份证号已修改');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '身份证号修改失败');
+  } finally {
+    saving.value = false;
+  }
 }
+
+async function savePassword() {
+  saving.value = true;
+  try {
+    await updateAdminPassword(forms.oldPassword, forms.newPassword, forms.confirmPassword);
+    passwordVisible.value = false;
+    forms.oldPassword = '';
+    forms.newPassword = '';
+    forms.confirmPassword = '';
+    ElMessage.success('密码已修改');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '密码修改失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+onMounted(loadProfile);
 </script>

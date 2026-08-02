@@ -1,5 +1,6 @@
 export interface ApiRequestOptions extends RequestInit {
   fallbackLabel?: string;
+  authPortal?: AuthPortal;
 }
 
 export interface FileDownload {
@@ -21,8 +22,20 @@ interface ApiEnvelope<T> {
 }
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
-const authTokenKey = 'jiaoxuepeiyu_token';
-const authUserKey = 'jiaoxuepeiyu_user';
+type AuthPortal = 'admin' | 'student';
+
+const legacyAuthTokenKey = 'jiaoxuepeiyu_token';
+const legacyAuthUserKey = 'jiaoxuepeiyu_user';
+const authStorageKeys: Record<AuthPortal, { token: string; user: string }> = {
+  admin: {
+    token: 'jiaoxuepeiyu_admin_token',
+    user: 'jiaoxuepeiyu_admin_user'
+  },
+  student: {
+    token: 'jiaoxuepeiyu_student_token',
+    user: 'jiaoxuepeiyu_student_user'
+  }
+};
 
 function buildUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
@@ -32,12 +45,37 @@ function buildUrl(path: string): string {
   return `${apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-function getStoredToken(): string {
-  return globalThis.localStorage?.getItem(authTokenKey) ?? '';
+function inferPortal(path: string): AuthPortal | undefined {
+  const normalized = path.replace(/^https?:\/\/[^/]+/i, '');
+
+  if (/^\/?(api\/)?(admin|auth\/admin)(\/|$)/i.test(normalized)) {
+    return 'admin';
+  }
+
+  if (/^\/?(api\/)?(student|auth\/student)(\/|$)/i.test(normalized)) {
+    return 'student';
+  }
+
+  return undefined;
 }
 
-function getStoredUserId(): string {
-  const storedUser = globalThis.localStorage?.getItem(authUserKey);
+function getStoredToken(portal?: AuthPortal): string {
+  if (!portal) {
+    return '';
+  }
+
+  return globalThis.localStorage?.getItem(authStorageKeys[portal].token)
+    || globalThis.localStorage?.getItem(legacyAuthTokenKey)
+    || '';
+}
+
+function getStoredUserId(portal?: AuthPortal): string {
+  if (!portal) {
+    return '';
+  }
+
+  const storedUser = globalThis.localStorage?.getItem(authStorageKeys[portal].user)
+    || globalThis.localStorage?.getItem(legacyAuthUserKey);
 
   if (!storedUser) {
     return '';
@@ -83,7 +121,8 @@ function unwrapResponse<T>(payload: ApiEnvelope<T> | T): T {
 }
 
 export async function requestJson<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const token = getStoredToken();
+  const portal = options.authPortal || inferPortal(path);
+  const token = getStoredToken(portal);
   const headers = new Headers(options.headers);
 
   if (options.body && !headers.has('Content-Type')) {
@@ -94,7 +133,7 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const userId = getStoredUserId();
+  const userId = getStoredUserId(portal);
   if (userId && !headers.has('X-User-Id')) {
     headers.set('X-User-Id', userId);
   }
@@ -118,14 +157,15 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
 }
 
 export async function requestBlob(path: string, options: ApiRequestOptions = {}): Promise<FileDownload> {
-  const token = getStoredToken();
+  const portal = options.authPortal || inferPortal(path);
+  const token = getStoredToken(portal);
   const headers = new Headers(options.headers);
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const userId = getStoredUserId();
+  const userId = getStoredUserId(portal);
   if (userId && !headers.has('X-User-Id')) {
     headers.set('X-User-Id', userId);
   }
@@ -160,20 +200,29 @@ export async function tryRequestJson<T>(paths: string[], options: ApiRequestOpti
   throw new Error(errors[errors.length - 1] || '接口请求失败');
 }
 
-export function saveAuthSession(token: string, user?: unknown) {
+export function saveAuthSession(portal: AuthPortal, token: string, user?: unknown) {
   if (!token) {
     return;
   }
 
-  globalThis.localStorage?.setItem(authTokenKey, token);
+  globalThis.localStorage?.setItem(authStorageKeys[portal].token, token);
   if (user !== undefined) {
-    globalThis.localStorage?.setItem(authUserKey, JSON.stringify(user));
+    globalThis.localStorage?.setItem(authStorageKeys[portal].user, JSON.stringify(user));
   }
 }
 
-export function clearAuthSession() {
-  globalThis.localStorage?.removeItem(authTokenKey);
-  globalThis.localStorage?.removeItem(authUserKey);
+export function clearAuthSession(portal?: AuthPortal) {
+  const portals: AuthPortal[] = portal ? [portal] : ['admin', 'student'];
+
+  portals.forEach((item) => {
+    globalThis.localStorage?.removeItem(authStorageKeys[item].token);
+    globalThis.localStorage?.removeItem(authStorageKeys[item].user);
+  });
+
+  if (!portal) {
+    globalThis.localStorage?.removeItem(legacyAuthTokenKey);
+    globalThis.localStorage?.removeItem(legacyAuthUserKey);
+  }
 }
 
 function filenameFromDisposition(disposition: string | null): string | undefined {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loginAdmin } from '../src/api/auth';
+import { loginAdmin, loginStudent } from '../src/api/auth';
 import {
   cancelPublishAdminCourse,
   fetchAdminCourseLogs,
@@ -39,13 +39,19 @@ import {
   updateAdminRolePermissions
 } from '../src/api/admin-role';
 import {
+  fetchAdminProfile,
+  updateAdminPassword,
+  updateAdminProfileIdCard,
+  updateAdminProfilePhone
+} from '../src/api/admin-profile';
+import {
   createAdminClassroom,
   createAdminScoreWeight,
   disableAdminClass,
   enableAdminClass,
   setAdminCurrentSemester
 } from '../src/api/admin-settings';
-import { requestJson, tryRequestJson } from '../src/api/http';
+import { clearAuthSession, requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
   fetchStudentArchiveDetail,
@@ -68,8 +74,30 @@ const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  clearAuthSession();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
+
+class MemoryStorage {
+  private values = new Map<string, string>();
+
+  getItem(key: string) {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string) {
+    this.values.set(key, value);
+  }
+
+  removeItem(key: string) {
+    this.values.delete(key);
+  }
+
+  clear() {
+    this.values.clear();
+  }
+}
 
 function mockJsonResponse(payload: unknown, init: ResponseInit = {}) {
   return Promise.resolve(
@@ -115,6 +143,28 @@ describe('api http client', () => {
         body: JSON.stringify({ loginType: 'phone', account: '13800138000', password: 'abc123' })
       })
     );
+  });
+
+  it('keeps admin and student auth headers isolated after both portals login', async () => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => mockJsonResponse({ data: { token: 'admin-token', user: { id: 1 } } }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: { token: 'student-token', user: { id: 6 } } }))
+      .mockImplementation(() => mockJsonResponse({ data: [] }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await loginAdmin({ account: 'admin', password: 'admin123' });
+    await loginStudent('studentId', { studentId: '0012', password: 'student123' });
+    await requestJson('/admin/roles');
+    await requestJson('/student/courses');
+
+    const adminHeaders = fetchMock.mock.calls[2][1]?.headers as Headers;
+    const studentHeaders = fetchMock.mock.calls[3][1]?.headers as Headers;
+    expect(adminHeaders.get('Authorization')).toBe('Bearer admin-token');
+    expect(adminHeaders.get('X-User-Id')).toBe('1');
+    expect(studentHeaders.get('Authorization')).toBe('Bearer student-token');
+    expect(studentHeaders.get('X-User-Id')).toBe('6');
   });
 
   it('loads the documented admin course list endpoint and query string', async () => {
@@ -362,7 +412,7 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       6,
       '/api/admin/accounts/batch/reset-password',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102] }) })
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102], password: 'Abc@12345' }) })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       7,
@@ -482,6 +532,40 @@ describe('api http client', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/roles/3/delete', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/admin/roles/3/logs', expect.any(Object));
+  });
+
+  it('uses real admin profile endpoints and sends admin auth to password change', async () => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => mockJsonResponse({ data: { token: 'admin-token', user: { id: 1 } } }))
+      .mockImplementation(() => mockJsonResponse({ data: { accountNo: 'A001', realName: '管理员' } }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await loginAdmin({ account: 'admin', password: 'admin123' });
+    await fetchAdminProfile();
+    await updateAdminProfilePhone('13800138000');
+    await updateAdminProfileIdCard('410322201005124734');
+    await updateAdminPassword('oldPass123', 'newPass123', 'newPass123');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/profile', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/admin/profile/phone',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ phone: '13800138000' }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      '/api/admin/profile/id-card',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ idCard: '410322201005124734' }) })
+    );
+
+    const passwordOptions = fetchMock.mock.calls[4][1] as RequestInit;
+    const passwordHeaders = passwordOptions.headers as Headers;
+    expect(fetchMock.mock.calls[4][0]).toBe('/api/auth/password');
+    expect(passwordOptions.method).toBe('PUT');
+    expect(passwordOptions.body).toBe(JSON.stringify({ currentPassword: 'oldPass123', newPassword: 'newPass123', confirmPassword: 'newPass123' }));
+    expect(passwordHeaders.get('Authorization')).toBe('Bearer admin-token');
   });
 
   it('maps backend student course cards into the existing course UI model', async () => {
