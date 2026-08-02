@@ -17,42 +17,44 @@
       </section>
 
       <section class="admin-training-archive-board">
-        <table class="admin-training-archive-table">
-          <thead>
-            <tr>
-              <th>序号</th>
-              <th>班级</th>
-              <th>学号</th>
-              <th>姓名</th>
-              <th>实训名称</th>
-              <th>实训模式</th>
-              <th>角色</th>
-              <th>提交时间</th>
-              <th>提交类型</th>
-              <th>时长（秒）</th>
-              <th>个人得分</th>
-              <th>整队总分</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, index) in pagedArchives" :key="row.id">
-              <td>{{ (page - 1) * pageSize + index + 1 }}</td>
-              <td>{{ row.className }}</td>
-              <td>{{ row.studentNo }}</td>
-              <td><strong>{{ row.studentName }}</strong></td>
-              <td>{{ row.trainingName }}</td>
-              <td>{{ row.trainingMode }}</td>
-              <td>{{ row.roleName }}</td>
-              <td>{{ row.submittedAt }}</td>
-              <td>{{ row.submitType }}</td>
-              <td>{{ row.durationSeconds }}</td>
-              <td><b>{{ row.personalScore }}</b></td>
-              <td><b>{{ row.teamScore }}</b></td>
-              <td><el-button text class="admin-training-archive-detail-button" @click="openDetail(row)">查看详情</el-button></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="admin-training-archive-table-scroll">
+          <table class="admin-training-archive-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>班级</th>
+                <th>学号</th>
+                <th>姓名</th>
+                <th>实训名称</th>
+                <th>实训模式</th>
+                <th>角色</th>
+                <th>提交时间</th>
+                <th>提交类型</th>
+                <th>时长（秒）</th>
+                <th>个人得分</th>
+                <th>整队总分</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, index) in pagedArchives" :key="row.id">
+                <td>{{ (page - 1) * pageSize + index + 1 }}</td>
+                <td>{{ row.className }}</td>
+                <td>{{ row.studentNo }}</td>
+                <td><strong>{{ row.studentName }}</strong></td>
+                <td>{{ row.trainingName }}</td>
+                <td>{{ row.trainingMode }}</td>
+                <td>{{ row.roleName }}</td>
+                <td>{{ row.submittedAt }}</td>
+                <td>{{ row.submitType }}</td>
+                <td>{{ row.durationSeconds }}</td>
+                <td><b>{{ row.personalScore }}</b></td>
+                <td><b>{{ row.teamScore }}</b></td>
+                <td><el-button text class="admin-training-archive-detail-button" @click="openDetail(row)">查看详情</el-button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <footer class="admin-training-archive-footer">
           <span></span>
@@ -74,15 +76,15 @@
       </header>
 
       <section v-if="activeArchive" class="admin-training-archive-student-card">
-        <span>学生姓名：<b>{{ activeArchive.studentName }}</b></span>
-        <span>学生学号：<b>{{ activeArchive.studentNo }}</b></span>
-        <span>所属班级：<b>{{ activeArchive.className }}</b></span>
-        <span>提交时间：<b>{{ activeArchive.submittedAt }}</b></span>
+        <span>学生姓名：<b>{{ activeArchive.detailStudentName }}</b></span>
+        <span>学生学号：<b>{{ activeArchive.detailStudentNo }}</b></span>
+        <span>所属班级：<b>{{ activeArchive.detailClassName }}</b></span>
+        <span>提交时间：<b>{{ activeArchive.detailSubmittedAt }}</b></span>
       </section>
 
       <section v-if="activeArchive" class="admin-training-archive-title-card">
         <h1>{{ activeArchive.detailTitle }}</h1>
-        <p>{{ activeArchive.trainingMode }}</p>
+        <p>{{ activeArchive.detailMode }}</p>
       </section>
 
       <section class="admin-training-archive-detail-grid">
@@ -168,6 +170,11 @@ interface TrainingArchiveRow {
   studentName: string;
   trainingName: string;
   detailTitle: string;
+  detailStudentName: string;
+  detailStudentNo: string;
+  detailClassName: string;
+  detailSubmittedAt: string;
+  detailMode: string;
   trainingMode: string;
   roleName: string;
   submittedAt: string;
@@ -195,53 +202,59 @@ const draft = reactive({ className: '', studentNo: '', studentName: '' });
 const applied = ref({ ...draft });
 
 const archives = ref<TrainingArchiveRow[]>([
-  { id: 1, className: '城轨运营2401班', studentNo: 'S20240301', studentName: '王成祥', trainingName: 'CBTC信号系统操作实训', detailTitle: 'CBTC信号系统操作实训（乘客角色）', trainingMode: '多人实训', roleName: '乘客', submittedAt: '2025-01-15 09:00', submitType: '正常提交', durationSeconds: 12, personalScore: '8', teamScore: '21' },
-  { id: 2, className: '城轨运营2401班', studentNo: 'S20240456', studentName: '陈松', trainingName: '轨道交通信号设备维护', detailTitle: '轨道交通信号设备维护（站台员角色）', trainingMode: '多人实训', roleName: '站台员', submittedAt: '2025-01-10 14:13', submitType: '异常退出', durationSeconds: 90, personalScore: '9', teamScore: '32' },
-  { id: 3, className: '城轨运营2402班', studentNo: 'S20240322', studentName: '赵立申', trainingName: '列车自动控制系统调试', detailTitle: '列车自动控制系统调试（司机角色）', trainingMode: '多人实训', roleName: '司机', submittedAt: '2025-01-08 08:30', submitType: '正常提交', durationSeconds: 18, personalScore: '6', teamScore: '19' },
-  { id: 4, className: '城轨信号2401班', studentNo: 'S20240501', studentName: '周莹莹', trainingName: '车站联锁设备故障排查', detailTitle: '车站联锁设备故障排查（运营人员角色）', trainingMode: '多人实训', roleName: '运营人员', submittedAt: '2025-01-05 13:00', submitType: '房间解散', durationSeconds: 15, personalScore: '3', teamScore: '28' },
-  { id: 5, className: '城轨车辆2401班', studentNo: 'S20240610', studentName: '吴石磊', trainingName: '轨道电路检测与维修', detailTitle: '轨道电路检测与维修', trainingMode: '单人实训', roleName: '-', submittedAt: '2025-01-03 10:09', submitType: '正常提交', durationSeconds: 60, personalScore: '4', teamScore: '-' }
+  { id: 1, className: '城轨运营2401班', studentNo: 'S20240301', studentName: '王成祥', trainingName: 'CBTC信号系统操作实训', detailTitle: '信号机检修标准化作业实训（扮演司机角色）', detailStudentName: '张明远', detailStudentNo: '2024CGXH001', detailClassName: '2024CGXH001', detailSubmittedAt: '2025-04-10 14:32', detailMode: '多人实训', trainingMode: '多人实训', roleName: '乘客', submittedAt: '2025-01-15 09:00', submitType: '正常提交', durationSeconds: 12, personalScore: '8', teamScore: '21' },
+  { id: 2, className: '城轨运营2401班', studentNo: 'S20240456', studentName: '陈松', trainingName: '轨道交通信号设备维护', detailTitle: '信号机检修标准化作业实训（扮演司机角色）', detailStudentName: '张明远', detailStudentNo: '2024CGXH001', detailClassName: '2024CGXH001', detailSubmittedAt: '2025-04-10 14:32', detailMode: '多人实训', trainingMode: '多人实训', roleName: '站台员', submittedAt: '2025-01-10 14:13', submitType: '异常退出', durationSeconds: 90, personalScore: '9', teamScore: '32' },
+  { id: 3, className: '城轨运营2402班', studentNo: 'S20240322', studentName: '赵立申', trainingName: '列车自动控制系统调试', detailTitle: '信号机检修标准化作业实训（扮演司机角色）', detailStudentName: '张明远', detailStudentNo: '2024CGXH001', detailClassName: '2024CGXH001', detailSubmittedAt: '2025-04-10 14:32', detailMode: '多人实训', trainingMode: '多人实训', roleName: '司机', submittedAt: '2025-01-08 08:30', submitType: '正常提交', durationSeconds: 18, personalScore: '6', teamScore: '19' },
+  { id: 4, className: '城轨信号2401班', studentNo: 'S20240501', studentName: '周莹莹', trainingName: '车站联锁设备故障排查', detailTitle: '信号机检修标准化作业实训（扮演司机角色）', detailStudentName: '张明远', detailStudentNo: '2024CGXH001', detailClassName: '2024CGXH001', detailSubmittedAt: '2025-04-10 14:32', detailMode: '多人实训', trainingMode: '多人实训', roleName: '运营人员', submittedAt: '2025-01-05 13:00', submitType: '房间解散', durationSeconds: 15, personalScore: '3', teamScore: '28' },
+  { id: 5, className: '城轨车辆2401班', studentNo: 'S20240610', studentName: '吴石磊', trainingName: '轨道电路检测与维修', detailTitle: '信号机检修标准化作业实训（扮演司机角色）', detailStudentName: '张明远', detailStudentNo: '2024CGXH001', detailClassName: '2024CGXH001', detailSubmittedAt: '2025-04-10 14:32', detailMode: '多人实训', trainingMode: '单人实训', roleName: '-', submittedAt: '2025-01-03 10:09', submitType: '正常提交', durationSeconds: 60, personalScore: '4', teamScore: '-' }
 ]);
 
 const archiveSteps: ArchiveStep[] = [
-  { name: '穿戴安全防护用品', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 45 },
-  { name: '检查工具准备情况', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 32 },
-  { name: '确认信号机断电状态', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 18 },
-  { name: '拆卸信号机外壳', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 56 },
-  { name: '检查内部接线端子', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 78 },
-  { name: '清洁透镜组表面', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 22 },
-  { name: '检测灯泡工作状态', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 41 },
-  { name: '测量电路电压参数', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 1, seconds: 63 },
-  { name: '调整灯丝转换继电器', expected: '按十字对角顺序初步护入所有', actual: '按十字对角顺序初步护入所有', score: 0, seconds: 15 }
+  { name: '穿戴安全防护用品', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 45 },
+  { name: '检查工具准备情况', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 32 },
+  { name: '确认信号机断电状态', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 0, seconds: 18 },
+  { name: '拆卸信号机外壳', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 56 },
+  { name: '检查内部接线端子', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 78 },
+  { name: '清洁透镜组表面', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 0, seconds: 22 },
+  { name: '检测灯泡工作状态', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 41 },
+  { name: '测量电路电压参数', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 1, seconds: 63 },
+  { name: '调整灯丝转换继电器', expected: '按十字对角顺序初步拧入所有', actual: '按十字对角顺序初步拧入所有', score: 0, seconds: 15 }
 ];
 
 const classOptions = computed(() => Array.from(new Set(archives.value.map((item) => item.className))));
 const filteredArchives = computed(() => archives.value.filter((item) => (!applied.value.className || item.className === applied.value.className) && (!applied.value.studentNo || item.studentNo.includes(applied.value.studentNo)) && (!applied.value.studentName || item.studentName.includes(applied.value.studentName))));
 const pagedArchives = computed(() => filteredArchives.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 
+/** 应用实训档案筛选条件。 */
 function applyFilters() {
   applied.value = { ...draft };
   page.value = 1;
 }
 
+/** 重置实训档案筛选条件。 */
 function resetFilters() {
   Object.assign(draft, { className: '', studentNo: '', studentName: '' });
   applyFilters();
 }
 
+/** 进入实训档案详情页。 */
 function openDetail(row: TrainingArchiveRow) {
   activeArchive.value = row;
   viewMode.value = 'detail';
 }
 
+/** 返回实训档案列表页。 */
 function backToList() {
   viewMode.value = 'list';
 }
 
+/** 打开完整实训视频预览弹窗。 */
 function openVideoPreview() {
   previewTitle.value = '实训操作视频';
   videoVisible.value = true;
 }
 
+/** 打开指定步骤的视频预览弹窗。 */
 function openStepVideo(step: ArchiveStep) {
   previewTitle.value = `${step.name} - 操作视频`;
   videoVisible.value = true;
