@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://8.130.35.250',
+        target: 'http://jiaoyu.luoyan.xin',
         changeOrigin: true
       }
     }
@@ -16,4 +16,3 @@ export default defineConfig({
     include: ['tests/**/*.test.ts']
   }
 });
-
