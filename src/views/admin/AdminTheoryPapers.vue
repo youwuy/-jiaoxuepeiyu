@@ -18,8 +18,8 @@
           </label>
           <label class="admin-theory-paper-field">
             <span>添加人</span>
-            <el-select v-model="draft.creator" placeholder="请选择添加人" clearable filterable>
-              <el-option v-for="item in creatorOptions" :key="item" :label="item" :value="item" />
+            <el-select v-model="draft.creatorId" placeholder="请选择添加人" clearable filterable>
+              <el-option v-for="item in creatorOptions" :key="item.creatorId" :label="item.creatorName" :value="item.creatorId" />
             </el-select>
           </label>
           <label class="admin-theory-paper-field">
@@ -41,10 +41,10 @@
           <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(true)">批量启用</el-button>
           <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(false)">批量禁用</el-button>
         </div>
-        <p>共 <b>{{ filteredPapers.length }}</b> 条记录</p>
+        <p>共 <b>{{ totalCount }}</b> 条记录</p>
       </section>
 
-      <section class="admin-theory-paper-board">
+      <section class="admin-theory-paper-board" v-loading="loading">
         <div class="admin-theory-paper-table-scroll">
           <table class="admin-theory-paper-table">
             <thead>
@@ -62,7 +62,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, index) in pagedPapers" :key="row.paperId">
+              <tr v-for="(row, index) in papers" :key="row.paperId">
                 <td class="check-col"><el-checkbox :model-value="selectedIds.includes(row.paperId)" @change="toggleOne(row.paperId)" /></td>
                 <td>{{ (page - 1) * pageSize + index + 1 }}</td>
                 <td><strong>{{ row.paperName }}</strong></td>
@@ -84,9 +84,9 @@
           </table>
         </div>
         <footer class="admin-theory-paper-footer">
-          <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ filteredPapers.length }}</b> 条记录</p>
+          <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
           <div class="admin-theory-paper-pager">
-            <el-pagination v-model:current-page="page" :page-size="pageSize" :total="filteredPapers.length" layout="prev, pager, next" background />
+            <el-pagination v-model:current-page="page" :page-size="pageSize" :total="totalCount" layout="prev, pager, next" background @current-change="loadPapers" />
             <span>跳至</span>
             <el-input-number v-model="jumpPage" :min="1" :max="maxPage" controls-position="right" @change="jumpToPage" />
             <span>页</span>
@@ -335,10 +335,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, reactive, ref, watch } from 'vue';
+import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Close, Plus, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import {
+  cancelPublishAdminPaper,
+  createAdminPaper,
+  fetchAdminPaper,
+  fetchAdminPaperLogs,
+  fetchAdminPapers,
+  publishAdminPaper,
+  updateAdminPaper,
+  type AdminPaper,
+  type AdminPaperCommand,
+  type AdminPaperLog,
+  type AdminPaperQuestion
+} from '../../api/admin-paper';
+import { fetchAdminQuestions, type AdminQuestion } from '../../api/admin-question';
 
 type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
 
@@ -349,8 +363,10 @@ interface TheoryPaper {
   questionCount: number;
   totalScore: number;
   creatorName: string;
+  creatorId?: number;
   createdAt: string;
   enabled: boolean;
+  publishStatus?: string;
 }
 
 interface QuestionItem {
@@ -388,6 +404,9 @@ const pageSize = 12;
 const questionTypeOptions = ['单选题', '多选题', '判断题', '填空题', '简答题'];
 const viewMode = ref<ViewMode>('list');
 const page = ref(1);
+const totalCount = ref(0);
+const loading = ref(false);
+const saving = ref(false);
 const jumpPage = ref(1);
 const selectedIds = ref<number[]>([]);
 const importVisible = ref(false);
@@ -400,8 +419,9 @@ const manageCreator = ref('');
 const manageCourse = ref('');
 const managePage = ref(1);
 const selectedQuestionIds = ref<number[]>([]);
+const paperLogs = ref<AdminPaperLog[]>([]);
 
-const draft = reactive({ keyword: '', courseName: '', creator: '', enabled: undefined as boolean | undefined });
+const draft = reactive({ keyword: '', courseName: '', creatorId: undefined as number | undefined, enabled: undefined as boolean | undefined });
 const applied = ref({ ...draft });
 const builder = reactive({
   paperName: '',
@@ -419,29 +439,9 @@ const builder = reactive({
 const manageForm = reactive({ paperName: '', courseName: '' });
 const previewPaper = reactive({ paperName: '2025-2026学年期中考试', courseName: '铁道概论' });
 
-const papers = ref<TheoryPaper[]>([
-  { paperId: 1, paperName: '城市轨道交通行车组织基础理论考核', courseName: '城轨信号系统', questionCount: 50, totalScore: 95, creatorName: '张建国', createdAt: '2025-01-15 14:30:22', enabled: true },
-  { paperId: 2, paperName: '城市轨道交通信号系统原理与故障处理', courseName: '城轨信号系统', questionCount: 45, totalScore: 90, creatorName: '李明辉', createdAt: '2025-01-14 09:15:08', enabled: true },
-  { paperId: 3, paperName: '城轨车辆构造与检修技术综合测试', courseName: '城轨信号系统', questionCount: 60, totalScore: 100, creatorName: '王思远', createdAt: '2025-01-13 16:42:35', enabled: false },
-  { paperId: 4, paperName: '城市轨道交通运营安全与应急管理考核', courseName: '城轨信号系统', questionCount: 40, totalScore: 80, creatorName: '赵志强', createdAt: '2025-01-12 10:20:47', enabled: true },
-  { paperId: 5, paperName: '城轨通信系统维护与故障诊断专项测试', courseName: '城轨信号系统', questionCount: 35, totalScore: 75, creatorName: '张建国', createdAt: '2025-01-11 08:55:13', enabled: true },
-  { paperId: 6, paperName: '城市轨道交通客运服务规范与礼仪考核', courseName: '城轨信号系统', questionCount: 55, totalScore: 100, creatorName: '李明辉', createdAt: '2025-01-10 14:12:30', enabled: false },
-  { paperId: 7, paperName: '城轨供电系统运行与维护综合测评', courseName: '城轨信号系统', questionCount: 48, totalScore: 92, creatorName: '王思远', createdAt: '2025-01-09 11:38:55', enabled: true },
-  { paperId: 8, paperName: '城市轨道交通线路与站场设计基础知识', courseName: '城轨信号系统', questionCount: 42, totalScore: 85, creatorName: '赵志强', createdAt: '2025-01-08 15:05:42', enabled: true },
-  { paperId: 9, paperName: '城轨自动售检票系统（AFC）操作与维护', courseName: '城轨信号系统', questionCount: 38, totalScore: 78, creatorName: '张建国', createdAt: '2025-01-07 09:22:18', enabled: true },
-  { paperId: 10, paperName: '城市轨道交通调度指挥与应急处置综合卷', courseName: '城轨信号系统', questionCount: 52, totalScore: 98, creatorName: '李明辉', createdAt: '2025-01-06 13:48:09', enabled: false },
-  { paperId: 11, paperName: '城轨环境控制系统与通风空调技术考核', courseName: '城轨信号系统', questionCount: 30, totalScore: 70, creatorName: '王思远', createdAt: '2025-01-05 10:15:33', enabled: true },
-  { paperId: 12, paperName: '城市轨道交通法规与标准知识测试', courseName: '城轨信号系统', questionCount: 46, totalScore: 88, creatorName: '赵志强', createdAt: '2025-01-04 16:30:51', enabled: true }
-]);
-const questionBank = ref<QuestionItem[]>([
-  { id: 1, type: '单选题', score: 2, courseName: '城轨信号系统', title: '城市轨道交通中，CBTC系统的全称是什么？其核心工作原理是什么？' },
-  { id: 2, type: '多选题', score: 3, courseName: '城轨信号系统', title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）' },
-  { id: 3, type: '判断题', score: 1, courseName: '城轨信号系统', title: 'CBTC系统可以实现列车精确定位和实时追踪。（判断正误）' },
-  { id: 4, type: '填空题', score: 2, courseName: '轨道交通基础', title: '城市轨道交通信号机一般设置在______和______位置。' },
-  { id: 5, type: '简答题', score: 10, courseName: '城轨信号系统', title: '请简述城市轨道交通信号系统联锁的基本概念及其主要功能。' },
-  { id: 6, type: '单选题', score: 2, courseName: '城轨信号系统', title: '列车自动防护子系统（ATP）的主要功能是什么？' }
-]);
-const selectedQuestions = ref<QuestionItem[]>(questionBank.value.slice(0, 5).map((item) => ({ ...item })));
+const papers = ref<TheoryPaper[]>([]);
+const questionBank = ref<QuestionItem[]>([]);
+const selectedQuestions = ref<QuestionItem[]>([]);
 const previewGroups = reactive([
   { type: '单选题', title: '一、单选题', meta: '20题 · 每题2分', tone: 'single', questions: [
     { index: 1, title: '城市轨道交通中，CBTC系统的全称是什么？', score: 2, options: ['A. Communication-Based Train Control', 'B. Centralized Block Traffic Control', 'C. Computer-Based Train Communication', 'D. Continuous Braking Train Control'] },
@@ -452,14 +452,20 @@ const previewGroups = reactive([
   { type: '填空题', title: '四、填空题', meta: '5题 · 每题2分', tone: 'blank', questions: [{ index: 41, title: '城市轨道交通信号机一般设置在______和______位置。', score: 2, options: [] }] }
 ]);
 
-const creatorOptions = computed(() => Array.from(new Set(papers.value.map((item) => item.creatorName))));
-const filteredPapers = computed(() => papers.value.filter((item) => (!applied.value.keyword || item.paperName.includes(applied.value.keyword.trim())) && (!applied.value.courseName || item.courseName.includes(applied.value.courseName.trim())) && (!applied.value.creator || item.creatorName === applied.value.creator) && (applied.value.enabled === undefined || item.enabled === applied.value.enabled)));
-const maxPage = computed(() => Math.max(1, Math.ceil(filteredPapers.value.length / pageSize)));
-const pagedPapers = computed(() => filteredPapers.value.slice((page.value - 1) * pageSize, page.value * pageSize));
-const allSelected = computed(() => pagedPapers.value.length > 0 && pagedPapers.value.every((item) => selectedIds.value.includes(item.paperId)));
+const creatorOptions = computed(() => {
+  const map = new Map<number, string>();
+  papers.value.forEach((item) => {
+    if (item.creatorId && item.creatorName !== '-') {
+      map.set(item.creatorId, item.creatorName);
+    }
+  });
+  return Array.from(map.entries()).map(([creatorId, creatorName]) => ({ creatorId, creatorName }));
+});
+const maxPage = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize)));
+const allSelected = computed(() => papers.value.length > 0 && papers.value.every((item) => selectedIds.value.includes(item.paperId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allSelected.value);
-const pageStart = computed(() => (filteredPapers.value.length === 0 ? 0 : (page.value - 1) * pageSize + 1));
-const pageEnd = computed(() => Math.min(page.value * pageSize, filteredPapers.value.length));
+const pageStart = computed(() => (totalCount.value === 0 ? 0 : (page.value - 1) * pageSize + 1));
+const pageEnd = computed(() => Math.min(page.value * pageSize, totalCount.value));
 const selectedScore = computed(() => selectedQuestions.value.reduce((sum, item) => sum + Number(item.score || 0), 0));
 const autoQuestionTotal = computed(() => builder.rules.reduce((sum, rule) => sum + (rule.selected ? Number(rule.count || 0) : 0), 0));
 const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value) && (!manageCourse.value || item.courseName.includes(manageCourse.value))));
@@ -477,19 +483,126 @@ const answerCardGroups = computed(() => [
   { type: '填空题', short: '填空', tone: 'blank', count: 5, score: 10, numbers: Array.from({ length: 5 }, (_, index) => index + 41) }
 ]);
 const logRows = computed(() => [
-  { action: '修改试卷', time: '2025-01-15 14:30:22', content: `${activePaper.value?.paperName || '试卷'} 信息更新` },
-  { action: '启用状态变更', time: '2025-01-14 09:15:08', content: '管理员调整启用状态' }
+  ...paperLogs.value.map((item) => ({
+    action: item.action || '操作',
+    time: formatDateTime(item.createdAt),
+    content: item.content || '-'
+  }))
 ]);
 
 watch(page, (value) => { jumpPage.value = value; });
 
-function applyFilters() { applied.value = { ...draft }; page.value = 1; selectedIds.value = []; }
-function resetFilters() { Object.assign(draft, { keyword: '', courseName: '', creator: '', enabled: undefined }); applyFilters(); }
+function formatDateTime(value?: string) { return value ? value.replace('T', ' ').slice(0, 19) : '-'; }
+function publishStatus(enabled?: boolean) { return enabled === undefined ? undefined : enabled ? 'PUBLISHED' : 'OFFLINE'; }
+function typeCode(label: string) {
+  if (label.includes('多')) return 'MULTIPLE';
+  if (label.includes('判断')) return 'JUDGE';
+  if (label.includes('填空')) return 'FILL_BLANK';
+  if (label.includes('简答')) return 'SHORT_ANSWER';
+  return 'SINGLE';
+}
+function typeLabel(code?: string) {
+  const normalized = String(code || '').toUpperCase();
+  if (normalized.includes('MULTIPLE')) return '多选题';
+  if (normalized.includes('JUDGE')) return '判断题';
+  if (normalized.includes('FILL') || normalized.includes('BLANK')) return '填空题';
+  if (normalized.includes('SHORT') || normalized.includes('ESSAY')) return '简答题';
+  return '单选题';
+}
+function mapPaper(item: AdminPaper): TheoryPaper {
+  const status = String(item.publishStatus || '').toUpperCase();
+  return {
+    paperId: item.paperId,
+    paperName: item.paperName,
+    courseName: (item as AdminPaper & { courseName?: string }).courseName || '-',
+    questionCount: item.questionCount || item.questions?.length || 0,
+    totalScore: item.totalScore || 0,
+    creatorId: item.creatorId,
+    creatorName: item.creatorName || '-',
+    createdAt: formatDateTime(item.createdAt),
+    enabled: status === 'PUBLISHED',
+    publishStatus: item.publishStatus
+  };
+}
+function mapQuestion(item: AdminQuestion | AdminPaperQuestion): QuestionItem {
+  const questionId = 'questionId' in item ? item.questionId : 0;
+  return {
+    id: questionId,
+    title: item.title || '-',
+    type: typeLabel(item.questionType),
+    score: Number(item.score || 1),
+    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-'
+  };
+}
+function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
+  const paperName = mode === 'manage' ? manageForm.paperName.trim() : builder.paperName.trim();
+  if (!paperName) {
+    throw new Error('请输入试卷名称');
+  }
+  if (mode === 'auto') {
+    const autoRules = builder.rules
+      .filter((rule) => rule.selected && Number(rule.count) > 0)
+      .map((rule) => ({ questionType: typeCode(rule.type), questionCount: Number(rule.count), scorePerQuestion: Number(rule.score || 1) }));
+    if (autoRules.length === 0) {
+      throw new Error('请至少设置一种题型');
+    }
+    return { paperName, composeMode: 'AUTO', autoRules };
+  }
+
+  const questions = selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }));
+  if (questions.length === 0) {
+    throw new Error('请至少加入一道试题');
+  }
+  return { paperName, composeMode: 'MANUAL', questions };
+}
+async function loadPapers() {
+  loading.value = true;
+  try {
+    const result = await fetchAdminPapers({
+      keyword: [applied.value.keyword, applied.value.courseName].map((item) => item.trim()).filter(Boolean).join(' ') || undefined,
+      publishStatus: publishStatus(applied.value.enabled),
+      creatorId: applied.value.creatorId,
+      page: page.value,
+      pageSize
+    });
+    papers.value = result.records.map(mapPaper);
+    totalCount.value = result.total;
+  } catch (error) {
+    papers.value = [];
+    totalCount.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '理论试卷加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+async function loadQuestionBank() {
+  try {
+    const result = await fetchAdminQuestions({ enabled: true, page: 1, pageSize: 100 });
+    questionBank.value = result.records.map(mapQuestion).filter((item) => item.id > 0);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '理论试题加载失败');
+  }
+}
+function applyFilters() { applied.value = { ...draft }; page.value = 1; selectedIds.value = []; void loadPapers(); }
+function resetFilters() { Object.assign(draft, { keyword: '', courseName: '', creatorId: undefined, enabled: undefined }); applyFilters(); }
 function toggleOne(id: number) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter((item) => item !== id) : [...selectedIds.value, id]; }
-function toggleAll(value: string | number | boolean) { selectedIds.value = value ? Array.from(new Set([...selectedIds.value, ...pagedPapers.value.map((item) => item.paperId)])) : selectedIds.value.filter((id) => !pagedPapers.value.some((item) => item.paperId === id)); }
-function openCreate() { resetBuilder(); viewMode.value = 'auto'; }
+function toggleAll(value: string | number | boolean) { selectedIds.value = value ? Array.from(new Set([...selectedIds.value, ...papers.value.map((item) => item.paperId)])) : selectedIds.value.filter((id) => !papers.value.some((item) => item.paperId === id)); }
+function openCreate() { resetBuilder(); void loadQuestionBank(); viewMode.value = 'auto'; }
 function switchCreateMode(value: string | number | boolean) { viewMode.value = value === 'manual' ? 'manual' : 'auto'; }
-function openManage(row: TheoryPaper) { activePaper.value = row; Object.assign(manageForm, { paperName: row.paperName, courseName: row.courseName }); previewPaper.paperName = row.paperName; previewPaper.courseName = row.courseName; selectedQuestions.value = questionBank.value.slice(0, 5).map((item) => ({ ...item })); viewMode.value = 'manage'; }
+async function openManage(row: TheoryPaper) {
+  activePaper.value = row;
+  Object.assign(manageForm, { paperName: row.paperName, courseName: row.courseName });
+  previewPaper.paperName = row.paperName;
+  previewPaper.courseName = row.courseName;
+  await loadQuestionBank();
+  try {
+    const detail = await fetchAdminPaper(row.paperId);
+    selectedQuestions.value = (detail.questions || []).map(mapQuestion).filter((item) => item.id > 0);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷详情加载失败');
+  }
+  viewMode.value = 'manage';
+}
 function backToList() { viewMode.value = 'list'; }
 function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '铁道概论', totalScore: 100, passScore: 60 }); }
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
@@ -499,13 +612,82 @@ function toggleAllQuestions(value: string | number | boolean) { selectedQuestion
 function addFilteredQuestions() { filteredQuestionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
 function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; selectedQuestionIds.value = []; }
 function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
-function saveBuilder() { ElMessage.success('试卷已保存'); backToList(); }
-function saveManage() { if (activePaper.value) Object.assign(activePaper.value, { paperName: manageForm.paperName, courseName: manageForm.courseName, questionCount: selectedQuestions.value.length, totalScore: selectedScore.value }); ElMessage.success('试卷已修改'); backToList(); }
+async function saveBuilder() {
+  saving.value = true;
+  try {
+    await createAdminPaper(paperCommand('manual'));
+    ElMessage.success('试卷已保存');
+    backToList();
+    await loadPapers();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷保存失败');
+  } finally {
+    saving.value = false;
+  }
+}
+async function saveManage() {
+  if (!activePaper.value) return;
+  saving.value = true;
+  try {
+    await updateAdminPaper(activePaper.value.paperId, paperCommand('manage'));
+    ElMessage.success('试卷已修改');
+    backToList();
+    await loadPapers();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷修改失败');
+  } finally {
+    saving.value = false;
+  }
+}
 function openImport() { importVisible.value = true; }
 function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') { if (source !== 'upload') { previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '2025-2026学年期中考试'; previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '铁道概论'; } importVisible.value = false; previewVisible.value = true; }
-function submitImport() { previewVisible.value = false; ElMessage.success('试卷已提交'); }
-function setEnabled(row: TheoryPaper) { row.enabled = !row.enabled; }
-function batchSetEnabled(enabled: boolean) { papers.value.forEach((item) => { if (selectedIds.value.includes(item.paperId)) item.enabled = enabled; }); selectedIds.value = []; ElMessage.success(enabled ? '已批量启用' : '已批量禁用'); }
-function openLogs(row: TheoryPaper) { activePaper.value = row; logsVisible.value = true; }
+async function submitImport() {
+  previewVisible.value = false;
+  try {
+    await createAdminPaper(paperCommand(viewMode.value === 'auto' ? 'auto' : 'manual'));
+    ElMessage.success('试卷已提交');
+    backToList();
+    await loadPapers();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷提交失败');
+  }
+}
+async function setEnabled(row: TheoryPaper) {
+  try {
+    if (row.enabled) {
+      await cancelPublishAdminPaper(row.paperId);
+    } else {
+      await publishAdminPaper(row.paperId);
+    }
+    ElMessage.success(row.enabled ? '试卷已禁用' : '试卷已启用');
+    await loadPapers();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '状态更新失败');
+  }
+}
+async function batchSetEnabled(enabled: boolean) {
+  try {
+    await Promise.all(selectedIds.value.map((id) => enabled ? publishAdminPaper(id) : cancelPublishAdminPaper(id)));
+    selectedIds.value = [];
+    ElMessage.success(enabled ? '已批量启用' : '已批量禁用');
+    await loadPapers();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '批量状态更新失败');
+  }
+}
+async function openLogs(row: TheoryPaper) {
+  activePaper.value = row;
+  logsVisible.value = true;
+  try {
+    paperLogs.value = await fetchAdminPaperLogs(row.paperId);
+  } catch (error) {
+    paperLogs.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '操作日志加载失败');
+  }
+}
 function jumpToPage(value?: number) { page.value = Math.min(maxPage.value, Math.max(1, Number(value || 1))); }
+
+onMounted(() => {
+  void loadPapers();
+});
 </script>

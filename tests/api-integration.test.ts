@@ -7,6 +7,15 @@ import {
   fetchAdminCourses,
   publishAdminCourse
 } from '../src/api/admin-course';
+import {
+  cancelPublishAdminPaper,
+  createAdminPaper,
+  fetchAdminPaper,
+  fetchAdminPaperLogs,
+  fetchAdminPapers,
+  publishAdminPaper,
+  updateAdminPaper
+} from '../src/api/admin-paper';
 import { createAdminOrg, disableAdminOrg, enableAdminOrg, fetchAdminOrgTree, updateAdminOrg } from '../src/api/admin-org';
 import {
   createAdminPermission,
@@ -241,6 +250,56 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/courses/3/cancel-publish', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/courses/3/logs', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/courses/3/statistics', expect.any(Object));
+  });
+
+  it('uses the documented admin paper endpoints', async () => {
+    const command = {
+      paperName: '期中理论试卷',
+      composeMode: 'MANUAL',
+      questions: [{ questionId: 1, score: 5 }]
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        mockJsonResponse({
+          data: {
+            records: [{ paperId: 7, paperName: '期中理论试卷', publishStatus: 'OFFLINE' }],
+            total: 1,
+            page: 1,
+            pageSize: 12
+          }
+        })
+      )
+      .mockImplementationOnce(() => mockJsonResponse({ data: { paperId: 7, paperName: '期中理论试卷', questions: [{ questionId: 1, score: 5 }] } }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: 7 }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: [{ logId: 1, paperId: 7, action: 'CREATE' }] }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminPapers({ keyword: '期中', publishStatus: 'OFFLINE', creatorId: 3, page: 1, pageSize: 12 })).resolves.toMatchObject({
+      records: [{ paperId: 7 }],
+      total: 1
+    });
+    await expect(fetchAdminPaper(7)).resolves.toMatchObject({ paperId: 7, questions: [{ questionId: 1 }] });
+    await expect(createAdminPaper(command)).resolves.toEqual(7);
+    await updateAdminPaper(7, command);
+    await publishAdminPaper(7);
+    await cancelPublishAdminPaper(7);
+    await expect(fetchAdminPaperLogs(7)).resolves.toMatchObject([{ logId: 1, action: 'CREATE' }]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/admin/papers?keyword=%E6%9C%9F%E4%B8%AD&publishStatus=OFFLINE&creatorId=3&page=1&pageSize=12',
+      expect.any(Object)
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/papers/7', expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/papers', expect.objectContaining({ method: 'POST', body: JSON.stringify(command) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/papers/7', expect.objectContaining({ method: 'PUT', body: JSON.stringify(command) }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/papers/7/publish', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/admin/papers/7/cancel-publish', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/papers/7/logs', expect.any(Object));
   });
 
   it('uses the documented admin organization endpoints', async () => {

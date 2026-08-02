@@ -17,6 +17,7 @@ export interface AdminPaper {
   totalScore?: number;
   questionCount?: number;
   publishStatus?: string;
+  creatorId?: number;
   creatorName?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -40,8 +41,8 @@ function query(params: Record<string, string | number | undefined>) {
 
 function page<T>(payload: PageResponse<T> | T[]) { return Array.isArray(payload) ? { records: payload, total: payload.length } : { records: payload?.records ?? [], total: payload?.total ?? 0 }; }
 
-export async function fetchAdminPapers(params: { keyword?: string; composeMode?: string; publishStatus?: string; page?: number; pageSize?: number } = {}) {
-  const result = await requestJson<PageResponse<AdminPaper> | AdminPaper[]>(`/admin/papers${query({ keyword: params.keyword?.trim(), composeMode: params.composeMode, publishStatus: params.publishStatus, page: params.page, pageSize: params.pageSize })}`, { fallbackLabel: '理论试卷' });
+export async function fetchAdminPapers(params: { keyword?: string; composeMode?: string; publishStatus?: string; creatorId?: number; page?: number; pageSize?: number } = {}) {
+  const result = await requestJson<PageResponse<AdminPaper> | AdminPaper[]>(`/admin/papers${query({ keyword: params.keyword?.trim(), composeMode: params.composeMode, publishStatus: params.publishStatus, creatorId: params.creatorId, page: params.page, pageSize: params.pageSize })}`, { fallbackLabel: '理论试卷' });
   return page(result);
 }
 
