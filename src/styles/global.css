@@ -6518,6 +6518,10 @@ a {
   grid-template-columns: repeat(3, 320px);
 }
 
+.admin-user-teacher-grid.basic label:nth-child(5) {
+  grid-column: 3;
+}
+
 .admin-user-teacher-grid label {
   display: grid;
   gap: 8px;
