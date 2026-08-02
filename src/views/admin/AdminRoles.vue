@@ -42,12 +42,17 @@
             <tbody>
               <tr v-for="row in permissionRows" :key="row.rowKey">
                 <td class="module-cell">
-                  <el-checkbox v-if="row.moduleName" :model-value="isModuleChecked(row.moduleIds)" @change="toggleModule(row.moduleIds, $event)">
+                  <el-checkbox
+                    v-if="row.moduleName"
+                    :model-value="isModuleChecked(row.moduleIds)"
+                    :indeterminate="isModuleIndeterminate(row.moduleIds)"
+                    @click.prevent="toggleModule(row.moduleIds)"
+                  >
                     {{ row.moduleName }}
                   </el-checkbox>
                 </td>
                 <td>
-                  <el-checkbox :model-value="isPermissionChecked(row.pageId)" @change="togglePermission(row.pageId, $event)">
+                  <el-checkbox :model-value="isPermissionChecked(row.pageId)" @click.prevent="togglePermission(row.pageId)">
                     {{ row.pageName }}
                   </el-checkbox>
                 </td>
@@ -58,7 +63,7 @@
                       :key="action.key"
                       :model-value="isActionChecked(action)"
                       :disabled="action.virtual"
-                      @change="toggleAction(action, $event)"
+                      @click.prevent="toggleAction(action)"
                     >
                       {{ action.label }}
                     </el-checkbox>
@@ -312,7 +317,12 @@ function collectNodeIds(nodes: AdminPermissionNode[]): number[] {
 }
 
 function isModuleChecked(ids: number[]) {
-  return ids.every((id) => form.permissionIds.includes(id));
+  return ids.length > 0 && ids.every((id) => form.permissionIds.includes(id));
+}
+
+function isModuleIndeterminate(ids: number[]) {
+  const checkedCount = ids.filter((id) => form.permissionIds.includes(id)).length;
+  return checkedCount > 0 && checkedCount < ids.length;
 }
 
 function isPermissionChecked(id: number) {
@@ -333,17 +343,17 @@ function setPermission(id: number, value: string | number | boolean) {
   form.permissionIds = [...next];
 }
 
-function togglePermission(id: number, value: string | number | boolean) {
+function togglePermission(id: number, value: string | number | boolean = !isPermissionChecked(id)) {
   setPermission(id, value);
 }
 
-function toggleAction(action: PermissionMatrixAction, value: string | number | boolean) {
+function toggleAction(action: PermissionMatrixAction, value: string | number | boolean = !isActionChecked(action)) {
   if (!action.virtual) {
     setPermission(action.id, value);
   }
 }
 
-function toggleModule(ids: number[], value: string | number | boolean) {
+function toggleModule(ids: number[], value: string | number | boolean = !isModuleChecked(ids)) {
   const next = new Set(form.permissionIds);
   ids.forEach((id) => {
     if (value) {
