@@ -1,4 +1,4 @@
-import { requestJson } from './http';
+import { requestBlob, requestJson } from './http';
 
 export type AdminAccountKind = 'teacher' | 'student';
 
@@ -194,9 +194,25 @@ export async function importAdminAccounts(kind: AdminAccountKind, rows: AdminAcc
 }
 
 export async function exportAdminAccounts(kind: AdminAccountKind, query: AdminAccountQuery = {}) {
-  return requestJson<AdminAccount[]>(`${accountPath(kind)}/export${queryString(query)}`, {
+  const result = await requestBlob(`${accountPath(kind)}/export/file${queryString(query)}`, {
     fallbackLabel: '导出用户'
   });
+  downloadBlob(result.blob, result.filename || `${kind}-accounts.csv`);
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  if (!globalThis.document || !globalThis.URL) {
+    return;
+  }
+
+  const url = globalThis.URL.createObjectURL(blob);
+  const link = globalThis.document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  globalThis.document.body.appendChild(link);
+  link.click();
+  globalThis.document.body.removeChild(link);
+  globalThis.URL.revokeObjectURL(url);
 }
 
 export async function fetchAdminClasses() {

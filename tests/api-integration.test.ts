@@ -21,6 +21,7 @@ import {
   createAdminAccount,
   disableAdminAccount,
   enableAdminAccount,
+  exportAdminAccounts,
   fetchAdminAccounts,
   resetAdminAccountPasswords,
   updateAdminAccount,
@@ -373,6 +374,43 @@ describe('api http client', () => {
       '/api/admin/accounts/teachers/101/roles',
       expect.objectContaining({ method: 'PUT', body: JSON.stringify({ roleIds: [1, 3] }) })
     );
+  });
+
+  it('downloads admin account exports from the file endpoint', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response('User ID,Account No\r\n101,T20240001\r\n', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/csv;charset=UTF-8',
+            'Content-Disposition': 'attachment; filename="teacher-accounts.csv"'
+          }
+        })
+      )
+    );
+    const appendChild = vi.fn();
+    const removeChild = vi.fn();
+    const click = vi.fn();
+    const anchor = { href: '', download: '', click };
+    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.URL.createObjectURL = vi.fn(() => 'blob:accounts');
+    globalThis.URL.revokeObjectURL = vi.fn();
+    globalThis.document = {
+      createElement: vi.fn(() => anchor),
+      body: { appendChild, removeChild }
+    } as unknown as Document;
+
+    await exportAdminAccounts('teacher', { accountNo: 'T2024', page: 1, pageSize: 20 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/accounts/teachers/export/file?accountNo=T2024&page=1&pageSize=20',
+      expect.any(Object)
+    );
+    expect(anchor.download).toBe('teacher-accounts.csv');
+    expect(anchor.href).toBe('blob:accounts');
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(removeChild).toHaveBeenCalledWith(anchor);
+    expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:accounts');
   });
 
   it('uses the documented admin role management endpoints', async () => {
