@@ -84,7 +84,9 @@ public class AdminIamService {
     public void enablePermission(Long permissionId, Long operatorId) {
         requireOperator(operatorId);
         getPermission(permissionId);
-        repository.updatePermissionStatus(permissionId, true);
+        for (Long id : collectPermissionSubtreeIds(permissionId)) {
+            repository.updatePermissionStatus(id, true);
+        }
     }
 
     @Transactional

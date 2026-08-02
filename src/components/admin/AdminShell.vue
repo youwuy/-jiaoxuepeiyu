@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Coin,
@@ -65,6 +65,7 @@ defineProps<{
 const router = useRouter();
 const permissionTree = ref<AdminPermissionNode[]>([]);
 const permissionsLoaded = ref(false);
+const adminPermissionsChangedEvent = 'admin-permissions-changed';
 
 function goTo(path: string) {
   if (path.startsWith('/')) {
@@ -153,7 +154,7 @@ function collectVisibleRoutes(tree: AdminPermissionNode[]) {
   return routes;
 }
 
-onMounted(async () => {
+async function loadPermissionTree() {
   try {
     permissionTree.value = await fetchAdminPermissionTree();
   } catch {
@@ -161,5 +162,14 @@ onMounted(async () => {
   } finally {
     permissionsLoaded.value = true;
   }
+}
+
+onMounted(() => {
+  void loadPermissionTree();
+  window.addEventListener(adminPermissionsChangedEvent, loadPermissionTree);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(adminPermissionsChangedEvent, loadPermissionTree);
 });
 </script>

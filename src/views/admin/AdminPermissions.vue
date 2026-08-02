@@ -193,6 +193,7 @@ const editingPermission = ref<AdminPermissionRow | null>(null);
 const permissionTree = ref<AdminPermissionNode[]>([]);
 const usingFallbackPermissions = ref(false);
 const expandedIds = ref(new Set<number>([1, 2, 12, 13]));
+const adminPermissionsChangedEvent = 'admin-permissions-changed';
 
 const form = reactive<AdminPermissionCommand>({
   parentId: null,
@@ -416,6 +417,7 @@ async function toggleVisible(row: AdminPermissionRow) {
       }
       await loadPermissionTree();
     }
+    window.dispatchEvent(new Event(adminPermissionsChangedEvent));
     ElMessage.success(row.visible ? '菜单已隐藏' : '菜单已显示');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '状态更新失败');

@@ -285,6 +285,23 @@ class AdminIamServiceTests {
     }
 
     @Test
+    void enablesPermissionWithDescendants() {
+        FakeIam repository = new FakeIam();
+        repository.permission = permission(1L, null, "MENU");
+        repository.permissions = Arrays.asList(
+                permission(1L, null, "MENU"),
+                permission(2L, 1L, "PAGE"),
+                permission(3L, 2L, "BUTTON"),
+                permission(4L, null, "MENU"));
+        AdminIamService service = new AdminIamService(repository);
+
+        service.enablePermission(1L, 9L);
+
+        assertEquals(Arrays.asList(1L, 2L, 3L), repository.statusPermissionIds);
+        assertEquals(Arrays.asList(Boolean.TRUE, Boolean.TRUE, Boolean.TRUE), repository.statusValues);
+    }
+
+    @Test
     void updatesPermissionSortOrdersWithoutChangingParents() {
         FakeIam repository = new FakeIam();
         repository.permission = permission(2L, 1L, "PAGE");
