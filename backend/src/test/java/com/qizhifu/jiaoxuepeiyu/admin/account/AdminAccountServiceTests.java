@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 
 class AdminAccountServiceTests {
 
@@ -54,6 +55,29 @@ class AdminAccountServiceTests {
         BusinessException exception = assertThrows(BusinessException.class, () -> service.createTeacher(command));
 
         assertEquals("ID card format is invalid", exception.getMessage());
+    }
+
+    @Test
+    void rejectsExistingTeacherAccountNumberBeforeInsert() {
+        FakeAccounts repository = new FakeAccounts();
+        repository.existingAccountNos = Arrays.asList("teacher001");
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.createTeacher(teacher()));
+
+        assertEquals("Account number already exists", exception.getMessage());
+        assertEquals(0, repository.createdCommands.size());
+    }
+
+    @Test
+    void mapsDuplicateAccountNumberInsertRaceToBusinessError() {
+        FakeAccounts repository = new FakeAccounts();
+        repository.duplicateOnCreate = true;
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.createTeacher(teacher()));
+
+        assertEquals("Account number already exists", exception.getMessage());
     }
 
     @Test
@@ -241,6 +265,7 @@ class AdminAccountServiceTests {
         private List<AdminAccount> exportAccounts = new ArrayList<AdminAccount>();
         private AdminAccountQuery lastFindQuery;
         private AdminAccountQuery lastCountQuery;
+        private boolean duplicateOnCreate;
 
         @Override
         public List<AdminAccount> findAccounts(AdminAccountQuery query) {
@@ -271,6 +296,9 @@ class AdminAccountServiceTests {
 
         @Override
         public Long create(AdminAccountCommand command, String passwordHash) {
+            if (duplicateOnCreate) {
+                throw new DuplicateKeyException("Duplicate entry");
+            }
             this.createdCommand = command;
             this.createdPasswordHash = passwordHash;
             this.createdCommands.add(command);

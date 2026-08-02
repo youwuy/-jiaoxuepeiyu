@@ -19,6 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +60,9 @@ public class AdminAccountService {
     @Transactional
     public Long createTeacher(AdminAccountCommand command) {
         AdminAccountCommand normalized = normalized(command, "teacher", true);
+        ensureAccountNoAvailable(normalized.getAccountNo());
         String passwordHash = passwordHasher.hash(requireInitialPassword());
-        Long userId = repository.create(normalized, passwordHash);
+        Long userId = createAccount(normalized, passwordHash);
         repository.replaceRoles(userId, normalized.getRoleIds());
         repository.replaceManagedOrgs(userId, normalized.getManagedOrgIds());
         repository.replaceTeachingClasses(userId, normalized.getTeachingClassIds());
@@ -70,8 +72,9 @@ public class AdminAccountService {
     @Transactional
     public Long createStudent(AdminAccountCommand command) {
         AdminAccountCommand normalized = normalized(command, "student", true);
+        ensureAccountNoAvailable(normalized.getAccountNo());
         String passwordHash = passwordHasher.hash(requireInitialPassword());
-        return repository.create(normalized, passwordHash);
+        return createAccount(normalized, passwordHash);
     }
 
     @Transactional
@@ -369,6 +372,22 @@ public class AdminAccountService {
             throw new BusinessException(500, "Initial password is not configured");
         }
         return initialPassword;
+    }
+
+    private void ensureAccountNoAvailable(String accountNo) {
+        List<String> accountNos = new ArrayList<String>();
+        accountNos.add(accountNo);
+        if (!repository.findExistingAccountNos(accountNos).isEmpty()) {
+            throw new BusinessException(400, "Account number already exists");
+        }
+    }
+
+    private Long createAccount(AdminAccountCommand command, String passwordHash) {
+        try {
+            return repository.create(command, passwordHash);
+        } catch (DuplicateKeyException exception) {
+            throw new BusinessException(400, "Account number already exists");
+        }
     }
 
     private String like(String value) {
