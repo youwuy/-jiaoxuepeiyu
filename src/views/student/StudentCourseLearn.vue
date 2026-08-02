@@ -198,8 +198,8 @@ async function syncCoursewareProgress(item: CourseCatalogItem) {
     const requiredSeconds = (item.minDurationMinutes ?? 0) * 60;
     const studiedSeconds = Math.max(item.learnedSeconds ?? 0, Math.min(requiredSeconds, 60));
     await updateCoursewareProgress(courseId.value, contentId, studiedSeconds, item.status === 'completed');
-  } catch {
-    ElMessage.warning('学习进度暂未同步，稍后会继续使用本地展示');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '学习进度同步失败');
   } finally {
     progressSyncingIds.value = progressSyncingIds.value.filter((id) => id !== item.id);
   }
