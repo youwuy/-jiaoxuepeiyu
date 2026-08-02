@@ -312,9 +312,6 @@ import {
 import StudentShell from '../../components/student/StudentShell.vue';
 import {
   calculateWeightedScore,
-  mockArchives,
-  mockMessages,
-  mockScoreParts,
   summarizeUnreadMessages,
   type SemesterScore,
   type ScorePart,
@@ -388,16 +385,16 @@ const dialogVisible = computed({
 });
 
 const student = ref({
-  name: '张林林',
-  className: '城轨运营2301班',
-  studentId: '20240301001',
+  name: '',
+  className: '',
+  studentId: '',
   phone: '',
   idCard: ''
 });
-const scoreParts = ref<ScorePart[]>(mockScoreParts);
+const scoreParts = ref<ScorePart[]>([]);
 const semesterScores = ref<SemesterScore[]>([]);
-const messages = ref<StudentMessage[]>(mockMessages);
-const archives = ref<TrainingArchive[]>(mockArchives);
+const messages = ref<StudentMessage[]>([]);
+const archives = ref<TrainingArchive[]>([]);
 const weightedScore = computed(() => calculateWeightedScore(scoreParts.value));
 
 const profileTabs: ProfileMenuItem[] = [
@@ -634,12 +631,16 @@ onMounted(async () => {
   try {
     const profile = await fetchStudentProfile();
     student.value = profile.student ? { ...student.value, ...profile.student } : student.value;
-    scoreParts.value = profile.scoreParts && profile.scoreParts.length > 0 ? profile.scoreParts : scoreParts.value;
-    semesterScores.value = profile.semesterScores && profile.semesterScores.length > 0 ? profile.semesterScores : semesterScores.value;
-    messages.value = profile.messages && profile.messages.length > 0 ? profile.messages : messages.value;
-    archives.value = profile.archives && profile.archives.length > 0 ? profile.archives : archives.value;
-  } catch {
-    student.value = student.value;
+    scoreParts.value = profile.scoreParts ?? [];
+    semesterScores.value = profile.semesterScores ?? [];
+    messages.value = profile.messages ?? [];
+    archives.value = profile.archives ?? [];
+  } catch (error) {
+    scoreParts.value = [];
+    semesterScores.value = [];
+    messages.value = [];
+    archives.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '个人中心数据加载失败');
   }
 });
 </script>

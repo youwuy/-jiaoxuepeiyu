@@ -1,7 +1,8 @@
 <template>
   <StudentShell eyebrow="课程学习" title="课程详情">
     <section class="learn-workbench">
-      <aside class="course-sidebar">
+      <template v-if="course">
+        <aside class="course-sidebar">
         <button class="back-link" @click="router.push('/student/courses')">
           <el-icon><ArrowLeft /></el-icon>
           返回课程列表
@@ -87,7 +88,9 @@
             <el-button type="primary" :disabled="selectedItem.status === 'locked'">进入作业</el-button>
           </div>
         </section>
-      </main>
+        </main>
+      </template>
+      <div v-else class="course-empty-state">课程详情加载失败或暂无数据</div>
     </section>
   </StudentShell>
 </template>
@@ -113,17 +116,17 @@ import stationPreview from '../../assets/course-station-preview.png';
 import { fetchStudentCourse, updateCoursewareProgress } from '../../api/student';
 import {
   calculateCourseProgress,
-  mockStudentCourses,
   type CourseCatalogItem,
   type CourseChapter,
+  type StudentCourse,
   type CourseItemType
 } from '../../features/student/courses';
 
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
-const course = ref(mockStudentCourses.find((item) => item.id === courseId.value) ?? mockStudentCourses[0]);
-const progress = computed(() => calculateCourseProgress(course.value));
+const course = ref<StudentCourse | null>(null);
+const progress = computed(() => (course.value ? calculateCourseProgress(course.value) : 0));
 const selectedItem = ref<CourseCatalogItem>();
 const progressSyncingIds = ref<string[]>([]);
 
@@ -141,14 +144,19 @@ const itemTypeText: Record<CourseItemType, string> = {
 onMounted(async () => {
   try {
     course.value = await fetchStudentCourse(courseId.value);
-  } catch {
-    ElMessage.warning('后端课程详情接口暂不可用，已展示本地示例数据');
+  } catch (error) {
+    course.value = null;
+    ElMessage.error(error instanceof Error ? error.message : '课程详情加载失败');
   }
 });
 
 watch(
   course,
   (nextCourse) => {
+    if (!nextCourse) {
+      selectedItem.value = undefined;
+      return;
+    }
     selectedItem.value =
       nextCourse.chapters.flatMap((chapter) => chapter.items).find((item) => item.status === 'current') ??
       nextCourse.chapters.flatMap((chapter) => chapter.items).find((item) => item.status !== 'locked') ??

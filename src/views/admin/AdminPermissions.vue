@@ -176,7 +176,6 @@ import {
   findAdminPermissionById,
   flattenAdminPermissionTree,
   flattenAllAdminPermissions,
-  mockAdminPermissions,
   permissionTypeLabels,
   type AdminPermissionRow
 } from '../../features/admin/permissions';
@@ -191,8 +190,8 @@ const currentPage = ref(1);
 const drawerVisible = ref(false);
 const drawerMode = ref<DrawerMode>('create');
 const editingPermission = ref<AdminPermissionRow | null>(null);
-const permissionTree = ref<AdminPermissionNode[]>(clonePermissionTree(mockAdminPermissions));
-const usingFallbackPermissions = ref(true);
+const permissionTree = ref<AdminPermissionNode[]>([]);
+const usingFallbackPermissions = ref(false);
 const expandedIds = ref(new Set<number>([1, 2, 12, 13]));
 
 const form = reactive<AdminPermissionCommand>({
@@ -258,13 +257,6 @@ function permissionIcon(type: AdminPermissionType) {
     return Files;
   }
   return Menu;
-}
-
-function clonePermissionTree(tree: AdminPermissionNode[]): AdminPermissionNode[] {
-  return tree.map((item) => ({
-    ...item,
-    children: item.children ? clonePermissionTree(item.children) : undefined
-  }));
 }
 
 function toggleExpanded(permissionId: number) {
@@ -585,15 +577,16 @@ async function loadPermissionTree() {
   loading.value = true;
   try {
     const result = await fetchAdminPermissionTree();
-    usingFallbackPermissions.value = result.length === 0;
-    permissionTree.value = result.length > 0 ? result : clonePermissionTree(mockAdminPermissions);
+    usingFallbackPermissions.value = false;
+    permissionTree.value = result;
     expandedIds.value = buildDefaultExpandedIds(permissionTree.value);
     currentPage.value = 1;
-  } catch {
-    usingFallbackPermissions.value = true;
-    permissionTree.value = clonePermissionTree(mockAdminPermissions);
-    expandedIds.value = buildDefaultExpandedIds(mockAdminPermissions);
+  } catch (error) {
+    usingFallbackPermissions.value = false;
+    permissionTree.value = [];
+    expandedIds.value = new Set();
     currentPage.value = 1;
+    ElMessage.error(error instanceof Error ? error.message : '功能权限树加载失败');
   } finally {
     loading.value = false;
   }

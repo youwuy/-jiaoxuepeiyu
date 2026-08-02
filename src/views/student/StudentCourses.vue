@@ -86,8 +86,8 @@ import {
   buildCourseViews,
   filterCoursesByKeyword,
   formatOpenPeriod,
-  mockStudentCourses,
   type CourseStatus,
+  type StudentCourse,
   type StudentCourseView
 } from '../../features/student/courses';
 
@@ -95,7 +95,7 @@ const router = useRouter();
 const keyword = ref('');
 const loading = ref(false);
 const currentTime = new Date('2025-04-10T08:00:00');
-const courses = ref(mockStudentCourses);
+const courses = ref<StudentCourse[]>([]);
 
 const statusMeta: Record<CourseStatus, { label: string; action: string }> = {
   learning: {
@@ -119,8 +119,9 @@ onMounted(async () => {
   loading.value = true;
   try {
     courses.value = await fetchStudentCourses();
-  } catch {
-    ElMessage.warning('后端课程接口暂不可用，已展示本地示例数据');
+  } catch (error) {
+    courses.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '课程列表加载失败');
   } finally {
     loading.value = false;
   }

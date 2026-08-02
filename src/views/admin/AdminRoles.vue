@@ -189,14 +189,7 @@ import {
   type AdminRoleCommand,
   type AdminRoleQuery
 } from '../../api/admin-role';
-import { mockAdminPermissions } from '../../features/admin/permissions';
-import {
-  dataScopeLabels,
-  formatRoleTime,
-  isBuiltInRole,
-  mockAdminRoles,
-  toRolePage
-} from '../../features/admin/roles';
+import { dataScopeLabels, formatRoleTime, isBuiltInRole } from '../../features/admin/roles';
 
 type FormMode = 'create' | 'edit';
 
@@ -220,14 +213,14 @@ const defaultActions = ['列表', '新增', '删除', '修改', '启用', '禁�
 const loading = ref(false);
 const saving = ref(false);
 const busyId = ref<number | null>(null);
-const roles = ref<AdminRole[]>(mockAdminRoles);
-const permissionTree = ref<AdminPermissionNode[]>(mockAdminPermissions);
+const roles = ref<AdminRole[]>([]);
+const permissionTree = ref<AdminPermissionNode[]>([]);
 const roleFormPageVisible = ref(false);
 const formMode = ref<FormMode>('create');
 const editingRole = ref<AdminRole | null>(null);
 const detailVisible = ref(false);
 const detailRole = ref<AdminRole | null>(null);
-const page = reactive({ page: 1, pageSize: 20, total: mockAdminRoles.length });
+const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminRoleQuery>({});
 
 const emptyForm = (): AdminRoleCommand => ({
@@ -248,9 +241,10 @@ function currentQuery() {
 async function loadPermissions() {
   try {
     const nextTree = await fetchAdminPermissionTree();
-    permissionTree.value = nextTree.length > 0 ? nextTree : mockAdminPermissions;
-  } catch {
-    permissionTree.value = mockAdminPermissions;
+    permissionTree.value = nextTree;
+  } catch (error) {
+    permissionTree.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '角色权限树加载失败');
   }
 }
 
@@ -262,10 +256,10 @@ async function loadRoles() {
     page.total = result.total;
     page.page = result.page;
     page.pageSize = result.pageSize;
-  } catch {
-    const fallback = toRolePage(page.page, page.pageSize);
-    roles.value = fallback.records;
-    page.total = fallback.total;
+  } catch (error) {
+    roles.value = [];
+    page.total = 0;
+    ElMessage.error(error instanceof Error ? error.message : '角色列表加载失败');
   } finally {
     loading.value = false;
   }

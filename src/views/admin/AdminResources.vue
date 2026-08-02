@@ -489,118 +489,6 @@ function createEmptyForm(): ResourceForm {
   };
 }
 
-function mockResources(): AdminResource[] {
-  return [
-    {
-      resourceId: 5001,
-      resourceName: '城轨运营基础教学课件',
-      resourceType: '演示文稿',
-      coverUrl: coverForResourceType('演示文稿'),
-      fileUrl: 'https://example.com/resource/5001',
-      previewUrl: 'https://example.com/resource/5001/preview',
-      fileName: '城轨运营基础教学课件.pptx',
-      fileSize: 18600,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '城市轨道交通概论',
-      uploaderName: '王老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 2,
-      publicVersion: 2,
-      updatedAt: '2025-03-18 10:20'
-    },
-    {
-      resourceId: 5002,
-      resourceName: 'CBTC系统原理讲解视频',
-      resourceType: '视频',
-      coverUrl: coverForResourceType('视频'),
-      fileUrl: 'https://example.com/resource/5002',
-      previewUrl: 'https://example.com/resource/5002/preview',
-      fileName: 'CBTC系统原理讲解视频.mp4',
-      fileSize: 246000,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '城市轨道交通信号系统',
-      uploaderName: '李老师',
-      publicStatus: 'REVIEWING',
-      currentVersion: 1,
-      publicVersion: 1,
-      updatedAt: '2025-03-20 14:05'
-    },
-    {
-      resourceId: 5003,
-      resourceName: '车辆构造高清图集',
-      resourceType: '图片',
-      coverUrl: coverForResourceType('图片'),
-      fileUrl: 'https://example.com/resource/5003',
-      previewUrl: 'https://example.com/resource/5003/preview',
-      fileName: '车辆构造高清图集.zip',
-      fileSize: 32400,
-      majorId: 2,
-      majorName: '城市轨道交通车辆技术',
-      courseName: '城轨车辆构造',
-      uploaderName: '赵老师',
-      publicStatus: 'DRAFT',
-      currentVersion: 1,
-      publicVersion: 1,
-      updatedAt: '2025-03-21 09:48'
-    },
-    {
-      resourceId: 5004,
-      resourceName: '车站运营管理标准手册',
-      resourceType: '文本文档',
-      coverUrl: coverForResourceType('文本文档'),
-      fileUrl: 'https://example.com/resource/5004',
-      previewUrl: 'https://example.com/resource/5004/preview',
-      fileName: '车站运营管理标准手册.pdf',
-      fileSize: 9800,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '车站运营管理',
-      uploaderName: '王老师',
-      publicStatus: 'REVIEWING',
-      currentVersion: 3,
-      publicVersion: 2,
-      updatedAt: '2025-03-16 11:20'
-    },
-    {
-      resourceId: 5005,
-      resourceName: '供电系统故障案例分析',
-      resourceType: '音频',
-      coverUrl: coverForResourceType('音频'),
-      fileUrl: 'https://example.com/resource/5005',
-      previewUrl: 'https://example.com/resource/5005/preview',
-      fileName: '供电系统故障案例分析.mp3',
-      fileSize: 86200,
-      majorId: 3,
-      majorName: '城市轨道交通机电技术',
-      courseName: '城轨供电系统',
-      uploaderName: '陈老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 2,
-      publicVersion: 2,
-      updatedAt: '2025-03-15 16:10'
-    },
-    {
-      resourceId: 5006,
-      resourceName: '车站值班员实训试题库',
-      resourceType: '实训试题',
-      coverUrl: coverForResourceType('实训试题'),
-      fileUrl: 'https://example.com/resource/5006',
-      previewUrl: 'https://example.com/resource/5006/preview',
-      fileName: '车站值班员实训试题库.xlsx',
-      fileSize: 12500,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '信号设备维护',
-      uploaderName: '刘老师',
-      publicStatus: 'DRAFT',
-      currentVersion: 1,
-      publicVersion: 1,
-      updatedAt: '2025-03-13 18:15'
-    }
-  ];
-}
 
 function mapResourceRow(resource: AdminResource): ResourceRow {
   const typeLabel = resource.resourceType || '资源';
@@ -900,8 +788,9 @@ async function loadResources() {
     };
     const result = await fetchAdminResources(query);
     resources.value = result.records.map(mapResourceRow);
-  } catch {
-    resources.value = mockResources().map(mapResourceRow);
+  } catch (error) {
+    resources.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '个人资源库加载失败');
   } finally {
     loading.value = false;
     resetSelection();

@@ -506,130 +506,6 @@ const uploaderOptions = computed<ResourceOption[]>(() => {
   return Array.from(seen, ([value, label]) => ({ value, label }));
 });
 
-function mockResources(): AdminResource[] {
-  return [
-    {
-      resourceId: 9101,
-      sourceResourceId: 5001,
-      resourceName: '城轨运营基础教学课件',
-      resourceType: '演示文稿',
-      coverUrl: coverForResourceType('演示文稿'),
-      fileUrl: 'https://example.com/public/9101',
-      previewUrl: 'https://example.com/public/9101/preview',
-      fileName: '城轨运营基础教学课件-v2.pptx',
-      fileSize: 18600,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '城市轨道交通概论',
-      uploaderName: '王老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 2,
-      publicVersion: 2,
-      createdAt: '2025-03-18 10:20',
-      updatedAt: '2025-03-18 10:20'
-    },
-    {
-      resourceId: 9102,
-      sourceResourceId: 5002,
-      resourceName: 'CBTC系统原理讲解视频',
-      resourceType: '视频',
-      coverUrl: coverForResourceType('视频'),
-      fileUrl: 'https://example.com/public/9102',
-      previewUrl: 'https://example.com/public/9102/preview',
-      fileName: 'CBTC系统原理讲解视频.mp4',
-      fileSize: 246000,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '城市轨道交通信号系统',
-      uploaderName: '李老师',
-      publicStatus: 'REVIEWING',
-      currentVersion: 1,
-      publicVersion: 1,
-      createdAt: '2025-03-20 14:05',
-      updatedAt: '2025-03-20 14:05'
-    },
-    {
-      resourceId: 9103,
-      sourceResourceId: 5003,
-      resourceName: '车辆构造高清图集',
-      resourceType: '图片',
-      coverUrl: coverForResourceType('图片'),
-      fileUrl: 'https://example.com/public/9103',
-      previewUrl: 'https://example.com/public/9103/preview',
-      fileName: '车辆构造高清图集.zip',
-      fileSize: 32400,
-      majorId: 2,
-      majorName: '城市轨道交通车辆技术',
-      courseName: '城轨车辆构造',
-      uploaderName: '赵老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 2,
-      publicVersion: 2,
-      createdAt: '2025-03-21 09:48',
-      updatedAt: '2025-03-21 09:48'
-    },
-    {
-      resourceId: 9104,
-      sourceResourceId: 5004,
-      resourceName: '车站运营管理标准手册',
-      resourceType: '文本文档',
-      coverUrl: coverForResourceType('文本文档'),
-      fileUrl: 'https://example.com/public/9104',
-      previewUrl: 'https://example.com/public/9104/preview',
-      fileName: '车站运营管理标准手册.pdf',
-      fileSize: 9800,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '车站运营管理',
-      uploaderName: '王老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 3,
-      publicVersion: 2,
-      createdAt: '2025-03-16 11:20',
-      updatedAt: '2025-03-16 11:20'
-    },
-    {
-      resourceId: 9105,
-      sourceResourceId: 5005,
-      resourceName: '供电系统故障案例分析',
-      resourceType: '音频',
-      coverUrl: coverForResourceType('音频'),
-      fileUrl: 'https://example.com/public/9105',
-      previewUrl: 'https://example.com/public/9105/preview',
-      fileName: '供电系统故障案例分析.mp3',
-      fileSize: 86200,
-      majorId: 3,
-      majorName: '城市轨道交通机电技术',
-      courseName: '城轨供电系统',
-      uploaderName: '陈老师',
-      publicStatus: 'SUSPENDED',
-      currentVersion: 2,
-      publicVersion: 2,
-      createdAt: '2025-03-15 16:10',
-      updatedAt: '2025-03-15 16:10'
-    },
-    {
-      resourceId: 9106,
-      sourceResourceId: 5006,
-      resourceName: '车站值班员实训试题库',
-      resourceType: '实训试题',
-      coverUrl: coverForResourceType('实训试题'),
-      fileUrl: 'https://example.com/public/9106',
-      previewUrl: 'https://example.com/public/9106/preview',
-      fileName: '车站值班员实训试题库.xlsx',
-      fileSize: 12500,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '信号设备维护',
-      uploaderName: '刘老师',
-      publicStatus: 'PUBLISHED',
-      currentVersion: 1,
-      publicVersion: 1,
-      createdAt: '2025-03-13 18:15',
-      updatedAt: '2025-03-13 18:15'
-    }
-  ];
-}
 
 function normalizeStatus(value?: string): ResourceStatus {
   const upper = String(value || '').toUpperCase();
@@ -844,21 +720,17 @@ async function loadResources() {
   try {
     const result = await fetchAdminPublicResources(buildQuery());
     const mapped = result.records.map(mapResourceRow);
-    resources.value = mapped.length > 0 ? mapped : mockResources().map(mapResourceRow);
+    resources.value = mapped;
     if (!selectedResource.value || !resources.value.some((item) => item.resourceId === selectedResource.value?.resourceId)) {
       selectedResource.value = resources.value[0] ?? null;
     }
     if (selectedResource.value) {
       void selectResource(selectedResource.value);
     }
-  } catch {
-    resources.value = mockResources().map(mapResourceRow);
-    if (!selectedResource.value || !resources.value.some((item) => item.resourceId === selectedResource.value?.resourceId)) {
-      selectedResource.value = resources.value[0] ?? null;
-    }
-    if (selectedResource.value) {
-      void selectResource(selectedResource.value);
-    }
+  } catch (error) {
+    resources.value = [];
+    selectedResource.value = null;
+    ElMessage.error(error instanceof Error ? error.message : '公开资源库加载失败');
   } finally {
     loading.value = false;
     selectedIds.value = [];

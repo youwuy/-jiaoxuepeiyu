@@ -551,12 +551,8 @@ import {
   compactList,
   flattenOrgOptions,
   formatAccountTime,
-  mockAccountOrgTree,
   mockAdminAccountTabs,
-  mockAdminClasses,
-  mockAdminRoles,
-  normalizeRoleOptions,
-  toAccountPage
+  normalizeRoleOptions
 } from '../../features/admin/accounts';
 
 type FormMode = 'create' | 'edit';
@@ -572,9 +568,9 @@ const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminAccountQuery>({});
 const draft = reactive<AdminAccountQuery>({ enabled: null });
 const selectedOrgId = ref(0);
-const orgTree = ref(mockAccountOrgTree);
-const classOptions = ref<AdminClassOption[]>(mockAdminClasses);
-const roleOptions = ref<AdminRoleOption[]>(mockAdminRoles);
+const orgTree = ref<AdminOrgNode[]>([]);
+const classOptions = ref<AdminClassOption[]>([]);
+const roleOptions = ref<AdminRoleOption[]>([]);
 const teacherFormPageVisible = ref(false);
 const studentFormPageVisible = ref(false);
 const detailPageVisible = ref(false);
@@ -652,20 +648,23 @@ function currentQuery() {
 async function loadOptions() {
   try {
     orgTree.value = await fetchAdminOrgTree();
-  } catch {
-    orgTree.value = mockAccountOrgTree;
+  } catch (error) {
+    orgTree.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '组织选项加载失败');
   }
 
   try {
     classOptions.value = await fetchAdminClasses();
-  } catch {
-    classOptions.value = mockAdminClasses;
+  } catch (error) {
+    classOptions.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '班级选项加载失败');
   }
 
   try {
     roleOptions.value = normalizeRoleOptions(await fetchAdminRoles());
-  } catch {
-    roleOptions.value = mockAdminRoles;
+  } catch (error) {
+    roleOptions.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '角色选项加载失败');
   }
 }
 
@@ -679,11 +678,11 @@ async function loadAccounts() {
     page.page = result.page;
     page.pageSize = result.pageSize;
     updateTabCount(result.total);
-  } catch {
-    const fallback = toAccountPage(activeKind.value, page.page, page.pageSize);
-    accounts.value = fallback.records;
-    page.total = fallback.total;
-    updateTabCount(fallback.total);
+  } catch (error) {
+    accounts.value = [];
+    page.total = 0;
+    updateTabCount(0);
+    ElMessage.error(error instanceof Error ? error.message : '用户列表加载失败');
   } finally {
     loading.value = false;
   }

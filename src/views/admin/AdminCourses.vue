@@ -257,7 +257,6 @@ import {
 import {
   buildAdminCourseViews,
   formatCourseContentTitle as formatContentTitle,
-  mockAdminCourses,
   type AdminCourseRecord,
   type AdminCourseView
 } from '../../features/admin/courses';
@@ -272,7 +271,7 @@ const loading = ref(false);
 const detailLoading = ref(false);
 const logsLoading = ref(false);
 
-const courses = ref<AdminCourseRecord[]>(mockAdminCourses);
+const courses = ref<AdminCourseRecord[]>([]);
 const academicYears = ref<AdminAcademicYearOption[]>([]);
 const classOptions = ref<AdminClassOption[]>([]);
 const selectedCourse = ref<AdminCourseView | null>(null);
@@ -343,12 +342,13 @@ async function loadCourses() {
       return;
     }
 
-    courses.value = result.records.length > 0 ? result.records : mockAdminCourses;
-    total.value = result.records.length > 0 ? result.total : mockAdminCourses.length;
-  } catch {
+    courses.value = result.records;
+    total.value = result.total;
+  } catch (error) {
     if (currentRequest === requestId) {
-      courses.value = mockAdminCourses;
-      total.value = mockAdminCourses.length;
+      courses.value = [];
+      total.value = 0;
+      ElMessage.error(error instanceof Error ? error.message : '教学课程列表加载失败');
     }
   } finally {
     if (currentRequest === requestId) {

@@ -196,20 +196,7 @@ const courseStats = ref<AdminCourseStatistics>({
   averageScore: 0
 });
 
-const students = ref<StudentScoreRow[]>([
-  { name: '张明远', studentNo: '2024CGXH001', className: '信号1班', progress: 92, progressScore: 9.2, assignmentCount: 8, assignmentScore: 75 },
-  { name: '李晓婷', studentNo: '2024CGXH002', className: '信号1班', progress: 85, progressScore: 8.5, assignmentCount: 7, assignmentScore: 68 },
-  { name: '王志强', studentNo: '2024CGXH003', className: '信号2班', progress: 78, progressScore: 7.8, assignmentCount: 6, assignmentScore: 54 },
-  { name: '赵雨涵', studentNo: '2024CGXH004', className: '信号1班', progress: 96, progressScore: 9.6, assignmentCount: 8, assignmentScore: 79 },
-  { name: '陈浩然', studentNo: '2024CGXH005', className: '信号2班', progress: 45, progressScore: 4.5, assignmentCount: 3, assignmentScore: 0 },
-  { name: '刘思琪', studentNo: '2024CGXH006', className: '信号1班', progress: 88, progressScore: 8.8, assignmentCount: 7, assignmentScore: 0 },
-  { name: '周子轩', studentNo: '2024CGXH007', className: '信号2班', progress: 62, progressScore: 6.2, assignmentCount: 5, assignmentScore: 39 },
-  { name: '吴嘉豪', studentNo: '2024CGXH008', className: '信号1班', progress: 100, progressScore: 10, assignmentCount: 8, assignmentScore: 80 },
-  { name: '孙悦然', studentNo: '2024CGXH009', className: '信号3班', progress: 70, progressScore: 7, assignmentCount: 5, assignmentScore: 43 },
-  { name: '黄俊杰', studentNo: '2024CGXH010', className: '信号3班', progress: 35, progressScore: 3.5, assignmentCount: 2, assignmentScore: 12 },
-  { name: '马欣怡', studentNo: '2024CGXH011', className: '信号1班', progress: 82, progressScore: 8.2, assignmentCount: 7, assignmentScore: 66 },
-  { name: '朱博文', studentNo: '2024CGXH012', className: '信号2班', progress: 58, progressScore: 5.8, assignmentCount: 4, assignmentScore: 31 }
-]);
+const students = ref<StudentScoreRow[]>([]);
 
 const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredStudents.value.length / pageSize.value)));

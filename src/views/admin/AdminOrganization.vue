@@ -152,15 +152,15 @@ import {
   type AdminOrgCommand,
   type AdminOrgNode
 } from '../../api/admin-org';
-import { collectAdminOrgIds, countAdminOrgs, flattenAdminOrgTree, mockAdminOrgs, type AdminOrgRow } from '../../features/admin/org';
+import { collectAdminOrgIds, countAdminOrgs, flattenAdminOrgTree, type AdminOrgRow } from '../../features/admin/org';
 
 type DialogMode = 'root' | 'child' | 'edit';
 
 const loading = ref(false);
 const saving = ref(false);
 const busyId = ref<number | null>(null);
-const orgTree = ref<AdminOrgNode[]>(mockAdminOrgs);
-const expandedIds = ref(new Set<number>(collectAdminOrgIds(mockAdminOrgs)));
+const orgTree = ref<AdminOrgNode[]>([]);
+const expandedIds = ref(new Set<number>());
 const draftKeyword = ref('');
 const keyword = ref('');
 const dialogVisible = ref(false);
@@ -336,11 +336,12 @@ async function loadOrgTree() {
   loading.value = true;
   try {
     const result = await fetchAdminOrgTree();
-    orgTree.value = result.length > 0 ? result : mockAdminOrgs;
+    orgTree.value = result;
     expandedIds.value = new Set(collectAdminOrgIds(orgTree.value));
-  } catch {
-    orgTree.value = mockAdminOrgs;
-    expandedIds.value = new Set(collectAdminOrgIds(mockAdminOrgs));
+  } catch (error) {
+    orgTree.value = [];
+    expandedIds.value = new Set();
+    ElMessage.error(error instanceof Error ? error.message : '组织树加载失败');
   } finally {
     loading.value = false;
   }

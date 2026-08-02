@@ -733,133 +733,6 @@ const pagedApplications = computed(() => filteredApplications.value.slice((page.
 const allCurrentSelected = computed(() => pagedApplications.value.length > 0 && pagedApplications.value.every((item) => selectedIds.value.includes(item.applicationId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
 
-function mockApplications(): AdminPublicApplication[] {
-  return [
-    {
-      applicationId: 8101,
-      publicResourceId: 9101,
-      resourceId: 5101,
-      resourceVersion: 3,
-      resourceName: '城轨运营基础教学课件',
-      resourceType: '演示文稿',
-      coverUrl: coverForResourceType('演示文稿'),
-      fileUrl: 'https://example.com/resource/5101',
-      previewUrl: 'https://example.com/resource/5101/preview',
-      fileName: '城轨运营基础教学课件-v3.pptx',
-      fileSize: 18600,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '城市轨道交通概论',
-      applicantName: '王老师',
-      reviewerName: '周老师',
-      reviewComment: '内容完整，适合公开。',
-      publicStatus: 'APPROVED',
-      appliedAt: '2025-03-18 10:20',
-      reviewedAt: '2025-03-18 15:20'
-    },
-    {
-      applicationId: 8102,
-      publicResourceId: 9102,
-      resourceId: 5102,
-      resourceVersion: 1,
-      resourceName: 'CBTC系统原理讲解视频',
-      resourceType: '视频',
-      coverUrl: coverForResourceType('视频'),
-      fileUrl: 'https://example.com/resource/5102',
-      previewUrl: 'https://example.com/resource/5102/preview',
-      fileName: 'CBTC系统原理讲解视频.mp4',
-      fileSize: 246000,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '城市轨道交通信号系统',
-      applicantName: '李老师',
-      publicStatus: 'PENDING',
-      appliedAt: '2025-03-20 14:05'
-    },
-    {
-      applicationId: 8103,
-      publicResourceId: 9103,
-      resourceId: 5103,
-      resourceVersion: 2,
-      resourceName: '车辆构造高清图集',
-      resourceType: '图片',
-      coverUrl: coverForResourceType('图片'),
-      fileUrl: 'https://example.com/resource/5103',
-      previewUrl: 'https://example.com/resource/5103/preview',
-      fileName: '车辆构造高清图集.zip',
-      fileSize: 32400,
-      majorId: 2,
-      majorName: '城市轨道交通车辆技术',
-      courseName: '城轨车辆构造',
-      applicantName: '赵老师',
-      reviewerName: '陈老师',
-      reviewComment: '图片清晰，但说明文档还要补充。',
-      publicStatus: 'REJECTED',
-      appliedAt: '2025-03-21 09:48',
-      reviewedAt: '2025-03-21 11:10'
-    },
-    {
-      applicationId: 8104,
-      publicResourceId: 9104,
-      resourceId: 5104,
-      resourceVersion: 1,
-      resourceName: '车站运营管理标准手册',
-      resourceType: '文本文档',
-      coverUrl: coverForResourceType('文本文档'),
-      fileUrl: 'https://example.com/resource/5104',
-      previewUrl: 'https://example.com/resource/5104/preview',
-      fileName: '车站运营管理标准手册.pdf',
-      fileSize: 9800,
-      majorId: 1,
-      majorName: '城市轨道交通运营管理',
-      courseName: '车站运营管理',
-      applicantName: '王老师',
-      publicStatus: 'PENDING',
-      appliedAt: '2025-03-16 11:20'
-    },
-    {
-      applicationId: 8105,
-      publicResourceId: 9105,
-      resourceId: 5105,
-      resourceVersion: 4,
-      resourceName: '供电系统故障案例分析',
-      resourceType: '音频',
-      coverUrl: coverForResourceType('音频'),
-      fileUrl: 'https://example.com/resource/5105',
-      previewUrl: 'https://example.com/resource/5105/preview',
-      fileName: '供电系统故障案例分析.mp3',
-      fileSize: 86200,
-      majorId: 3,
-      majorName: '城市轨道交通机电技术',
-      courseName: '城轨供电系统',
-      applicantName: '陈老师',
-      reviewerName: '李老师',
-      reviewComment: '通过，内容与课程匹配。',
-      publicStatus: 'APPROVED',
-      appliedAt: '2025-03-15 16:10',
-      reviewedAt: '2025-03-16 09:12'
-    },
-    {
-      applicationId: 8106,
-      publicResourceId: 9106,
-      resourceId: 5106,
-      resourceVersion: 1,
-      resourceName: '车站值班员实训试题库',
-      resourceType: '实训试题',
-      coverUrl: coverForResourceType('实训试题'),
-      fileUrl: 'https://example.com/resource/5106',
-      previewUrl: 'https://example.com/resource/5106/preview',
-      fileName: '车站值班员实训试题库.xlsx',
-      fileSize: 12500,
-      majorId: 4,
-      majorName: '城市轨道交通通信信号技术',
-      courseName: '信号设备维护',
-      applicantName: '刘老师',
-      publicStatus: 'PENDING',
-      appliedAt: '2025-03-13 18:15'
-    }
-  ];
-}
 
 function normalizeStatus(value?: string): ApplicationStatus {
   const upper = String(value || '').toUpperCase();
@@ -1089,7 +962,7 @@ async function loadApplications() {
   try {
     const result = await fetchAdminPublicApplications(buildQuery());
     const mapped = result.records.map(mapApplicationRow);
-    applications.value = mapped.length > 0 ? mapped : mockApplications().map(mapApplicationRow);
+    applications.value = mapped;
     if (!selectedApplication.value || !applications.value.some((item) => item.applicationId === selectedApplication.value?.applicationId)) {
       selectedApplication.value = applications.value[0] ?? null;
     }
@@ -1097,15 +970,11 @@ async function loadApplications() {
     if (selectedApplication.value) {
       void loadApplicationDetail(selectedApplication.value);
     }
-  } catch {
-    applications.value = mockApplications().map(mapApplicationRow);
-    if (!selectedApplication.value || !applications.value.some((item) => item.applicationId === selectedApplication.value?.applicationId)) {
-      selectedApplication.value = applications.value[0] ?? null;
-    }
-    selectedIds.value = selectedIds.value.filter((id) => applications.value.some((item) => item.applicationId === id));
-    if (selectedApplication.value) {
-      void loadApplicationDetail(selectedApplication.value);
-    }
+  } catch (error) {
+    applications.value = [];
+    selectedApplication.value = null;
+    selectedIds.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '资源公开申请加载失败');
   } finally {
     loading.value = false;
   }

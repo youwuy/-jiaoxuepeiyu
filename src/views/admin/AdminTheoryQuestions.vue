@@ -421,42 +421,6 @@ function mapRow(item: AdminQuestion): QuestionRow {
   };
 }
 
-function mockQuestions(): AdminQuestion[] {
-  return [
-    {
-      questionId: 2101,
-      questionType: 'SINGLE',
-      title: '城市轨道交通中，CBTC系统全称是什么？其核心工作原理是什么？',
-      standardAnswer: 'A',
-      score: 2,
-      enabled: true,
-      creatorName: '张建国',
-      createdAt: '2025-01-15 14:30:22',
-      options: [
-        { optionKey: 'A', optionText: 'Communication-Based Train Control' },
-        { optionKey: 'B', optionText: 'Centralized Block Traffic Control' },
-        { optionKey: 'C', optionText: 'Computer-Based Train Communication' },
-        { optionKey: 'D', optionText: 'Continuous Braking Train Control' }
-      ]
-    },
-    {
-      questionId: 2102,
-      questionType: 'MULTIPLE',
-      title: '地铁车辆段的主要功能包括哪些？请列举至少四项。',
-      standardAnswer: 'ABCD',
-      score: 4,
-      enabled: true,
-      creatorName: '李明辉',
-      createdAt: '2025-01-14 10:15:08',
-      options: [
-        { optionKey: 'A', optionText: '车辆检修' },
-        { optionKey: 'B', optionText: '列车停放' },
-        { optionKey: 'C', optionText: '设备维护' },
-        { optionKey: 'D', optionText: '运营保障' }
-      ]
-    }
-  ];
-}
 
 function applyFilters() {
   applied.value = { ...draft };
@@ -556,9 +520,8 @@ async function saveQuestion() {
     }
     questionDialogVisible.value = false;
     await loadQuestions();
-  } catch {
-    ElMessage.success(editingId.value ? '试题已修改' : '试题已新增');
-    questionDialogVisible.value = false;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : (editingId.value ? '试题修改失败' : '试题新增失败'));
   } finally {
     saving.value = false;
   }
@@ -568,28 +531,24 @@ async function toggleEnabled(row: QuestionRow) {
   try {
     if (row.enabled) await disableAdminQuestion(row.questionId);
     else await enableAdminQuestion(row.questionId);
-  } catch {
-    // Local fallback for demo data.
+    row.enabled = !row.enabled;
+    ElMessage.success(row.enabled ? '试题已启用' : '试题已停用');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试题状态更新失败');
   }
-  row.enabled = !row.enabled;
 }
 
 async function batchEnable(enabled: boolean) {
-  await Promise.all(
-    selectedIds.value.map(async (id) => {
-      try {
-        if (enabled) await enableAdminQuestion(id);
-        else await disableAdminQuestion(id);
-      } catch {
-        // Local fallback for demo data.
-      }
-    })
-  );
-  questions.value.forEach((item) => {
-    if (selectedIds.value.includes(item.questionId)) item.enabled = enabled;
-  });
-  selectedIds.value = [];
-  ElMessage.success(enabled ? '已批量启用' : '已批量禁用');
+  try {
+    await Promise.all(selectedIds.value.map((id) => (enabled ? enableAdminQuestion(id) : disableAdminQuestion(id))));
+    questions.value.forEach((item) => {
+      if (selectedIds.value.includes(item.questionId)) item.enabled = enabled;
+    });
+    selectedIds.value = [];
+    ElMessage.success(enabled ? '已批量启用' : '已批量禁用');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '批量更新失败');
+  }
 }
 
 function openImport() {
@@ -641,19 +600,12 @@ async function loadQuestions() {
       pageSize: 999
     });
     const rows = result.records.map(mapRow).filter((item) => !applied.value.creatorName || item.creatorName === applied.value.creatorName);
-    questions.value = rows.length > 0 ? rows : mockQuestions().map(mapRow);
-    totalCount.value = result.total || questions.value.length;
-  } catch {
-    const keyword = applied.value.keyword.trim();
-    questions.value = mockQuestions()
-      .map(mapRow)
-      .filter((item) =>
-        (!keyword || item.title.includes(keyword)) &&
-        (!applied.value.creatorName || item.creatorName === applied.value.creatorName) &&
-        (applied.value.enabled === undefined || item.enabled === applied.value.enabled) &&
-        (!applied.value.questionType || item.questionTypeNormalized === applied.value.questionType)
-      );
-    totalCount.value = questions.value.length;
+    questions.value = rows;
+    totalCount.value = result.total || rows.length;
+  } catch (error) {
+    questions.value = [];
+    totalCount.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '理论试题加载失败');
   } finally {
     selectedIds.value = [];
     loading.value = false;

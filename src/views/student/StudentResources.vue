@@ -93,13 +93,13 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft, ArrowRight, Document, Headset, Picture, Search, User, VideoPlay } from '@element-plus/icons-vue';
 import { fetchStudentResources } from '../../api/student';
 import StudentShell from '../../components/student/StudentShell.vue';
-import { filterResources, mockResources, type StudentResource } from '../../features/student/resources';
+import { filterResources, type StudentResource } from '../../features/student/resources';
 
 const keyword = ref('');
 const category = ref('全部');
 const type = ref('全部');
 const loading = ref(false);
-const resources = ref(mockResources);
+const resources = ref<StudentResource[]>([]);
 const page = ref(1);
 const pageSize = 8;
 const categories = ['全部', '城市轨道交通运营管理', '城市轨道交通车辆技术', '城市轨道交通机电技术', '城市轨道交通通信信号技术'];
@@ -144,10 +144,11 @@ async function loadResources() {
       return;
     }
 
-    resources.value = remoteResources.length > 0 ? remoteResources : mockResources;
-  } catch {
+    resources.value = remoteResources;
+  } catch (error) {
     if (requestId === resourceRequestId) {
-      resources.value = mockResources;
+      resources.value = [];
+      ElMessage.error(error instanceof Error ? error.message : '学习资源加载失败');
     }
   } finally {
     if (requestId === resourceRequestId) {

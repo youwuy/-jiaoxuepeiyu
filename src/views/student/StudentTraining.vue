@@ -102,7 +102,6 @@ import {
 import StudentShell from '../../components/student/StudentShell.vue';
 import {
   filterTrainings,
-  mockTrainings,
   type StudentTraining,
   type StudentTrainingStep,
   type TrainingModeFilter,
@@ -114,8 +113,8 @@ const status = ref<TrainingStatus | 'all'>('all');
 const keyword = ref('');
 const loading = ref(false);
 const actionLoadingIds = ref<number[]>([]);
-const trainings = ref(mockTrainings);
-const expandedIds = ref<number[]>(mockTrainings.map((item) => item.id));
+const trainings = ref<StudentTraining[]>([]);
+const expandedIds = ref<number[]>([]);
 let trainingRequestId = 0;
 const modeOptions = [
   { label: '全部', value: 'all' },
@@ -151,12 +150,13 @@ async function loadTrainings() {
       return;
     }
 
-    trainings.value = remoteTrainings.length > 0 ? remoteTrainings : mockTrainings;
+    trainings.value = remoteTrainings;
     expandedIds.value = trainings.value.map((item) => item.id);
-  } catch {
+  } catch (error) {
     if (requestId === trainingRequestId) {
-      trainings.value = mockTrainings;
-      expandedIds.value = mockTrainings.map((item) => item.id);
+      trainings.value = [];
+      expandedIds.value = [];
+      ElMessage.error(error instanceof Error ? error.message : '实训列表加载失败');
     }
   } finally {
     if (requestId === trainingRequestId) {

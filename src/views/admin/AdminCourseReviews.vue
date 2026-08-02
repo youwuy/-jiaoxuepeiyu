@@ -159,6 +159,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import {
   ArrowLeft,
   ArrowRight,
@@ -214,21 +215,7 @@ const appliedFilters = ref({ ...filters });
 let requestId = 0;
 
 const classOptions = ref<AdminClassOption[]>([]);
-const mockRows: AssignmentReviewRow[] = [
-  { id: 1, studentName: '张明远', studentNo: '2024CGXH001', className: '信号1班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-10 14:32', reviewed: true, score: 92 },
-  { id: 2, studentName: '李晓婷', studentNo: '2024CGXH002', className: '信号1班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-11 09:15', reviewed: false, score: 92 },
-  { id: 3, studentName: '王志强', studentNo: '2024CGXH003', className: '信号2班', assignmentName: '1.1节作业', submitted: false, reviewed: false },
-  { id: 4, studentName: '赵雨涵', studentNo: '2024CGXH004', className: '信号1班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-09 16:48', reviewed: true, score: 88 },
-  { id: 5, studentName: '陈浩然', studentNo: '2024CGXH005', className: '信号2班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-12 10:20', reviewed: false, score: 92 },
-  { id: 6, studentName: '刘思琪', studentNo: '2024CGXH006', className: '信号1班', assignmentName: '1.3节作业', submitted: false, reviewed: false },
-  { id: 7, studentName: '周子轩', studentNo: '2024CGXH007', className: '信号2班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-08 11:05', reviewed: true, score: 75 },
-  { id: 8, studentName: '吴嘉豪', studentNo: '2024CGXH008', className: '信号1班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-13 08:42', reviewed: false, score: 92 },
-  { id: 9, studentName: '孙悦然', studentNo: '2024CGXH009', className: '信号3班', assignmentName: '1.1节作业', submitted: false, reviewed: false },
-  { id: 10, studentName: '黄俊杰', studentNo: '2024CGXH010', className: '信号3班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-07 15:30', reviewed: true, score: 68 },
-  { id: 11, studentName: '马欣怡', studentNo: '2024CGXH011', className: '信号1班', assignmentName: '1.1节作业', submitted: true, submittedAt: '2025-04-12 18:10', reviewed: false, score: 90 },
-  { id: 12, studentName: '朱博文', studentNo: '2024CGXH012', className: '信号2班', assignmentName: '1.3节作业', submitted: true, submittedAt: '2025-04-12 19:45', reviewed: true, score: 84 }
-];
-const rows = ref<AssignmentReviewRow[]>(mockRows);
+const rows = ref<AssignmentReviewRow[]>([]);
 
 const tabs = computed(() => [
   { key: 'all' as const, label: '全部', count: total.value, tone: 'all' },
@@ -362,10 +349,11 @@ async function loadRows() {
 
     rows.value = result.records.map(mapAttemptRow);
     total.value = result.total;
-  } catch {
+  } catch (error) {
     if (currentRequest === requestId) {
-      rows.value = mockRows;
-      total.value = mockRows.length;
+      rows.value = [];
+      total.value = 0;
+      ElMessage.error(error instanceof Error ? error.message : '作业批阅列表加载失败');
     }
   } finally {
     if (currentRequest === requestId) {
