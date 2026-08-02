@@ -87,6 +87,7 @@
 - 2026-08-02: Admin account single create now checks existing `sys_user.username` before insert and maps duplicate-key races to `Account number already exists`, so management user creation returns a clear 400 instead of raw database errors.
 - 2026-08-02: User updated backend delivery workflow: future backend changes should be pushed directly to remote `main` and deployed to server `8.130.35.250` under `/www/wwwroot/jiaoyu` using `sshpass` when deployment is requested or part of the backend handoff. Do not store the server password in repository files, memory, logs, or documentation.
 - 2026-08-02: Windows `sshpass-win32` is installed at `%LOCALAPPDATA%\Programs\sshpass-win32\sshpass.exe`; use `sshpass -e` with the user-level `SSHPASS` environment variable for server deployment commands.
+- 2026-08-02: Server `8.130.35.250` runs the backend through systemd service `jiaoyu-backend.service`, reading `/www/wwwroot/jiaoyu/config/backend.env` and `/www/wwwroot/jiaoyu/config/application.yml`; deploys should replace `/www/wwwroot/jiaoyu/app/jiaoxuepeiyu-backend.jar`, then use `systemctl restart jiaoyu-backend.service` and verify `/api/health`. Java 8 JDK and Maven 3.9.16 are installed/cached on the server for backend builds.
 
 ## Operational Notes
 
