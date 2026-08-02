@@ -25,7 +25,7 @@ export function normalizeStudentIdInput(value: string): string {
 }
 
 export function normalizePasswordInput(value: string): string {
-  return value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+  return value.slice(0, 64);
 }
 
 export function validateStudentLogin(mode: StudentLoginMode, form: StudentLoginForm): StudentLoginErrors {
