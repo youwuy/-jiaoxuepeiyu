@@ -1,0 +1,45 @@
+USE `jiaoxuepeiyu`;
+
+INSERT INTO `sys_permission`
+  (`id`, `parent_id`, `permission_name`, `permission_code`, `permission_type`, `route_path`, `visible`, `sort_order`)
+VALUES
+  (1, NULL, '系统基础设置', 'system', 'MENU', '/system', 1, 1),
+  (2, 1, '组织管理', 'system:org', 'PAGE', '/admin/organization', 1, 1),
+  (3, 2, '新增组织', 'system:org:create', 'BUTTON', NULL, 1, 1),
+  (4, 2, '编辑组织', 'system:org:update', 'BUTTON', NULL, 1, 2),
+  (5, 2, '注销组织', 'system:org:disable', 'BUTTON', NULL, 1, 3),
+  (6, NULL, '资源管理', 'resource', 'MENU', '/resource', 1, 2),
+  (7, 6, '个人资源库', 'resource:personal', 'PAGE', '/admin/personal-resource', 1, 1),
+  (8, 6, '资源公开申请', 'resource:public-apply', 'PAGE', '/admin/public-application', 1, 2),
+  (9, 6, '公开资源库', 'resource:public-library', 'PAGE', '/admin/public-resource', 1, 3),
+  (10, 6, '理论试题', 'resource:theory-question', 'PAGE', '/admin/theory-question', 1, 4),
+  (11, 6, '理论试卷', 'resource:theory-paper', 'PAGE', '/admin/theory-paper', 1, 5),
+  (12, NULL, '教学实训', 'teaching', 'MENU', '/teaching', 1, 3),
+  (13, 12, '教学课程', 'teaching:course', 'PAGE', '/admin/courses', 1, 1),
+  (14, 12, '实训组课', 'teaching:training', 'PAGE', '/admin/training', 1, 2),
+  (15, NULL, '角色管理', 'role', 'MENU', '/role', 1, 4),
+  (16, 15, '角色列表', 'role:list', 'PAGE', '/admin/roles', 1, 1),
+  (17, 15, '新增角色', 'role:create', 'BUTTON', NULL, 1, 2),
+  (18, 15, '编辑角色', 'role:update', 'BUTTON', NULL, 1, 3),
+  (19, 15, '删除角色', 'role:delete', 'BUTTON', NULL, 1, 4),
+  (20, NULL, '配置信息', 'config', 'MENU', '/config', 1, 5),
+  (21, 20, '学年学期', 'config:term', 'PAGE', '/admin/settings', 1, 1),
+  (22, 20, '专业管理', 'config:major', 'PAGE', '/admin/settings', 1, 2),
+  (23, 20, '班级管理', 'config:class', 'PAGE', '/admin/settings', 1, 3),
+  (24, NULL, '成绩统计', 'score', 'MENU', '/score', 1, 6),
+  (25, 24, '综合成绩', 'score:semester', 'PAGE', '/admin/semester-score', 1, 1),
+  (26, 24, '实训档案', 'score:archive', 'PAGE', '/admin/training-archive', 1, 2),
+  (27, 24, '设备效能分析', 'score:device', 'PAGE', '/admin/device-efficiency', 1, 3),
+  (28, NULL, '理论试题', 'exam', 'MENU', '/exam', 1, 7),
+  (29, 28, '题库管理', 'exam:question-bank', 'PAGE', '/admin/theory-question', 1, 1),
+  (30, 28, '试卷管理', 'exam:paper', 'PAGE', '/admin/theory-paper', 1, 2),
+  (31, 28, '考试发布', 'exam:publish', 'BUTTON', NULL, 1, 3),
+  (32, NULL, '权限日志', 'log', 'MENU', '/log', 1, 8)
+ON DUPLICATE KEY UPDATE
+  `parent_id` = VALUES(`parent_id`),
+  `permission_name` = VALUES(`permission_name`),
+  `permission_type` = VALUES(`permission_type`),
+  `route_path` = VALUES(`route_path`),
+  `visible` = VALUES(`visible`),
+  `sort_order` = VALUES(`sort_order`);
+
