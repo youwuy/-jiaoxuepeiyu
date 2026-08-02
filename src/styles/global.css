@@ -16613,6 +16613,244 @@ a {
   color: #ffffff;
 }
 
+.admin-profile-page {
+  height: 100vh;
+  overflow: hidden;
+  padding: 0 31px 42px;
+  background: #ffffff;
+}
+
+.admin-content:has(.admin-profile-page) {
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.admin-profile-top {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  margin: 0 -31px;
+  padding: 0 24px;
+  background: #ffffff;
+  color: #7f94b2;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-profile-card {
+  width: min(100%, 1138px);
+  min-height: 288px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 24px;
+  margin: 24px 0 0;
+  padding: 28px 25px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-profile-field {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-profile-field > span {
+  color: #24344d;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 900;
+}
+
+.admin-profile-value {
+  width: 100%;
+  height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #172033;
+  text-align: left;
+}
+
+.admin-profile-value:disabled {
+  cursor: default;
+}
+
+.admin-profile-value.editable {
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.admin-profile-value b {
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-profile-value .el-icon {
+  color: #635bff;
+  font-size: 16px;
+}
+
+.admin-profile-edit-dialog.el-dialog {
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.admin-profile-edit-dialog .el-dialog__header {
+  margin: 0;
+  padding: 24px 24px 18px;
+}
+
+.admin-profile-edit-dialog .el-dialog__body {
+  padding: 20px 24px 16px;
+}
+
+.admin-profile-edit-dialog .el-dialog__footer {
+  padding: 10px 24px 24px;
+}
+
+.admin-profile-edit-dialog.is-compact .el-dialog__body {
+  padding-top: 28px;
+  padding-bottom: 14px;
+}
+
+.admin-profile-edit-dialog.is-password .el-dialog__body {
+  padding-top: 22px;
+}
+
+.admin-profile-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-profile-dialog-head strong {
+  color: #152238;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 900;
+}
+
+.admin-profile-dialog-head button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f6f8fb;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.admin-profile-dialog-body {
+  padding: 16px 0 14px;
+}
+
+.admin-profile-dialog-body .el-input__wrapper,
+.admin-profile-password-form .el-input__wrapper {
+  min-height: 42px;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px #cfd8e3 inset;
+}
+
+.admin-profile-dialog-body .el-input__inner,
+.admin-profile-password-form .el-input__inner {
+  color: #334155;
+  font-size: 14px;
+}
+
+.admin-profile-password-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-profile-password-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-profile-password-form label > span {
+  color: #152238;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-profile-password-form label > span b {
+  color: #ef4444;
+}
+
+.admin-profile-password-form em {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8aa0bd;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.admin-profile-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-profile-dialog-footer button {
+  min-width: 80px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-profile-dialog-footer .ghost {
+  border: 1px solid #cfd8e3;
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-profile-dialog-footer .primary {
+  border: 1px solid #4f46e5;
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .admin-profile-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-profile-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .admin-profile-top {
+    margin-right: -16px;
+    margin-left: -16px;
+  }
+
+  .admin-profile-card {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-semester-score-page,
 .admin-semester-score-offline-page {
   min-height: 100vh;

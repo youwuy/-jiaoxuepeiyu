@@ -75,7 +75,7 @@ const user = reactive({
   organization: '交通与车辆工程院/运输管理教研室/车辆管理',
   phone: '132****3209',
   idCard: '410***********1234',
-  password: '••••••••'
+  password: '········'
 });
 const forms = reactive({
   phone: '13208948888',
@@ -115,24 +115,28 @@ const DialogFooter = defineComponent({
   }
 });
 
+/** 打开个人中心字段编辑弹窗。 */
 function openEdit(key: EditKey) {
   if (key === 'phone') phoneVisible.value = true;
   if (key === 'idCard') idCardVisible.value = true;
   if (key === 'password') passwordVisible.value = true;
 }
 
+/** 保存手机号并回显脱敏值。 */
 function savePhone() {
   user.phone = forms.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
   phoneVisible.value = false;
   ElMessage.success('手机号已修改');
 }
 
+/** 保存身份证号并回显脱敏值。 */
 function saveIdCard() {
   user.idCard = forms.idCard.replace(/^(.{3}).+(.{4})$/, '$1***********$2');
   idCardVisible.value = false;
   ElMessage.success('身份证号已修改');
 }
 
+/** 保存密码并清空密码表单。 */
 function savePassword() {
   passwordVisible.value = false;
   forms.oldPassword = '';
