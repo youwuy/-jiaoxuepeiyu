@@ -88,6 +88,11 @@ public class MyBatisAdminEducationConfigRepository implements AdminEducationConf
     }
 
     @Override
+    public void updateClassStatus(Long classId, boolean enabled) {
+        mapper.updateClassStatus(classId, enabled ? 1 : 0);
+    }
+
+    @Override
     public List<AdminJobRole> findJobRoles() {
         return mapper.findJobRoles();
     }

@@ -14,6 +14,7 @@ import {
   disableAdminPermission,
   enableAdminPermission,
   fetchAdminPermissionTree,
+  updateAdminPermissionSorts,
   updateAdminPermission
 } from '../src/api/admin-permission';
 import {
@@ -36,6 +37,13 @@ import {
   updateAdminRole,
   updateAdminRolePermissions
 } from '../src/api/admin-role';
+import {
+  createAdminClassroom,
+  createAdminScoreWeight,
+  disableAdminClass,
+  enableAdminClass,
+  setAdminCurrentSemester
+} from '../src/api/admin-settings';
 import { requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -256,6 +264,7 @@ describe('api http client', () => {
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }))
+      .mockImplementationOnce(() => mockJsonResponse({ data: null }))
       .mockImplementationOnce(() => mockJsonResponse({ data: null }));
     globalThis.fetch = fetchMock as typeof fetch;
 
@@ -264,6 +273,7 @@ describe('api http client', () => {
     await updateAdminPermission(12, command);
     await disableAdminPermission(12);
     await enableAdminPermission(12);
+    await updateAdminPermissionSorts([{ permissionId: 12, parentId: null, sortOrder: 4 }]);
     await deleteAdminPermission(12);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/permissions/tree', expect.any(Object));
@@ -279,7 +289,12 @@ describe('api http client', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/permissions/12/disable', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/permissions/12/enable', expect.objectContaining({ method: 'POST' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/admin/permissions/12/delete', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      '/api/admin/permissions/sort',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ items: [{ permissionId: 12, parentId: null, sortOrder: 4 }] }) })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/permissions/12/delete', expect.objectContaining({ method: 'POST' }));
   });
 
   it('uses the documented admin account management endpoints', async () => {
@@ -314,7 +329,7 @@ describe('api http client', () => {
       .mockImplementationOnce(() => mockJsonResponse({ data: null }));
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(fetchAdminAccounts('teacher', { realName: '李', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(fetchAdminAccounts('teacher', { realName: '李', jobTitle: '信号', enabled: true, page: 1, pageSize: 20 })).resolves.toMatchObject({
       records: [{ userId: 101, accountNo: 'T20240001' }],
       total: 1
     });
@@ -328,7 +343,7 @@ describe('api http client', () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      '/api/admin/accounts/teachers?realName=%E6%9D%8E&enabled=true&page=1&pageSize=20',
+      '/api/admin/accounts/teachers?realName=%E6%9D%8E&jobTitle=%E4%BF%A1%E5%8F%B7&enabled=true&page=1&pageSize=20',
       expect.any(Object)
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -364,7 +379,7 @@ describe('api http client', () => {
     const command = {
       roleName: '实训教师',
       roleCode: 'training_teacher',
-      dataScope: 'SELF',
+      dataScope: 'SELF' as const,
       remark: '负责教学业务操作',
       permissionIds: [5, 6, 7]
     };
@@ -680,6 +695,62 @@ describe('api http client', () => {
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({ currentPassword: 'old-password', newPassword: 'new-password', confirmPassword: 'new-password' })
+      })
+    );
+  });
+});
+
+describe('admin settings API integration', () => {
+  it('uses documented education and facility config endpoints', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 0, data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await setAdminCurrentSemester(12);
+    await enableAdminClass(5);
+    await disableAdminClass(5);
+    await createAdminClassroom({
+      roomName: 'Training Room A',
+      cameras: [
+        {
+          nvrHost: '10.0.0.1',
+          nvrPort: 554,
+          adminUsername: 'admin',
+          adminPassword: 'input-from-admin',
+          nvrChannel: 'CH01',
+          streamUrl: 'rtsp://10.0.0.1/live/ch01'
+        }
+      ]
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/semesters/12/current', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/classes/5/enable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/classes/5/disable', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/admin/classrooms', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('posts score weight history with the selected semester', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 0, data: 91 }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await createAdminScoreWeight({
+      semesterId: 12,
+      coursewareWeight: 30,
+      trainingPracticeWeight: 30,
+      assignmentWeight: 30,
+      examWeight: 10
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/score-weights',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          semesterId: 12,
+          coursewareWeight: 30,
+          trainingPracticeWeight: 30,
+          assignmentWeight: 30,
+          examWeight: 10
+        })
       })
     );
   });

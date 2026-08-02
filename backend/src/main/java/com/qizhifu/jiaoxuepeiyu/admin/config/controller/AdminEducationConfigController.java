@@ -91,6 +91,20 @@ public class AdminEducationConfigController {
         return ApiResponse.ok(service.createClass(body));
     }
 
+    @PostMapping("/classes/{classId}/enable")
+    @Operation(summary = "Enable class", description = "Enables a class for selection.")
+    public ApiResponse<Void> enableClass(@PathVariable Long classId) {
+        service.enableClass(classId);
+        return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/classes/{classId}/disable")
+    @Operation(summary = "Disable class", description = "Disables a class while preserving historical account, course, and score records.")
+    public ApiResponse<Void> disableClass(@PathVariable Long classId) {
+        service.disableClass(classId);
+        return ApiResponse.ok(null);
+    }
+
     @GetMapping("/job-roles")
     @Operation(summary = "List subway job roles", description = "Returns all subway job roles with enabled status and sort order.")
     public ApiResponse<List<AdminJobRole>> listJobRoles() {

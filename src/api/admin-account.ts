@@ -38,6 +38,7 @@ export interface AdminAccountQuery {
   realName?: string;
   accountNo?: string;
   phone?: string;
+  jobTitle?: string;
   enabled?: boolean | null;
   page?: number;
   pageSize?: number;

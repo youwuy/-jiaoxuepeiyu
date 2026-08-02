@@ -1,5 +1,7 @@
 import { requestJson } from './http';
 
+export type AdminRoleDataScope = 'SELF' | 'ORG_ONLY' | 'ALL';
+
 export interface PageResponse<T> {
   records: T[];
   total: number;
@@ -11,7 +13,7 @@ export interface AdminRole {
   roleId: number;
   roleName: string;
   roleCode: string;
-  dataScope?: string;
+  dataScope?: AdminRoleDataScope;
   remark?: string;
   enabled?: boolean;
   userCount?: number;
@@ -30,7 +32,7 @@ export interface AdminRoleQuery {
 export interface AdminRoleCommand {
   roleName: string;
   roleCode: string;
-  dataScope: string;
+  dataScope: AdminRoleDataScope;
   remark?: string;
   permissionIds: number[];
 }

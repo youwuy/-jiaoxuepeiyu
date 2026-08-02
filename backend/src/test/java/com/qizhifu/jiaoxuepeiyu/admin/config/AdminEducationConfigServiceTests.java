@@ -78,6 +78,18 @@ class AdminEducationConfigServiceTests {
     }
 
     @Test
+    void updatesClassStatus() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        service.disableClass(5L);
+        service.enableClass(5L);
+
+        assertEquals(5L, repository.statusClassId.longValue());
+        assertEquals(true, repository.classEnabled);
+    }
+
+    @Test
     void createsJobRoleWithTrimmedNameAndDefaultSortOrder() {
         FakeEducationConfig repository = new FakeEducationConfig();
         AdminEducationConfigService service = new AdminEducationConfigService(repository);
@@ -122,6 +134,8 @@ class AdminEducationConfigServiceTests {
         private Long currentSemesterId;
         private Long statusMajorId;
         private boolean majorEnabled;
+        private Long statusClassId;
+        private boolean classEnabled;
         private AdminJobRoleCommand savedJobRole;
         private Long updatedJobRoleId;
         private Long statusJobRoleId;
@@ -188,6 +202,12 @@ class AdminEducationConfigServiceTests {
         @Override
         public Long createClass(AdminClassCommand command) {
             return 300L;
+        }
+
+        @Override
+        public void updateClassStatus(Long classId, boolean enabled) {
+            this.statusClassId = classId;
+            this.classEnabled = enabled;
         }
 
         @Override

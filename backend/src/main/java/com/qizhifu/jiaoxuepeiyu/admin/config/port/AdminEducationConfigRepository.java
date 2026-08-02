@@ -35,6 +35,8 @@ public interface AdminEducationConfigRepository {
 
     Long createClass(AdminClassCommand command);
 
+    void updateClassStatus(Long classId, boolean enabled);
+
     List<AdminJobRole> findJobRoles();
 
     Long createJobRole(AdminJobRoleCommand command);

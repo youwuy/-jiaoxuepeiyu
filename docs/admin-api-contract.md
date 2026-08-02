@@ -746,6 +746,14 @@ Request body:
 }
 ```
 
+### `POST /api/admin/classes/{classId}/enable`
+
+Enables a class for future selection.
+
+### `POST /api/admin/classes/{classId}/disable`
+
+Disables a class while preserving historical account, course, and score records.
+
 ### `GET /api/admin/job-roles`
 
 Response `data`: array of subway job role dictionary rows.
@@ -1987,6 +1995,8 @@ Each node:
 - `sortOrder`
 - `children`
 
+Tree order follows `sortOrder ASC, permissionId ASC` inside each parent group.
+
 ### `POST /api/admin/permissions`
 
 Header:
@@ -2000,9 +2010,17 @@ Request body:
 - `permissionName` required.
 - `permissionCode` required and unique.
 - `permissionType` required; accepts `MENU`, `PAGE`, or `BUTTON`.
-- `routePath` optional frontend route path.
+- `routePath` required frontend route path or button permission route identifier, globally unique.
 - `visible` optional boolean, defaults to `true`.
 - `sortOrder` optional integer, defaults to `0`.
+
+Rules:
+
+- `MENU` is a top-level node and must not have `parentId`.
+- `PAGE` must use an existing `MENU` parent.
+- `BUTTON` must use an existing `PAGE` parent.
+- `permissionName` is trimmed, limited to 8 characters, and unique under the same parent.
+- `routePath` is trimmed, limited to 100 characters, and globally unique.
 
 Response `data`: created permission id.
 
@@ -2018,7 +2036,10 @@ Request body: same as permission create.
 Rules:
 
 - `permissionCode` must stay unique.
+- `routePath` must stay unique.
 - A permission cannot use itself as parent.
+- A permission cannot use its own descendant as parent.
+- Hierarchy and length rules match permission create.
 - Role permission bindings are preserved.
 
 Response `data`: `null`.
@@ -2041,6 +2062,10 @@ Header:
 
 Response `data`: `null`.
 
+Rules:
+
+- The selected node and all descendants are hidden.
+
 ### `POST /api/admin/permissions/{permissionId}/delete`
 
 Header:
@@ -2052,6 +2077,27 @@ Rules:
 
 - Deletes only leaf permission nodes.
 - Rejects deletion when the permission is bound to any role.
+
+Response `data`: `null`.
+
+### `PUT /api/admin/permissions/sort`
+
+Header:
+
+- `Authorization: Bearer <token>` preferred.
+- `X-User-Id`
+
+Request body:
+
+- `items`: list of sort rows.
+- `items[].permissionId`: permission node id.
+- `items[].parentId`: optional current parent id guard.
+- `items[].sortOrder`: new sort weight inside the existing parent group.
+
+Rules:
+
+- Duplicate `permissionId` rows are ignored after the first row.
+- Sorting only updates `sortOrder`; it rejects attempts to change parent through the sort payload.
 
 Response `data`: `null`.
 
@@ -2071,7 +2117,7 @@ Each row:
 - `roleId`
 - `roleName`
 - `roleCode`
-- `dataScope`: `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `dataScope`: `SELF`, `ORG_ONLY`, or `ALL`.
 - `remark`
 - `enabled`
 - `userCount`
@@ -2093,9 +2139,16 @@ Request body:
 
 - `roleName` required.
 - `roleCode` required and unique.
-- `dataScope` optional, defaults to `PERSONAL`; accepts `PERSONAL`, `MANAGED_ORG`, or `ALL`.
+- `dataScope` optional, defaults to `SELF`; accepts `SELF`, `ORG_ONLY`, or `ALL`. Legacy `PERSONAL` and `MANAGED_ORG` inputs are still accepted and normalized to `SELF` and `ORG_ONLY`.
 - `remark` optional.
-- `permissionIds` optional list of permission ids.
+- `permissionIds` required non-empty list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Rules:
+
+- `roleName` is trimmed and globally unique among non-deleted roles.
+- `roleCode` is trimmed and globally unique among non-deleted roles.
+- `roleCode = super_admin` and `roleName = 超级管理员` are reserved for the built-in role and cannot be used by custom roles.
+- Built-in super admin role (`roleCode = super_admin` or `roleName = 超级管理员`) cannot be edited, disabled, or deleted.
 
 Response `data`: created role id.
 
@@ -2143,7 +2196,12 @@ Header:
 
 Request body:
 
-- `permissionIds` optional list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+- `permissionIds` required list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+
+Rules:
+
+- `permissionIds` must contain at least one valid permission id after normalization.
+- Built-in super admin role cannot have permissions replaced through this endpoint.
 
 Response `data`: `null`.
 

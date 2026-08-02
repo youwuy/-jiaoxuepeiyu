@@ -66,6 +66,9 @@ public interface AdminEducationConfigMapper {
     @Options(useGeneratedKeys = true, keyProperty = "classId")
     void insertClass(AdminClass adminClass);
 
+    @Update("UPDATE edu_class SET status = #{status}, updated_at = NOW() WHERE id = #{classId}")
+    void updateClassStatus(@Param("classId") Long classId, @Param("status") int status);
+
     @Select("SELECT id AS job_role_id, role_name, sort_order, "
             + "CASE WHEN status = 1 THEN TRUE ELSE FALSE END AS enabled "
             + "FROM edu_job_role ORDER BY sort_order ASC, role_name ASC, id ASC")

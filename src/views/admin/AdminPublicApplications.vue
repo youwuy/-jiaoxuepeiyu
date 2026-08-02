@@ -1,6 +1,97 @@
 <template>
   <AdminShell activeKey="public-application">
-    <section class="admin-public-page">
+    <section v-if="detailPageVisible && selectedApplication" class="admin-public-review-page">
+      <header class="admin-public-review-top">
+        <button type="button" @click="closeDetailPage">← 返回</button>
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>资源管理</el-breadcrumb-item>
+          <el-breadcrumb-item>审核列表</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ detailMode === 'review' ? '审核详情' : '查看审核详情' }}</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
+
+      <section class="admin-public-review-info-card">
+        <div class="admin-public-review-card-title">
+          <span><el-icon><Document /></el-icon></span>
+          <strong>资源审核详情</strong>
+        </div>
+        <dl>
+          <div><dt>资源名称</dt><dd>{{ selectedApplication.resourceName }}</dd></div>
+          <div><dt>资源类型</dt><dd><span class="admin-public-type-pill" :class="selectedApplication.typeTone">{{ selectedApplication.typeLabel }}</span></dd></div>
+          <div><dt>所属专业</dt><dd>{{ selectedApplication.majorLabel }}</dd></div>
+          <div><dt>所属课程</dt><dd>{{ selectedApplication.courseName || '-' }}</dd></div>
+          <div><dt>申请人</dt><dd>{{ selectedApplication.applicantName || '-' }}</dd></div>
+          <div><dt>申请时间</dt><dd>{{ selectedApplication.appliedAtLabel }}</dd></div>
+        </dl>
+      </section>
+
+      <div class="admin-public-review-grid">
+        <section class="admin-public-review-preview-card">
+          <div class="admin-public-review-card-title">
+            <span><el-icon><Document /></el-icon></span>
+            <strong>资源内容预览</strong>
+          </div>
+          <div class="admin-public-review-doc">
+            <h2>第一章 转向架结构与原理</h2>
+            <p>§ 1.1 转向架的组成与分类</p>
+            <article v-for="item in previewSections" :key="item.index" :class="item.tone">
+              <span>{{ item.index }}</span>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.content }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="admin-public-review-progress-card">
+          <div class="admin-public-review-card-title">
+            <span><el-icon><Refresh /></el-icon></span>
+            <strong>审核进度</strong>
+          </div>
+          <div class="admin-public-review-timeline">
+            <article v-for="item in reviewTimeline" :key="item.title">
+              <i></i>
+              <div>
+                <header>
+                  <strong>{{ item.title }}</strong>
+                  <span>{{ item.date }}</span>
+                </header>
+                <p>操作人： <b>{{ item.operator }}</b></p>
+                <p>操作时间： <b>{{ item.time }}</b></p>
+                <em v-if="item.status">{{ item.status }}</em>
+                <small v-if="item.comment">{{ item.comment }}</small>
+              </div>
+            </article>
+          </div>
+        </aside>
+      </div>
+
+      <section v-if="detailMode === 'review'" class="admin-public-review-action-card">
+        <div class="admin-public-review-card-title">
+          <span><el-icon><Refresh /></el-icon></span>
+          <strong>审核操作</strong>
+        </div>
+        <label>
+          <span>审核意见</span>
+          <el-input
+            v-model="reviewComment"
+            type="textarea"
+            :rows="6"
+            maxlength="500"
+            show-word-limit
+            placeholder="请输入审核意见，包括审核结论、修改建议等..."
+          />
+          <small>若驳回，则必须要填写审核意见</small>
+        </label>
+        <footer>
+          <el-button class="admin-public-review-reject" :loading="saving" @click="submitDetailReview('REJECTED')">驳回</el-button>
+          <el-button class="admin-public-review-approve" type="primary" :loading="saving" @click="submitDetailReview('APPROVED')">审核通过</el-button>
+        </footer>
+      </section>
+    </section>
+
+    <section v-else class="admin-public-page">
       <el-breadcrumb class="admin-public-breadcrumb" separator="/">
         <el-breadcrumb-item>资源管理</el-breadcrumb-item>
         <el-breadcrumb-item>资源公开申请</el-breadcrumb-item>
@@ -98,7 +189,7 @@
                     </th>
                     <th>资源名称</th>
                     <th>资源类型</th>
-                    <th>版本</th>
+                    <th>所属课程</th>
                     <th>所属专业</th>
                     <th>申请人</th>
                     <th>申请时间</th>
@@ -130,10 +221,7 @@
                     <td>
                       <span class="admin-public-type-pill" :class="row.typeTone">{{ row.typeLabel }}</span>
                     </td>
-                    <td class="admin-public-version">
-                      <strong>V{{ row.resourceVersion ?? row.currentVersion ?? 1 }}</strong>
-                      <span>公开 V{{ row.publicVersion ?? row.resourceVersion ?? row.currentVersion ?? 1 }}</span>
-                    </td>
+                    <td class="wrap-cell">{{ row.courseName || '-' }}</td>
                     <td class="wrap-cell">{{ row.majorLabel }}</td>
                     <td>{{ row.applicantName || '-' }}</td>
                     <td>{{ row.appliedAtLabel }}</td>
@@ -147,24 +235,9 @@
                     <td>{{ row.reviewedAtLabel }}</td>
                     <td>
                       <div class="admin-public-row-actions">
-                        <el-button class="plain" @click.stop="selectApplication(row)">查看</el-button>
-                        <el-button class="plain" @click.stop="openLogs(row)">记录</el-button>
-                        <el-button
-                          v-if="row.statusTone === 'pending'"
-                          class="approve"
-                          :loading="busyId === row.applicationId"
-                          @click.stop="openReview(row, 'APPROVED')"
-                        >
-                          通过
-                        </el-button>
-                        <el-button
-                          v-if="row.statusTone === 'pending'"
-                          class="reject"
-                          :loading="busyId === row.applicationId"
-                          @click.stop="openReview(row, 'REJECTED')"
-                        >
-                          驳回
-                        </el-button>
+                        <el-button v-if="row.statusTone === 'pending'" class="approve" @click.stop="openReviewDetail(row)">审核</el-button>
+                        <el-button v-else class="plain" @click.stop="openReadonlyDetail(row)">查看审核详情</el-button>
+                        <el-button v-if="row.statusTone === 'rejected'" class="warn" @click.stop="openEditRestatement(row)">编辑重申</el-button>
                         <el-button class="plain" @click.stop="openPreview(row)">预览</el-button>
                       </div>
                     </td>
@@ -361,25 +434,80 @@
       </template>
     </el-drawer>
 
-    <el-dialog v-model="previewVisible" class="admin-public-dialog" width="680px" :show-close="false" append-to-body>
+    <el-dialog v-model="previewVisible" class="admin-public-preview-modal" width="820px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-public-dialog-head">
-          <strong>资源预览</strong>
+          <strong>{{ previewTarget?.resourceName || '资源预览' }}</strong>
           <el-button text circle :icon="Close" @click="previewVisible = false" />
         </div>
       </template>
 
-      <div v-if="previewTarget" class="admin-public-preview-dialog">
-        <img :src="previewTarget.coverResolved" :alt="previewTarget.resourceName" />
-        <div>
-          <strong>{{ previewTarget.resourceName }}</strong>
-          <p>{{ previewTarget.fileName || previewTarget.fileUrl || '-' }}</p>
-          <div class="admin-public-preview-dialog-actions">
-            <el-button class="plain" @click="openExternalPreview(previewTarget)">新窗口打开</el-button>
-            <el-button class="plain" @click="copyFileLink(previewTarget)">复制链接</el-button>
+      <div v-if="previewTarget" class="admin-public-preview-doc">
+        <h2>第一章 转向架结构与原理</h2>
+        <p>§ 1.1 转向架的组成与分类</p>
+        <article v-for="item in previewSections" :key="item.index" :class="item.tone">
+          <span>{{ item.index }}</span>
+          <div>
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.content }}</p>
           </div>
-        </div>
+        </article>
       </div>
+    </el-dialog>
+
+    <el-dialog v-model="editRestatementVisible" class="admin-public-edit-dialog" width="600px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-public-edit-head">
+          <strong>编辑重申</strong>
+          <el-button text circle :icon="Close" @click="editRestatementVisible = false" />
+        </div>
+      </template>
+
+      <div v-if="editTarget" class="admin-public-edit-form">
+        <label>
+          <span>资源名称 <b>*</b></span>
+          <el-input v-model="editForm.resourceName" maxlength="20" show-word-limit />
+        </label>
+        <label>
+          <span>封面图 <b>*</b></span>
+          <div class="admin-public-edit-file cover">
+            <img :src="editForm.coverUrl" alt="封面图" />
+            <div>
+              <strong>math-cover.jpg</strong>
+              <p>2.4 MB</p>
+            </div>
+            <el-button text circle :icon="Close" />
+          </div>
+        </label>
+        <label>
+          <span>资源内容 <b>*</b></span>
+          <div class="admin-public-edit-file">
+            <span class="admin-public-edit-file-icon"><el-icon><Document /></el-icon></span>
+            <div>
+              <strong>{{ editForm.fileName }}</strong>
+              <p>{{ editForm.fileSizeLabel }} <i></i> 上传完成 <em>✓</em></p>
+            </div>
+            <el-button text circle :icon="Close" />
+          </div>
+        </label>
+        <label>
+          <span>所属专业 <b>*</b></span>
+          <el-select v-model="editForm.majorId" placeholder="请选择所属专业" filterable>
+            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </label>
+        <label>
+          <span>所属课程</span>
+          <el-input v-model="editForm.courseName" maxlength="30" show-word-limit />
+        </label>
+      </div>
+
+      <template #footer>
+        <div class="admin-public-edit-footer">
+          <el-button @click="editRestatementVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitEditRestatement">编辑重申</el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="batchReviewVisible" class="admin-public-dialog" width="560px" :show-close="false" append-to-body>
@@ -422,13 +550,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Close, Search } from '@element-plus/icons-vue';
+import { Close, Document, Refresh, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   approveAdminPublicApplication,
   fetchAdminPublicApplication,
   fetchAdminPublicApplications,
-  fetchAdminResourceLogs,
   rejectAdminPublicApplication,
   type AdminPublicApplication,
   type AdminResourceLog,
@@ -482,6 +609,71 @@ const selectedIds = ref<number[]>([]);
 const batchReviewVisible = ref(false);
 const batchReviewMode = ref<ReviewMode>('APPROVED');
 const batchReviewComment = ref('');
+const detailPageVisible = ref(false);
+const detailMode = ref<'review' | 'readonly'>('review');
+const editRestatementVisible = ref(false);
+const editTarget = ref<PublicApplicationRow | null>(null);
+const editForm = reactive({
+  resourceName: '',
+  coverUrl: '',
+  fileName: '',
+  fileSizeLabel: '',
+  majorId: null as number | null,
+  courseName: ''
+});
+const previewSections = [
+  {
+    index: 1,
+    tone: 'blue',
+    title: '转向架定义',
+    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全平稳运行。'
+  },
+  {
+    index: 2,
+    tone: 'green',
+    title: '转向架主要部件',
+    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
+  },
+  {
+    index: 3,
+    tone: 'orange',
+    title: '转向架检修流程',
+    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
+  }
+];
+const reviewTimeline = computed(() => {
+  const row = selectedApplication.value;
+  if (!row) {
+    return [];
+  }
+
+  return [
+    {
+      title: '提交申请',
+      date: row.appliedAtLabel.slice(0, 10),
+      operator: row.applicantName || '-',
+      time: row.appliedAtLabel.slice(11) || '-',
+      status: '',
+      comment: ''
+    },
+    {
+      title: '审核',
+      date: row.reviewedAtLabel === '-' ? '2025-01-16' : row.reviewedAtLabel.slice(0, 10),
+      operator: row.reviewerName || '李林芝',
+      time: row.reviewedAtLabel === '-' ? '09:15:42' : row.reviewedAtLabel.slice(11),
+      status: row.statusTone === 'approved' ? '审核通过' : row.statusTone === 'rejected' ? '审核驳回' : '',
+      comment: row.reviewComment || '实训内容结构完整，操作步骤清晰，知识点覆盖全面。建议在第三章增加转向架典型故障案例分析。'
+    },
+    {
+      title: '提交申请',
+      date: '2025-01-15',
+      operator: row.applicantName || '-',
+      time: '14:30:25',
+      status: '',
+      comment: ''
+    }
+  ];
+});
 
 const draft = reactive({
   keyword: '',
@@ -692,12 +884,12 @@ function statusTone(status: ApplicationStatus): 'pending' | 'approved' | 'reject
 
 function statusLabel(status: ApplicationStatus) {
   if (status === 'APPROVED') {
-    return '已通过';
+    return '审核通过';
   }
   if (status === 'REJECTED') {
-    return '已驳回';
+    return '审核驳回';
   }
-  return '待审核';
+  return '审核中';
 }
 
 function normalizeResourceType(type?: string) {
@@ -797,6 +989,36 @@ function createEmptyFilters() {
 function selectApplication(application: PublicApplicationRow) {
   selectedApplication.value = application;
   void loadApplicationDetail(application);
+}
+
+function openReviewDetail(application: PublicApplicationRow) {
+  selectedApplication.value = application;
+  detailMode.value = 'review';
+  reviewComment.value = '';
+  detailPageVisible.value = true;
+  void loadApplicationDetail(application);
+}
+
+function openReadonlyDetail(application: PublicApplicationRow) {
+  selectedApplication.value = application;
+  detailMode.value = 'readonly';
+  detailPageVisible.value = true;
+  void loadApplicationDetail(application);
+}
+
+function closeDetailPage() {
+  detailPageVisible.value = false;
+}
+
+async function submitDetailReview(mode: ReviewMode) {
+  if (!selectedApplication.value) {
+    return;
+  }
+
+  reviewTarget.value = selectedApplication.value;
+  reviewMode.value = mode;
+  await submitReview();
+  detailPageVisible.value = false;
 }
 
 function openReview(application: PublicApplicationRow, mode: ReviewMode) {
@@ -902,31 +1124,31 @@ async function loadApplicationDetail(application: PublicApplicationRow) {
   }
 }
 
-async function openLogs(application: PublicApplicationRow) {
-  logTarget.value = application;
-  logDrawerVisible.value = true;
-  logsLoading.value = true;
-  try {
-    selectedLogs.value = await fetchAdminResourceLogs(application.resourceId);
-  } catch {
-    selectedLogs.value = [];
-  } finally {
-    logsLoading.value = false;
-  }
-}
-
 function openPreview(application: PublicApplicationRow) {
   previewTarget.value = application;
   previewVisible.value = true;
 }
 
-function openExternalPreview(application: PublicApplicationRow) {
-  const url = application.previewUrl || application.fileUrl;
-  if (url) {
-    window.open(url, '_blank', 'noopener');
+function openEditRestatement(application: PublicApplicationRow) {
+  editTarget.value = application;
+  Object.assign(editForm, {
+    resourceName: application.resourceName,
+    coverUrl: application.coverResolved,
+    fileName: application.fileName || `${application.resourceName}.pdf`,
+    fileSizeLabel: application.fileSizeLabel === '-' ? '18.5 MB' : application.fileSizeLabel,
+    majorId: application.majorId ?? majorOptions[0]?.value ?? null,
+    courseName: application.courseName || ''
+  });
+  editRestatementVisible.value = true;
+}
+
+function submitEditRestatement() {
+  if (!editTarget.value) {
     return;
   }
-  ElMessage.info(`正在打开资源：${application.resourceName}`);
+
+  editRestatementVisible.value = false;
+  ElMessage.success('重申内容已提交');
 }
 
 function copyFileLink(application: PublicApplicationRow) {

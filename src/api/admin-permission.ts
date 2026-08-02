@@ -24,6 +24,12 @@ export interface AdminPermissionCommand {
   sortOrder: number;
 }
 
+export interface AdminPermissionSortItem {
+  permissionId: number;
+  parentId?: number | null;
+  sortOrder: number;
+}
+
 export async function fetchAdminPermissionTree() {
   return requestJson<AdminPermissionNode[]>('/admin/permissions/tree', {
     fallbackLabel: '功能权限树'
@@ -66,5 +72,13 @@ export async function deleteAdminPermission(permissionId: number) {
   return requestJson<void>(`/admin/permissions/${permissionId}/delete`, {
     method: 'POST',
     fallbackLabel: '删除菜单'
+  });
+}
+
+export async function updateAdminPermissionSorts(items: AdminPermissionSortItem[]) {
+  return requestJson<void>('/admin/permissions/sort', {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+    fallbackLabel: '保存菜单排序'
   });
 }

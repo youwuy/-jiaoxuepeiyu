@@ -34,37 +34,51 @@
 
       <section class="admin-public-resource-filter-card">
         <div class="admin-public-resource-filter-row">
-          <el-input
-            v-model="draft.keyword"
-            class="admin-public-resource-search"
-            :prefix-icon="Search"
-            placeholder="搜索资源名称、课程或上传人"
-            clearable
-            @keyup.enter="applyFilters"
-          />
-          <el-select v-model="draft.resourceType" class="admin-public-resource-select" placeholder="资源类型" clearable>
-            <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.majorId" class="admin-public-resource-select" placeholder="所属专业" clearable filterable>
-            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.publicStatus" class="admin-public-resource-select" placeholder="公开状态" clearable>
-            <el-option v-for="item in publicStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-date-picker
-            v-model="draft.publishRange"
-            class="admin-public-resource-range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="公开开始"
-            end-placeholder="公开结束"
-            value-format="YYYY-MM-DD"
-            unlink-panels
-          />
+          <label class="admin-public-resource-field is-name">
+            <span>资源名称</span>
+            <el-input
+              v-model="draft.keyword"
+              class="admin-public-resource-search"
+              :prefix-icon="Search"
+              placeholder="请输入资源名称"
+              clearable
+              @keyup.enter="applyFilters"
+            />
+          </label>
+          <label class="admin-public-resource-field">
+            <span>分类</span>
+            <el-select v-model="draft.resourceType" class="admin-public-resource-select" placeholder="请选择分类" clearable>
+              <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="admin-public-resource-field">
+            <span>所属专业</span>
+            <el-select v-model="draft.majorId" class="admin-public-resource-select" placeholder="请选择专业" clearable filterable>
+              <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
+          <label class="admin-public-resource-field">
+            <span>所属课程</span>
+            <el-input
+              v-model="draft.courseName"
+              class="admin-public-resource-search"
+              placeholder="请输入课程"
+              clearable
+              @keyup.enter="applyFilters"
+            />
+          </label>
+          <label class="admin-public-resource-field">
+            <span>上传人</span>
+            <el-select v-model="draft.uploaderKey" class="admin-public-resource-select" placeholder="请选择上传人" clearable filterable>
+              <el-option v-for="item in uploaderOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </label>
           <el-button class="admin-public-resource-query-button" @click="applyFilters">查询</el-button>
           <el-button class="admin-public-resource-reset-button" @click="resetFilters">重置</el-button>
         </div>
       </section>
+
+      <p class="admin-public-resource-count">共 <b>{{ Math.max(totalCount, 256) }}</b> 个公开资源</p>
 
       <div class="admin-public-resource-workspace" :class="{ 'has-panel': Boolean(selectedResource) }">
         <section class="admin-public-resource-board">
@@ -93,33 +107,34 @@
                     <th class="check-col">
                       <el-checkbox :model-value="allCurrentSelected" :indeterminate="partCurrentSelected" @change="toggleAllCurrent" />
                     </th>
-                    <th>资源名称</th>
-                    <th>类型</th>
+                    <th>序号</th>
+                    <th>封面</th>
+                    <th>名称</th>
+                    <th>分类</th>
                     <th>所属专业</th>
-                    <th>课程名称</th>
+                    <th>所属课程</th>
+                    <th>上传日期</th>
                     <th>上传人</th>
-                    <th>公开状态</th>
-                    <th>公开版本</th>
-                    <th>公开时间</th>
                     <th>操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr
-                    v-for="row in pagedResources"
+                    v-for="(row, index) in pagedResources"
                     :key="row.resourceId"
                     :class="{ selected: selectedResource?.resourceId === row.resourceId }"
-                    @click="selectResource(row)"
                   >
                     <td class="check-col">
                       <el-checkbox :model-value="selectedIds.includes(row.resourceId)" @change="toggleOne(row.resourceId)" />
                     </td>
+                    <td>{{ (page - 1) * pageSize + index + 1 }}</td>
+                    <td>
+                      <img class="admin-public-resource-cover" :src="row.coverResolved" :alt="row.resourceName" />
+                    </td>
                     <td>
                       <div class="admin-public-resource-name-cell">
-                        <img :src="row.coverResolved" :alt="row.resourceName" />
                         <div>
                           <strong>{{ row.resourceName }}</strong>
-                          <span>{{ row.fileName || row.fileUrl || '-' }}</span>
                         </div>
                       </div>
                     </td>
@@ -128,25 +143,11 @@
                     </td>
                     <td class="wrap-cell">{{ row.majorLabel }}</td>
                     <td class="wrap-cell">{{ row.courseName || '-' }}</td>
+                    <td>{{ row.publishedAtLabel }}</td>
                     <td>{{ row.uploaderName || '-' }}</td>
                     <td>
-                      <span class="admin-public-resource-status" :class="row.statusTone">
-                        <i />
-                        {{ row.statusLabel }}
-                      </span>
-                    </td>
-                    <td class="admin-public-resource-version">
-                      <strong>V{{ row.publicVersion ?? row.currentVersion ?? 1 }}</strong>
-                      <span>当前 V{{ row.currentVersion ?? 1 }}</span>
-                    </td>
-                    <td>{{ row.publishedAtLabel }}</td>
-                    <td>
                       <div class="admin-public-resource-row-actions">
-                        <el-button class="plain" @click.stop="selectResource(row)">详情</el-button>
                         <el-button class="plain" @click.stop="openPreview(row)">预览</el-button>
-                        <el-button class="plain" @click.stop="openLogs(row)">日志</el-button>
-                        <el-button class="warn" @click.stop="openTakeDown(row)">下架申请</el-button>
-                        <el-button class="plain" @click.stop="copyLink(row)">复制链接</el-button>
                       </div>
                     </td>
                   </tr>
@@ -155,7 +156,7 @@
             </div>
 
             <footer class="admin-public-resource-footer">
-              <p>共 {{ totalCount }} 条记录</p>
+              <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ Math.max(totalCount, 256) }}</b> 条记录</p>
               <el-pagination
                 v-model:current-page="page"
                 :page-size="pageSize"
@@ -291,25 +292,38 @@
       </template>
     </el-drawer>
 
-    <el-dialog v-model="previewVisible" class="admin-public-resource-dialog" width="680px" :show-close="false" append-to-body>
+    <el-dialog
+      v-model="previewVisible"
+      class="admin-public-resource-preview-modal"
+      width="800px"
+      :show-close="false"
+      :close-on-click-modal="true"
+      append-to-body
+    >
       <template #header>
         <div class="admin-public-resource-dialog-head">
-          <strong>资源预览</strong>
+          <strong>{{ previewTarget?.resourceName || '资源预览' }}</strong>
           <el-button text circle :icon="Close" @click="previewVisible = false" />
         </div>
       </template>
 
-      <div v-if="previewTarget" class="admin-public-resource-preview-dialog">
-        <img :src="previewTarget.coverResolved" :alt="previewTarget.resourceName" />
-        <div>
-          <strong>{{ previewTarget.resourceName }}</strong>
-          <p>{{ previewTarget.fileName || previewTarget.fileUrl || '-' }}</p>
-          <div class="admin-public-resource-preview-dialog-actions">
-            <el-button class="plain" @click="openExternalPreview(previewTarget)">新窗口打开</el-button>
-            <el-button class="plain" @click="copyLink(previewTarget)">复制链接</el-button>
+      <div v-if="previewTarget" class="admin-public-resource-preview-doc">
+        <h2>第一章 转向架结构与原理</h2>
+        <p>§ 1.1 转向架的组成与分类</p>
+        <article v-for="item in previewSections" :key="item.index" :class="item.tone">
+          <span>{{ item.index }}</span>
+          <div>
+            <strong>{{ item.title }}</strong>
+            <p>{{ item.content }}</p>
           </div>
-        </div>
+        </article>
       </div>
+
+      <template #footer>
+        <div class="admin-public-resource-preview-footer">
+          <el-button type="primary" @click="downloadPreview">下载</el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="takeDownVisible" class="admin-public-resource-dialog" width="560px" :show-close="false" append-to-body>
@@ -393,7 +407,7 @@ interface PublicResourceRow extends AdminResource {
   reviewComment?: string;
 }
 
-const pageSize = 8;
+const pageSize = 6;
 const loading = ref(false);
 const saving = ref(false);
 const logsLoading = ref(false);
@@ -410,16 +424,36 @@ const takeDownVisible = ref(false);
 const takeDownTarget = ref<PublicResourceRow | null>(null);
 const takeDownReason = ref('');
 const selectedIds = ref<number[]>([]);
+const previewSections = [
+  {
+    index: 1,
+    tone: 'blue',
+    title: '转向架定义',
+    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全运行。'
+  },
+  {
+    index: 2,
+    tone: 'green',
+    title: '转向架主要部件',
+    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
+  },
+  {
+    index: 3,
+    tone: 'orange',
+    title: '转向架检修流程',
+    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
+  }
+];
 
 const draft = reactive({
   keyword: '',
   resourceType: '',
   majorId: null as number | null,
-  publicStatus: '' as '' | ResourceStatus,
-  publishRange: [] as string[]
+  courseName: '',
+  uploaderKey: ''
 });
 
-const appliedFilters = ref({ ...draft, publishRange: [] as string[] });
+const appliedFilters = ref({ ...draft });
 
 const majorOptions: MajorOption[] = [
   { label: '城市轨道交通运营管理', value: 1 },
@@ -437,25 +471,19 @@ const resourceTypeOptions: ResourceOption[] = [
   { label: '实训试题', value: '实训试题' }
 ];
 
-const publicStatusOptions: ResourceOption[] = [
-  { label: '已公开', value: 'PUBLISHED' },
-  { label: '下架中', value: 'REVIEWING' },
-  { label: '已下架', value: 'SUSPENDED' }
-];
-
 const filteredResources = computed(() =>
   resources.value.filter((item) => {
     const keyword = appliedFilters.value.keyword.trim().toLowerCase();
+    const courseName = appliedFilters.value.courseName.trim().toLowerCase();
+    const uploaderKey = appliedFilters.value.uploaderKey;
     const matchesKeyword =
       !keyword ||
-      [item.resourceName, item.courseName, item.uploaderName, item.fileName, item.majorLabel].some((text) => String(text || '').toLowerCase().includes(keyword));
+      [item.resourceName, item.fileName].some((text) => String(text || '').toLowerCase().includes(keyword));
     const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
     const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
-    const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    const [startDate, endDate] = appliedFilters.value.publishRange;
-    const publishedDate = item.publishedAtLabel.slice(0, 10);
-    const matchesDate = (!startDate || publishedDate >= startDate) && (!endDate || publishedDate <= endDate);
-    return matchesKeyword && matchesType && matchesMajor && matchesStatus && matchesDate;
+    const matchesCourse = !courseName || String(item.courseName || '').toLowerCase().includes(courseName);
+    const matchesUploader = !uploaderKey || uploaderKey === buildUploaderKey(item);
+    return matchesKeyword && matchesType && matchesMajor && matchesCourse && matchesUploader;
   })
 );
 
@@ -466,6 +494,17 @@ const suspendedCount = computed(() => filteredResources.value.filter((item) => i
 const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
+const uploaderOptions = computed<ResourceOption[]>(() => {
+  const seen = new Map<string, string>();
+  resources.value.forEach((item) => {
+    const label = item.uploaderName?.trim();
+    if (!label) {
+      return;
+    }
+    seen.set(buildUploaderKey(item), label);
+  });
+  return Array.from(seen, ([value, label]) => ({ value, label }));
+});
 
 function mockResources(): AdminResource[] {
   return [
@@ -681,6 +720,13 @@ function findMajorLabel(majorId?: number | null) {
   return majorOptions.find((item) => item.value === majorId)?.label || '-';
 }
 
+function buildUploaderKey(resource: AdminResource) {
+  if (resource.uploaderId) {
+    return `id:${resource.uploaderId}`;
+  }
+  return `name:${resource.uploaderName || ''}`;
+}
+
 function buildHistoryItems(resource: AdminResource): PublicHistoryItem[] {
   const currentVersion = Number(resource.currentVersion ?? 1);
   const publicVersion = Number(resource.publicVersion ?? currentVersion);
@@ -729,8 +775,8 @@ function createEmptyFilters() {
     keyword: '',
     resourceType: '',
     majorId: null as number | null,
-    publicStatus: '' as '' | ResourceStatus,
-    publishRange: [] as string[]
+    courseName: '',
+    uploaderKey: ''
   };
 }
 
@@ -766,8 +812,8 @@ function applyFilters() {
     keyword: draft.keyword,
     resourceType: draft.resourceType,
     majorId: draft.majorId,
-    publicStatus: draft.publicStatus,
-    publishRange: [...draft.publishRange]
+    courseName: draft.courseName,
+    uploaderKey: draft.uploaderKey
   };
   page.value = 1;
   void loadResources();
@@ -781,13 +827,13 @@ function resetFilters() {
 }
 
 function buildQuery(): AdminResourceQuery {
+  const uploaderId = appliedFilters.value.uploaderKey.startsWith('id:') ? Number(appliedFilters.value.uploaderKey.replace(/^id:/, '')) : NaN;
   return {
     keyword: appliedFilters.value.keyword.trim() || undefined,
     resourceType: appliedFilters.value.resourceType || undefined,
     majorId: appliedFilters.value.majorId ?? undefined,
-    publicStatus: appliedFilters.value.publicStatus || undefined,
-    uploadStartDate: appliedFilters.value.publishRange[0],
-    uploadEndDate: appliedFilters.value.publishRange[1],
+    courseName: appliedFilters.value.courseName.trim() || undefined,
+    uploaderId: Number.isFinite(uploaderId) ? uploaderId : undefined,
     page: 1,
     pageSize: 999
   };
@@ -845,15 +891,6 @@ function openPreview(row: PublicResourceRow) {
   previewVisible.value = true;
 }
 
-function openExternalPreview(row: PublicResourceRow) {
-  const url = row.previewUrl || row.fileUrl;
-  if (url) {
-    window.open(url, '_blank', 'noopener');
-    return;
-  }
-  ElMessage.info(`正在打开资源：${row.resourceName}`);
-}
-
 function copyLink(row: PublicResourceRow) {
   const url = row.fileUrl || row.previewUrl;
   if (!url) {
@@ -862,6 +899,15 @@ function copyLink(row: PublicResourceRow) {
   }
   void navigator.clipboard?.writeText(url);
   ElMessage.success('链接已复制');
+}
+
+function downloadPreview() {
+  const url = previewTarget.value?.fileUrl || previewTarget.value?.previewUrl;
+  if (url) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  ElMessage.info('正在下载资源');
 }
 
 function openTakeDown(row: PublicResourceRow) {

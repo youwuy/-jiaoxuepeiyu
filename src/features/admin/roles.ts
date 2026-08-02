@@ -24,7 +24,7 @@ export const mockAdminRoles: AdminRole[] = [
     roleId: 2,
     roleName: '平台管理员',
     roleCode: 'platform_admin',
-    dataScope: 'ORG_AND_CHILDREN',
+    dataScope: 'ORG_ONLY',
     remark: '负责系统基础设置、人员管理、权限分配等平台级运维管理，拥有管理组织范围内全量数据权限',
     enabled: true,
     userCount: 6,
