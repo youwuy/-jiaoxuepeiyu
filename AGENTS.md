@@ -3,7 +3,7 @@
 ## Project Context
 
 - Project name: `-jiaoxuepeiyu`.
-- Backend owner branch: `chen/backend`.
+- Backend owner branch: `main`.
 - Backend stack target: Java, JDK 1.8 compatible.
 - Frontend stack target: Vue 2.2 or Vue 3.0, Node.js 18+.
 - Database target: MySQL 5.7.42.0.
@@ -20,7 +20,7 @@
 
 ## Working Rules
 
-- Work on `chen/backend` for backend changes.
+- Push backend changes directly to `main`.
 - Read `AGENTS.md` and `MEMORY.md` before changing project files.
 - Keep backend changes scoped to the requested backend system.
 - Do not hardcode secrets, tokens, API keys, passwords, or private keys.
@@ -39,4 +39,4 @@
 
 - Do not use destructive Git commands unless explicitly requested.
 - Preserve unrelated user changes.
-- Push completed backend work to the remote `chen/backend` branch.
+- Push completed backend work to the remote `main` branch.

@@ -85,6 +85,7 @@
 - 2026-08-02: Production user management teacher/student list and export returned 500 because existing MySQL volumes may predate later `sys_user` account columns; backend startup now runs an admin-account schema compatibility initializer to add missing `sys_user` account columns and indexes before account queries/bootstrap.
 - 2026-08-02: Production organization disable surfaced as HTTP 400 when admin identity was missing or expired because `GlobalExceptionHandler` always returned BAD_REQUEST for `BusinessException`; backend now maps valid `BusinessException.code` values to matching HTTP statuses such as 401/404/500.
 - 2026-08-02: Admin account single create now checks existing `sys_user.username` before insert and maps duplicate-key races to `Account number already exists`, so management user creation returns a clear 400 instead of raw database errors.
+- 2026-08-02: User updated backend delivery workflow: future backend changes should be pushed directly to remote `main` and deployed to server `8.130.35.250` under `/www/wwwroot/jiaoyu` using `sshpass` when deployment is requested or part of the backend handoff. Do not store the server password in repository files, memory, logs, or documentation.
 
 ## Operational Notes
 
