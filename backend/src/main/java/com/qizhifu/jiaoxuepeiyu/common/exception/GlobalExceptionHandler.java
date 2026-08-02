@@ -13,7 +13,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(httpStatus(exception.getCode()))
                 .body(ApiResponse.<Void>fail(exception.getCode(), exception.getMessage()));
     }
 
@@ -27,5 +27,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<Void>fail(500, "Internal server error"));
+    }
+
+    private HttpStatus httpStatus(int code) {
+        if (code < 400 || code > 599) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        HttpStatus status = HttpStatus.resolve(code);
+        return status == null ? HttpStatus.BAD_REQUEST : status;
     }
 }

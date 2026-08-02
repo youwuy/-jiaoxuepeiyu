@@ -83,6 +83,7 @@
 - 2026-08-01: Admin role management frontend and backend now use data scopes `SELF`, `ORG_ONLY`, and `ALL`; backend still accepts legacy `PERSONAL` and `MANAGED_ORG` inputs but normalizes responses and persisted new writes to frontend-facing values. Role creation/update requires non-empty permission ids, globally unique role name/code, and protects built-in `super_admin` from edit/disable/delete.
 - 2026-08-01: Admin configuration management keeps `/api/admin` education config, `/api/admin/classrooms`, and score config as the backend source of truth; the settings page now calls backend create/status/save endpoints for academic years, current semesters, majors, classes, job roles, classrooms/cameras, and score weights instead of mutating local mock rows. Class enable/disable APIs are `/api/admin/classes/{classId}/enable` and `/api/admin/classes/{classId}/disable`.
 - 2026-08-02: Production user management teacher/student list and export returned 500 because existing MySQL volumes may predate later `sys_user` account columns; backend startup now runs an admin-account schema compatibility initializer to add missing `sys_user` account columns and indexes before account queries/bootstrap.
+- 2026-08-02: Production organization disable surfaced as HTTP 400 when admin identity was missing or expired because `GlobalExceptionHandler` always returned BAD_REQUEST for `BusinessException`; backend now maps valid `BusinessException.code` values to matching HTTP statuses such as 401/404/500.
 
 ## Operational Notes
 
