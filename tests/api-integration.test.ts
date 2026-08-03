@@ -165,6 +165,20 @@ describe('api http client', () => {
     );
   });
 
+  it('does not attach stale auth headers when logging in again', async () => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    globalThis.localStorage.setItem('jiaoxuepeiyu_student_token', 'stale-token');
+    globalThis.localStorage.setItem('jiaoxuepeiyu_student_user', JSON.stringify({ id: 88 }));
+    const fetchMock = vi.fn(() => mockJsonResponse({ data: { token: 'fresh-token' } }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await loginStudent('studentId', { studentId: '0012', password: 'student123' });
+
+    const headers = fetchMock.mock.calls[0][1]?.headers as Headers;
+    expect(headers.get('Authorization')).toBeNull();
+    expect(headers.get('X-User-Id')).toBeNull();
+  });
+
   it('keeps admin and student auth headers isolated after both portals login', async () => {
     vi.stubGlobal('localStorage', new MemoryStorage());
     const fetchMock = vi
