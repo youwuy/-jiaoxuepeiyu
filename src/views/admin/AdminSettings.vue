@@ -213,6 +213,10 @@
         </section>
 
         <section v-else-if="activeConfig === 'grades'" class="admin-settings-panel">
+          <el-button class="admin-settings-add-button" @click="openAdd('grade')">
+            <el-icon><Plus /></el-icon>
+            新增成绩等级
+          </el-button>
           <table class="admin-settings-modal-table">
             <thead>
               <tr>
@@ -239,19 +243,19 @@
           <div class="admin-settings-alert">四项权重之和需等于100%，请合理分配</div>
           <label>
             <span>课件学习进度得分 <b>*</b></span>
-            <div><el-input-number v-model="weightForm.coursewareWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+            <div><el-input v-model.number="weightForm.coursewareWeight" class="admin-settings-weight-input" type="number" :min="0" :max="100" /><em>%</em></div>
           </label>
           <label>
             <span>实训练习得分 <b>*</b></span>
-            <div><el-input-number v-model="weightForm.trainingPracticeWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+            <div><el-input v-model.number="weightForm.trainingPracticeWeight" class="admin-settings-weight-input" type="number" :min="0" :max="100" /><em>%</em></div>
           </label>
           <label>
             <span>课程作业得分 <b>*</b></span>
-            <div><el-input-number v-model="weightForm.assignmentWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+            <div><el-input v-model.number="weightForm.assignmentWeight" class="admin-settings-weight-input" type="number" :min="0" :max="100" /><em>%</em></div>
           </label>
           <label>
             <span>考试得分 <b>*</b></span>
-            <div><el-input-number v-model="weightForm.examWeight" :min="0" :max="100" controls-position="right" /><em>%</em></div>
+            <div><el-input v-model.number="weightForm.examWeight" class="admin-settings-weight-input" type="number" :min="0" :max="100" /><em>%</em></div>
           </label>
           <p>当前权重总和：<strong :class="{ error: weightTotal !== 100 }">{{ weightTotal }}%</strong></p>
           <div class="admin-settings-effective">
@@ -316,6 +320,22 @@
           <label>
             <span>排序</span>
             <el-input-number v-model="addJobRoleSort" :min="0" controls-position="right" />
+          </label>
+        </section>
+
+        <section v-else-if="addKind === 'grade'" class="admin-settings-add-form">
+          <label>
+            <span>等级名称 <b>*</b></span>
+            <el-input v-model="gradeForm.gradeName" maxlength="10" placeholder="请输入等级名称" />
+            <small>最多输入10个字</small>
+          </label>
+          <label>
+            <span>最低分 <b>*</b></span>
+            <el-input v-model.number="gradeForm.minScore" class="admin-settings-grade-input" type="number" :min="0" :max="100" placeholder="请输入最低分" />
+          </label>
+          <label>
+            <span>最高分 <b>*</b></span>
+            <el-input v-model.number="gradeForm.maxScore" class="admin-settings-grade-input" type="number" :min="0" :max="100" placeholder="请输入最高分" />
           </label>
         </section>
 
@@ -416,6 +436,7 @@ import {
   fetchAdminMajors,
   fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
+  replaceAdminScoreGradeRules,
   setAdminCurrentSemester,
   updateAdminClassroom,
   type AdminAcademicYear,
@@ -432,7 +453,7 @@ import {
 
 type SettingTone = 'blue' | 'amber' | 'rose' | 'violet' | 'green' | 'gray';
 type ConfigKey = 'semester' | 'majors' | 'classes' | 'jobRoles' | 'classrooms' | 'grades' | 'weights';
-type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'room';
+type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'grade' | 'room';
 
 interface SettingRow {
   key: ConfigKey;
@@ -484,6 +505,7 @@ const addClassMajorId = ref<number | null>(null);
 const addJobRoleName = ref('');
 const addJobRoleSort = ref(0);
 const editingClassroomId = ref<number | null>(null);
+const editingGradeRuleId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
 const majors = ref<AdminMajor[]>([]);
@@ -504,6 +526,12 @@ const weightForm = reactive({
 const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
   roomName: '',
   cameras: []
+});
+
+const gradeForm = reactive({
+  gradeName: '',
+  minScore: 0,
+  maxScore: 100
 });
 
 const settingRows = computed<SettingRow[]>(() => [
@@ -535,7 +563,14 @@ const configTitle = computed(() => {
 });
 
 const configWidth = computed(() => (activeConfig.value === 'classrooms' ? '1080px' : activeConfig.value === 'weights' ? '520px' : '560px'));
-const addTitle = computed(() => ({ year: '添加学年', major: '添加专业', class: '新增班级', jobRole: '添加岗位角色', room: '添加教室' })[addKind.value]);
+const addTitle = computed(() => ({
+  year: '添加学年',
+  major: '添加专业',
+  class: '新增班级',
+  jobRole: '添加岗位角色',
+  grade: editingGradeRuleId.value ? '编辑成绩等级' : '新增成绩等级',
+  room: '添加教室'
+})[addKind.value]);
 const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
 
 const semesterRows = computed<SemesterDisplayRow[]>(() => {
@@ -696,6 +731,7 @@ function openConfig(key: ConfigKey) {
 function openAdd(kind: AddKind) {
   addKind.value = kind;
   editingClassroomId.value = null;
+  editingGradeRuleId.value = null;
   if (kind === 'year') addYearValue.value = '2025-2026';
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
@@ -705,6 +741,13 @@ function openAdd(kind: AddKind) {
   if (kind === 'jobRole') {
     addJobRoleName.value = '';
     addJobRoleSort.value = displayJobRoles.value.length + 1;
+  }
+  if (kind === 'grade') {
+    Object.assign(gradeForm, {
+      gradeName: '',
+      minScore: 0,
+      maxScore: 100
+    });
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -800,7 +843,14 @@ function editRoom(camera: CameraRow) {
 }
 
 function editGrade(rule: AdminScoreGradeRule) {
-  ElMessage.warning(`当前暂无${rule.gradeName}等级编辑接口`);
+  editingGradeRuleId.value = rule.ruleId;
+  addKind.value = 'grade';
+  Object.assign(gradeForm, {
+    gradeName: rule.gradeName,
+    minScore: rule.minScore,
+    maxScore: rule.maxScore
+  });
+  addVisible.value = true;
 }
 
 function newCamera(id: number): CameraRow {
@@ -851,6 +901,10 @@ async function saveAdd() {
       if (!addJobRoleName.value.trim()) return ElMessage.warning('请输入岗位角色');
       await createAdminJobRole({ roleName: addJobRoleName.value.trim(), sortOrder: addJobRoleSort.value });
     }
+    if (addKind.value === 'grade') {
+      const saved = await saveGradeRule();
+      if (!saved) return;
+    }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
       if (!roomForm.cameras.length) return ElMessage.warning('请至少添加一个摄像头');
@@ -867,6 +921,40 @@ async function saveAdd() {
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '配置更新失败');
   }
+}
+
+/** 保存新增或编辑后的成绩等级规则。 */
+async function saveGradeRule(): Promise<boolean> {
+  const gradeName = gradeForm.gradeName.trim();
+  const minScore = Number(gradeForm.minScore);
+  const maxScore = Number(gradeForm.maxScore);
+
+  if (!gradeName) {
+    ElMessage.warning('请输入等级名称');
+    return false;
+  }
+  if (!Number.isFinite(minScore) || !Number.isFinite(maxScore)) {
+    ElMessage.warning('请输入有效分数范围');
+    return false;
+  }
+  if (minScore < 0 || maxScore > 100 || minScore >= maxScore) {
+    ElMessage.warning('分数范围需满足0-100且最低分小于最高分');
+    return false;
+  }
+
+  const editingId = editingGradeRuleId.value;
+  const nextRules = displayGradeRules.value.map((rule) => ({
+    gradeName: editingId === rule.ruleId ? gradeName : rule.gradeName,
+    minScore: editingId === rule.ruleId ? minScore : rule.minScore,
+    maxScore: editingId === rule.ruleId ? maxScore : rule.maxScore
+  }));
+
+  if (!editingId) {
+    nextRules.push({ gradeName, minScore, maxScore });
+  }
+
+  await replaceAdminScoreGradeRules(nextRules);
+  return true;
 }
 
 async function saveWeight() {
