@@ -433,11 +433,11 @@ const builder = reactive({
   totalScore: 100,
   passScore: 60,
   rules: [
-    { type: '单选题', count: 20, score: 2, difficulty: '全部', selected: true },
-    { type: '多选题', count: 10, score: 3, difficulty: '全部', selected: true },
-    { type: '判断题', count: 10, score: 1, difficulty: '基础', selected: true },
-    { type: '填空题', count: 5, score: 2, difficulty: '全部', selected: true },
-    { type: '简答题', count: 0, score: 10, difficulty: '全部', selected: false }
+    { type: '单选题', count: 0, score: 0, difficulty: '全部', selected: false },
+    { type: '多选题', count: 0, score: 0, difficulty: '全部', selected: false },
+    { type: '判断题', count: 0, score: 0, difficulty: '基础', selected: false },
+    { type: '填空题', count: 0, score: 0, difficulty: '全部', selected: false },
+    { type: '简答题', count: 0, score: 0, difficulty: '全部', selected: false }
   ]
 });
 const manageForm = reactive({ paperName: '', courseName: '' });
