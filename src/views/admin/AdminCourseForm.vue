@@ -122,7 +122,7 @@
             <el-icon><Menu /></el-icon>
             <strong>教学内容</strong>
           </span>
-          <el-button type="primary" class="admin-course-form-primary" @click="showComingSoon('新增章节')">
+          <el-button type="primary" class="admin-course-form-primary" @click="addChapter">
             <el-icon><Plus /></el-icon>
             新增章节
           </el-button>
@@ -140,10 +140,9 @@
                 <strong>{{ chapter.title }}</strong>
               </span>
               <span class="admin-course-outline-actions">
-                <el-button text type="success" @click="showComingSoon('添加课件资源')">添加课件资源</el-button>
-                <el-button text type="success" @click="showComingSoon('添加作业')">添加作业</el-button>
-                <el-button text type="primary" @click="showComingSoon('编辑')">编辑</el-button>
-                <el-button text type="danger" @click="showComingSoon('删除')">删除</el-button>
+                <el-button text type="success" @click="addSection(chapter)">新增小节</el-button>
+                <el-button text type="primary" @click="editChapter(chapter)">编辑</el-button>
+                <el-button text type="danger" @click="removeChapter(chapters.indexOf(chapter))">删除</el-button>
               </span>
             </div>
 
@@ -154,10 +153,10 @@
                   <strong>{{ section.title }}</strong>
                 </span>
                 <span class="admin-course-outline-actions">
-                  <el-button text type="success" @click="showComingSoon('添加课件资源')">添加课件资源</el-button>
-                  <el-button text type="success" @click="showComingSoon('添加作业')">添加作业</el-button>
-                  <el-button text type="primary" @click="showComingSoon('编辑')">编辑</el-button>
-                  <el-button text type="danger" @click="showComingSoon('删除')">删除</el-button>
+                  <el-button text type="success" @click="addOutlineItem(section, 'resource')">添加课件资源</el-button>
+                  <el-button text type="success" @click="addOutlineItem(section, 'homework')">添加作业</el-button>
+                  <el-button text type="primary" @click="editSection(section)">编辑</el-button>
+                  <el-button text type="danger" @click="removeSection(chapter, chapter.sections.indexOf(section))">删除</el-button>
                 </span>
               </div>
 
@@ -175,8 +174,8 @@
                   <small>{{ item.desc }}</small>
                 </span>
                 <span class="admin-course-outline-actions compact-actions">
-                  <el-button text type="primary" @click="showComingSoon('编辑')">编辑</el-button>
-                  <el-button text type="danger" @click="showComingSoon('删除')">删除</el-button>
+                  <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
+                  <el-button text type="danger" @click="removeOutlineItem(section, section.items.indexOf(item))">删除</el-button>
                 </span>
               </div>
             </template>
@@ -195,7 +194,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowDown,
   ArrowLeft,
@@ -253,22 +252,120 @@ const semesterOptions = computed(() =>
   )
 );
 
-const chapters: Array<{
+interface OutlineItem {
+  id: number;
+  type: 'homework' | 'resource';
+  title: string;
+  desc: string;
+}
+
+interface OutlineSection {
   id: number;
   title: string;
-  sections: Array<{
-    id: number;
-    title: string;
-    items: Array<{ id: number; type: 'homework' | 'resource'; title: string; desc: string }>;
-  }>;
-}> = [];
+  items: OutlineItem[];
+}
+
+interface OutlineChapter {
+  id: number;
+  title: string;
+  sections: OutlineSection[];
+}
+
+const chapters = ref<OutlineChapter[]>([]);
+let outlineIdSeed = 1;
 
 function goBack() {
   router.push('/admin/courses');
 }
 
-function showComingSoon(label: string) {
-  ElMessage.warning(`${label}暂未接入资源/作业选择接口`);
+function nextOutlineId() {
+  outlineIdSeed += 1;
+  return outlineIdSeed;
+}
+
+async function promptOutlineText(message: string, title: string, initialValue = '') {
+  try {
+    const result = await ElMessageBox.prompt(message, title, {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: initialValue,
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return '请输入内容';
+        }
+        return true;
+      }
+    });
+    return String(result.value || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+async function addChapter() {
+  const title = await promptOutlineText('请输入章节名称', '新增章节');
+  if (!title) return;
+  chapters.value.push({ id: nextOutlineId(), title, sections: [] });
+}
+
+async function editChapter(chapter: OutlineChapter) {
+  const title = await promptOutlineText('请输入章节名称', '编辑章节', chapter.title);
+  if (!title) return;
+  chapter.title = title;
+}
+
+async function removeChapter(index: number) {
+  try {
+    await ElMessageBox.confirm('确认删除该章节？', '删除章节', { type: 'warning' });
+    chapters.value.splice(index, 1);
+  } catch {
+    return;
+  }
+}
+
+async function addSection(chapter: OutlineChapter) {
+  const title = await promptOutlineText('请输入小节名称', '新增小节');
+  if (!title) return;
+  chapter.sections.push({ id: nextOutlineId(), title, items: [] });
+}
+
+async function editSection(section: OutlineSection) {
+  const title = await promptOutlineText('请输入小节名称', '编辑小节', section.title);
+  if (!title) return;
+  section.title = title;
+}
+
+async function removeSection(chapter: OutlineChapter, index: number) {
+  try {
+    await ElMessageBox.confirm('确认删除该小节？', '删除小节', { type: 'warning' });
+    chapter.sections.splice(index, 1);
+  } catch {
+    return;
+  }
+}
+
+async function addOutlineItem(section: OutlineSection, type: OutlineItem['type']) {
+  const title = await promptOutlineText(type === 'homework' ? '请输入作业名称' : '请输入课件资源名称', type === 'homework' ? '添加作业' : '添加课件资源');
+  if (!title) return;
+  const desc = await promptOutlineText(type === 'homework' ? '请输入作业说明' : '请输入资源说明', type === 'homework' ? '作业说明' : '资源说明');
+  section.items.push({ id: nextOutlineId(), type, title, desc: desc || '-' });
+}
+
+async function editOutlineItem(item: OutlineItem) {
+  const title = await promptOutlineText('请输入名称', '编辑内容', item.title);
+  if (!title) return;
+  const desc = await promptOutlineText('请输入说明', '编辑说明', item.desc);
+  item.title = title;
+  item.desc = desc || item.desc;
+}
+
+async function removeOutlineItem(section: OutlineSection, index: number) {
+  try {
+    await ElMessageBox.confirm('确认删除该内容？', '删除内容', { type: 'warning' });
+    section.items.splice(index, 1);
+  } catch {
+    return;
+  }
 }
 
 function formatLocalDateTime(value?: Date) {
@@ -339,13 +436,17 @@ async function saveCourse() {
       learningMode: form.learningMode,
       assignmentCompletionRule: 'SUBMIT',
       coursewareScoreCap: payload.scoreCap,
-      chapters: chapters.map((chapter, index) => ({
+      chapters: chapters.value.map((chapter, index) => ({
         chapterTitle: chapter.title.slice(0, 20),
         sortOrder: index + 1,
         children: chapter.sections.map((section, sectionIndex) => ({
           chapterTitle: section.title.slice(0, 20),
           sortOrder: sectionIndex + 1,
-          contents: []
+          contents: section.items.map((item, itemIndex) => ({
+            itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
+            title: item.title.slice(0, 30),
+            sortOrder: itemIndex + 1
+          }))
         }))
       }))
     });
