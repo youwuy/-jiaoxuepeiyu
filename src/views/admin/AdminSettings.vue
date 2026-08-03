@@ -210,7 +210,7 @@
         </section>
 
         <section v-else-if="activeConfig === 'grades'" class="admin-settings-panel">
-          <el-button class="admin-settings-add-button" @click="openAdd('grade')">
+          <el-button class="admin-settings-add-button" @click="openGradeCreate">
             <el-icon><Plus /></el-icon>
             新增成绩等级
           </el-button>
@@ -224,12 +224,49 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(rule, index) in displayGradeRules" :key="rule.ruleId">
+              <tr v-for="(rule, index) in sortedGradeRules" :key="rule.ruleId">
                 <td>{{ index + 1 }}</td>
-                <td>{{ rule.gradeName }}</td>
-                <td>{{ rule.minScore }}%-{{ rule.maxScore }}%</td>
                 <td>
-                  <button class="admin-settings-link" @click="editGrade(rule)">编辑</button>
+                  <el-input
+                    v-if="editingGradeRuleId === rule.ruleId"
+                    v-model="gradeForm.gradeName"
+                    class="admin-settings-grade-name-input"
+                    maxlength="10"
+                    placeholder="请输入等级名称"
+                  />
+                  <template v-else>{{ rule.gradeName }}</template>
+                </td>
+                <td>
+                  <div v-if="editingGradeRuleId === rule.ruleId" class="admin-settings-grade-range">
+                    <el-input v-model.number="gradeForm.minScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
+                    <span>-</span>
+                    <el-input v-model.number="gradeForm.maxScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
+                  </div>
+                  <template v-else>{{ rule.minScore }}%-{{ rule.maxScore }}%</template>
+                </td>
+                <td>
+                  <template v-if="editingGradeRuleId === rule.ruleId">
+                    <button class="admin-settings-link" @click="saveGradeInline">保存</button>
+                    <button class="admin-settings-link danger" @click="cancelGradeInline">取消</button>
+                  </template>
+                  <button v-else class="admin-settings-link" @click="editGrade(rule)">编辑</button>
+                </td>
+              </tr>
+              <tr v-if="gradeCreating" class="admin-settings-grade-edit-row">
+                <td>{{ sortedGradeRules.length + 1 }}</td>
+                <td>
+                  <el-input v-model="gradeForm.gradeName" class="admin-settings-grade-name-input" maxlength="10" placeholder="请输入等级名称" />
+                </td>
+                <td>
+                  <div class="admin-settings-grade-range">
+                    <el-input v-model.number="gradeForm.minScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
+                    <span>-</span>
+                    <el-input v-model.number="gradeForm.maxScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
+                  </div>
+                </td>
+                <td>
+                  <button class="admin-settings-link" @click="saveGradeInline">保存</button>
+                  <button class="admin-settings-link danger" @click="cancelGradeInline">取消</button>
                 </td>
               </tr>
             </tbody>
@@ -317,22 +354,6 @@
           <label>
             <span>排序</span>
             <el-input-number v-model="addJobRoleSort" :min="0" controls-position="right" />
-          </label>
-        </section>
-
-        <section v-else-if="addKind === 'grade'" class="admin-settings-add-form">
-          <label>
-            <span>等级名称 <b>*</b></span>
-            <el-input v-model="gradeForm.gradeName" maxlength="10" placeholder="请输入等级名称" />
-            <small>最多输入10个字</small>
-          </label>
-          <label>
-            <span>最低分 <b>*</b></span>
-            <el-input v-model.number="gradeForm.minScore" class="admin-settings-grade-input" type="number" :min="0" :max="100" placeholder="请输入最低分" />
-          </label>
-          <label>
-            <span>最高分 <b>*</b></span>
-            <el-input v-model.number="gradeForm.maxScore" class="admin-settings-grade-input" type="number" :min="0" :max="100" placeholder="请输入最高分" />
           </label>
         </section>
 
@@ -447,7 +468,7 @@ import {
 
 type SettingTone = 'blue' | 'amber' | 'rose' | 'violet' | 'green' | 'gray';
 type ConfigKey = 'semester' | 'majors' | 'classes' | 'jobRoles' | 'classrooms' | 'grades' | 'weights';
-type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'grade' | 'room';
+type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'room';
 
 interface SettingRow {
   key: ConfigKey;
@@ -500,6 +521,7 @@ const addJobRoleName = ref('');
 const addJobRoleSort = ref(0);
 const editingClassroomId = ref<number | null>(null);
 const editingGradeRuleId = ref<number | null>(null);
+const gradeCreating = ref(false);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
 const majors = ref<AdminMajor[]>([]);
@@ -569,7 +591,6 @@ const addTitle = computed(() => ({
   major: '添加专业',
   class: '新增班级',
   jobRole: '添加岗位角色',
-  grade: editingGradeRuleId.value ? '编辑成绩等级' : '新增成绩等级',
   room: '添加教室'
 })[addKind.value]);
 const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
@@ -621,6 +642,8 @@ const displayGradeRules = computed(() => gradeRules.value.length ? gradeRules.va
   { ruleId: 3, gradeName: '中等', minScore: 60, maxScore: 75, sortOrder: 3 },
   { ruleId: 4, gradeName: '较差', minScore: 0, maxScore: 60, sortOrder: 4 }
 ]);
+
+const sortedGradeRules = computed(() => [...displayGradeRules.value].sort((prev, next) => next.maxScore - prev.maxScore || next.minScore - prev.minScore || prev.sortOrder - next.sortOrder));
 
 const classroomCameraRows = computed(() => {
   if (localCameras.value.length) {
@@ -764,6 +787,7 @@ function seedYears(): AdminAcademicYear[] {
 
 function openConfig(key: ConfigKey) {
   activeConfig.value = key;
+  cancelGradeInline();
   configVisible.value = true;
 }
 
@@ -780,13 +804,6 @@ function openAdd(kind: AddKind) {
   if (kind === 'jobRole') {
     addJobRoleName.value = '';
     addJobRoleSort.value = displayJobRoles.value.length + 1;
-  }
-  if (kind === 'grade') {
-    Object.assign(gradeForm, {
-      gradeName: '',
-      minScore: 0,
-      maxScore: 100
-    });
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -882,14 +899,42 @@ function editRoom(camera: CameraRow) {
 }
 
 function editGrade(rule: AdminScoreGradeRule) {
+  gradeCreating.value = false;
   editingGradeRuleId.value = rule.ruleId;
-  addKind.value = 'grade';
   Object.assign(gradeForm, {
     gradeName: rule.gradeName,
     minScore: rule.minScore,
     maxScore: rule.maxScore
   });
-  addVisible.value = true;
+}
+
+function openGradeCreate() {
+  editingGradeRuleId.value = null;
+  gradeCreating.value = true;
+  const lowestRule = sortedGradeRules.value[sortedGradeRules.value.length - 1];
+  Object.assign(gradeForm, {
+    gradeName: '',
+    minScore: 0,
+    maxScore: lowestRule?.minScore ?? 100
+  });
+}
+
+function cancelGradeInline() {
+  gradeCreating.value = false;
+  editingGradeRuleId.value = null;
+  Object.assign(gradeForm, {
+    gradeName: '',
+    minScore: 0,
+    maxScore: 100
+  });
+}
+
+async function saveGradeInline() {
+  const saved = await saveGradeRule();
+  if (!saved) return;
+  await loadSettings();
+  cancelGradeInline();
+  ElMessage.success('成绩等级已更新');
 }
 
 function newCamera(id: number): CameraRow {
@@ -939,10 +984,6 @@ async function saveAdd() {
     if (addKind.value === 'jobRole') {
       if (!addJobRoleName.value.trim()) return ElMessage.warning('请输入岗位角色');
       await createAdminJobRole({ roleName: addJobRoleName.value.trim(), sortOrder: addJobRoleSort.value });
-    }
-    if (addKind.value === 'grade') {
-      const saved = await saveGradeRule();
-      if (!saved) return;
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
