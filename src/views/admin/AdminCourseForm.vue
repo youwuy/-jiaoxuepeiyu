@@ -87,15 +87,32 @@
           <el-icon><UserFilled /></el-icon>
           <strong>教学团队</strong>
         </header>
-        <div class="admin-course-form-tags">
-          <el-select v-model="form.teacherIds" multiple filterable placeholder="请选择教师">
+        <div class="admin-course-form-select-block">
+          <el-select v-model="form.teacherIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="请选择教师">
             <el-option
               v-for="item in teacherOptions"
               :key="item.userId"
               :label="item.realName || item.accountNo"
               :value="item.userId"
-            />
+            >
+              <div class="admin-course-form-option">
+                <strong>{{ item.realName || item.accountNo }}</strong>
+                <span>{{ item.accountNo || '未配置工号' }}</span>
+              </div>
+            </el-option>
           </el-select>
+          <div class="admin-course-selected-box">
+            <span v-if="selectedTeachers.length === 0" class="admin-course-selected-empty">暂未选择教学团队</span>
+            <el-tag
+              v-for="item in selectedTeachers"
+              v-else
+              :key="item.userId"
+              closable
+              @close="removeTeacher(item.userId)"
+            >
+              {{ item.realName || item.accountNo }}
+            </el-tag>
+          </div>
         </div>
       </section>
 
@@ -104,15 +121,33 @@
           <el-icon><User /></el-icon>
           <strong>授课班级</strong>
         </header>
-        <div class="admin-course-form-tags">
-          <el-select v-model="form.classIds" multiple filterable placeholder="请选择班级">
+        <div class="admin-course-form-select-block">
+          <el-select v-model="form.classIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="请选择班级">
             <el-option
               v-for="item in classOptions"
               :key="item.classId"
               :label="item.majorName ? `${item.className}（${item.majorName}）` : item.className"
               :value="item.classId"
-            />
+            >
+              <div class="admin-course-form-option">
+                <strong>{{ item.className }}</strong>
+                <span>{{ item.majorName || '未配置专业' }}</span>
+              </div>
+            </el-option>
           </el-select>
+          <div class="admin-course-selected-box">
+            <span v-if="selectedClasses.length === 0" class="admin-course-selected-empty">暂未选择授课班级</span>
+            <el-tag
+              v-for="item in selectedClasses"
+              v-else
+              :key="item.classId"
+              closable
+              @close="removeClass(item.classId)"
+            >
+              {{ item.className }}
+              <small v-if="item.majorName">{{ item.majorName }}</small>
+            </el-tag>
+          </div>
         </div>
       </section>
 
@@ -188,6 +223,94 @@
         <el-button type="primary" :loading="saving" @click="saveCourse">保存</el-button>
       </footer>
     </section>
+
+    <el-dialog
+      v-model="resourceDialogVisible"
+      class="admin-course-resource-dialog"
+      width="860px"
+      :show-close="false"
+      append-to-body
+    >
+      <template #header>
+        <div class="admin-course-resource-dialog-head">
+          <strong>添加教学资源</strong>
+          <el-button text circle :icon="Close" @click="resourceDialogVisible = false" />
+        </div>
+      </template>
+
+      <div class="admin-course-resource-dialog-body">
+        <div class="admin-course-resource-searchbar">
+          <el-input
+            v-model="resourceKeyword"
+            :prefix-icon="Search"
+            clearable
+            placeholder="请输入资源名称"
+            @keyup.enter="handleResourceSearch"
+            @clear="handleResourceSearch"
+          />
+          <el-button type="primary" @click="handleResourceSearch">查询</el-button>
+        </div>
+
+        <div class="admin-course-resource-tabs">
+          <button
+            v-for="item in resourceTypeTabs"
+            :key="item.value"
+            type="button"
+            :class="{ active: resourceTypeFilter === item.value }"
+            @click="changeResourceType(item.value)"
+          >
+            {{ item.label }}
+          </button>
+        </div>
+
+        <div class="admin-course-resource-table" v-loading="resourceLoading">
+          <div class="admin-course-resource-table-head">
+            <span>资源名称</span>
+            <span>资源类型</span>
+            <span>所属课程</span>
+            <span>上传人</span>
+            <span>上传时间</span>
+          </div>
+          <button
+            v-for="item in resourceRows"
+            :key="item.resourceId"
+            type="button"
+            class="admin-course-resource-row"
+            :class="{ active: selectedResource?.resourceId === item.resourceId }"
+            @click="selectResource(item)"
+          >
+            <span class="admin-course-resource-name">
+              <i>{{ resourceInitial(item) }}</i>
+              <strong>{{ item.resourceName }}</strong>
+              <small>{{ item.fileName || formatResourceSize(item.fileSize) }}</small>
+            </span>
+            <span>{{ resourceTypeLabel(item.resourceType) }}</span>
+            <span>{{ item.courseName || '-' }}</span>
+            <span>{{ item.uploaderName || '-' }}</span>
+            <span>{{ formatResourceDate(item.createdAt) }}</span>
+          </button>
+          <el-empty v-if="!resourceLoading && resourceRows.length === 0" description="暂无可添加资源" />
+        </div>
+
+        <div class="admin-course-resource-pagination">
+          <span>共 {{ resourceTotal }} 条</span>
+          <el-pagination
+            layout="prev, pager, next"
+            :current-page="resourcePage"
+            :page-size="resourcePageSize"
+            :total="resourceTotal"
+            @current-change="handleResourcePageChange"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="admin-course-resource-dialog-footer">
+          <el-button @click="resourceDialogVisible = false">取消</el-button>
+          <el-button type="primary" :disabled="!selectedResource" @click="confirmAddResource">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </AdminShell>
 </template>
 
@@ -199,11 +322,13 @@ import {
   ArrowDown,
   ArrowLeft,
   Checked,
+  Close,
   Document,
   Folder,
   InfoFilled,
   Menu,
   Plus,
+  Search,
   User,
   UserFilled
 } from '@element-plus/icons-vue';
@@ -219,6 +344,7 @@ import {
   type AdminMajorOption,
   type AdminTeacherOption
 } from '../../api/admin-course';
+import { fetchAdminResources, type AdminResource } from '../../api/admin-resource';
 
 const router = useRouter();
 
@@ -252,11 +378,15 @@ const semesterOptions = computed(() =>
   )
 );
 
+const selectedTeachers = computed(() => teacherOptions.value.filter((item) => form.teacherIds.includes(item.userId)));
+const selectedClasses = computed(() => classOptions.value.filter((item) => form.classIds.includes(item.classId)));
+
 interface OutlineItem {
   id: number;
   type: 'homework' | 'resource';
   title: string;
   desc: string;
+  resourceId?: number;
 }
 
 interface OutlineSection {
@@ -273,6 +403,23 @@ interface OutlineChapter {
 
 const chapters = ref<OutlineChapter[]>([]);
 let outlineIdSeed = 1;
+const resourceDialogVisible = ref(false);
+const resourceLoading = ref(false);
+const resourceKeyword = ref('');
+const resourceTypeFilter = ref('');
+const resourceRows = ref<AdminResource[]>([]);
+const resourceTotal = ref(0);
+const resourcePage = ref(1);
+const resourcePageSize = 8;
+const selectedResource = ref<AdminResource>();
+const resourceTargetSection = ref<OutlineSection | null>(null);
+const resourceTypeTabs = [
+  { label: '全部', value: '' },
+  { label: '文档', value: 'DOCUMENT' },
+  { label: '课件', value: 'PRESENTATION' },
+  { label: '视频', value: 'VIDEO' },
+  { label: '图片', value: 'IMAGE' }
+];
 
 function goBack() {
   router.push('/admin/courses');
@@ -345,10 +492,84 @@ async function removeSection(chapter: OutlineChapter, index: number) {
 }
 
 async function addOutlineItem(section: OutlineSection, type: OutlineItem['type']) {
+  if (type === 'resource') {
+    openResourceDialog(section);
+    return;
+  }
+
   const title = await promptOutlineText(type === 'homework' ? '请输入作业名称' : '请输入课件资源名称', type === 'homework' ? '添加作业' : '添加课件资源');
   if (!title) return;
   const desc = await promptOutlineText(type === 'homework' ? '请输入作业说明' : '请输入资源说明', type === 'homework' ? '作业说明' : '资源说明');
   section.items.push({ id: nextOutlineId(), type, title, desc: desc || '-' });
+}
+
+function openResourceDialog(section: OutlineSection) {
+  resourceTargetSection.value = section;
+  selectedResource.value = undefined;
+  resourceKeyword.value = '';
+  resourceTypeFilter.value = '';
+  resourcePage.value = 1;
+  resourceDialogVisible.value = true;
+  void loadResourceRows();
+}
+
+async function loadResourceRows() {
+  resourceLoading.value = true;
+  try {
+    const result = await fetchAdminResources({
+      keyword: resourceKeyword.value,
+      resourceType: resourceTypeFilter.value,
+      page: resourcePage.value,
+      pageSize: resourcePageSize
+    });
+    resourceRows.value = result.records;
+    resourceTotal.value = result.total;
+  } catch (error) {
+    resourceRows.value = [];
+    resourceTotal.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '资源列表加载失败');
+  } finally {
+    resourceLoading.value = false;
+  }
+}
+
+function handleResourceSearch() {
+  resourcePage.value = 1;
+  selectedResource.value = undefined;
+  void loadResourceRows();
+}
+
+function changeResourceType(value: string) {
+  resourceTypeFilter.value = value;
+  handleResourceSearch();
+}
+
+function handleResourcePageChange(page: number) {
+  resourcePage.value = page;
+  selectedResource.value = undefined;
+  void loadResourceRows();
+}
+
+function selectResource(item: AdminResource) {
+  selectedResource.value = item;
+}
+
+function confirmAddResource() {
+  if (!selectedResource.value || !resourceTargetSection.value) {
+    ElMessage.warning('请选择教学资源');
+    return;
+  }
+
+  const resource = selectedResource.value;
+  resourceTargetSection.value.items.push({
+    id: nextOutlineId(),
+    type: 'resource',
+    title: resource.resourceName,
+    desc: `${resourceTypeLabel(resource.resourceType)} · ${resource.courseName || resource.fileName || '教学资源'}`,
+    resourceId: resource.resourceId
+  });
+  resourceDialogVisible.value = false;
+  ElMessage.success('已添加教学资源');
 }
 
 async function editOutlineItem(item: OutlineItem) {
@@ -381,6 +602,14 @@ function formatLocalDateTime(value?: Date) {
 
 function selectedSemester() {
   return semesterOptions.value.find((item) => item.key === form.semesterKey);
+}
+
+function removeTeacher(userId: number) {
+  form.teacherIds = form.teacherIds.filter((id) => id !== userId);
+}
+
+function removeClass(classId: number) {
+  form.classIds = form.classIds.filter((id) => id !== classId);
 }
 
 function validateForm() {
@@ -445,7 +674,8 @@ async function saveCourse() {
           contents: section.items.map((item, itemIndex) => ({
             itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
             title: item.title.slice(0, 30),
-            sortOrder: itemIndex + 1
+            sortOrder: itemIndex + 1,
+            resourceId: item.resourceId
           }))
         }))
       }))
@@ -457,6 +687,39 @@ async function saveCourse() {
   } finally {
     saving.value = false;
   }
+}
+
+function resourceTypeLabel(type?: string) {
+  const labels: Record<string, string> = {
+    DOCUMENT: '文档',
+    PRESENTATION: '课件',
+    VIDEO: '视频',
+    IMAGE: '图片',
+    AUDIO: '音频',
+    EXAM: '试题'
+  };
+  return type ? labels[type] || type : '资源';
+}
+
+function formatResourceSize(size?: number) {
+  if (!size) {
+    return '未配置大小';
+  }
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))}KB`;
+  }
+  return `${(size / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function formatResourceDate(value?: string) {
+  if (!value) {
+    return '-';
+  }
+  return value.slice(0, 10);
+}
+
+function resourceInitial(item: AdminResource) {
+  return resourceTypeLabel(item.resourceType).slice(0, 1);
 }
 
 async function loadOptions() {

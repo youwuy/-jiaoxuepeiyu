@@ -140,6 +140,63 @@
           </div>
         </footer>
       </section>
+
+      <el-dialog
+        v-model="detailVisible"
+        class="admin-course-stats-detail-dialog"
+        width="640px"
+        :show-close="false"
+        append-to-body
+      >
+        <template #header>
+          <div class="admin-course-stats-detail-head">
+            <strong>成绩详情</strong>
+            <el-button text circle :icon="Close" @click="detailVisible = false" />
+          </div>
+        </template>
+
+        <section v-if="currentStudent" class="admin-course-stats-detail-body">
+          <header>
+            <div>
+              <strong>{{ currentStudent.name }}</strong>
+              <span>{{ currentStudent.studentNo }}</span>
+            </div>
+            <b>{{ currentStudent.className }}</b>
+          </header>
+
+          <div class="admin-course-stats-detail-grid">
+            <article>
+              <span>学习进度</span>
+              <strong>{{ currentStudent.progress }}%</strong>
+            </article>
+            <article>
+              <span>进度得分</span>
+              <strong>{{ formatScore(currentStudent.progressScore) }}</strong>
+            </article>
+            <article>
+              <span>作业提交数量</span>
+              <strong>{{ currentStudent.assignmentCount }}</strong>
+            </article>
+            <article>
+              <span>作业合计得分</span>
+              <strong>{{ formatScore(currentStudent.assignmentScore) }}</strong>
+            </article>
+          </div>
+
+          <div class="admin-course-stats-detail-formula">
+            <strong>课程成绩组成</strong>
+            <p>
+              课程成绩由课件学习进度得分与课程作业得分组成，当前页面展示该学员在本课程内的学习完成情况和作业批阅结果。
+            </p>
+          </div>
+        </section>
+
+        <template #footer>
+          <div class="admin-course-stats-detail-footer">
+            <el-button type="primary" @click="detailVisible = false">关闭</el-button>
+          </div>
+        </template>
+      </el-dialog>
     </section>
   </AdminShell>
 </template>
@@ -151,6 +208,7 @@ import { ElMessage } from 'element-plus';
 import {
   ArrowLeft,
   ArrowRight,
+  Close,
   DArrowLeft,
   DArrowRight,
   Download,
@@ -189,9 +247,10 @@ const pageSize = ref(10);
 const total = ref(0);
 const loading = ref(false);
 const exporting = ref(false);
+const initialStudentNo = String(route.query.studentNo || '').trim();
 const filters = reactive({
   studentName: '',
-  studentNo: '',
+  studentNo: initialStudentNo,
   className: ''
 });
 const appliedFilters = ref({ ...filters });
@@ -206,6 +265,9 @@ const courseStats = ref<AdminCourseStatistics>({
 });
 
 const students = ref<StudentScoreRow[]>([]);
+const detailVisible = ref(false);
+const currentStudent = ref<StudentScoreRow>();
+const detailAutoOpened = ref(false);
 
 const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
@@ -257,13 +319,8 @@ async function exportData() {
 }
 
 function showDetail(student: StudentScoreRow) {
-  router.push({
-    path: `/admin/courses/${courseId.value}/reviews`,
-    query: {
-      title: courseTitle.value,
-      studentNo: student.studentNo
-    }
-  });
+  currentStudent.value = student;
+  detailVisible.value = true;
 }
 
 async function loadCourseStatistics() {
@@ -298,12 +355,26 @@ async function loadStudents() {
     if (page.value > pageCount.value) {
       page.value = pageCount.value;
     }
+    openInitialDetail();
   } catch (error) {
     students.value = [];
     total.value = 0;
     ElMessage.error(error instanceof Error ? error.message : '课程学员成绩接口暂不可用');
   } finally {
     loading.value = false;
+  }
+}
+
+function openInitialDetail() {
+  if (!initialStudentNo || detailAutoOpened.value) {
+    return;
+  }
+
+  const matched = students.value.find((student) => student.studentNo === initialStudentNo);
+  if (matched) {
+    currentStudent.value = matched;
+    detailVisible.value = true;
+    detailAutoOpened.value = true;
   }
 }
 
