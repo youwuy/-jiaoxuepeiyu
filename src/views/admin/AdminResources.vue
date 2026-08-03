@@ -685,6 +685,7 @@ function validateForm(): AdminResourceCommand {
   const resourceName = form.resourceName.trim();
   const resourceType = form.resourceType.trim();
   const majorId = Number(form.majorId);
+  const coverUrl = form.coverUrl.trim();
   const fileUrl = form.fileUrl.trim();
   const fileName = form.fileName.trim();
   const fileSize = Number(form.fileSize);
@@ -703,12 +704,16 @@ function validateForm(): AdminResourceCommand {
     throw new Error('请选择所属专业');
   }
 
+  if (!coverUrl) {
+    throw new Error('请上传封面图');
+  }
+
   if (!fileUrl) {
-    throw new Error('请输入文件地址');
+    throw new Error('请上传资源文件');
   }
 
   if (!fileName) {
-    throw new Error('请输入文件名称');
+    throw new Error('请上传资源文件');
   }
 
   if (!Number.isFinite(fileSize) || fileSize <= 0) {
@@ -717,7 +722,7 @@ function validateForm(): AdminResourceCommand {
 
   return {
     resourceName,
-    coverUrl: form.coverUrl.trim() || coverForResourceType(resourceType),
+    coverUrl,
     fileUrl,
     previewUrl: form.previewUrl.trim() || undefined,
     fileName,
@@ -917,6 +922,9 @@ async function uploadCoverFile(event: Event) {
   uploadingCover.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'covers');
+    if (!uploaded.fileUrl) {
+      throw new Error('上传接口未返回文件地址');
+    }
     form.coverUrl = uploaded.fileUrl;
     form.coverName = uploaded.fileName || file.name;
     form.coverSize = formatFileSize(uploaded.fileSize ?? file.size);
@@ -937,6 +945,9 @@ async function uploadResourceFile(event: Event) {
   uploadingFile.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'resources');
+    if (!uploaded.fileUrl) {
+      throw new Error('上传接口未返回文件地址');
+    }
     form.fileUrl = uploaded.fileUrl;
     form.previewUrl = uploaded.fileUrl;
     form.fileName = uploaded.fileName || file.name;
@@ -959,6 +970,9 @@ async function uploadBatchCoverFile(event: Event) {
   uploadingBatchCover.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'covers');
+    if (!uploaded.fileUrl) {
+      throw new Error('上传接口未返回文件地址');
+    }
     batchForm.coverUrl = uploaded.fileUrl;
     batchForm.coverName = uploaded.fileName || file.name;
     batchForm.coverSize = formatFileSize(uploaded.fileSize ?? file.size);

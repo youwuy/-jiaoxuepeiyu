@@ -270,6 +270,7 @@ export async function uploadAdminFile(file: File, category: string) {
   return requestJson<UploadedFile>('/files', {
     method: 'POST',
     body,
+    authPortal: 'admin',
     fallbackLabel: '文件上传'
   });
 }
