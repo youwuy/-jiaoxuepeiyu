@@ -65,12 +65,12 @@ function getStoredToken(portal?: AuthPortal): string {
     return globalThis.localStorage?.getItem(legacyAuthTokenKey) || '';
   }
 
-  return globalThis.localStorage?.getItem(authStorageKeys[portal].token) || '';
+  return globalThis.localStorage?.getItem(authStorageKeys[portal].token) || globalThis.localStorage?.getItem(legacyAuthTokenKey) || '';
 }
 
 function getStoredUserId(portal?: AuthPortal): string {
   const storedUser = portal
-    ? globalThis.localStorage?.getItem(authStorageKeys[portal].user)
+    ? globalThis.localStorage?.getItem(authStorageKeys[portal].user) || globalThis.localStorage?.getItem(legacyAuthUserKey)
     : globalThis.localStorage?.getItem(legacyAuthUserKey);
 
   if (!storedUser) {
@@ -78,8 +78,8 @@ function getStoredUserId(portal?: AuthPortal): string {
   }
 
   try {
-    const user = JSON.parse(storedUser) as { id?: number | string; studentId?: number | string };
-    return String(user.id ?? user.studentId ?? '');
+    const user = JSON.parse(storedUser) as { id?: number | string; userId?: number | string; studentId?: number | string };
+    return String(user.id ?? user.userId ?? user.studentId ?? '');
   } catch {
     return '';
   }

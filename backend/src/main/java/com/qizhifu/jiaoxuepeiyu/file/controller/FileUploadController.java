@@ -1,7 +1,9 @@
 package com.qizhifu.jiaoxuepeiyu.file.controller;
 
 import com.qizhifu.jiaoxuepeiyu.auth.AuthenticatedUserContext;
+import com.qizhifu.jiaoxuepeiyu.auth.model.AuthenticatedUser;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
+import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.file.FileStorageService;
 import com.qizhifu.jiaoxuepeiyu.file.model.StoredFile;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = "Files", description = "Local file upload APIs for admin and student clients.")
 public class FileUploadController {
 
+    private static final String USER_ID_HEADER = "X-User-Id";
+
     private final FileStorageService storageService;
 
     public FileUploadController(FileStorageService storageService) {
@@ -33,7 +37,23 @@ public class FileUploadController {
                                           @Parameter(description = "Optional storage category such as resources, covers, or assignments.")
                                           @RequestParam(value = "category", required = false) String category,
                                           HttpServletRequest request) {
-        AuthenticatedUserContext.requireUserId(request);
+        requireUploadUserId(request);
         return ApiResponse.ok(storageService.store(file, category));
+    }
+
+    private Long requireUploadUserId(HttpServletRequest request) {
+        Object currentUser = request.getAttribute(AuthenticatedUserContext.REQUEST_ATTRIBUTE);
+        if (currentUser instanceof AuthenticatedUser) {
+            return ((AuthenticatedUser) currentUser).getId();
+        }
+        String value = request.getHeader(USER_ID_HEADER);
+        if (value == null || value.trim().length() == 0) {
+            throw new BusinessException(401, "Missing upload identity");
+        }
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(401, "Invalid upload identity");
+        }
     }
 }
