@@ -20,6 +20,7 @@ export async function loginStudent(mode: StudentLoginMode, form: StudentLoginFor
   const result = await requestJson<LoginResult>('/auth/student/login', {
     method: 'POST',
     body: JSON.stringify(payload),
+    skipAuth: true,
     fallbackLabel: '学员登录'
   });
 
@@ -35,6 +36,7 @@ export async function loginAdmin(form: AdminLoginForm, loginType = 'username'): 
       account: form.account,
       password: form.password
     }),
+    skipAuth: true,
     fallbackLabel: '管理端登录'
   });
 

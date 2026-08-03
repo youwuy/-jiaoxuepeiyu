@@ -1,6 +1,7 @@
 export interface ApiRequestOptions extends RequestInit {
   fallbackLabel?: string;
   authPortal?: AuthPortal;
+  skipAuth?: boolean;
 }
 
 export interface FileDownload {
@@ -117,7 +118,7 @@ function unwrapResponse<T>(payload: ApiEnvelope<T> | T): T {
 
 export async function requestJson<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const portal = options.authPortal || inferPortal(path);
-  const token = getStoredToken(portal);
+  const token = options.skipAuth ? '' : getStoredToken(portal);
   const headers = new Headers(options.headers);
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -128,7 +129,7 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const userId = getStoredUserId(portal);
+  const userId = options.skipAuth ? '' : getStoredUserId(portal);
   if (userId && !headers.has('X-User-Id')) {
     headers.set('X-User-Id', userId);
   }
@@ -153,14 +154,14 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
 
 export async function requestBlob(path: string, options: ApiRequestOptions = {}): Promise<FileDownload> {
   const portal = options.authPortal || inferPortal(path);
-  const token = getStoredToken(portal);
+  const token = options.skipAuth ? '' : getStoredToken(portal);
   const headers = new Headers(options.headers);
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const userId = getStoredUserId(portal);
+  const userId = options.skipAuth ? '' : getStoredUserId(portal);
   if (userId && !headers.has('X-User-Id')) {
     headers.set('X-User-Id', userId);
   }

@@ -29,7 +29,7 @@ springdoc:
 
 app:
   account:
-    initial-password: ${APP_ACCOUNT_INITIAL_PASSWORD:}
+    initial-password: ${APP_ACCOUNT_INITIAL_PASSWORD:admin123}
   bootstrap:
     admin:
       username: ${APP_BOOTSTRAP_ADMIN_USERNAME:}
