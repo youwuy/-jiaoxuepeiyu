@@ -18091,7 +18091,7 @@ a {
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 20px;
-  padding: 16px 29px 16px 18px;
+  padding: 16px 30px 16px 18px;
 }
 
 .admin-semester-score-weight-line {
@@ -18128,6 +18128,22 @@ a {
   border-radius: 2px;
 }
 
+.admin-semester-score-weight-line i.courseware {
+  background: #3b82f6;
+}
+
+.admin-semester-score-weight-line i.training {
+  background: #10b981;
+}
+
+.admin-semester-score-weight-line i.assignment {
+  background: #f59e0b;
+}
+
+.admin-semester-score-weight-line i.exam {
+  background: #ef4444;
+}
+
 .admin-semester-score-weight-line b {
   color: #334155;
 }
@@ -18141,67 +18157,6 @@ a {
   color: #ffffff;
   font-size: 14px;
   font-weight: 900;
-}
-
-.admin-semester-score-summary {
-  min-height: 72px;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
-  gap: 0;
-  margin: 0 0 20px;
-  padding: 16px 20px;
-  border: 1px solid #e3e8f0;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.admin-semester-score-summary article {
-  min-height: auto;
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: baseline;
-  gap: 6px;
-  padding: 0 24px;
-  border: 0;
-  border-right: 1px solid #edf2f7;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.admin-semester-score-summary article:first-child {
-  padding-left: 0;
-}
-
-.admin-semester-score-summary article:last-child {
-  padding-right: 0;
-  border-right: 0;
-}
-
-.admin-semester-score-summary span {
-  display: block;
-  grid-column: 1 / -1;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 700;
-}
-
-.admin-semester-score-summary strong {
-  display: inline;
-  margin: 0;
-  color: #1e293b;
-  font-size: 24px;
-  line-height: 30px;
-  font-weight: 900;
-}
-
-.admin-semester-score-summary em {
-  color: #94a3b8;
-  font-size: 13px;
-  line-height: 18px;
-  font-style: normal;
-  font-weight: 700;
 }
 
 .admin-semester-score-board {

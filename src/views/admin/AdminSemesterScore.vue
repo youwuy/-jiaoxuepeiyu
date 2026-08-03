@@ -37,40 +37,17 @@
         </div>
       </section>
 
-      <section class="admin-semester-score-summary">
-        <article>
-          <span>总人数</span>
-          <strong>{{ statistics.studentCount }}</strong>
-          <em>人</em>
-        </article>
-        <article>
-          <span>优秀人数</span>
-          <strong>{{ statistics.excellentCount }}</strong>
-          <em>人</em>
-        </article>
-        <article>
-          <span>及格人数</span>
-          <strong>{{ statistics.passCount }}</strong>
-          <em>人</em>
-        </article>
-        <article>
-          <span>平均分</span>
-          <strong>{{ formatScore(statistics.averageScore) }}</strong>
-          <em>分</em>
-        </article>
-        <article>
-          <span>最高分</span>
-          <strong>{{ formatScore(statistics.maxScore) }}</strong>
-          <em>分</em>
-        </article>
-      </section>
-
-      <section class="admin-semester-score-actions">
-        <p>共 <b>{{ total }}</b> 条综合成绩</p>
-        <div>
-          <el-button class="admin-semester-score-lite" @click="openWeightDialog">成绩权重</el-button>
-          <el-button class="admin-semester-score-primary" @click="openExport">导出成绩</el-button>
+      <section class="admin-semester-score-weight-card">
+        <div class="admin-semester-score-weight-line">
+          <el-icon><InfoFilled /></el-icon>
+          <strong>成绩权重：</strong>
+          <span v-for="item in weights" :key="item.name">
+            <i :class="weightTone(item.name)"></i>
+            {{ item.name }}
+            <b>{{ item.value }}%</b>
+          </span>
         </div>
+        <el-button class="admin-semester-score-primary" @click="openOfflineExam">线下考试成绩管理</el-button>
       </section>
 
       <section class="admin-semester-score-board" v-loading="loading">
@@ -186,7 +163,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close } from '@element-plus/icons-vue';
+import { Close, InfoFilled } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
@@ -332,10 +309,6 @@ function gradeForScore(score: number) {
   return '不及格';
 }
 
-function formatScore(value: number | string | undefined | null) {
-  return numberValue(value).toFixed(1);
-}
-
 async function loadOptions() {
   try {
     const [years, classes] = await Promise.all([fetchAdminAcademicYears(), fetchAdminClasses()]);
@@ -423,7 +396,13 @@ function openArchive(row: SemesterScoreRow) {
   router.push({ path: '/admin/training-archive', query: { keyword: row.studentNo } });
 }
 function openExport() { exportVisible.value = true; }
-function openWeightDialog() { weightVisible.value = true; }
+function openOfflineExam() { ElMessage.info('线下考试成绩管理暂未配置页面'); }
+function weightTone(name: string) {
+  if (name.includes('实训')) return 'training';
+  if (name.includes('作业')) return 'assignment';
+  if (name.includes('考试')) return 'exam';
+  return 'courseware';
+}
 async function confirmExport() {
   exporting.value = true;
   try {
