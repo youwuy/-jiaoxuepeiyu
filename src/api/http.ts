@@ -23,7 +23,7 @@ interface ApiEnvelope<T> {
 }
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
-type AuthPortal = 'admin' | 'student';
+export type AuthPortal = 'admin' | 'student';
 
 const legacyAuthTokenKey = 'jiaoxuepeiyu_token';
 const legacyAuthUserKey = 'jiaoxuepeiyu_user';
@@ -37,6 +37,8 @@ const authStorageKeys: Record<AuthPortal, { token: string; user: string }> = {
     user: 'jiaoxuepeiyu_student_user'
   }
 };
+
+let redirectingToLogin = false;
 
 function buildUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
@@ -66,6 +68,10 @@ function getStoredToken(portal?: AuthPortal): string {
   }
 
   return globalThis.localStorage?.getItem(authStorageKeys[portal].token) || globalThis.localStorage?.getItem(legacyAuthTokenKey) || '';
+}
+
+export function hasAuthSession(portal: AuthPortal): boolean {
+  return Boolean(getStoredToken(portal));
 }
 
 function getStoredUserId(portal?: AuthPortal): string {
@@ -116,9 +122,64 @@ function unwrapResponse<T>(payload: ApiEnvelope<T> | T): T {
   return payload as T;
 }
 
+function removeStoredSession(portal?: AuthPortal) {
+  const portals: AuthPortal[] = portal ? [portal] : ['admin', 'student'];
+
+  portals.forEach((item) => {
+    globalThis.localStorage?.removeItem(authStorageKeys[item].token);
+    globalThis.localStorage?.removeItem(authStorageKeys[item].user);
+  });
+
+  if (!portal) {
+    globalThis.localStorage?.removeItem(legacyAuthTokenKey);
+    globalThis.localStorage?.removeItem(legacyAuthUserKey);
+  }
+}
+
+function loginPathFor(portal?: AuthPortal): string {
+  return portal === 'student' ? '/student/login' : '/admin/login';
+}
+
+function handleUnauthorized(portal?: AuthPortal) {
+  removeStoredSession(portal);
+
+  if (redirectingToLogin || typeof window === 'undefined') {
+    return;
+  }
+
+  const loginPath = loginPathFor(portal);
+  if (window.location.pathname === loginPath) {
+    return;
+  }
+
+  redirectingToLogin = true;
+  window.location.href = loginPath;
+}
+
+function throwForResponse(response: Response, portal: AuthPortal | undefined, label: string): never {
+  if (response.status === 401) {
+    handleUnauthorized(portal);
+  }
+  throw new Error(`${label} 请求失败：${response.status}`);
+}
+
+function requireStoredToken(path: string, options: ApiRequestOptions, portal?: AuthPortal): string {
+  if (options.skipAuth) {
+    return '';
+  }
+
+  const token = getStoredToken(portal);
+  if (!token && portal) {
+    handleUnauthorized(portal);
+    throw new Error(`${options.fallbackLabel || path} 未登录`);
+  }
+
+  return token;
+}
+
 export async function requestJson<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const portal = options.authPortal || inferPortal(path);
-  const token = options.skipAuth ? '' : getStoredToken(portal);
+  const token = requireStoredToken(path, options, portal);
   const headers = new Headers(options.headers);
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -141,7 +202,7 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
   });
 
   if (!response.ok) {
-    throw new Error(`${options.fallbackLabel || path} 请求失败：${response.status}`);
+    throwForResponse(response, portal, options.fallbackLabel || path);
   }
 
   const text = await response.text();
@@ -154,7 +215,7 @@ export async function requestJson<T>(path: string, options: ApiRequestOptions = 
 
 export async function requestBlob(path: string, options: ApiRequestOptions = {}): Promise<FileDownload> {
   const portal = options.authPortal || inferPortal(path);
-  const token = options.skipAuth ? '' : getStoredToken(portal);
+  const token = requireStoredToken(path, options, portal);
   const headers = new Headers(options.headers);
 
   if (token && !headers.has('Authorization')) {
@@ -173,7 +234,7 @@ export async function requestBlob(path: string, options: ApiRequestOptions = {})
   });
 
   if (!response.ok) {
-    throw new Error(`${options.fallbackLabel || path} 请求失败：${response.status}`);
+    throwForResponse(response, portal, options.fallbackLabel || path);
   }
 
   return {
@@ -208,17 +269,7 @@ export function saveAuthSession(portal: AuthPortal, token: string, user?: unknow
 }
 
 export function clearAuthSession(portal?: AuthPortal) {
-  const portals: AuthPortal[] = portal ? [portal] : ['admin', 'student'];
-
-  portals.forEach((item) => {
-    globalThis.localStorage?.removeItem(authStorageKeys[item].token);
-    globalThis.localStorage?.removeItem(authStorageKeys[item].user);
-  });
-
-  if (!portal) {
-    globalThis.localStorage?.removeItem(legacyAuthTokenKey);
-    globalThis.localStorage?.removeItem(legacyAuthUserKey);
-  }
+  removeStoredSession(portal);
 }
 
 function filenameFromDisposition(disposition: string | null): string | undefined {
