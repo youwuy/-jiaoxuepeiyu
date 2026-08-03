@@ -308,7 +308,40 @@
       </template>
 
       <div v-if="previewTarget" class="admin-public-resource-preview-doc">
-        <el-empty description="暂无可预览内容" />
+        <template v-if="resourcePreviewSource(previewTarget)">
+          <img
+            v-if="resourcePreviewKind(previewTarget) === 'image'"
+            class="admin-resource-preview-media image"
+            :src="resourcePreviewSource(previewTarget)"
+            :alt="previewTarget.resourceName"
+          />
+          <video
+            v-else-if="resourcePreviewKind(previewTarget) === 'video'"
+            class="admin-resource-preview-media"
+            :src="resourcePreviewSource(previewTarget)"
+            controls
+          />
+          <audio
+            v-else-if="resourcePreviewKind(previewTarget) === 'audio'"
+            class="admin-resource-preview-audio"
+            :src="resourcePreviewSource(previewTarget)"
+            controls
+          />
+          <iframe
+            v-else-if="resourcePreviewKind(previewTarget) === 'frame'"
+            class="admin-resource-preview-frame"
+            :src="resourcePreviewSource(previewTarget)"
+            :title="previewTarget.resourceName"
+          />
+          <div v-else class="admin-resource-preview-unsupported">
+            <span class="admin-resource-file-icon">
+              <el-icon><Document /></el-icon>
+            </span>
+            <strong>{{ previewTarget.fileName || previewTarget.resourceName }}</strong>
+            <p>当前文件类型不支持在线预览，请下载后查看。</p>
+          </div>
+        </template>
+        <el-empty v-else description="暂无可预览内容" />
       </div>
 
       <template #footer>
@@ -351,7 +384,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close, Search } from '@element-plus/icons-vue';
+import { Close, Document, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminPublicResources,
@@ -361,6 +394,7 @@ import {
   type AdminResourceLog,
   type AdminResourceQuery
 } from '../../api/admin-resource';
+import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
 
 type ResourceStatus = 'PUBLISHED' | 'REVIEWING' | 'SUSPENDED';

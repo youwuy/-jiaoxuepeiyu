@@ -32,7 +32,40 @@
             <strong>资源内容预览</strong>
           </div>
           <div class="admin-public-review-doc">
-            <el-empty description="暂无可预览内容" />
+            <template v-if="selectedApplication && resourcePreviewSource(selectedApplication)">
+              <img
+                v-if="resourcePreviewKind(selectedApplication) === 'image'"
+                class="admin-resource-preview-media image"
+                :src="resourcePreviewSource(selectedApplication)"
+                :alt="selectedApplication.resourceName"
+              />
+              <video
+                v-else-if="resourcePreviewKind(selectedApplication) === 'video'"
+                class="admin-resource-preview-media"
+                :src="resourcePreviewSource(selectedApplication)"
+                controls
+              />
+              <audio
+                v-else-if="resourcePreviewKind(selectedApplication) === 'audio'"
+                class="admin-resource-preview-audio"
+                :src="resourcePreviewSource(selectedApplication)"
+                controls
+              />
+              <iframe
+                v-else-if="resourcePreviewKind(selectedApplication) === 'frame'"
+                class="admin-resource-preview-frame"
+                :src="resourcePreviewSource(selectedApplication)"
+                :title="selectedApplication.resourceName"
+              />
+              <div v-else class="admin-resource-preview-unsupported">
+                <span class="admin-resource-file-icon">
+                  <el-icon><Document /></el-icon>
+                </span>
+                <strong>{{ selectedApplication.fileName || selectedApplication.resourceName }}</strong>
+                <p>当前文件类型不支持在线预览，请下载后查看。</p>
+              </div>
+            </template>
+            <el-empty v-else description="暂无可预览内容" />
           </div>
         </section>
 
@@ -435,7 +468,40 @@
       </template>
 
       <div v-if="previewTarget" class="admin-public-preview-doc">
-        <el-empty description="暂无可预览内容" />
+        <template v-if="resourcePreviewSource(previewTarget)">
+          <img
+            v-if="resourcePreviewKind(previewTarget) === 'image'"
+            class="admin-resource-preview-media image"
+            :src="resourcePreviewSource(previewTarget)"
+            :alt="previewTarget.resourceName"
+          />
+          <video
+            v-else-if="resourcePreviewKind(previewTarget) === 'video'"
+            class="admin-resource-preview-media"
+            :src="resourcePreviewSource(previewTarget)"
+            controls
+          />
+          <audio
+            v-else-if="resourcePreviewKind(previewTarget) === 'audio'"
+            class="admin-resource-preview-audio"
+            :src="resourcePreviewSource(previewTarget)"
+            controls
+          />
+          <iframe
+            v-else-if="resourcePreviewKind(previewTarget) === 'frame'"
+            class="admin-resource-preview-frame"
+            :src="resourcePreviewSource(previewTarget)"
+            :title="previewTarget.resourceName"
+          />
+          <div v-else class="admin-resource-preview-unsupported">
+            <span class="admin-resource-file-icon">
+              <el-icon><Document /></el-icon>
+            </span>
+            <strong>{{ previewTarget.fileName || previewTarget.resourceName }}</strong>
+            <p>当前文件类型不支持在线预览，请下载后查看。</p>
+          </div>
+        </template>
+        <el-empty v-else description="暂无可预览内容" />
       </div>
     </el-dialog>
 
@@ -545,6 +611,7 @@ import {
   type AdminResourceLog,
   type AdminResourceQuery
 } from '../../api/admin-resource';
+import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
 
 type ReviewMode = 'APPROVED' | 'REJECTED';
