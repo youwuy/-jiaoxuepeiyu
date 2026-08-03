@@ -87,32 +87,45 @@
           <el-icon><UserFilled /></el-icon>
           <strong>教学团队</strong>
         </header>
-        <div class="admin-course-form-select-block">
-          <el-select v-model="form.teacherIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="请选择教师">
-            <el-option
-              v-for="item in teacherOptions"
-              :key="item.userId"
-              :label="item.realName || item.accountNo"
-              :value="item.userId"
+        <div class="admin-course-chip-picker">
+          <el-tag
+            v-for="item in selectedTeachers"
+            :key="item.userId"
+            closable
+            class="admin-course-chip teacher"
+            @close="removeTeacher(item.userId)"
+          >
+            {{ item.realName || item.accountNo }}
+          </el-tag>
+          <el-popover placement="bottom-start" trigger="click" width="320" popper-class="admin-course-picker-popover">
+            <template #reference>
+              <el-button class="admin-course-add-chip">
+                <el-icon><Plus /></el-icon>
+                添加教师
+              </el-button>
+            </template>
+            <el-select
+              v-model="form.teacherIds"
+              class="admin-course-form-picker"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择教师"
             >
-              <div class="admin-course-form-option">
-                <strong>{{ item.realName || item.accountNo }}</strong>
-                <span>{{ item.accountNo || '未配置工号' }}</span>
-              </div>
-            </el-option>
-          </el-select>
-          <div class="admin-course-selected-box">
-            <span v-if="selectedTeachers.length === 0" class="admin-course-selected-empty">暂未选择教学团队</span>
-            <el-tag
-              v-for="item in selectedTeachers"
-              v-else
-              :key="item.userId"
-              closable
-              @close="removeTeacher(item.userId)"
-            >
-              {{ item.realName || item.accountNo }}
-            </el-tag>
-          </div>
+              <el-option
+                v-for="item in teacherOptions"
+                :key="item.userId"
+                :label="item.realName || item.accountNo"
+                :value="item.userId"
+              >
+                <div class="admin-course-form-option">
+                  <strong>{{ item.realName || item.accountNo }}</strong>
+                  <span>{{ item.accountNo || '未配置工号' }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-popover>
         </div>
       </section>
 
@@ -121,33 +134,45 @@
           <el-icon><User /></el-icon>
           <strong>授课班级</strong>
         </header>
-        <div class="admin-course-form-select-block">
-          <el-select v-model="form.classIds" multiple filterable collapse-tags collapse-tags-tooltip placeholder="请选择班级">
-            <el-option
-              v-for="item in classOptions"
-              :key="item.classId"
-              :label="item.majorName ? `${item.className}（${item.majorName}）` : item.className"
-              :value="item.classId"
+        <div class="admin-course-chip-picker">
+          <el-tag
+            v-for="item in selectedClasses"
+            :key="item.classId"
+            closable
+            class="admin-course-chip class"
+            @close="removeClass(item.classId)"
+          >
+            {{ item.className }}
+          </el-tag>
+          <el-popover placement="bottom-start" trigger="click" width="320" popper-class="admin-course-picker-popover">
+            <template #reference>
+              <el-button class="admin-course-add-chip">
+                <el-icon><Plus /></el-icon>
+                添加班级
+              </el-button>
+            </template>
+            <el-select
+              v-model="form.classIds"
+              class="admin-course-form-picker"
+              multiple
+              filterable
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择班级"
             >
-              <div class="admin-course-form-option">
-                <strong>{{ item.className }}</strong>
-                <span>{{ item.majorName || '未配置专业' }}</span>
-              </div>
-            </el-option>
-          </el-select>
-          <div class="admin-course-selected-box">
-            <span v-if="selectedClasses.length === 0" class="admin-course-selected-empty">暂未选择授课班级</span>
-            <el-tag
-              v-for="item in selectedClasses"
-              v-else
-              :key="item.classId"
-              closable
-              @close="removeClass(item.classId)"
-            >
-              {{ item.className }}
-              <small v-if="item.majorName">{{ item.majorName }}</small>
-            </el-tag>
-          </div>
+              <el-option
+                v-for="item in classOptions"
+                :key="item.classId"
+                :label="item.majorName ? `${item.className}（${item.majorName}）` : item.className"
+                :value="item.classId"
+              >
+                <div class="admin-course-form-option">
+                  <strong>{{ item.className }}</strong>
+                  <span>{{ item.majorName || '未配置专业' }}</span>
+                </div>
+              </el-option>
+            </el-select>
+          </el-popover>
         </div>
       </section>
 
@@ -223,6 +248,46 @@
         <el-button type="primary" :loading="saving" @click="saveCourse">保存</el-button>
       </footer>
     </section>
+
+    <el-dialog
+      v-model="outlineDialogVisible"
+      class="admin-course-outline-dialog"
+      width="520px"
+      :show-close="false"
+      append-to-body
+    >
+      <template #header>
+        <div class="admin-course-outline-dialog-head">
+          <strong>{{ outlineDialogTitle }}</strong>
+          <el-button text circle :icon="Close" @click="closeOutlineDialog" />
+        </div>
+      </template>
+
+      <div class="admin-course-outline-dialog-body">
+        <label class="admin-course-outline-dialog-field">
+          <span>{{ outlineNameLabel }} <b>*</b></span>
+          <el-input v-model="outlineForm.title" :placeholder="outlineNamePlaceholder" maxlength="30" show-word-limit />
+        </label>
+        <label v-if="outlineDialogKind === 'homework'" class="admin-course-outline-dialog-field">
+          <span>作业说明</span>
+          <el-input
+            v-model="outlineForm.desc"
+            type="textarea"
+            :rows="4"
+            maxlength="120"
+            show-word-limit
+            placeholder="请输入作业说明"
+          />
+        </label>
+      </div>
+
+      <template #footer>
+        <div class="admin-course-outline-dialog-footer">
+          <el-button @click="closeOutlineDialog">取消</el-button>
+          <el-button type="primary" @click="confirmOutlineDialog">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-dialog
       v-model="resourceDialogVisible"
@@ -401,8 +466,21 @@ interface OutlineChapter {
   sections: OutlineSection[];
 }
 
+type OutlineDialogKind = 'chapter' | 'section' | 'homework';
+type OutlineDialogMode = 'create' | 'edit';
+
 const chapters = ref<OutlineChapter[]>([]);
 let outlineIdSeed = 1;
+const outlineDialogVisible = ref(false);
+const outlineDialogKind = ref<OutlineDialogKind>('chapter');
+const outlineDialogMode = ref<OutlineDialogMode>('create');
+const outlineForm = reactive({
+  title: '',
+  desc: ''
+});
+const outlineTargetChapter = ref<OutlineChapter | null>(null);
+const outlineTargetSection = ref<OutlineSection | null>(null);
+const outlineTargetItem = ref<OutlineItem | null>(null);
 const resourceDialogVisible = ref(false);
 const resourceLoading = ref(false);
 const resourceKeyword = ref('');
@@ -420,6 +498,27 @@ const resourceTypeTabs = [
   { label: '视频', value: 'VIDEO' },
   { label: '图片', value: 'IMAGE' }
 ];
+
+const outlineDialogTitle = computed(() => {
+  const action = outlineDialogMode.value === 'create' ? '新增' : '编辑';
+  const names: Record<OutlineDialogKind, string> = {
+    chapter: '章节',
+    section: '小节',
+    homework: '作业'
+  };
+  return `${action}${names[outlineDialogKind.value]}`;
+});
+
+const outlineNameLabel = computed(() => {
+  const labels: Record<OutlineDialogKind, string> = {
+    chapter: '章节名称',
+    section: '小节名称',
+    homework: '作业名称'
+  };
+  return labels[outlineDialogKind.value];
+});
+
+const outlineNamePlaceholder = computed(() => `请输入${outlineNameLabel.value}`);
 
 function goBack() {
   router.push('/admin/courses');
@@ -449,16 +548,35 @@ async function promptOutlineText(message: string, title: string, initialValue = 
   }
 }
 
-async function addChapter() {
-  const title = await promptOutlineText('请输入章节名称', '新增章节');
-  if (!title) return;
-  chapters.value.push({ id: nextOutlineId(), title, sections: [] });
+function resetOutlineDialog() {
+  outlineForm.title = '';
+  outlineForm.desc = '';
+  outlineTargetChapter.value = null;
+  outlineTargetSection.value = null;
+  outlineTargetItem.value = null;
 }
 
-async function editChapter(chapter: OutlineChapter) {
-  const title = await promptOutlineText('请输入章节名称', '编辑章节', chapter.title);
-  if (!title) return;
-  chapter.title = title;
+function closeOutlineDialog() {
+  outlineDialogVisible.value = false;
+  resetOutlineDialog();
+}
+
+function openOutlineDialog(kind: OutlineDialogKind, mode: OutlineDialogMode) {
+  outlineDialogKind.value = kind;
+  outlineDialogMode.value = mode;
+  outlineDialogVisible.value = true;
+}
+
+function addChapter() {
+  resetOutlineDialog();
+  openOutlineDialog('chapter', 'create');
+}
+
+function editChapter(chapter: OutlineChapter) {
+  resetOutlineDialog();
+  outlineForm.title = chapter.title;
+  outlineTargetChapter.value = chapter;
+  openOutlineDialog('chapter', 'edit');
 }
 
 async function removeChapter(index: number) {
@@ -470,16 +588,17 @@ async function removeChapter(index: number) {
   }
 }
 
-async function addSection(chapter: OutlineChapter) {
-  const title = await promptOutlineText('请输入小节名称', '新增小节');
-  if (!title) return;
-  chapter.sections.push({ id: nextOutlineId(), title, items: [] });
+function addSection(chapter: OutlineChapter) {
+  resetOutlineDialog();
+  outlineTargetChapter.value = chapter;
+  openOutlineDialog('section', 'create');
 }
 
-async function editSection(section: OutlineSection) {
-  const title = await promptOutlineText('请输入小节名称', '编辑小节', section.title);
-  if (!title) return;
-  section.title = title;
+function editSection(section: OutlineSection) {
+  resetOutlineDialog();
+  outlineForm.title = section.title;
+  outlineTargetSection.value = section;
+  openOutlineDialog('section', 'edit');
 }
 
 async function removeSection(chapter: OutlineChapter, index: number) {
@@ -497,10 +616,9 @@ async function addOutlineItem(section: OutlineSection, type: OutlineItem['type']
     return;
   }
 
-  const title = await promptOutlineText(type === 'homework' ? '请输入作业名称' : '请输入课件资源名称', type === 'homework' ? '添加作业' : '添加课件资源');
-  if (!title) return;
-  const desc = await promptOutlineText(type === 'homework' ? '请输入作业说明' : '请输入资源说明', type === 'homework' ? '作业说明' : '资源说明');
-  section.items.push({ id: nextOutlineId(), type, title, desc: desc || '-' });
+  resetOutlineDialog();
+  outlineTargetSection.value = section;
+  openOutlineDialog('homework', 'create');
 }
 
 function openResourceDialog(section: OutlineSection) {
@@ -573,11 +691,57 @@ function confirmAddResource() {
 }
 
 async function editOutlineItem(item: OutlineItem) {
+  if (item.type === 'homework') {
+    resetOutlineDialog();
+    outlineForm.title = item.title;
+    outlineForm.desc = item.desc === '-' ? '' : item.desc;
+    outlineTargetItem.value = item;
+    openOutlineDialog('homework', 'edit');
+    return;
+  }
+
   const title = await promptOutlineText('请输入名称', '编辑内容', item.title);
   if (!title) return;
-  const desc = await promptOutlineText('请输入说明', '编辑说明', item.desc);
   item.title = title;
-  item.desc = desc || item.desc;
+}
+
+function confirmOutlineDialog() {
+  const title = outlineForm.title.trim();
+  if (!title) {
+    ElMessage.warning(`请输入${outlineNameLabel.value}`);
+    return;
+  }
+
+  if (outlineDialogKind.value === 'chapter') {
+    if (outlineDialogMode.value === 'edit' && outlineTargetChapter.value) {
+      outlineTargetChapter.value.title = title;
+    } else {
+      chapters.value.push({ id: nextOutlineId(), title, sections: [] });
+    }
+    closeOutlineDialog();
+    return;
+  }
+
+  if (outlineDialogKind.value === 'section') {
+    if (outlineDialogMode.value === 'edit' && outlineTargetSection.value) {
+      outlineTargetSection.value.title = title;
+    } else if (outlineTargetChapter.value) {
+      outlineTargetChapter.value.sections.push({ id: nextOutlineId(), title, items: [] });
+    }
+    closeOutlineDialog();
+    return;
+  }
+
+  if (outlineDialogKind.value === 'homework') {
+    const desc = outlineForm.desc.trim() || '-';
+    if (outlineDialogMode.value === 'edit' && outlineTargetItem.value) {
+      outlineTargetItem.value.title = title;
+      outlineTargetItem.value.desc = desc;
+    } else if (outlineTargetSection.value) {
+      outlineTargetSection.value.items.push({ id: nextOutlineId(), type: 'homework', title, desc });
+    }
+    closeOutlineDialog();
+  }
 }
 
 async function removeOutlineItem(section: OutlineSection, index: number) {

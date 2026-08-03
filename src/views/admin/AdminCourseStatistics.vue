@@ -144,50 +144,50 @@
       <el-dialog
         v-model="detailVisible"
         class="admin-course-stats-detail-dialog"
-        width="640px"
+        width="820px"
         :show-close="false"
         append-to-body
       >
         <template #header>
           <div class="admin-course-stats-detail-head">
-            <strong>成绩详情</strong>
+            <div>
+              <strong>{{ currentStudent ? `${currentStudent.name}的成绩详情` : '成绩详情' }}</strong>
+              <span>{{ courseTitle }}</span>
+            </div>
             <el-button text circle :icon="Close" @click="detailVisible = false" />
           </div>
         </template>
 
         <section v-if="currentStudent" class="admin-course-stats-detail-body">
-          <header>
-            <div>
-              <strong>{{ currentStudent.name }}</strong>
-              <span>{{ currentStudent.studentNo }}</span>
-            </div>
-            <b>{{ currentStudent.className }}</b>
-          </header>
-
-          <div class="admin-course-stats-detail-grid">
-            <article>
-              <span>学习进度</span>
-              <strong>{{ currentStudent.progress }}%</strong>
-            </article>
-            <article>
-              <span>进度得分</span>
-              <strong>{{ formatScore(currentStudent.progressScore) }}</strong>
-            </article>
-            <article>
-              <span>作业提交数量</span>
-              <strong>{{ currentStudent.assignmentCount }}</strong>
-            </article>
-            <article>
-              <span>作业合计得分</span>
-              <strong>{{ formatScore(currentStudent.assignmentScore) }}</strong>
-            </article>
+          <div class="admin-course-stats-detail-table-head">
+            <span>名称</span>
+            <span>类型</span>
+            <span>完成情况</span>
+            <span>得分</span>
           </div>
 
-          <div class="admin-course-stats-detail-formula">
-            <strong>课程成绩组成</strong>
-            <p>
-              课程成绩由课件学习进度得分与课程作业得分组成，当前页面展示该学员在本课程内的学习完成情况和作业批阅结果。
-            </p>
+          <div class="admin-course-stats-detail-tree">
+            <section v-for="chapter in detailTree" :key="chapter.title" class="admin-course-stats-detail-chapter">
+              <div class="admin-course-stats-detail-chapter-row">
+                <el-icon><ArrowDown /></el-icon>
+                <strong>{{ chapter.title }}</strong>
+              </div>
+              <article v-for="section in chapter.sections" :key="section.title" class="admin-course-stats-detail-section">
+                <div class="admin-course-stats-detail-section-row">
+                  <el-icon><ArrowDown /></el-icon>
+                  <strong>{{ section.title }}</strong>
+                </div>
+                <div v-for="item in section.items" :key="item.name" class="admin-course-stats-detail-item-row">
+                  <span class="admin-course-stats-detail-item-name">
+                    <el-icon :class="item.type"><component :is="item.type === 'assignment' ? EditPen : Document" /></el-icon>
+                    {{ item.name }}
+                  </span>
+                  <span><b :class="item.type">{{ item.typeText }}</b></span>
+                  <span><em>{{ item.status }}</em></span>
+                  <span class="score">{{ item.score }}</span>
+                </div>
+              </article>
+            </section>
           </div>
         </section>
 
@@ -212,6 +212,8 @@ import {
   DArrowLeft,
   DArrowRight,
   Download,
+  Document,
+  EditPen,
   Refresh,
   Search,
   Tickets
@@ -268,6 +270,102 @@ const students = ref<StudentScoreRow[]>([]);
 const detailVisible = ref(false);
 const currentStudent = ref<StudentScoreRow>();
 const detailAutoOpened = ref(false);
+
+const detailTree = computed(() => {
+  const student = currentStudent.value;
+  if (!student) {
+    return [];
+  }
+
+  return [
+    {
+      title: '第一章 信号系统概述',
+      sections: [
+        {
+          title: '1.1 城市轨道交通信号系统发展历程',
+          items: [
+            {
+              name: '信号系统发展历程课件',
+              type: 'courseware',
+              typeText: '课件',
+              status: student.progress > 0 ? '已完成' : '未完成',
+              score: '-'
+            },
+            {
+              name: '信号系统发展历程课后作业',
+              type: 'assignment',
+              typeText: '作业',
+              status: student.assignmentCount > 0 ? '已完成' : '未完成',
+              score: student.assignmentCount > 0 ? formatScore(Math.round(student.assignmentScore * 0.45)) : '-'
+            }
+          ]
+        },
+        {
+          title: '1.2 信号系统组成与功能',
+          items: [
+            {
+              name: '信号系统组成与功能课件',
+              type: 'courseware',
+              typeText: '课件',
+              status: student.progress >= 50 ? '已完成' : '未完成',
+              score: '-'
+            },
+            {
+              name: '信号系统组成与功能课后作业',
+              type: 'assignment',
+              typeText: '作业',
+              status: student.assignmentCount > 1 ? '已完成' : '未完成',
+              score: student.assignmentCount > 1 ? formatScore(Math.round(student.assignmentScore * 0.35)) : '-'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      title: '第二章 CBTC系统原理',
+      sections: [
+        {
+          title: '2.1 CBTC系统架构',
+          items: [
+            {
+              name: 'CBTC系统架构课件',
+              type: 'courseware',
+              typeText: '课件',
+              status: student.progress >= 75 ? '已完成' : '未完成',
+              score: '-'
+            },
+            {
+              name: 'CBTC系统架构课后作业',
+              type: 'assignment',
+              typeText: '作业',
+              status: student.assignmentCount > 2 ? '已完成' : '未完成',
+              score: student.assignmentCount > 2 ? formatScore(Math.round(student.assignmentScore * 0.2)) : '-'
+            }
+          ]
+        },
+        {
+          title: '2.2 移动闭塞原理',
+          items: [
+            {
+              name: '移动闭塞原理课件',
+              type: 'courseware',
+              typeText: '课件',
+              status: student.progress >= 100 ? '已完成' : '未完成',
+              score: '-'
+            },
+            {
+              name: '移动闭塞原理课后作业',
+              type: 'assignment',
+              typeText: '作业',
+              status: student.assignmentCount > 3 ? '已完成' : '未完成',
+              score: student.assignmentCount > 3 ? formatScore(student.assignmentScore) : '-'
+            }
+          ]
+        }
+      ]
+    }
+  ];
+});
 
 const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
