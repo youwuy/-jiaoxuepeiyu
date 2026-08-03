@@ -26,7 +26,7 @@
       </div>
 
       <div class="admin-sidebar-footer">
-        <button type="button" class="admin-sidebar-user" @click="goTo('/admin/profile')">李教师</button>
+        <button type="button" class="admin-sidebar-user" @click="goTo('/admin/profile')">{{ currentUserName }}</button>
         <el-button class="admin-logout-button" text circle aria-label="退出登录">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
@@ -57,6 +57,7 @@ import {
   User
 } from '@element-plus/icons-vue';
 import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
+import { fetchAdminProfile } from '../../api/admin-profile';
 
 defineProps<{
   activeKey: string;
@@ -65,6 +66,7 @@ defineProps<{
 const router = useRouter();
 const permissionTree = ref<AdminPermissionNode[]>([]);
 const permissionsLoaded = ref(false);
+const currentUserName = ref(storedAdminName() || '教师');
 const adminPermissionsChangedEvent = 'admin-permissions-changed';
 
 function goTo(path: string) {
@@ -164,8 +166,59 @@ async function loadPermissionTree() {
   }
 }
 
+function storedAdminName() {
+  const storedUser = localStorage.getItem('jiaoxuepeiyu_admin_user') || localStorage.getItem('jiaoxuepeiyu_user');
+  if (!storedUser) {
+    return '';
+  }
+
+  try {
+    const user = JSON.parse(storedUser) as {
+      accountNo?: string;
+      name?: string;
+      realName?: string;
+      username?: string;
+    };
+    return user.realName || user.name || user.accountNo || user.username || '';
+  } catch {
+    return '';
+  }
+}
+
+function cacheAdminName(realName: string, accountNo?: string) {
+  const storedUser = localStorage.getItem('jiaoxuepeiyu_admin_user') || '{}';
+  let user: Record<string, unknown> = {};
+
+  try {
+    user = JSON.parse(storedUser) as Record<string, unknown>;
+  } catch {
+    user = {};
+  }
+
+  localStorage.setItem('jiaoxuepeiyu_admin_user', JSON.stringify({ ...user, realName, accountNo }));
+}
+
+async function loadCurrentUserName() {
+  const cachedName = storedAdminName();
+  if (cachedName) {
+    currentUserName.value = cachedName;
+  }
+
+  try {
+    const profile = await fetchAdminProfile();
+    const name = profile.realName || profile.accountNo || cachedName || '教师';
+    currentUserName.value = name;
+    cacheAdminName(profile.realName || name, profile.accountNo);
+  } catch {
+    if (!cachedName) {
+      currentUserName.value = '教师';
+    }
+  }
+}
+
 onMounted(() => {
   void loadPermissionTree();
+  void loadCurrentUserName();
   window.addEventListener(adminPermissionsChangedEvent, loadPermissionTree);
 });
 
