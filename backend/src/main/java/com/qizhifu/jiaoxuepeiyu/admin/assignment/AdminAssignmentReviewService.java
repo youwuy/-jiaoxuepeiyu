@@ -93,7 +93,7 @@ public class AdminAssignmentReviewService {
             normalized.setClassId(query.getClassId());
             normalized.setStudentId(query.getStudentId());
             normalized.setStatus(upper(trimToNull(query.getStatus())));
-            normalized.setKeyword(trimToNull(query.getKeyword()));
+            normalized.setKeyword(likeKeyword(trimToNull(query.getKeyword())));
             normalized.setPage(query.getPage());
             normalized.setPageSize(query.getPageSize());
         }
@@ -174,5 +174,9 @@ public class AdminAssignmentReviewService {
 
     private String upper(String value) {
         return value == null ? null : value.toUpperCase(Locale.ENGLISH);
+    }
+
+    private String likeKeyword(String value) {
+        return value == null ? null : "%" + value + "%";
     }
 }
