@@ -38,11 +38,31 @@
       </section>
 
       <section class="admin-semester-score-summary">
-        <article><span>总人数</span><strong>{{ statistics.studentCount }}</strong></article>
-        <article><span>优秀人数</span><strong>{{ statistics.excellentCount }}</strong></article>
-        <article><span>及格人数</span><strong>{{ statistics.passCount }}</strong></article>
-        <article><span>平均分</span><strong>{{ formatScore(statistics.averageScore) }}</strong></article>
-        <article><span>最高分</span><strong>{{ formatScore(statistics.maxScore) }}</strong></article>
+        <article>
+          <span>总人数</span>
+          <strong>{{ statistics.studentCount }}</strong>
+          <em>人</em>
+        </article>
+        <article>
+          <span>优秀人数</span>
+          <strong>{{ statistics.excellentCount }}</strong>
+          <em>人</em>
+        </article>
+        <article>
+          <span>及格人数</span>
+          <strong>{{ statistics.passCount }}</strong>
+          <em>人</em>
+        </article>
+        <article>
+          <span>平均分</span>
+          <strong>{{ formatScore(statistics.averageScore) }}</strong>
+          <em>分</em>
+        </article>
+        <article>
+          <span>最高分</span>
+          <strong>{{ formatScore(statistics.maxScore) }}</strong>
+          <em>分</em>
+        </article>
       </section>
 
       <section class="admin-semester-score-actions">
