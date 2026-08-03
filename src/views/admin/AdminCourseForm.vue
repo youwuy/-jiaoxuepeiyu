@@ -129,7 +129,10 @@
         </header>
 
         <div class="admin-course-outline">
-          <article v-for="chapter in chapters" :key="chapter.id" class="admin-course-outline-chapter">
+          <div v-if="chapters.length === 0" class="admin-course-empty inline">
+            <el-empty description="暂无教学内容，请先新增章节" />
+          </div>
+          <article v-else v-for="chapter in chapters" :key="chapter.id" class="admin-course-outline-chapter">
             <div class="admin-course-outline-row admin-course-outline-chapter-row">
               <span class="admin-course-outline-left">
                 <el-icon><ArrowDown /></el-icon>
@@ -250,47 +253,15 @@ const semesterOptions = computed(() =>
   )
 );
 
-const chapters = [
-  {
-    id: 1,
-    title: '第一章 信号系统概述',
-    sections: [
-      {
-        id: 11,
-        title: '1.1 轨道交通与信号系统基本概念',
-        items: [
-          {
-            id: 111,
-            type: 'homework',
-            title: '课程作业：信号系统组成分析报告',
-            desc: '提交即完成 | 截止时间：2025-04-15 23:59'
-          },
-          {
-            id: 112,
-            type: 'resource',
-            title: '课件资源：信号系统原理.pptx',
-            desc: '最低预览：2分钟 | 可学时段：2025-01-01至2025-04-10'
-          }
-        ]
-      },
-      {
-        id: 12,
-        title: '1.2 信号系统核心作用与特点',
-        items: []
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: '第二章 联锁系统原理',
-    sections: []
-  },
-  {
-    id: 3,
-    title: '第三章 ATS系统',
-    sections: []
-  }
-];
+const chapters: Array<{
+  id: number;
+  title: string;
+  sections: Array<{
+    id: number;
+    title: string;
+    items: Array<{ id: number; type: 'homework' | 'resource'; title: string; desc: string }>;
+  }>;
+}> = [];
 
 function goBack() {
   router.push('/admin/courses');

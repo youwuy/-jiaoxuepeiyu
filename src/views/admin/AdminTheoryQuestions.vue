@@ -232,7 +232,10 @@
           <el-button class="admin-question-primary-button" @click="submitImport">提交</el-button>
         </section>
 
-        <section v-for="group in previewGroups" :key="group.type" class="admin-question-preview-card" :class="group.tone">
+        <div v-if="previewGroups.length === 0" class="admin-question-preview-empty">
+          <el-empty description="暂无可预览试题，请先上传文件并解析" />
+        </div>
+        <section v-else v-for="group in previewGroups" :key="group.type" class="admin-question-preview-card" :class="group.tone">
           <header>
             <strong>{{ group.type }}</strong>
             <span>{{ group.questions.length }}题</span>
@@ -344,31 +347,13 @@ const draft = reactive({
 });
 const applied = ref({ ...draft });
 const form = reactive<QuestionForm>(emptyForm('SINGLE'));
-const previewGroups = reactive([
-  {
-    type: '单选题',
-    tone: 'single',
-    questions: [
-      { index: 1, title: '城市轨道交通中，CBTC系统的全称是什么？', score: 2, options: ['A. Communication-Based Train Control', 'B. Centralized Block Traffic Control', 'C. Computer-Based Train Communication', 'D. Continuous Braking Train Control'] },
-      { index: 2, title: '列车自动防护子系统（ATP）的主要功能是什么？', score: 2, options: ['A. 列车超速防护和间隔控制', 'B. 列车自动驾驶', 'C. 列车自动监控', 'D. 列车自动调度'] }
-    ]
-  },
-  {
-    type: '多选题',
-    tone: 'multiple',
-    questions: [{ index: 3, title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）', score: 3, options: ['A. ATP列车自动防护', 'B. ATO列车自动驾驶', 'C. ATS列车自动监控', 'D. ATC列车自动控制'] }]
-  },
-  {
-    type: '判断题',
-    tone: 'judge',
-    questions: [{ index: 4, title: 'CBTC系统可以实现列车精确定位和实时追踪。', score: 1, options: [] }]
-  },
-  {
-    type: '填空题',
-    tone: 'blank',
-    questions: [{ index: 5, title: '城市轨道交通信号机一般设置在______和______位置。', score: 2, options: [] }]
-  }
-]);
+const previewGroups = reactive<
+  Array<{
+    type: string;
+    tone: 'single' | 'multiple' | 'judge' | 'blank';
+    questions: Array<{ index: number; title: string; score: number; options: string[] }>;
+  }>
+>([]);
 
 const pagedQuestions = computed(() => questions.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const pageStart = computed(() => (questions.value.length === 0 ? 0 : (page.value - 1) * pageSize + 1));
@@ -562,12 +547,16 @@ function openPreview() {
 }
 
 function submitImport() {
+  if (previewGroups.length === 0) {
+    ElMessage.warning('请先上传并解析试题文件');
+    return;
+  }
   previewVisible.value = false;
   ElMessage.success('试题已提交');
 }
 
 function downloadTemplate() {
-  const content = '题型,题干,选项A,选项B,选项C,选项D,答案,分值,解析\n单选题,示例题干,A选项,B选项,C选项,D选项,A,2,示例解析';
+  const content = '题型,题干,选项A,选项B,选项C,选项D,答案,分值,解析';
   const blob = new Blob([`\ufeff${content}`], { type: 'text/csv;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

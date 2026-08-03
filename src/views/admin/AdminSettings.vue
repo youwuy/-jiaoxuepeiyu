@@ -173,40 +173,43 @@
             <el-icon><Plus /></el-icon>
             添加教室
           </el-button>
-          <table class="admin-settings-modal-table classroom">
-            <thead>
-              <tr>
-                <th rowspan="2">序号</th>
-                <th rowspan="2">教室名称</th>
-                <th colspan="6">摄像头参数</th>
-                <th rowspan="2">操作</th>
-              </tr>
-              <tr>
-                <th>NVR主机IP</th>
-                <th>端口</th>
-                <th>管理员账号</th>
-                <th>管理员密码</th>
-                <th>NVR通道编号</th>
-                <th>NVR对外RTSP取流地址</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(camera, index) in classroomCameraRows" :key="camera.id">
-                <td>{{ index + 1 }}</td>
-                <td>{{ camera.roomName }}</td>
-                <td>{{ camera.host }}</td>
-                <td>{{ camera.port }}</td>
-                <td>{{ camera.account }}</td>
-                <td>{{ camera.password }}</td>
-                <td>{{ camera.channel }}</td>
-                <td class="wrap">{{ camera.url }}</td>
-                <td>
-                  <button class="admin-settings-link" @click="editRoom(camera)">编辑</button>
-                  <button class="admin-settings-link danger" @click="removeCamera(camera.id)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <template v-if="classroomCameraRows.length">
+            <table class="admin-settings-modal-table classroom">
+              <thead>
+                <tr>
+                  <th rowspan="2">序号</th>
+                  <th rowspan="2">教室名称</th>
+                  <th colspan="6">摄像头参数</th>
+                  <th rowspan="2">操作</th>
+                </tr>
+                <tr>
+                  <th>NVR主机IP</th>
+                  <th>端口</th>
+                  <th>管理员账号</th>
+                  <th>管理员密码</th>
+                  <th>NVR通道编号</th>
+                  <th>NVR对外RTSP取流地址</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(camera, index) in classroomCameraRows" :key="camera.id">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ camera.roomName }}</td>
+                  <td>{{ camera.host }}</td>
+                  <td>{{ camera.port }}</td>
+                  <td>{{ camera.account }}</td>
+                  <td>{{ camera.password }}</td>
+                  <td>{{ camera.channel }}</td>
+                  <td class="wrap">{{ camera.url }}</td>
+                  <td>
+                    <button class="admin-settings-link" @click="editRoom(camera)">编辑</button>
+                    <button class="admin-settings-link danger" @click="removeCamera(camera.id)">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+          <el-empty v-else description="暂无教室摄像头配置" />
         </section>
 
         <section v-else-if="activeConfig === 'grades'" class="admin-settings-panel">
@@ -357,28 +360,31 @@
             <el-button text circle :icon="Close" @click="logVisible = false" />
           </div>
         </template>
-        <table class="admin-settings-modal-table logs">
-          <thead>
-            <tr>
-              <th>序号</th>
-              <th>操作内容</th>
-              <th>操作人</th>
-              <th>操作时间</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(log, index) in visibleLogs" :key="log.time">
-              <td>{{ index + 1 }}</td>
-              <td>{{ log.content }}</td>
-              <td>{{ log.operator }}</td>
-              <td>{{ log.time }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <footer class="admin-settings-modal-pagination">
-          <span>共 {{ visibleLogs.length }} 条记录</span>
-          <el-pagination :current-page="1" :page-size="10" :total="visibleLogs.length" layout="prev, pager, next" background />
-        </footer>
+        <template v-if="visibleLogs.length">
+          <table class="admin-settings-modal-table logs">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>操作内容</th>
+                <th>操作人</th>
+                <th>操作时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(log, index) in visibleLogs" :key="log.time">
+                <td>{{ index + 1 }}</td>
+                <td>{{ log.content }}</td>
+                <td>{{ log.operator }}</td>
+                <td>{{ log.time }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <footer class="admin-settings-modal-pagination">
+            <span>共 {{ visibleLogs.length }} 条记录</span>
+            <el-pagination :current-page="1" :page-size="10" :total="visibleLogs.length" layout="prev, pager, next" background />
+          </footer>
+        </template>
+        <el-empty v-else description="暂无操作日志" />
       </el-dialog>
     </section>
   </AdminShell>
@@ -501,13 +507,13 @@ const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
 });
 
 const fallbackRows: SettingRow[] = [
-  { key: 'semester', name: '学年学期配置', value: '2024-2025学年 上学期', tone: 'blue', current: true },
-  { key: 'majors', name: '专业目录配置', value: '城市轨道交通运营管理、城市轨道交通信号控制、城市轨道交通车辆技术 等8个专业', tone: 'amber' },
-  { key: 'classes', name: '班级配置', value: '城轨运营2501班、城轨运营2401班、城轨车辆2501班、城轨车辆2401班 等20个班级', tone: 'rose' },
-  { key: 'jobRoles', name: '岗位角色配置', value: '司机、调度员、站务员、值班员', tone: 'violet' },
-  { key: 'classrooms', name: '教室配置', value: '101实训室', tone: 'violet' },
-  { key: 'grades', name: '成绩等级配置', value: '优秀（85%-100%）、良好（75%-85%）、中等（60%-75%）、较差（0%-60%）', tone: 'green', loggable: true },
-  { key: 'weights', name: '综合成绩权重配置', value: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%', tone: 'gray', loggable: true }
+  { key: 'semester', name: '学年学期配置', value: '暂无学年学期配置', tone: 'blue', current: true },
+  { key: 'majors', name: '专业目录配置', value: '暂无专业配置', tone: 'amber' },
+  { key: 'classes', name: '班级配置', value: '暂无班级配置', tone: 'rose' },
+  { key: 'jobRoles', name: '岗位角色配置', value: '暂无岗位角色配置', tone: 'violet' },
+  { key: 'classrooms', name: '教室配置', value: '暂无教室配置', tone: 'violet' },
+  { key: 'grades', name: '成绩等级配置', value: '暂无成绩等级配置', tone: 'green', loggable: true },
+  { key: 'weights', name: '综合成绩权重配置', value: '暂无权重配置', tone: 'gray', loggable: true }
 ];
 
 const yearOptions = ['2025-2026', '2024-2025', '2023-2024', '2022-2023', '2021-2022', '2020-2021'];
@@ -596,11 +602,7 @@ const classroomCameraRows = computed(() => {
   return rows.length ? rows : buildClassroomCameras();
 });
 
-const visibleLogs = computed<SettingLog[]>(() => [
-  { time: '2025-01-15 14:30:22', operator: '张建国', content: '课件学习进度得分*30%+实训练习得分*20%+课程作业得分*25%+考试得分*25%' },
-  { time: '2025-01-10 09:15:08', operator: '李明辉', content: '课件学习进度得分*30%+实训练习得分*30%+课程作业得分*30%+考试得分*10%' },
-  { time: '2025-01-05 16:42:35', operator: '王思远', content: '课件学习进度得分*25%+实训练习得分*25%+课程作业得分*25%+考试得分*25%' }
-]);
+const visibleLogs = computed<SettingLog[]>(() => []);
 
 function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: T) => string) {
   return items.filter((item) => item.enabled !== false).map(pick).filter(Boolean);
@@ -647,22 +649,16 @@ function buildGradeRow(): SettingRow {
 }
 
 function buildWeightRow(): SettingRow {
-  return { ...fallbackRows[6], value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%` };
+  return scoreWeights.value.length
+    ? {
+        ...fallbackRows[6],
+        value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%`
+      }
+    : fallbackRows[6];
 }
 
 function buildClassroomCameras(): CameraRow[] {
-  const roomName = classrooms.value[0]?.roomName || '101实训室';
-  return [0, 1, 2, 3, 4].map((item) => ({
-    id: item + 1,
-    classroomId: classrooms.value[0]?.classroomId,
-    roomName,
-    host: `192.168.1.10${item}`,
-    port: '8000',
-    account: 'admin',
-    password: ['Adm@101!', 'Pwd#202!', 'Rmt$303!', 'Sec%404!', 'Cam^505!'][item],
-    channel: `CH0${item + 1}`,
-    url: `rtsp://192.168.1.10${item}:554/stream1`
-  }));
+  return [];
 }
 
 function toCameraRow(classroom: AdminClassroom, camera: AdminCamera): CameraRow {
@@ -843,7 +839,7 @@ function editGrade(rule: AdminScoreGradeRule) {
 }
 
 function newCamera(id: number): CameraRow {
-  return { id: Date.now() + id, roomName: roomForm.roomName || '101实训室', host: '', port: '', account: '', password: '', channel: '', url: '' };
+  return { id: Date.now() + id, roomName: roomForm.roomName.trim(), host: '', port: '', account: '', password: '', channel: '', url: '' };
 }
 
 function toClassroomCommand(roomName: string, cameras: CameraRow[]): AdminClassroomCommand {
