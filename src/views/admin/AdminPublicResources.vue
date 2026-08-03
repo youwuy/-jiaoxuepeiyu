@@ -78,7 +78,7 @@
         </div>
       </section>
 
-      <p class="admin-public-resource-count">共 <b>{{ Math.max(totalCount, 256) }}</b> 个公开资源</p>
+      <p class="admin-public-resource-count">共 <b>{{ totalCount }}</b> 个公开资源</p>
 
       <div class="admin-public-resource-workspace" :class="{ 'has-panel': Boolean(selectedResource) }">
         <section class="admin-public-resource-board">
@@ -156,7 +156,7 @@
             </div>
 
             <footer class="admin-public-resource-footer">
-              <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ Math.max(totalCount, 256) }}</b> 条记录</p>
+              <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
               <el-pagination
                 v-model:current-page="page"
                 :page-size="pageSize"
@@ -388,8 +388,6 @@ import { Close, Document, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminPublicResources,
-  fetchAdminResource,
-  fetchAdminResourceLogs,
   type AdminResource,
   type AdminResourceLog,
   type AdminResourceQuery
@@ -665,12 +663,7 @@ function createEmptyFilters() {
 async function selectResource(row: PublicResourceRow) {
   selectedResource.value = row;
   activeTab.value = 'detail';
-  try {
-    selectedResource.value = mapResourceRow(await fetchAdminResource(row.resourceId));
-  } catch {
-    selectedResource.value = row;
-  }
-  void loadLogs(row.resourceId);
+  selectedLogs.value = [];
 }
 
 function toggleOne(resourceId: number) {
@@ -750,18 +743,13 @@ async function refreshList() {
 async function openLogs(row: PublicResourceRow) {
   logTarget.value = row;
   logDrawerVisible.value = true;
-  await loadLogs(row.resourceId);
+  loadLogs();
 }
 
-async function loadLogs(resourceId: number) {
+function loadLogs() {
   logsLoading.value = true;
-  try {
-    selectedLogs.value = await fetchAdminResourceLogs(resourceId);
-  } catch {
-    selectedLogs.value = [];
-  } finally {
-    logsLoading.value = false;
-  }
+  selectedLogs.value = [];
+  logsLoading.value = false;
 }
 
 function openPreview(row: PublicResourceRow) {
