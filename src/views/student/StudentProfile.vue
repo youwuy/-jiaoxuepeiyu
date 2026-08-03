@@ -56,30 +56,33 @@
             <h2>综合成绩</h2>
             <p><el-icon><InfoFilled /></el-icon> 综合成绩 = （各模块得分 × 权重）之和</p>
           </header>
-          <table class="profile-score-table">
-            <thead>
-              <tr>
-                <th>序号</th>
-                <th>学年学期</th>
-                <th>课件学习得分</th>
-                <th>实训练习得分</th>
-                <th>课程作业得分</th>
-                <th>考试得分</th>
-                <th>综合成绩</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in scoreRows" :key="row.term">
-                <td>{{ row.index }}</td>
-                <td>{{ row.term }}</td>
-                <td>{{ row.courseware }}</td>
-                <td>{{ row.training }}</td>
-                <td>{{ row.assignment }}</td>
-                <td>{{ row.exam }}</td>
-                <td><strong>{{ row.total }}</strong></td>
-              </tr>
-            </tbody>
-          </table>
+          <template v-if="scoreRows.length > 0">
+            <table class="profile-score-table">
+              <thead>
+                <tr>
+                  <th>序号</th>
+                  <th>学年学期</th>
+                  <th>课件学习得分</th>
+                  <th>实训练习得分</th>
+                  <th>课程作业得分</th>
+                  <th>考试得分</th>
+                  <th>综合成绩</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in scoreRows" :key="row.term">
+                  <td>{{ row.index }}</td>
+                  <td>{{ row.term }}</td>
+                  <td>{{ row.courseware }}</td>
+                  <td>{{ row.training }}</td>
+                  <td>{{ row.assignment }}</td>
+                  <td>{{ row.exam }}</td>
+                  <td><strong>{{ row.total }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+          <el-empty v-else description="暂无综合成绩" />
         </section>
 
         <section v-else-if="activeTab === 'messages'" class="profile-message-page">
@@ -124,16 +127,16 @@
           <footer class="profile-message-footer">
             <p>共 <strong>{{ displayMessages.length }}</strong> 条通知， <strong class="danger">{{ unreadCount }}</strong> 条未读</p>
             <div class="profile-mini-pages">
-              <button type="button"><el-icon><ArrowLeft /></el-icon></button>
-              <button type="button" class="active">1</button>
-              <button type="button">2</button>
-              <button type="button"><el-icon><ArrowRight /></el-icon></button>
+              <button type="button" disabled><el-icon><ArrowLeft /></el-icon></button>
+              <button type="button" class="active" disabled>1</button>
+              <button type="button" disabled>2</button>
+              <button type="button" disabled><el-icon><ArrowRight /></el-icon></button>
             </div>
           </footer>
         </section>
 
         <template v-else>
-          <section v-if="showArchiveDetail" class="profile-archive-detail">
+          <section v-if="showArchiveDetail && selectedArchiveDetail" class="profile-archive-detail">
             <header class="archive-detail-head">
               <div class="archive-detail-meta">
                 <span><el-icon><User /></el-icon>学生姓名 <strong>{{ archiveDetailStudentName }}</strong></span>
@@ -181,6 +184,7 @@
                     </tr>
                   </tbody>
                 </table>
+                <el-empty v-if="visibleArchiveSteps.length === 0" description="暂无步骤详情" />
                 <footer>步骤总得分: <strong>{{ archiveDetailScore }}</strong> / 100 分 <span></span> 总用时: <strong>{{ archiveDetailDurationSeconds }} 秒</strong> <em>（{{ archiveDetailDurationText }}）</em></footer>
               </section>
 
@@ -200,6 +204,7 @@
               </aside>
             </div>
           </section>
+          <el-empty v-else-if="showArchiveDetail" description="暂无实训档案详情" />
 
           <template v-else>
             <section class="archive-filter-card">
@@ -247,9 +252,9 @@
               <footer class="archive-table-footer">
                 <p>显示 1 到 5 条，共 5 条记录</p>
                 <div class="profile-mini-pages">
-                  <button type="button"><el-icon><ArrowLeft /></el-icon></button>
-                  <button type="button" class="active">1</button>
-                  <button type="button"><el-icon><ArrowRight /></el-icon></button>
+                  <button type="button" disabled><el-icon><ArrowLeft /></el-icon></button>
+                  <button type="button" class="active" disabled>1</button>
+                  <button type="button" disabled><el-icon><ArrowRight /></el-icon></button>
                 </div>
               </footer>
             </section>
@@ -407,17 +412,17 @@ const profileTabs: ProfileMenuItem[] = [
 const currentTitle = computed(() => profileTabs.find((item) => item.key === activeTab.value)?.label ?? '个人信息');
 
 function maskPhone(value?: string): string {
-  return value ? value.replace(/^(\d{3})\d{4}(\d+)/, '$1****$2') : '138****6789';
+  return value ? value.replace(/^(\d{3})\d{4}(\d+)/, '$1****$2') : '-';
 }
 
 function maskIdCard(value?: string): string {
-  return value ? value.replace(/^(.{3}).+(.{4})$/, '$1***********$2') : '320***********1234';
+  return value ? value.replace(/^(.{3}).+(.{4})$/, '$1***********$2') : '-';
 }
 
 const profileFields = computed(() => [
-  { label: '姓名', value: student.value.name, icon: 'user', editable: false },
-  { label: '学号', value: student.value.studentId, icon: 'id', editable: false },
-  { label: '所属班级', value: student.value.className, icon: 'class', editable: false },
+  { label: '姓名', value: student.value.name || '-', icon: 'user', editable: false },
+  { label: '学号', value: student.value.studentId || '-', icon: 'id', editable: false },
+  { label: '所属班级', value: student.value.className || '-', icon: 'class', editable: false },
   { label: '手机号', value: maskPhone(student.value.phone), icon: 'phone', editTarget: 'phone' as const },
   { label: '身份证号', value: maskIdCard(student.value.idCard), icon: 'id', editTarget: 'idCard' as const },
   { label: '密码', value: '••••••••', icon: 'lock', editTarget: 'password' as const }
@@ -435,31 +440,17 @@ const editPlaceholder = computed(() => {
   return '请输入新内容';
 });
 
-const scoreRows = computed<ScoreRow[]>(() => [
-  ...(semesterScores.value.length > 0
-    ? semesterScores.value.map((item, index) => ({
-      index: index + 1,
-      term: item.academicTerm || '-',
-      courseware: `${item.coursewareLearningScore}*${item.coursewareWeight}%`,
-      training: `${item.trainingPracticeScore}*${item.trainingPracticeWeight}%`,
-      assignment: `${item.courseAssignmentScore}*${item.assignmentWeight}%`,
-      exam: `${item.examScore}${item.examWeight ? `*${item.examWeight}%` : ''}`,
-      total: String(item.comprehensiveScore || weightedScore.value)
-    }))
-    : [
-      {
-        index: 1,
-        term: '2024-2025学年 上学期',
-        courseware: `${scoreParts.value[0]?.score ?? 92.0}*20%`,
-        training: '88.5*25%',
-        assignment: '90.0*20%',
-        exam: '85.0*35%',
-        total: String(weightedScore.value || 88.1)
-      },
-      { index: 2, term: '2023-2024学年 下学期', courseware: '96.0*15%', training: '93.0*30%', assignment: '95.0*25%', exam: '94.0', total: '94.2' },
-      { index: 3, term: '2023-2024学年 上学期', courseware: '82.0*15%', training: '78.0*20%', assignment: '80.0*20%', exam: '79.0*35%', total: '79.8' }
-    ])
-]);
+const scoreRows = computed<ScoreRow[]>(() =>
+  semesterScores.value.map((item, index) => ({
+    index: index + 1,
+    term: item.academicTerm || '-',
+    courseware: `${item.coursewareLearningScore}*${item.coursewareWeight}%`,
+    training: `${item.trainingPracticeScore}*${item.trainingPracticeWeight}%`,
+    assignment: `${item.courseAssignmentScore}*${item.assignmentWeight}%`,
+    exam: `${item.examScore}${item.examWeight ? `*${item.examWeight}%` : ''}`,
+    total: String(item.comprehensiveScore || weightedScore.value)
+  }))
+);
 
 function messageIconClass(message: StudentMessage) {
   const text = `${message.type || ''}${message.title}`;
@@ -491,31 +482,20 @@ const archiveRows = computed<ArchiveRow[]>(() =>
     id: archive.id,
     index: index + 1,
     title: archive.title,
-    mode: archive.mode || (index % 2 === 0 ? '多人实训' : '单人实训'),
-    role: archive.role || (index % 2 === 0 ? '值班站长' : '-'),
+    mode: archive.mode || '-',
+    role: archive.role || '-',
     submittedAt: archive.finishedAt || '-',
-    submitType: archive.submitType || '正常提交',
+    submitType: archive.submitType || '-',
     duration: archive.duration,
-    personalScore: String(archive.score || '-'),
+    personalScore: archive.score === undefined ? '-' : String(archive.score),
     teamScore: archive.teamScore === undefined ? '-' : String(archive.teamScore)
   }))
 );
 
-const archiveSteps: ArchiveStep[] = [
-  { index: 1, name: '发现伤者并上报', expected: '立即按下紧急停止按钮并通过对讲机上报', actual: '立即按下紧急停止按钮并通过对讲机上报', score: 15, duration: '8.5' },
-  { index: 2, name: '设置警戒区域', expected: '使用警戒带隔离事故区域，疏散围观乘客', actual: '使用警戒带隔离事故区域，疏散围观乘客', score: 10, duration: '12.3' },
-  { index: 3, name: '初步伤情评估', expected: '检查伤者意识、呼吸、出血情况并记录', actual: '仅检查了伤者意识，未记录出血情况', score: 5, duration: '18.7' },
-  { index: 4, name: '通知医疗急救', expected: '拨打120并准确报告位置与伤情', actual: '拨打120并准确报告位置与伤情', score: 15, duration: '22.1' },
-  { index: 5, name: '现场应急处置', expected: '进行基础止血包扎，安抚伤者情绪', actual: '进行基础止血包扎，安抚伤者情绪', score: 15, duration: '45.6' },
-  { index: 6, name: '填写事故报告', expected: '在系统中完整填写事故报告并提交', actual: '填写了事故报告但遗漏关键信息未提交', score: 5, duration: '35.2' },
-  { index: 7, name: '恢复设备运行', expected: '确认安全后解除急停，恢复扶梯运行', actual: '确认安全后解除急停，恢复扶梯运行', score: 15, duration: '20.8' },
-  { index: 8, name: '总结汇报', expected: '向值班领导口头汇报处置全过程', actual: '向值班领导口头汇报处置全过程', score: 10, duration: '15.4' }
-];
-
 const visibleArchiveSteps = computed<ArchiveStep[]>(() => {
   const detail = selectedArchiveDetail.value;
   if (!detail?.steps.length) {
-    return archiveSteps;
+    return [];
   }
 
   return detail.steps.map((step, index) => ({
@@ -528,13 +508,13 @@ const visibleArchiveSteps = computed<ArchiveStep[]>(() => {
   }));
 });
 
-const archiveDetailTitle = computed(() => selectedArchiveDetail.value?.title || '自动扶梯伤客任务演练');
-const archiveDetailMode = computed(() => selectedArchiveDetail.value?.mode || '多人实训');
-const archiveDetailSubmitType = computed(() => selectedArchiveDetail.value?.submitType || '正常提交');
-const archiveDetailSubmittedAt = computed(() => selectedArchiveDetail.value?.finishedAt || '2025-01-15 14:30:22');
-const archiveDetailStudentName = computed(() => selectedArchiveDetail.value?.studentName || student.value.name);
-const archiveDetailStudentNo = computed(() => selectedArchiveDetail.value?.studentNo || student.value.studentId);
-const archiveDetailClassName = computed(() => selectedArchiveDetail.value?.className || student.value.className || '城轨运营 2403 班');
+const archiveDetailTitle = computed(() => selectedArchiveDetail.value?.title || '实训详情');
+const archiveDetailMode = computed(() => selectedArchiveDetail.value?.mode || '-');
+const archiveDetailSubmitType = computed(() => selectedArchiveDetail.value?.submitType || '-');
+const archiveDetailSubmittedAt = computed(() => selectedArchiveDetail.value?.finishedAt || '-');
+const archiveDetailStudentName = computed(() => selectedArchiveDetail.value?.studentName || student.value.name || '-');
+const archiveDetailStudentNo = computed(() => selectedArchiveDetail.value?.studentNo || student.value.studentId || '-');
+const archiveDetailClassName = computed(() => selectedArchiveDetail.value?.className || student.value.className || '-');
 const archiveDetailScore = computed(() => selectedArchiveDetail.value?.score ?? visibleArchiveSteps.value.reduce((sum, step) => sum + step.score, 0));
 const archiveDetailDurationSeconds = computed(() =>
   Math.round(visibleArchiveSteps.value.reduce((sum, step) => sum + Number(step.duration || 0), 0))
@@ -615,10 +595,10 @@ async function handleMarkAllRead() {
 async function openArchiveDetail(archiveId: number) {
   try {
     selectedArchiveDetail.value = await fetchStudentArchiveDetail(archiveId);
+    showArchiveDetail.value = true;
   } catch {
     selectedArchiveDetail.value = undefined;
-  } finally {
-    showArchiveDetail.value = true;
+    showArchiveDetail.value = false;
   }
 }
 

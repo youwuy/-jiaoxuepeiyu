@@ -44,11 +44,11 @@
 
           <span v-if="training.status === 'available'" class="training-countdown is-hot">
             <el-icon><Clock /></el-icon>
-            {{ training.countdown ?? '剩3天6小时' }}
+            {{ training.countdown || '-' }}
           </span>
           <span v-else-if="training.status === 'notStarted'" class="training-countdown is-blue">
             <el-icon><Clock /></el-icon>
-            {{ training.countdown ?? '待开放' }}
+            {{ training.countdown || '-' }}
           </span>
           <span v-else-if="training.bestScore !== undefined" class="training-score-pill">
             <el-icon><Trophy /></el-icon>

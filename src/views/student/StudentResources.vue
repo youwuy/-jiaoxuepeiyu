@@ -59,7 +59,7 @@
             <div class="resource-card-meta">
               <span>
                 <el-icon><User /></el-icon>
-                {{ resource.author || '任课教师' }}
+                {{ resource.author || '-' }}
               </span>
               <time>{{ resource.updatedAt }}</time>
             </div>
@@ -70,15 +70,22 @@
       <footer class="resource-pagination">
         <p>显示 <strong>{{ resourceRangeText }}</strong> 条，共 <strong>{{ totalResourceCount }}</strong> 条资源</p>
         <div class="resource-page-controls" aria-label="资源分页">
-          <button class="resource-page-button muted" type="button" aria-label="上一页">
+          <button class="resource-page-button muted" type="button" aria-label="上一页" :disabled="page === 1" @click="goToPage(page - 1)">
             <el-icon><ArrowLeft /></el-icon>
           </button>
-          <button class="resource-page-button active" type="button">1</button>
-          <button class="resource-page-button" type="button">2</button>
-          <button class="resource-page-button" type="button">3</button>
-          <span class="resource-page-ellipsis">...</span>
-          <button class="resource-page-button" type="button">16</button>
-          <button class="resource-page-button muted" type="button" aria-label="下一页">
+          <template v-for="item in pageButtons" :key="item">
+            <button
+              v-if="item !== '...'"
+              class="resource-page-button"
+              :class="{ active: page === item }"
+              type="button"
+              @click="goToPage(item)"
+            >
+              {{ item }}
+            </button>
+            <span v-else class="resource-page-ellipsis">...</span>
+          </template>
+          <button class="resource-page-button muted" type="button" aria-label="下一页" :disabled="page === totalPages" @click="goToPage(page + 1)">
             <el-icon><ArrowRight /></el-icon>
           </button>
         </div>
@@ -120,6 +127,31 @@ const pageResources = computed(() => {
 });
 
 const totalResourceCount = computed(() => visibleResources.value.length);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalResourceCount.value / pageSize)));
+const pageButtons = computed<Array<number | '...'>>(() => {
+  if (totalPages.value <= 5) {
+    return Array.from({ length: totalPages.value }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | '...'> = [1];
+  const start = Math.max(2, page.value - 1);
+  const end = Math.min(totalPages.value - 1, page.value + 1);
+
+  if (start > 2) {
+    pages.push('...');
+  }
+
+  for (let item = start; item <= end; item += 1) {
+    pages.push(item);
+  }
+
+  if (end < totalPages.value - 1) {
+    pages.push('...');
+  }
+
+  pages.push(totalPages.value);
+  return pages;
+});
 const resourceRangeText = computed(() => {
   if (totalResourceCount.value === 0) {
     return '0-0';
@@ -165,6 +197,10 @@ function selectCategory(value: string) {
   category.value = value;
 }
 
+function goToPage(nextPage: number) {
+  page.value = Math.min(totalPages.value, Math.max(1, nextPage));
+}
+
 function typeClass(value: string) {
   if (value === '视频') {
     return 'is-video';
@@ -201,6 +237,10 @@ function previewResource(resource: StudentResource) {
 
 watch([keyword, category, type], () => {
   page.value = 1;
+});
+
+watch(totalPages, () => {
+  page.value = Math.min(page.value, totalPages.value);
 });
 
 watch([keyword, type], () => {

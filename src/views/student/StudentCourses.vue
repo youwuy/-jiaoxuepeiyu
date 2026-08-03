@@ -94,7 +94,7 @@ import {
 const router = useRouter();
 const keyword = ref('');
 const loading = ref(false);
-const currentTime = new Date('2025-04-10T08:00:00');
+const currentTime = new Date();
 const courses = ref<StudentCourse[]>([]);
 
 const statusMeta: Record<CourseStatus, { label: string; action: string }> = {

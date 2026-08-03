@@ -174,9 +174,10 @@ describe('api http client', () => {
 
     await loginStudent('studentId', { studentId: '0012', password: 'student123' });
 
-    const headers = fetchMock.mock.calls[0][1]?.headers as Headers;
-    expect(headers.get('Authorization')).toBeNull();
-    expect(headers.get('X-User-Id')).toBeNull();
+    const [_, requestInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit?];
+    const headers = requestInit?.headers as Headers | undefined;
+    expect(headers?.get('Authorization')).toBeNull();
+    expect(headers?.get('X-User-Id')).toBeNull();
   });
 
   it('keeps admin and student auth headers isolated after both portals login', async () => {

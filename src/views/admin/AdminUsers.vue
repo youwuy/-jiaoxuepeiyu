@@ -563,7 +563,6 @@ import {
   compactList,
   flattenOrgOptions,
   formatAccountTime,
-  mockAdminAccountTabs,
   normalizeRoleOptions
 } from '../../features/admin/accounts';
 
@@ -575,7 +574,10 @@ const saving = ref(false);
 const busyId = ref<number | null>(null);
 const accounts = ref<AdminAccount[]>([]);
 const selectedIds = ref<number[]>([]);
-const tabs = ref(mockAdminAccountTabs);
+const tabs = ref([
+  { key: 'teacher' as AdminAccountKind, label: '教师管理', count: 0 },
+  { key: 'student' as AdminAccountKind, label: '学员管理', count: 0 }
+]);
 const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminAccountQuery>({});
 const draft = reactive<AdminAccountQuery>({ enabled: null });
@@ -699,6 +701,21 @@ async function loadAccounts() {
     ElMessage.error(error instanceof Error ? error.message : '用户列表加载失败');
   } finally {
     loading.value = false;
+  }
+}
+
+async function refreshTabCounts() {
+  try {
+    const [teacherResult, studentResult] = await Promise.all([
+      fetchAdminAccounts('teacher', { page: 1, pageSize: 1 }),
+      fetchAdminAccounts('student', { page: 1, pageSize: 1 })
+    ]);
+    tabs.value = tabs.value.map((tab) => ({
+      ...tab,
+      count: tab.key === 'teacher' ? teacherResult.total : studentResult.total
+    }));
+  } catch {
+    // keep current counts if the aggregate request fails
   }
 }
 
@@ -1145,6 +1162,7 @@ async function exportRows() {
 
 onMounted(async () => {
   await loadOptions();
+  await refreshTabCounts();
   await loadAccounts();
 });
 </script>

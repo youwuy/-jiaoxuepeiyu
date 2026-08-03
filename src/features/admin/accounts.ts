@@ -7,11 +7,6 @@ export interface AdminAccountTab {
   count: number;
 }
 
-export const mockAdminAccountTabs: AdminAccountTab[] = [
-  { key: 'teacher', label: '教师管理', count: 128 },
-  { key: 'student', label: '学员管理', count: 436 }
-];
-
 export const mockAdminAccounts: Record<AdminAccountKind, AdminAccount[]> = {
   teacher: [
     {
