@@ -398,12 +398,15 @@ a {
 }
 
 .admin-sidebar {
-  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 20px 12px 16px;
   background: linear-gradient(180deg, #0c1a3c 0%, #07142f 100%);
   color: #dce8ff;
+  overflow: hidden;
 }
 
 .admin-brand {
@@ -432,9 +435,27 @@ a {
 }
 
 .admin-nav-groups {
+  flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   padding: 8px 0 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(142, 163, 207, 0.42) transparent;
+}
+
+.admin-nav-groups::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-nav-groups::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(142, 163, 207, 0.42);
+}
+
+.admin-nav-groups::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .admin-nav-group {
@@ -487,6 +508,7 @@ a {
 }
 
 .admin-sidebar-footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -9306,7 +9328,7 @@ a {
 }
 
 .admin-users-main-panel .admin-users-filter-grid {
-  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
 }
 
 .admin-users-main-panel .admin-users-filter-grid .el-input__wrapper,
@@ -9318,6 +9340,17 @@ a {
 
 .admin-users-main-panel .admin-users-head-actions {
   flex-wrap: wrap;
+}
+
+.admin-users-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.admin-users-filter-actions .el-button {
+  margin-left: 0;
 }
 
 .admin-users-main-panel .admin-users-primary-button.el-button,
@@ -9378,6 +9411,10 @@ a {
 
   .admin-users-main-panel .admin-users-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-users-filter-actions {
+    grid-column: span 2;
   }
 }
 

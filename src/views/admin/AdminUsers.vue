@@ -264,6 +264,10 @@
                 <el-option label="启用" :value="true" />
                 <el-option label="禁用" :value="false" />
               </el-select>
+              <div class="admin-users-filter-actions">
+                <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
+                <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
+              </div>
             </div>
             <div class="admin-users-head-actions">
               <el-button class="admin-users-primary-button" type="primary" @click="openCreate">
@@ -275,8 +279,6 @@
               <el-button class="admin-users-lite-button" @click="openBatchReset">批量重置密码</el-button>
               <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
               <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchRole">批量修改角色</el-button>
-              <el-button class="admin-users-ghost-button" @click="applySearch">查询</el-button>
-              <el-button class="admin-users-ghost-button" @click="resetSearch">重置</el-button>
             </div>
           </section>
 
