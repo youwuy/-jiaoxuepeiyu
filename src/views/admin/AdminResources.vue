@@ -235,7 +235,40 @@
 
         <section class="admin-resource-preview-content">
           <div class="admin-resource-preview-document">
-            <el-empty description="暂无可预览内容" />
+            <template v-if="detailResource && previewSource(detailResource)">
+              <img
+                v-if="previewKind(detailResource) === 'image'"
+                class="admin-resource-preview-media image"
+                :src="previewSource(detailResource)"
+                :alt="detailResource.resourceName"
+              />
+              <video
+                v-else-if="previewKind(detailResource) === 'video'"
+                class="admin-resource-preview-media"
+                :src="previewSource(detailResource)"
+                controls
+              />
+              <audio
+                v-else-if="previewKind(detailResource) === 'audio'"
+                class="admin-resource-preview-audio"
+                :src="previewSource(detailResource)"
+                controls
+              />
+              <iframe
+                v-else-if="previewKind(detailResource) === 'frame'"
+                class="admin-resource-preview-frame"
+                :src="previewSource(detailResource)"
+                :title="detailResource.resourceName"
+              />
+              <div v-else class="admin-resource-preview-unsupported">
+                <span class="admin-resource-file-icon">
+                  <el-icon><Document /></el-icon>
+                </span>
+                <strong>{{ detailResource.fileName || detailResource.resourceName }}</strong>
+                <p>当前文件类型不支持在线预览，请下载后查看。</p>
+              </div>
+            </template>
+            <el-empty v-else description="暂无可预览内容" />
           </div>
         </section>
 
@@ -577,6 +610,39 @@ function formatDateTime(value?: string) {
   }
 
   return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
+}
+
+function fileExtension(resource?: Pick<AdminResource, 'fileName' | 'fileUrl' | 'previewUrl'> | null) {
+  const value = String(resource?.fileName || resource?.previewUrl || resource?.fileUrl || '').split('?')[0].split('#')[0];
+  const match = value.match(/\.([a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : '';
+}
+
+function previewSource(resource?: Pick<AdminResource, 'fileUrl' | 'previewUrl'> | null) {
+  return resource?.previewUrl || resource?.fileUrl || '';
+}
+
+function previewKind(resource?: Pick<AdminResource, 'fileName' | 'fileUrl' | 'previewUrl' | 'resourceType'> | null) {
+  const extension = fileExtension(resource);
+  const type = String(resource?.resourceType || '').toLowerCase();
+
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension) || type.includes('图片')) {
+    return 'image';
+  }
+
+  if (['mp4', 'webm', 'ogg', 'mov'].includes(extension) || type.includes('视频')) {
+    return 'video';
+  }
+
+  if (['mp3', 'wav', 'm4a', 'aac', 'oga'].includes(extension) || type.includes('音频')) {
+    return 'audio';
+  }
+
+  if (['pdf', 'txt', 'html', 'htm'].includes(extension)) {
+    return 'frame';
+  }
+
+  return 'unsupported';
 }
 
 function findMajorLabel(majorId?: number | null) {

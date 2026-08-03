@@ -11451,6 +11451,51 @@ a {
   background: #fbfcfe;
 }
 
+.admin-resource-preview-media,
+.admin-resource-preview-frame {
+  width: 100%;
+  min-height: 360px;
+  display: block;
+  border: 0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.admin-resource-preview-media.image {
+  max-height: 430px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.admin-resource-preview-audio {
+  width: 100%;
+  margin: 160px 0 0;
+}
+
+.admin-resource-preview-unsupported {
+  min-height: 340px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.admin-resource-preview-unsupported strong {
+  max-width: 560px;
+  color: #24344d;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.admin-resource-preview-unsupported p {
+  margin: 0;
+  color: #70839c;
+  font-size: 14px;
+}
+
 .admin-resource-preview-document h2 {
   margin: 0 0 8px;
   color: #172033;
