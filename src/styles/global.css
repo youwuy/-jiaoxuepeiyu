@@ -13481,6 +13481,26 @@ a {
   gap: 12px;
 }
 
+.admin-theory-paper-upload-dialog .admin-theory-paper-dialog-footer .el-button {
+  height: 40px;
+  min-width: 80px;
+  border-radius: 8px;
+  padding: 0 24px;
+  font-weight: 800;
+}
+
+.admin-theory-paper-upload-dialog .admin-theory-paper-dialog-footer .el-button:first-child {
+  border: 0;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-theory-paper-upload-dialog .admin-theory-paper-dialog-footer .el-button--primary {
+  border: 0;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
 .admin-theory-paper-upload {
   display: grid;
   gap: 16px;
@@ -14165,26 +14185,28 @@ a {
 }
 
 .admin-theory-paper-upload-dialog.el-dialog {
-  border-radius: 0 0 10px 10px;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .admin-theory-paper-upload-dialog .el-dialog__header {
   margin: 0;
-  padding: 22px 24px 12px;
+  padding: 20px 24px;
 }
 
 .admin-theory-paper-upload-dialog .el-dialog__body {
-  padding: 18px 24px 24px;
+  padding: 24px;
 }
 
 .admin-theory-paper-upload-dialog .el-dialog__footer {
-  padding: 0 24px 24px;
+  padding: 20px 24px;
 }
 
 .admin-theory-paper-upload-head {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .admin-theory-paper-upload-head > span {
@@ -14193,8 +14215,8 @@ a {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 10px;
-  background: #eef2ff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
   color: #4f46e5;
   font-size: 22px;
 }
@@ -14211,32 +14233,37 @@ a {
 
 .admin-theory-paper-upload-head p {
   margin: 2px 0 0;
-  color: #8aa0bc;
-  font-size: 14px;
+  color: #94a3b8;
+  font-size: 13px;
 }
 
 .admin-theory-paper-upload-head > .el-button {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #f3f6fa;
-  color: #8190a6;
+  background: #f8fafc;
+  color: #94a3b8;
 }
 
 .admin-theory-paper-upload-body {
   display: grid;
-  gap: 22px;
+  gap: 24px;
 }
 
 .admin-theory-paper-upload-body label {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .admin-theory-paper-upload-body label > span {
   color: #334155;
   font-size: 14px;
   font-weight: 900;
+}
+
+.admin-theory-paper-upload-body .el-input__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
 }
 
 .admin-theory-paper-upload-body b,
@@ -14250,18 +14277,19 @@ a {
   border: 0;
   border-radius: 8px;
   padding: 0 20px;
-  background: #4f46e5;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #ffffff;
   font-weight: 900;
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.28);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
 }
 
 .admin-theory-paper-upload-body .el-upload-dragger {
-  height: 170px;
+  height: 168px;
   display: grid;
   place-items: center;
+  border: 1.8px dashed #e5e7eb;
   border-radius: 8px;
-  background: #fbfcfe;
+  background: #fafbfc;
 }
 
 .admin-theory-paper-upload-body .el-upload .el-icon {
