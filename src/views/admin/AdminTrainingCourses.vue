@@ -32,7 +32,11 @@
       </div>
 
       <div class="admin-training-table-card">
-        <div class="admin-training-table-scroll">
+        <div v-if="loading" class="admin-course-empty">实训课加载中...</div>
+        <div v-else-if="courses.length === 0" class="admin-course-empty">
+          <el-empty description="暂无实训课数据" />
+        </div>
+        <div v-else class="admin-training-table-scroll">
           <table class="admin-training-table">
             <thead>
               <tr>
@@ -159,7 +163,7 @@
               <label>
                 <span>学年学期 <b>*</b></span>
                 <el-select v-model="form.semester" placeholder="请选择学期">
-                  <el-option v-for="semester in semesters" :key="semester" :label="semester" :value="semester" />
+                  <el-option v-for="semester in semesterOptions" :key="semester.value" :label="semester.label" :value="semester.value" />
                 </el-select>
               </label>
               <label class="wide">
@@ -368,7 +372,7 @@
         </div>
         <div class="monitor-student-panel">
           <div class="panel-heading"><h3>学员监控</h3><el-button :icon="Monitor" type="primary" plain>查看学员桌面</el-button></div>
-          <el-table :data="students">
+          <el-table v-if="students.length" :data="students">
             <el-table-column prop="name" label="学员姓名" min-width="100" />
             <el-table-column prop="studentNo" label="学号" min-width="120" />
             <el-table-column prop="topic" label="当前实训题" min-width="160" />
@@ -377,6 +381,7 @@
             <el-table-column prop="ip" label="IP" width="140" />
             <el-table-column label="在线状态" width="104"><template #default="{ row }"><el-tag :type="row.online ? 'success' : 'info'" size="small">{{ row.online ? '在线' : '离线' }}</el-tag></template></el-table-column>
           </el-table>
+          <el-empty v-else description="暂无在线学员信息" />
         </div>
       </el-drawer>
 
@@ -390,11 +395,12 @@
           <p>{{ item.content }}</p>
           <small>{{ item.operator }}</small>
         </article>
+        <el-empty v-if="logs.length === 0" description="暂无操作日志" />
       </el-drawer>
 
       <el-drawer v-model="markingVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
         <div class="admin-training-drawer-head compact"><div><span>阅卷</span><h3>{{ selectedCourse?.name || '阅卷' }}</h3></div><el-button text circle :icon="Close" @click="markingVisible = false" /></div>
-        <el-table :data="markingRows">
+        <el-table v-if="markingRows.length" :data="markingRows">
           <el-table-column prop="student" label="学员" width="120" />
           <el-table-column prop="className" label="班级" min-width="160" />
           <el-table-column prop="submitAt" label="提交时间" width="160" />
@@ -402,6 +408,7 @@
           <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === '已阅' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag></template></el-table-column>
           <el-table-column label="操作" width="120"><template #default><el-button link type="primary">进入阅卷</el-button></template></el-table-column>
         </el-table>
+        <el-empty v-else description="暂无阅卷记录" />
       </el-drawer>
 
       <el-drawer v-model="statsVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
@@ -525,22 +532,14 @@ const form = reactive({
   name: '',
   type: '考试' as '考试' | '练习',
   mode: '协同实训' as '单人实训' | '协同实训',
-  semester: '2024-2025学年 第二学期',
+  semester: '',
   majorId: undefined as number | undefined,
   range: [] as string[],
   description: '',
   teacherIds: [] as number[],
   classIds: [] as number[],
-  roles: [
-    { name: '值班员', capacity: 1, duty: '负责接收调度指令并完成票据确认' },
-    { name: '信号员', capacity: 1, duty: '负责设备状态确认和联锁操作' }
-  ] as TrainingRole[],
-  flow: [
-    { name: '任务接收', rule: '确认任务、角色和安全注意事项', score: 10 },
-    { name: '设备检查', rule: '按流程完成设备状态核验', score: 30 },
-    { name: '故障处置', rule: '完成协同操作并记录结果', score: 40 },
-    { name: '复盘提交', rule: '提交实训报告和过程附件', score: 20 }
-  ] as TrainingFlowNode[]
+  roles: [] as TrainingRole[],
+  flow: [] as TrainingFlowNode[]
 });
 
 const roleForm = reactive({ name: '', capacity: 1, duty: '' });
@@ -552,29 +551,28 @@ const steps = [
   { key: 'rule' as StepKey, index: 4, label: '角色规则' }
 ];
 
-const semesters = ['2024-2025学年 第二学期', '2024-2025学年 第一学期', '2023-2024学年 第二学期'];
-
 const courses = ref<CourseRow[]>([]);
 
-const topicOptions: SelectableItem[] = [
-  { id: 1, name: '信号机故障应急处置', meta: '信号 / 45 分钟 / 30 分', category: '信号', duration: 45, score: 30 },
-  { id: 2, name: '道岔失表排查流程', meta: '信号 / 35 分钟 / 25 分', category: '信号', duration: 35, score: 25 },
-  { id: 3, name: '车站客流突发处置', meta: '站务 / 40 分钟 / 25 分', category: '站务', duration: 40, score: 25 },
-  { id: 4, name: '调度命令闭环演练', meta: '调度 / 30 分钟 / 20 分', category: '调度', duration: 30, score: 20 }
-];
+const topicOptions = ref<SelectableItem[]>([]);
+const semesterOptions = computed(() =>
+  academicYears.value.flatMap((year) =>
+    (year.semesters ?? []).map((semester) => ({
+      academicYearId: year.academicYearId,
+      semesterId: semester.semesterId,
+      value: `${year.yearName} ${semester.semesterName}`,
+      label: `${year.yearName} ${semester.semesterName}`
+    }))
+  )
+);
 
-const classOptions = ref<SelectableItem[]>([
-  { id: 31, name: '城轨信号2401班', meta: '48 人 / 交通运输学院' },
-  { id: 32, name: '城轨车辆2401班', meta: '42 人 / 车辆工程学院' },
-  { id: 33, name: '张明亮、孙志强、王欣欣', meta: '指定学生 / 3 人' }
-]);
+const classOptions = ref<SelectableItem[]>([]);
 const majorOptions = ref<Array<{ majorId: number; majorName: string; enabled?: boolean }>>([]);
 const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string; current?: boolean }> }>>([]);
 
-const selectedTopicIds = ref([1, 2]);
+const selectedTopicIds = ref<number[]>([]);
 const selectedResourceIds = ref<number[]>([]);
 const selectedPaperId = ref<number>(0);
-const selectedClassIds = ref([31]);
+const selectedClassIds = ref<number[]>([]);
 const selectedTeacherIds = ref<number[]>([]);
 const selectedRoomId = ref<number>(0);
 
@@ -584,11 +582,7 @@ const students = ref<Array<{ name: string; studentNo: string; topic: string; mod
 
 const logs = ref<Array<{ time: string; operator: string; action: string; content: string }>>([]);
 
-const markingRows = [
-  { student: '李明', className: '城轨信号2401班', submitAt: '2025-03-20 10:01', score: 92, status: '已阅' },
-  { student: '周雨', className: '城轨信号2401班', submitAt: '2025-03-20 10:03', score: 88, status: '已阅' },
-  { student: '陈晓', className: '城轨信号2401班', submitAt: '2025-03-20 10:05', score: '-', status: '待阅' }
-];
+const markingRows = ref<Array<{ student: string; className: string; submitAt: string; score: number | string; status: string }>>([]);
 
 const statsSummary = ref<AdminTrainingStatistics>({});
 const statsRows = ref<Array<{ className: string; total: number; finished: number; avg: string; passRate: string }>>([]);
@@ -597,7 +591,7 @@ const paperOptions = ref<SelectableItem[]>([]);
 const teacherOptions = ref<SelectableItem[]>([]);
 const roomOptions = ref<SelectableItem[]>([]);
 
-const selectedTopics = computed(() => topicOptions.filter((item) => selectedTopicIds.value.includes(item.id)));
+const selectedTopics = computed(() => topicOptions.value.filter((item) => selectedTopicIds.value.includes(item.id)));
 const selectedResources = computed(() => resourceOptions.value.filter((item) => selectedResourceIds.value.includes(item.id)));
 const selectedPaper = computed(() => paperOptions.value.find((item) => item.id === selectedPaperId.value));
 const selectedClasses = computed(() => classOptions.value.filter((item) => selectedClassIds.value.includes(item.id)));
@@ -617,7 +611,7 @@ const selectorTitle = computed(() => ({
 
 const selectorItems = computed(() => {
   const source = {
-    topic: topicOptions,
+    topic: topicOptions.value,
     resource: resourceOptions.value,
     paper: paperOptions.value,
     class: classOptions.value,
@@ -651,10 +645,10 @@ function resetForm() {
   form.name = '';
   form.type = '考试';
   form.mode = '协同实训';
-  form.semester = semesters[0];
+  form.semester = semesterOptions.value[0]?.value || '';
   form.range = [];
   form.description = '';
-  selectedTopicIds.value = [1, 2];
+  selectedTopicIds.value = [];
   selectedResourceIds.value = resourceOptions.value.slice(0, 2).map((item) => item.id);
   selectedPaperId.value = paperOptions.value[0]?.id || 0;
   selectedClassIds.value = classOptions.value[0] ? [classOptions.value[0].id] : [];
@@ -971,7 +965,7 @@ async function loadOptions() {
       meta: `${item.cameraCount} 路摄像头`,
       category: 'room'
     }));
-    form.semester = semesters[0];
+    form.semester = semesterOptions.value[0]?.value || '';
     form.majorId = majorOptions.value[0]?.majorId;
     form.teacherIds = teacherOptions.value.slice(0, 2).map((item) => item.id);
     form.classIds = classOptions.value[0]?.id ? [classOptions.value[0].id] : [];
@@ -1087,8 +1081,7 @@ function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {
 }
 
 function semesterIdFromLabel(label: string) {
-  const index = semesters.indexOf(label);
-  return index >= 0 ? index + 1 : undefined;
+  return semesterOptions.value.find((item) => item.value === label)?.semesterId;
 }
 
 function formatDateTime(value?: string) {

@@ -516,8 +516,6 @@ const fallbackRows: SettingRow[] = [
   { key: 'weights', name: '综合成绩权重配置', value: '暂无权重配置', tone: 'gray', loggable: true }
 ];
 
-const yearOptions = ['2025-2026', '2024-2025', '2023-2024', '2022-2023', '2021-2022', '2020-2021'];
-
 const settingRows = computed<SettingRow[]>(() => [
   buildSemesterRow(),
   buildMajorRow(),
@@ -527,6 +525,11 @@ const settingRows = computed<SettingRow[]>(() => [
   buildGradeRow(),
   buildWeightRow()
 ]);
+
+const yearOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 6 }, (_, index) => `${currentYear - index}-${currentYear - index + 1}`);
+});
 
 const configTitle = computed(() => {
   const titles: Record<ConfigKey, string> = {
@@ -559,39 +562,13 @@ const semesterRows = computed<SemesterDisplayRow[]>(() => {
   return rows;
 });
 
-const displayMajors = computed(() => majors.value.length ? majors.value : [
-  { majorId: 1, majorName: '城市轨道交通运营管理', enabled: true },
-  { majorId: 2, majorName: '城市轨道交通信号技术', enabled: true },
-  { majorId: 3, majorName: '城市轨道交通车辆技术', enabled: true },
-  { majorId: 4, majorName: '城市轨道交通供配电技术', enabled: true },
-  { majorId: 5, majorName: '城市轨道交通通信信号技术', enabled: true },
-  { majorId: 6, majorName: '城市轨道交通工程技术', enabled: true },
-  { majorId: 7, majorName: '城市轨道交通机电技术', enabled: true },
-  { majorId: 8, majorName: '高速铁路客运乘务', enabled: true }
-]);
+const displayMajors = computed(() => majors.value);
 
-const displayClasses = computed(() => classes.value.length ? classes.value : [
-  { classId: 1, majorId: 1, className: '城轨运营2101班', enabled: true },
-  { classId: 2, majorId: 2, className: '城轨信号2101班', enabled: true },
-  { classId: 3, majorId: 3, className: '城轨车辆2101班', enabled: false },
-  { classId: 4, majorId: 4, className: '城轨供电2101班', enabled: true },
-  { classId: 5, majorId: 6, className: '城轨工程2101班', enabled: true },
-  { classId: 6, majorId: 7, className: '城轨机电2101班', enabled: false }
-]);
+const displayClasses = computed(() => classes.value);
 
-const displayJobRoles = computed(() => jobRoles.value.length ? jobRoles.value : [
-  { jobRoleId: 1, roleName: '司机', sortOrder: 1, enabled: true },
-  { jobRoleId: 2, roleName: '调度员', sortOrder: 2, enabled: true },
-  { jobRoleId: 3, roleName: '站务员', sortOrder: 3, enabled: true },
-  { jobRoleId: 4, roleName: '值班员', sortOrder: 4, enabled: true }
-]);
+const displayJobRoles = computed(() => jobRoles.value);
 
-const displayGradeRules = computed(() => gradeRules.value.length ? gradeRules.value : [
-  { ruleId: 1, gradeName: '优秀', minScore: 85, maxScore: 100, sortOrder: 1 },
-  { ruleId: 2, gradeName: '良好', minScore: 75, maxScore: 85, sortOrder: 2 },
-  { ruleId: 3, gradeName: '中等', minScore: 60, maxScore: 75, sortOrder: 3 },
-  { ruleId: 4, gradeName: '较差', minScore: 0, maxScore: 60, sortOrder: 4 }
-]);
+const displayGradeRules = computed(() => gradeRules.value);
 
 const classroomCameraRows = computed(() => {
   if (localCameras.value.length) {
@@ -696,7 +673,7 @@ async function loadSettings() {
       safeLoad(fetchAdminScoreWeights),
       safeLoad(fetchAdminScoreGradeRules)
     ]);
-    academicYears.value = yearRows.length ? yearRows : seedYears();
+    academicYears.value = yearRows;
     majors.value = majorRows;
     classes.value = classRows;
     classrooms.value = classroomRows;
@@ -710,17 +687,6 @@ async function loadSettings() {
   } finally {
     loading.value = false;
   }
-}
-
-function seedYears(): AdminAcademicYear[] {
-  return yearOptions.slice(1).map((year, index) => ({
-    academicYearId: index + 1,
-    yearName: `${year}学年`,
-    semesters: [
-      { semesterId: (index + 1) * 10 + 1, academicYearId: index + 1, semesterName: '上学期', current: index === 0 },
-      { semesterId: (index + 1) * 10 + 2, academicYearId: index + 1, semesterName: '下学期', current: false }
-    ]
-  }));
 }
 
 function openConfig(key: ConfigKey) {
