@@ -191,7 +191,7 @@
               </div>
               <div>
                 <span>公开版本</span>
-                <strong>V{{ selectedResource.publicVersion ?? selectedResource.currentVersion ?? 1 }}</strong>
+                <strong>{{ formatVersion(selectedResource.publicVersion ?? selectedResource.currentVersion) }}</strong>
               </div>
               <div>
                 <span>公开时间</span>
@@ -250,7 +250,7 @@
                 <span>{{ item.publishedAt }}</span>
               </header>
               <p>{{ item.title }}</p>
-              <small>{{ item.note || item.reviewerName || '公开版本归档' }}</small>
+              <small>{{ item.note || item.reviewerName || '-' }}</small>
             </article>
           </section>
 
@@ -574,23 +574,24 @@ function buildUploaderKey(resource: AdminResource) {
   return `name:${resource.uploaderName || ''}`;
 }
 
+function formatVersion(value?: number) {
+  const version = Number(value);
+  return Number.isFinite(version) && version > 0 ? `V${version}` : '-';
+}
+
 function buildHistoryItems(resource: AdminResource): PublicHistoryItem[] {
-  const currentVersion = Number(resource.currentVersion ?? 1);
-  const publicVersion = Number(resource.publicVersion ?? currentVersion);
+  const version = Number(resource.publicVersion ?? resource.currentVersion);
+  if (!Number.isFinite(version) || version <= 0) {
+    return [];
+  }
+
   return [
     {
-      version: publicVersion,
-      title: `${resource.resourceName} - 当前公开版本`,
+      version,
+      title: resource.resourceName,
       publishedAt: formatDateTime(resource.createdAt || resource.updatedAt),
-      reviewerName: resource.uploaderName || '系统',
-      note: '当前公开版本'
-    },
-    {
-      version: currentVersion,
-      title: `${resource.resourceName} - 最新资源版本`,
-      publishedAt: formatDateTime(resource.updatedAt || resource.createdAt),
-      reviewerName: resource.uploaderName || '系统',
-      note: '最新同步版本'
+      reviewerName: resource.uploaderName || '-',
+      note: ''
     }
   ];
 }

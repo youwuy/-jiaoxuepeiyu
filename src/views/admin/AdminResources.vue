@@ -468,8 +468,8 @@ function createEmptyForm(): ResourceForm {
     coverName: '',
     coverSize: '',
     publicStatus: 'DRAFT',
-    currentVersion: '1',
-    publicVersion: '1'
+    currentVersion: '',
+    publicVersion: ''
   };
 }
 
@@ -613,8 +613,8 @@ function openEditPanel(row: ResourceRow) {
     fileSize: row.fileSize ? String(row.fileSize) : '',
     fileSizeLabel: row.fileSizeLabel,
     publicStatus: row.publicStatus || 'DRAFT',
-    currentVersion: String(row.currentVersion ?? 1),
-    publicVersion: String(row.publicVersion ?? row.currentVersion ?? 1)
+    currentVersion: row.currentVersion ? String(row.currentVersion) : '',
+    publicVersion: row.publicVersion ? String(row.publicVersion) : ''
   });
 }
 
@@ -688,8 +688,8 @@ function validateForm(): AdminResourceCommand {
   const fileUrl = form.fileUrl.trim();
   const fileName = form.fileName.trim();
   const fileSize = Number(form.fileSize);
-  const currentVersion = Number(form.currentVersion || 1);
-  const publicVersion = Number(form.publicVersion || currentVersion || 1);
+  const currentVersion = form.currentVersion ? Number(form.currentVersion) : undefined;
+  const publicVersion = form.publicVersion ? Number(form.publicVersion) : undefined;
 
   if (!resourceName) {
     throw new Error('请输入资源名称');

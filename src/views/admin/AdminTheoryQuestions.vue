@@ -357,7 +357,7 @@ const previewGroups = reactive<
 
 const pagedQuestions = computed(() => questions.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const pageStart = computed(() => (questions.value.length === 0 ? 0 : (page.value - 1) * pageSize + 1));
-const pageEnd = computed(() => Math.min(page.value * pageSize, questions.value.length || 10));
+const pageEnd = computed(() => Math.min(page.value * pageSize, questions.value.length));
 const allSelected = computed(() => pagedQuestions.value.length > 0 && pagedQuestions.value.every((item) => selectedIds.value.includes(item.questionId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allSelected.value);
 const creatorOptions = computed(() => Array.from(new Set(questions.value.map((item) => item.creatorName).filter(Boolean))) as string[]);
@@ -569,11 +569,9 @@ async function openLogs(row: QuestionRow) {
   try {
     const detail = await openQuestionDetail(row);
     logs.value = await fetchAdminQuestionLogs(detail.questionId);
-  } catch {
-    logs.value = [
-      { logId: 1, questionId: row.questionId, action: '修改试题', content: `${row.title} 信息更新`, operatorName: row.creatorName, createdAt: row.createdAtLabel },
-      { logId: 2, questionId: row.questionId, action: '启用状态变更', content: '管理员调整启用状态', operatorName: row.creatorName, createdAt: row.createdAtLabel }
-    ];
+  } catch (error) {
+    logs.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '试题操作记录加载失败');
   }
   logsVisible.value = true;
 }

@@ -299,8 +299,8 @@
                 <div><dt>所属专业</dt><dd>{{ selectedApplication.majorLabel }}</dd></div>
                 <div><dt>课程名称</dt><dd>{{ selectedApplication.courseName || '-' }}</dd></div>
                 <div><dt>文件大小</dt><dd>{{ selectedApplication.fileSizeLabel }}</dd></div>
-                <div><dt>申请版本</dt><dd>V{{ selectedApplication.resourceVersion ?? 1 }}</dd></div>
-                <div><dt>公开版本</dt><dd>V{{ selectedApplication.publicVersion ?? selectedApplication.resourceVersion ?? 1 }}</dd></div>
+                <div><dt>申请版本</dt><dd>{{ formatVersion(selectedApplication.resourceVersion) }}</dd></div>
+                <div><dt>公开版本</dt><dd>{{ formatVersion(selectedApplication.publicVersion ?? selectedApplication.resourceVersion) }}</dd></div>
               </dl>
             </div>
 
@@ -695,6 +695,10 @@ const pagedApplications = computed(() => filteredApplications.value.slice((page.
 const allCurrentSelected = computed(() => pagedApplications.value.length > 0 && pagedApplications.value.every((item) => selectedIds.value.includes(item.applicationId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
 
+function formatVersion(value?: number) {
+  const version = Number(value);
+  return Number.isFinite(version) && version > 0 ? `V${version}` : '-';
+}
 
 function normalizeStatus(value?: string): ApplicationStatus {
   const upper = String(value || '').toUpperCase();
@@ -1095,7 +1099,7 @@ async function submitReview() {
       publicStatus: nextStatus,
       statusTone: statusTone(nextStatus),
       statusLabel: statusLabel(nextStatus),
-      reviewerName: application.reviewerName || '当前管理员',
+      reviewerName: application.reviewerName || '-',
       reviewedAtLabel: formatDateTime(new Date().toISOString()),
       reviewComment: reviewComment.value.trim() || application.reviewComment || ''
     };
