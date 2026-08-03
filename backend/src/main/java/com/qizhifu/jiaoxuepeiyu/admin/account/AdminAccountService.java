@@ -53,7 +53,7 @@ public class AdminAccountService {
         if (account == null) {
             throw new BusinessException(404, "Account not found");
         }
-        mask(account);
+        attachMasks(account);
         return account;
     }
 
@@ -356,7 +356,7 @@ public class AdminAccountService {
         row.setAccountNo(account.getAccountNo());
         row.setRealName(account.getRealName());
         row.setMaskedPhone(maskPhone(account.getPhone()));
-        row.setMaskedIdCard(maskIdCard(account.getMaskedIdCard()));
+        row.setMaskedIdCard(maskIdCard(account.getIdCard()));
         row.setUserType(account.getUserType());
         row.setOrgName(account.getOrgName());
         row.setClassName(account.getClassName());
@@ -449,9 +449,14 @@ public class AdminAccountService {
     }
 
     private void mask(AdminAccount account) {
-        account.setMaskedPhone(maskPhone(account.getPhone()));
-        account.setMaskedIdCard(maskIdCard(account.getMaskedIdCard()));
+        attachMasks(account);
         account.setPhone(null);
+        account.setIdCard(null);
+    }
+
+    private void attachMasks(AdminAccount account) {
+        account.setMaskedPhone(maskPhone(account.getPhone()));
+        account.setMaskedIdCard(maskIdCard(account.getIdCard()));
     }
 
     private String maskPhone(String phone) {

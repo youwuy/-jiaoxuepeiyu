@@ -277,7 +277,7 @@ class AdminAccountServiceTests {
         account.setAccountNo(accountNo);
         account.setRealName(realName);
         account.setPhone(phone);
-        account.setMaskedIdCard(idCard);
+        account.setIdCard(idCard);
         account.setUserType("teacher");
         account.setOrgName("Org");
         account.setEnabled(true);

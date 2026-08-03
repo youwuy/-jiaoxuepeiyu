@@ -17,7 +17,7 @@ public interface AdminAccountMapper {
 
     @Select("<script>"
             + "SELECT u.id AS user_id, u.username AS account_no, u.real_name, u.phone, "
-            + "u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
+            + "u.id_card AS id_card, u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
             + "u.class_id, c.class_name, CASE WHEN u.status = 1 THEN TRUE ELSE FALSE END AS enabled, "
             + "CASE WHEN u.face_file_id IS NULL THEN FALSE ELSE TRUE END AS face_recorded, "
             + "CASE WHEN u.fingerprint_file_id IS NULL THEN FALSE ELSE TRUE END AS fingerprint_recorded, "
@@ -39,7 +39,7 @@ public interface AdminAccountMapper {
 
     @Select("<script>"
             + "SELECT u.id AS user_id, u.username AS account_no, u.real_name, u.phone, "
-            + "u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
+            + "u.id_card AS id_card, u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
             + "u.class_id, c.class_name, CASE WHEN u.status = 1 THEN TRUE ELSE FALSE END AS enabled, "
             + "CASE WHEN u.face_file_id IS NULL THEN FALSE ELSE TRUE END AS face_recorded, "
             + "CASE WHEN u.fingerprint_file_id IS NULL THEN FALSE ELSE TRUE END AS fingerprint_recorded, "
@@ -72,7 +72,7 @@ public interface AdminAccountMapper {
     long countAccounts(AdminAccountQuery query);
 
     @Select("SELECT u.id AS user_id, u.username AS account_no, u.real_name, u.phone, "
-            + "u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
+            + "u.id_card AS id_card, u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "
             + "u.class_id, c.class_name, CASE WHEN u.status = 1 THEN TRUE ELSE FALSE END AS enabled, "
             + "CASE WHEN u.face_file_id IS NULL THEN FALSE ELSE TRUE END AS face_recorded, "
             + "CASE WHEN u.fingerprint_file_id IS NULL THEN FALSE ELSE TRUE END AS fingerprint_recorded, "

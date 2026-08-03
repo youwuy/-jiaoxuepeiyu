@@ -15,6 +15,7 @@ export interface AdminAccount {
   realName: string;
   phone?: string;
   maskedPhone?: string;
+  idCard?: string;
   maskedIdCard?: string;
   jobTitle?: string;
   userType: AdminAccountKind | string;

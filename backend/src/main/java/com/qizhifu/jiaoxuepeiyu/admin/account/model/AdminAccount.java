@@ -11,6 +11,7 @@ public class AdminAccount {
     private String realName;
     private String phone;
     private String maskedPhone;
+    private String idCard;
     private String maskedIdCard;
     private String jobTitle;
     private String userType;
@@ -65,6 +66,14 @@ public class AdminAccount {
 
     public void setMaskedPhone(String maskedPhone) {
         this.maskedPhone = maskedPhone;
+    }
+
+    public String getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(String idCard) {
+        this.idCard = idCard;
     }
 
     public String getMaskedIdCard() {

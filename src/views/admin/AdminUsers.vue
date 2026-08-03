@@ -782,24 +782,34 @@ function openCreate() {
   studentFormPageVisible.value = true;
 }
 
-function openEdit(row: AdminAccount) {
-  formMode.value = 'edit';
-  editingId.value = row.userId;
-  applyForm({
-    realName: row.realName,
-    accountNo: row.accountNo,
-    phone: row.phone || '',
-    idCard: '',
-    jobTitle: row.jobTitle || '',
-    orgId: row.orgId ?? null,
-    classId: row.classId ?? null,
+function accountToForm(account: AdminAccount): AdminAccountCommand {
+  return {
+    realName: account.realName,
+    accountNo: account.accountNo,
+    phone: account.phone || '',
+    idCard: account.idCard || '',
+    jobTitle: account.jobTitle || '',
+    orgId: account.orgId ?? null,
+    classId: account.classId ?? null,
     faceFileId: null,
     fingerprintFileId: null,
-    roleIds: row.roleIds ?? [],
-    managedOrgIds: row.managedOrgIds ?? [],
-    teachingClassIds: row.teachingClassIds ?? []
-  });
-  resetBioState(Boolean(row.faceRecorded), Boolean(row.fingerprintRecorded));
+    roleIds: account.roleIds ?? [],
+    managedOrgIds: account.managedOrgIds ?? [],
+    teachingClassIds: account.teachingClassIds ?? []
+  };
+}
+
+async function openEdit(row: AdminAccount) {
+  formMode.value = 'edit';
+  editingId.value = row.userId;
+  let account = row;
+  try {
+    account = await fetchAdminAccountDetail(row.userId);
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '用户详情加载失败，已使用列表数据回填');
+  }
+  applyForm(accountToForm(account));
+  resetBioState(Boolean(account.faceRecorded), Boolean(account.fingerprintRecorded));
   if (activeKind.value === 'teacher') {
     teacherFormPageVisible.value = true;
     return;
