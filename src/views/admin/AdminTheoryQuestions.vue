@@ -149,12 +149,12 @@
         <section v-else-if="form.questionType === 'JUDGE'" class="admin-question-judge-answer">
           <p>答案 <b>*</b></p>
           <el-radio-group v-model="form.standardAnswer">
-            <el-radio label="正确">正确</el-radio>
-            <el-radio label="错误">错误</el-radio>
+            <el-radio label="TRUE">正确</el-radio>
+            <el-radio label="FALSE">错误</el-radio>
           </el-radio-group>
         </section>
 
-        <label v-else-if="form.questionType === 'BLANK'" class="admin-question-field">
+        <label v-else-if="form.questionType === 'FILL_BLANK'" class="admin-question-field">
           <span>答案 <b>*</b></span>
           <el-input v-model="form.standardAnswer" placeholder="请输入正确答案" />
         </label>
@@ -290,7 +290,7 @@ import {
   type AdminQuestionLog
 } from '../../api/admin-question';
 
-type QuestionType = 'SINGLE' | 'MULTIPLE' | 'JUDGE' | 'BLANK' | 'ESSAY';
+type QuestionType = 'SINGLE' | 'MULTIPLE' | 'JUDGE' | 'FILL_BLANK' | 'SHORT_ANSWER';
 
 interface QuestionRow extends AdminQuestion {
   questionTypeNormalized: QuestionType;
@@ -313,15 +313,15 @@ const questionTypeOptions = [
   { value: 'SINGLE', label: '单选题' },
   { value: 'MULTIPLE', label: '多选题' },
   { value: 'JUDGE', label: '判断题' },
-  { value: 'BLANK', label: '填空题' },
-  { value: 'ESSAY', label: '简答题' }
+  { value: 'FILL_BLANK', label: '填空题' },
+  { value: 'SHORT_ANSWER', label: '简答题' }
 ];
 const typeLabels: Record<QuestionType, string> = {
   SINGLE: '单选',
   MULTIPLE: '多选',
   JUDGE: '判断',
-  BLANK: '填空',
-  ESSAY: '简答'
+  FILL_BLANK: '填空',
+  SHORT_ANSWER: '简答'
 };
 
 const pageSize = 10;
@@ -385,8 +385,8 @@ function normalizeType(value?: string): QuestionType {
   const key = String(value || '').toUpperCase();
   if (key.includes('MULTI')) return 'MULTIPLE';
   if (key.includes('JUDGE') || key.includes('TRUE')) return 'JUDGE';
-  if (key.includes('BLANK')) return 'BLANK';
-  if (key.includes('ESSAY') || key.includes('SHORT')) return 'ESSAY';
+  if (key.includes('BLANK')) return 'FILL_BLANK';
+  if (key.includes('ESSAY') || key.includes('SHORT')) return 'SHORT_ANSWER';
   return 'SINGLE';
 }
 
@@ -447,12 +447,23 @@ function toForm(row: QuestionRow): QuestionForm {
   return {
     questionType: normalized,
     title: row.title,
-    standardAnswer: row.standardAnswer || '',
+    standardAnswer: normalized === 'JUDGE' ? normalizeJudgeAnswer(row.standardAnswer) : row.standardAnswer || '',
     score: Number(row.score || 5),
     explanation: '',
     courseName: row.courseName,
     options: row.options?.map((item) => ({ optionKey: item.optionKey || 'A', optionText: item.optionText || '' })) || emptyForm(normalized).options
   };
+}
+
+function normalizeJudgeAnswer(answer?: string) {
+  const value = String(answer || '').toUpperCase();
+  if (value === '正确' || value === 'TRUE' || value === 'T' || value === '1') {
+    return 'TRUE';
+  }
+  if (value === '错误' || value === 'FALSE' || value === 'F' || value === '0') {
+    return 'FALSE';
+  }
+  return '';
 }
 
 function addOption() {
