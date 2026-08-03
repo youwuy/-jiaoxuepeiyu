@@ -506,16 +506,6 @@ const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
   cameras: []
 });
 
-const fallbackRows: SettingRow[] = [
-  { key: 'semester', name: '学年学期配置', value: '暂无学年学期配置', tone: 'blue', current: true },
-  { key: 'majors', name: '专业目录配置', value: '暂无专业配置', tone: 'amber' },
-  { key: 'classes', name: '班级配置', value: '暂无班级配置', tone: 'rose' },
-  { key: 'jobRoles', name: '岗位角色配置', value: '暂无岗位角色配置', tone: 'violet' },
-  { key: 'classrooms', name: '教室配置', value: '暂无教室配置', tone: 'violet' },
-  { key: 'grades', name: '成绩等级配置', value: '暂无成绩等级配置', tone: 'green', loggable: true },
-  { key: 'weights', name: '综合成绩权重配置', value: '暂无权重配置', tone: 'gray', loggable: true }
-];
-
 const settingRows = computed<SettingRow[]>(() => [
   buildSemesterRow(),
   buildMajorRow(),
@@ -585,53 +575,62 @@ function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: 
   return items.filter((item) => item.enabled !== false).map(pick).filter(Boolean);
 }
 
-function summarize(names: string[], unit: string, fallback: SettingRow) {
+function summarize(names: string[], unit: string) {
   if (names.length === 0) {
-    return fallback.value;
+    return '-';
   }
   const prefix = names.slice(0, 4).join('、');
   return names.length > 4 ? `${prefix} 等${names.length}个${unit}` : prefix;
 }
 
 function buildSemesterRow(): SettingRow {
-  const fallback = fallbackRows[0];
   const currentYear = academicYears.value.find((year) => year.semesters?.some((semester) => semester.current));
   const currentSemester = currentYear?.semesters.find((semester) => semester.current);
-  return { ...fallback, value: currentYear && currentSemester ? `${currentYear.yearName} ${currentSemester.semesterName}` : fallback.value };
+  return {
+    key: 'semester',
+    name: '学年学期配置',
+    value: currentYear && currentSemester ? `${currentYear.yearName} ${currentSemester.semesterName}` : '-',
+    tone: 'blue',
+    current: true
+  };
 }
 
 function buildMajorRow(): SettingRow {
-  const fallback = fallbackRows[1];
-  return { ...fallback, value: summarize(enabledNames(displayMajors.value, (item) => item.majorName), '专业', fallback) };
+  return { key: 'majors', name: '专业目录配置', value: summarize(enabledNames(displayMajors.value, (item) => item.majorName), '专业'), tone: 'amber' };
 }
 
 function buildClassRow(): SettingRow {
-  const fallback = fallbackRows[2];
-  return { ...fallback, value: summarize(enabledNames(displayClasses.value, (item) => item.className), '班级', fallback) };
+  return { key: 'classes', name: '班级配置', value: summarize(enabledNames(displayClasses.value, (item) => item.className), '班级'), tone: 'rose' };
 }
 
 function buildJobRoleRow(): SettingRow {
-  const fallback = fallbackRows[3];
-  return { ...fallback, value: summarize(enabledNames(displayJobRoles.value, (item) => item.roleName), '岗位角色', fallback) };
+  return { key: 'jobRoles', name: '岗位角色配置', value: summarize(enabledNames(displayJobRoles.value, (item) => item.roleName), '岗位角色'), tone: 'violet' };
 }
 
 function buildClassroomRow(): SettingRow {
-  const fallback = fallbackRows[4];
-  return { ...fallback, value: summarize(classrooms.value.map((item) => item.roomName), '实训室', fallback) };
+  return { key: 'classrooms', name: '教室配置', value: summarize(classrooms.value.map((item) => item.roomName), '实训室'), tone: 'violet' };
 }
 
 function buildGradeRow(): SettingRow {
-  const fallback = fallbackRows[5];
-  return { ...fallback, value: displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') };
+  return {
+    key: 'grades',
+    name: '成绩等级配置',
+    value: displayGradeRules.value.length ? displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') : '-',
+    tone: 'green',
+    loggable: true
+  };
 }
 
 function buildWeightRow(): SettingRow {
-  return scoreWeights.value.length
-    ? {
-        ...fallbackRows[6],
-        value: `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%`
-      }
-    : fallbackRows[6];
+  return {
+    key: 'weights',
+    name: '综合成绩权重配置',
+    value: scoreWeights.value.length
+      ? `课件学习进度得分*${weightForm.coursewareWeight}%+实训练习得分*${weightForm.trainingPracticeWeight}%+课程作业得分*${weightForm.assignmentWeight}%+考试得分*${weightForm.examWeight}%`
+      : '-',
+    tone: 'gray',
+    loggable: true
+  };
 }
 
 function buildClassroomCameras(): CameraRow[] {

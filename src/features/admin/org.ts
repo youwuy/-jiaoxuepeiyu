@@ -6,67 +6,7 @@ export interface AdminOrgRow extends AdminOrgNode {
   visible: boolean;
 }
 
-export const mockAdminOrgs: AdminOrgNode[] = [
-  {
-    orgId: 1,
-    parentId: null,
-    orgName: '交通与车辆工程学院',
-    sortOrder: 1,
-    enabled: true,
-    creatorName: '张明悦',
-    createdAt: '2024-01-15T09:00:00',
-    updaterName: '张明悦',
-    updatedAt: '2025-03-20T14:30:00',
-    children: [
-      {
-        orgId: 2,
-        parentId: 1,
-        orgName: '运输管理教研室',
-        sortOrder: 1,
-        enabled: true,
-        creatorName: '张明悦',
-        createdAt: '2024-02-20T10:15:00',
-        updaterName: '张明悦',
-        updatedAt: '2025-03-18T09:45:00',
-        children: [
-          {
-            orgId: 3,
-            parentId: 2,
-            orgName: '车辆管理',
-            sortOrder: 1,
-            enabled: true,
-            creatorName: '张明悦',
-            createdAt: '2024-03-10T08:30:00',
-            updaterName: '张明悦',
-            updatedAt: '2025-01-05T16:20:00'
-          },
-          {
-            orgId: 4,
-            parentId: 2,
-            orgName: '车辆运营',
-            sortOrder: 2,
-            enabled: true,
-            creatorName: '张明悦',
-            createdAt: '2024-03-15T11:00:00',
-            updaterName: '张明悦',
-            updatedAt: '2025-02-28T10:10:00'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    orgId: 5,
-    parentId: null,
-    orgName: '城轨学院',
-    sortOrder: 2,
-    enabled: false,
-    creatorName: '张明悦',
-    createdAt: '2024-04-01T09:00:00',
-    updaterName: '张明悦',
-    updatedAt: '2025-01-10T15:00:00'
-  }
-];
+export const mockAdminOrgs: AdminOrgNode[] = [];
 
 export function flattenAdminOrgTree(tree: AdminOrgNode[], expandedIds: Set<number>, keyword = ''): AdminOrgRow[] {
   const normalizedKeyword = keyword.replace(/\s+/g, '').toLowerCase();
