@@ -14619,6 +14619,11 @@ a {
   font-weight: 900;
 }
 
+.admin-question-option-row .el-radio__label,
+.admin-question-option-row .el-checkbox__label {
+  display: none;
+}
+
 .admin-question-option-row .el-input__wrapper {
   min-height: 38px;
   border-radius: 8px;
