@@ -19,7 +19,7 @@ public interface AdminAssignmentReviewMapper {
     @Select("<script>"
             + "SELECT t.id AS attempt_id, t.assignment_id, a.assignment_title, a.assignment_type, "
             + "a.course_id, c.course_name, t.student_id, u.real_name AS student_name, "
-            + "u.account_no AS student_no, u.class_id, cl.class_name, a.total_score, t.status, "
+            + "u.username AS student_no, u.class_id, cl.class_name, a.total_score, t.status, "
             + "t.score, t.review_comment, t.reviewer_id, reviewer.real_name AS reviewer_name, "
             + "t.submitted_at, t.reviewed_at "
             + "FROM assignment_attempt t "
@@ -34,7 +34,7 @@ public interface AdminAssignmentReviewMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='studentId != null'>AND t.student_id = #{studentId}</if> "
             + "<if test='status != null'>AND t.status = #{status}</if> "
-            + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.account_no LIKE #{keyword} OR a.assignment_title LIKE #{keyword})</if> "
+            + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword} OR a.assignment_title LIKE #{keyword})</if> "
             + "ORDER BY t.updated_at DESC, t.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     @Results(id = "attemptMap", value = {
@@ -71,13 +71,13 @@ public interface AdminAssignmentReviewMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='studentId != null'>AND t.student_id = #{studentId}</if> "
             + "<if test='status != null'>AND t.status = #{status}</if> "
-            + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.account_no LIKE #{keyword} OR a.assignment_title LIKE #{keyword})</if> "
+            + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword} OR a.assignment_title LIKE #{keyword})</if> "
             + "</script>")
     long countAttempts(AdminAssignmentAttemptQuery query);
 
     @Select("SELECT t.id AS attempt_id, t.assignment_id, a.assignment_title, a.assignment_type, "
             + "a.course_id, c.course_name, t.student_id, u.real_name AS student_name, "
-            + "u.account_no AS student_no, u.class_id, cl.class_name, a.total_score, t.status, "
+            + "u.username AS student_no, u.class_id, cl.class_name, a.total_score, t.status, "
             + "t.score, t.review_comment, t.reviewer_id, reviewer.real_name AS reviewer_name, "
             + "t.submitted_at, t.reviewed_at "
             + "FROM assignment_attempt t "
