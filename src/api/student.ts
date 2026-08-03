@@ -547,11 +547,11 @@ export async function updateStudentPassword(currentPassword: string, newPassword
 }
 
 export async function fetchStudentProfile(): Promise<StudentProfileResult> {
-  const [profile, scores, messages, archives] = await Promise.all([
-    requestJson<BackendProfile>('/student/profile', { fallbackLabel: '个人资料' }),
-    requestJson<BackendSemesterScore[]>('/student/scores/semester', { fallbackLabel: '成绩统计' }),
-    requestJson<BackendMessageSummary>('/student/messages', { fallbackLabel: '消息通知' }),
-    requestJson<BackendArchive[]>('/student/archives', { fallbackLabel: '实训档案' })
+  const profile = await requestJson<BackendProfile>('/student/profile', { fallbackLabel: '个人资料' });
+  const [scores, messages, archives] = await Promise.all([
+    optionalStudentRequest<BackendSemesterScore[]>('/student/scores/semester', []),
+    optionalStudentRequest<BackendMessageSummary>('/student/messages', { messages: [] }),
+    optionalStudentRequest<BackendArchive[]>('/student/archives', [])
   ]);
 
   return {
@@ -567,4 +567,12 @@ export async function fetchStudentProfile(): Promise<StudentProfileResult> {
     messages: (messages.messages ?? []).map(mapMessage),
     archives: archives.map(mapArchive)
   };
+}
+
+async function optionalStudentRequest<T>(path: string, fallback: T): Promise<T> {
+  try {
+    return await requestJson<T>(path);
+  } catch {
+    return fallback;
+  }
 }

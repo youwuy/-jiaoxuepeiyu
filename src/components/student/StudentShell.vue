@@ -18,7 +18,7 @@
         </el-badge>
         <el-dropdown>
           <button class="user-trigger">
-            张林林
+            {{ displayName }}
             <el-icon><ArrowDown /></el-icon>
           </button>
           <template #dropdown>
@@ -37,7 +37,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { ArrowDown, Bell, Collection, DataAnalysis, Files, Monitor } from '@element-plus/icons-vue';
+import { getAuthUser } from '../../api/http';
+
+interface StoredStudentUser {
+  realName?: string;
+  username?: string;
+}
 
 defineProps<{
   eyebrow: string;
@@ -50,4 +57,9 @@ const navItems = [
   { label: '资源学习', path: '/student/resources', icon: Files },
   { label: '个人中心', path: '/student/profile', icon: DataAnalysis }
 ];
+
+const displayName = computed(() => {
+  const user = getAuthUser<StoredStudentUser>('student');
+  return user?.realName || user?.username || '学员';
+});
 </script>

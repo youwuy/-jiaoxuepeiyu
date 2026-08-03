@@ -75,9 +75,7 @@ export function hasAuthSession(portal: AuthPortal): boolean {
 }
 
 function getStoredUserId(portal?: AuthPortal): string {
-  const storedUser = portal
-    ? globalThis.localStorage?.getItem(authStorageKeys[portal].user) || globalThis.localStorage?.getItem(legacyAuthUserKey)
-    : globalThis.localStorage?.getItem(legacyAuthUserKey);
+  const storedUser = getStoredUser(portal);
 
   if (!storedUser) {
     return '';
@@ -88,6 +86,25 @@ function getStoredUserId(portal?: AuthPortal): string {
     return String(user.id ?? user.userId ?? user.studentId ?? '');
   } catch {
     return '';
+  }
+}
+
+function getStoredUser(portal?: AuthPortal): string {
+  return portal
+    ? globalThis.localStorage?.getItem(authStorageKeys[portal].user) || globalThis.localStorage?.getItem(legacyAuthUserKey) || ''
+    : globalThis.localStorage?.getItem(legacyAuthUserKey) || '';
+}
+
+export function getAuthUser<T = Record<string, unknown>>(portal?: AuthPortal): T | undefined {
+  const storedUser = getStoredUser(portal);
+  if (!storedUser) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(storedUser) as T;
+  } catch {
+    return undefined;
   }
 }
 
