@@ -173,7 +173,6 @@
           <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
           <el-breadcrumb-item>管理试题</el-breadcrumb-item>
         </el-breadcrumb>
-        <div class="admin-theory-paper-manage-user"><span>管</span><b>管理员</b></div>
       </header>
       <main class="admin-theory-paper-manage-main">
         <section class="admin-theory-paper-manage-filter">
@@ -219,6 +218,7 @@
                 <th>题干</th>
                 <th class="course-col">所属课程</th>
                 <th class="status-col">启用状态</th>
+                <th class="action-col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -229,6 +229,10 @@
                 <td>{{ item.title }}</td>
                 <td class="course-col">{{ item.courseName }}</td>
                 <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+                <td class="action-col">
+                  <el-button v-if="isQuestionInPaper(item.id)" text class="warn" @click="removeQuestion(item.id)">删除</el-button>
+                  <el-button v-else text @click="addQuestion(item)">加入</el-button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -254,7 +258,6 @@
           <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
           <el-breadcrumb-item>管理试题</el-breadcrumb-item>
         </el-breadcrumb>
-        <div class="admin-theory-paper-manage-user"><span>管</span><b>管理员</b></div>
       </header>
       <main class="admin-theory-paper-manage-main">
         <section class="admin-theory-paper-manage-filter">
@@ -300,6 +303,7 @@
                 <th>题干</th>
                 <th class="course-col">所属课程</th>
                 <th class="status-col">启用状态</th>
+                <th class="action-col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -310,6 +314,10 @@
                 <td>{{ item.title }}</td>
                 <td class="course-col">{{ item.courseName }}</td>
                 <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+                <td class="action-col">
+                  <el-button v-if="isQuestionInPaper(item.id)" text class="warn" @click="removeQuestion(item.id)">删除</el-button>
+                  <el-button v-else text @click="addQuestion(item)">加入</el-button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -733,6 +741,7 @@ function createDefaultRules() {
   ];
 }
 function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '', totalScore: 100, passScore: 60, rules: createDefaultRules() }); }
+function isQuestionInPaper(id: number) { return selectedQuestions.value.some((item) => item.id === id); }
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
 function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }

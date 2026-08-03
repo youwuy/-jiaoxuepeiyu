@@ -14162,29 +14162,6 @@ a {
   background: #f8fafc;
 }
 
-.admin-theory-paper-manage-user {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.admin-theory-paper-manage-user span {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 20px;
-  background: #eef2ff;
-  color: #4f46e5;
-  font-weight: 800;
-}
-
-.admin-theory-paper-manage-user b {
-  font-weight: 400;
-}
-
 .admin-theory-paper-manage-main {
   display: grid;
   gap: 20px;
@@ -14310,6 +14287,15 @@ a {
 .admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .status-col {
   width: 120px;
   text-align: center;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .action-col {
+  width: 96px;
+  text-align: center;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .el-button.warn {
+  color: #ef4444;
 }
 
 .admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-type-pill {
