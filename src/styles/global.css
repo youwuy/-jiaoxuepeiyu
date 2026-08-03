@@ -8197,12 +8197,16 @@ a {
   gap: 20px;
 }
 
+.admin-settings-grade-table {
+  table-layout: fixed;
+}
+
 .admin-settings-grade-name-input.el-input {
-  width: 112px;
+  width: 100%;
 }
 
 .admin-settings-grade-score-input.el-input {
-  width: 168px;
+  width: 100%;
 }
 
 .admin-settings-grade-score-input input::-webkit-outer-spin-button,
@@ -8217,7 +8221,7 @@ a {
 
 .admin-settings-grade-table th:nth-child(1),
 .admin-settings-grade-table td:nth-child(1) {
-  width: 150px;
+  width: 124px;
 }
 
 .admin-settings-grade-table th:nth-child(2),
@@ -8229,7 +8233,8 @@ a {
 
 .admin-settings-grade-table th:nth-child(4),
 .admin-settings-grade-table td:nth-child(4) {
-  width: 96px;
+  width: 70px;
+  text-align: center;
 }
 
 .admin-settings-grade-delete.el-button {
