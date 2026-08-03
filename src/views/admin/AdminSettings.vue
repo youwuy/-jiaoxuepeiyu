@@ -563,7 +563,7 @@ const configTitle = computed(() => {
   return titles[activeConfig.value];
 });
 
-const configWidth = computed(() => (activeConfig.value === 'classrooms' ? '1080px' : activeConfig.value === 'weights' ? '520px' : '560px'));
+const configWidth = computed(() => (activeConfig.value === 'classrooms' ? '1080px' : activeConfig.value === 'grades' ? '680px' : activeConfig.value === 'weights' ? '520px' : '560px'));
 const addTitle = computed(() => ({
   year: '添加学年',
   major: '添加专业',
@@ -910,16 +910,22 @@ function compareGradeRows<T extends { minScore: number; maxScore: number; sortOr
 }
 
 function resetGradeDraftRows() {
-  gradeDraftRows.value = sortedGradeRules.value.map((rule) => ({
-    id: rule.ruleId,
-    ruleId: rule.ruleId,
-    gradeName: rule.gradeName,
-    minScore: rule.minScore,
-    maxScore: rule.maxScore
-  }));
+  gradeDraftRows.value = sortedGradeRules.value
+    .filter((rule) => rule.gradeName.trim())
+    .map((rule) => ({
+      id: rule.ruleId,
+      ruleId: rule.ruleId,
+      gradeName: rule.gradeName,
+      minScore: rule.minScore,
+      maxScore: rule.maxScore
+    }));
 }
 
 function addGradeDraft() {
+  if (gradeDraftRows.value.some((row) => !row.gradeName.trim())) {
+    ElMessage.warning('请先填写当前新增的成绩等级');
+    return;
+  }
   const sortedRows = [...gradeDraftRows.value].sort(compareGradeRows);
   const lowestRule = sortedRows[sortedRows.length - 1];
   gradeDraftRows.value.push({
