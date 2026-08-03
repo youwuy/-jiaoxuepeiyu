@@ -14038,14 +14038,25 @@ a {
 }
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-create-basic {
-  grid-template-columns: 400px minmax(320px, 1fr);
-  gap: 24px;
+  grid-template-columns: 400px;
+  gap: 20px;
   align-items: start;
-  max-width: 880px;
+  max-width: 400px;
 }
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field {
   gap: 8px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field > span b {
+  line-height: 1;
 }
 
 .admin-theory-paper-builder-card.is-create-card .el-input__wrapper {
@@ -14055,7 +14066,7 @@ a {
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field.is-mode .el-radio-group {
   gap: 24px;
-  min-height: 40px;
+  min-height: 24px;
 }
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field.is-mode .el-radio {
