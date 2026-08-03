@@ -124,7 +124,7 @@
             <tbody>
               <tr v-for="rule in builder.rules" :key="rule.type">
                 <td><el-checkbox v-model="rule.selected">{{ rule.type }}</el-checkbox></td>
-                <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" controls-position="right" /></td>
+                <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" :controls="false" /></td>
               </tr>
             </tbody>
           </table>
@@ -137,25 +137,33 @@
       </main>
     </section>
 
-    <section v-else-if="viewMode === 'manual'" class="admin-theory-paper-builder-page">
-      <BuilderHeader title="新增试卷" subtitle="手动组卷" @back="backToList" />
-      <section class="admin-theory-paper-builder-card">
-        <header><strong>基础信息</strong></header>
-        <div class="admin-theory-paper-create-basic">
-          <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
-          <label class="admin-theory-paper-field is-mode">
-            <span>组卷方式 <b>*</b></span>
-            <el-radio-group :model-value="viewMode" @change="switchCreateMode">
-              <el-radio label="auto">自动组卷</el-radio>
-              <el-radio label="manual">手动组卷</el-radio>
-            </el-radio-group>
-          </label>
-        </div>
-      </section>
-      <footer class="admin-theory-paper-builder-footer is-center">
-        <button type="button" class="ghost" @click="backToList">取消</button>
-        <button type="button" class="primary" @click="viewMode = 'manual-select'">下一步</button>
-      </footer>
+    <section v-else-if="viewMode === 'manual'" class="admin-theory-paper-builder-page is-create">
+      <header class="admin-theory-paper-create-nav">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>试题管理</el-breadcrumb-item>
+          <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
+          <el-breadcrumb-item>新增试卷</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
+      <main class="admin-theory-paper-create-main">
+        <section class="admin-theory-paper-builder-card is-create-card">
+          <header><strong>基本信息</strong></header>
+          <div class="admin-theory-paper-create-basic">
+            <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
+            <label class="admin-theory-paper-field is-mode">
+              <span>组卷方式 <b>*</b></span>
+              <el-radio-group :model-value="viewMode" @change="switchCreateMode">
+                <el-radio label="auto">自动组卷</el-radio>
+                <el-radio label="manual">手动组卷</el-radio>
+              </el-radio-group>
+            </label>
+          </div>
+        </section>
+        <footer class="admin-theory-paper-builder-footer is-center is-create-actions">
+          <button type="button" class="ghost" @click="backToList">取消</button>
+          <button type="button" class="primary" @click="viewMode = 'manual-select'">下一步</button>
+        </footer>
+      </main>
     </section>
 
     <section v-else-if="viewMode === 'manual-select'" class="admin-theory-paper-builder-page">

@@ -14071,7 +14071,7 @@ a {
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table {
   overflow: hidden;
-  max-width: 400px;
+  width: 100%;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
@@ -14091,7 +14091,7 @@ a {
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto th:first-child,
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto td:first-child {
-  width: 200px;
+  width: 160px;
 }
 
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto .el-input-number {
@@ -14112,9 +14112,9 @@ a {
 .admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-summary {
   justify-content: flex-end;
   gap: 16px;
-  max-width: 400px;
+  width: 100%;
   margin-top: 0;
-  padding: 8px 0 0;
+  padding: 14px 0 0;
   border-top: 0;
   color: #64748b;
   font-size: 13px;
