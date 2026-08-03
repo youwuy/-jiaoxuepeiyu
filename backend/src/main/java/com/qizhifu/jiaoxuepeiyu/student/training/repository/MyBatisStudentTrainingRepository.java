@@ -29,6 +29,11 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     }
 
     @Override
+    public Optional<Long> findLatestAttemptId(Long studentId, Long trainingId) {
+        return Optional.ofNullable(mapper.findLatestAttemptId(studentId, trainingId));
+    }
+
+    @Override
     public TrainingAppInstallation findAppInstallation(Long studentId) {
         TrainingAppInstallation installation = mapper.findAppInstallation(studentId);
         if (installation == null) {

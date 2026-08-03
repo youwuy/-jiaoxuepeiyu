@@ -20,7 +20,9 @@ public interface StudentTrainingMapper {
             + "SELECT t.id AS training_id, t.training_name, t.training_mode, "
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
-            + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed "
+            + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
+            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id "
+            + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1) AS latest_attempt_id "
             + "FROM training_course t "
             + "JOIN training_participant p ON p.training_id = t.id "
             + "LEFT JOIN training_app_installation ai ON ai.student_id = #{studentId} "
@@ -36,7 +38,9 @@ public interface StudentTrainingMapper {
     @Select("SELECT t.id AS training_id, t.training_name, t.training_mode, "
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
-            + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed "
+            + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
+            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id "
+            + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1) AS latest_attempt_id "
             + "FROM training_course t "
             + "JOIN training_participant p ON p.training_id = t.id "
             + "LEFT JOIN training_app_installation ai ON ai.student_id = #{studentId} "
@@ -44,6 +48,11 @@ public interface StudentTrainingMapper {
             + "AND t.publish_status = 'PUBLISHED' LIMIT 1")
     StudentTrainingRecord findTraining(@Param("studentId") Long studentId,
                                        @Param("trainingId") Long trainingId);
+
+    @Select("SELECT ta.id FROM training_attempt ta "
+            + "WHERE ta.student_id = #{studentId} AND ta.training_id = #{trainingId} "
+            + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1")
+    Long findLatestAttemptId(@Param("studentId") Long studentId, @Param("trainingId") Long trainingId);
 
     @Select("SELECT CASE WHEN installed = 1 THEN TRUE ELSE FALSE END AS installed, "
             + "app_version AS version, download_url, install_message AS message "

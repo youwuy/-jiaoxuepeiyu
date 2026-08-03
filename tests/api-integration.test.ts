@@ -76,6 +76,7 @@ import {
   fetchStudentArchiveDetail,
   fetchStudentCourses,
   fetchStudentProfile,
+  fetchStudentTrainingScoreSheet,
   fetchStudentResources,
   fetchStudentTrainings,
   fetchTrainingAppInstallation,
@@ -838,7 +839,8 @@ describe('api http client', () => {
             openEndTime: '2026-07-31T23:59:59',
             teamSize: 4,
             roleCount: 3,
-            activeRoomId: 88
+            activeRoomId: 88,
+            latestAttemptId: 77
           }
         ]
       })
@@ -858,6 +860,30 @@ describe('api http client', () => {
       '/api/student/trainings?mode=team&keyword=%E7%AB%99%E5%8F%B0%E9%97%A8',
       expect.any(Object)
     );
+  });
+
+  it('uses the documented training score sheet endpoint for completed trainings', async () => {
+    const fetchMock = vi.fn(() =>
+      mockJsonResponse({
+        data: {
+          archiveId: 77,
+          trainingName: '站台门故障处置',
+          studentName: '占同学',
+          className: '城轨运营2401班',
+          submittedAt: '2026-07-30T10:30:22',
+          personalScore: 91,
+          steps: [{ stepId: 1, stepName: '上报故障', standardOperation: '立即上报', actualOperation: '立即上报', score: 10 }]
+        }
+      })
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchStudentTrainingScoreSheet(77)).resolves.toMatchObject({
+      archiveId: 77,
+      trainingName: '站台门故障处置',
+      steps: [{ stepName: '上报故障' }]
+    });
+    expect(fetchMock).toHaveBeenCalledWith('/api/student/training-attempts/77/score-sheet', expect.any(Object));
   });
 
   it('uses the documented public resource endpoint and maps file metadata', async () => {

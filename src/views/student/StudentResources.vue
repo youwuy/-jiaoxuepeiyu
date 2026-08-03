@@ -196,7 +196,7 @@ function previewResource(resource: StudentResource) {
     return;
   }
 
-  ElMessage.info(`正在打开资源：${resource.title}`);
+  ElMessage.warning(`当前资源未配置预览链接：${resource.title}`);
 }
 
 watch([keyword, category, type], () => {

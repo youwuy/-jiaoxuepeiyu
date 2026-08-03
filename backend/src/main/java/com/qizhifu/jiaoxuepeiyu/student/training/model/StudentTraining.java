@@ -15,6 +15,7 @@ public class StudentTraining {
     private boolean appRequired;
     private boolean appInstalled;
     private Long activeRoomId;
+    private Long latestAttemptId;
 
     public Long getTrainingId() {
         return trainingId;
@@ -102,5 +103,13 @@ public class StudentTraining {
 
     public void setActiveRoomId(Long activeRoomId) {
         this.activeRoomId = activeRoomId;
+    }
+
+    public Long getLatestAttemptId() {
+        return latestAttemptId;
+    }
+
+    public void setLatestAttemptId(Long latestAttemptId) {
+        this.latestAttemptId = latestAttemptId;
     }
 }

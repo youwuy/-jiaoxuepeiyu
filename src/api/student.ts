@@ -72,6 +72,7 @@ interface BackendTraining {
   appRequired?: boolean;
   appInstalled?: boolean;
   activeRoomId?: number;
+  latestAttemptId?: number;
 }
 
 export interface TrainingAppInstallation {
@@ -320,6 +321,7 @@ function mapTraining(item: BackendTraining): StudentTraining {
     countdown: status === 'notStarted' ? `${formatDate(item.openEndTime)} 开放` : undefined,
     attempts: item.appInstalled ? 1 : 0,
     activeRoomId: item.activeRoomId,
+    latestAttemptId: item.latestAttemptId,
     roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined,
     steps: [
       {
@@ -330,6 +332,12 @@ function mapTraining(item: BackendTraining): StudentTraining {
       }
     ]
   };
+}
+
+export async function fetchStudentTrainingScoreSheet(attemptId: number) {
+  return requestJson(`/student/training-attempts/${attemptId}/score-sheet`, {
+    fallbackLabel: '实训成绩单'
+  });
 }
 
 function mapResource(item: BackendResource): StudentResource {

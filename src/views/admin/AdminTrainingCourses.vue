@@ -429,6 +429,8 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, Close, Document, FolderOpened, Monitor, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { fetchAdminPapers } from '../../api/admin-paper';
+import { fetchAdminResources } from '../../api/admin-resource';
 import {
   cancelPublishAdminTraining,
   createAdminTraining,
@@ -446,6 +448,8 @@ import {
   type AdminTrainingStatistics,
   type AdminTrainingStudentState
 } from '../../api/admin-training';
+import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses, fetchAdminMajors } from '../../api/admin-settings';
+import { fetchAdminTeachers } from '../../api/admin-course';
 
 type CourseStatus = '已发布' | '未发布';
 type SelectorKind = 'topic' | 'resource' | 'paper' | 'class' | 'teacher' | 'room';
@@ -522,8 +526,11 @@ const form = reactive({
   type: '考试' as '考试' | '练习',
   mode: '协同实训' as '单人实训' | '协同实训',
   semester: '2024-2025学年 第二学期',
+  majorId: undefined as number | undefined,
   range: [] as string[],
   description: '',
+  teacherIds: [] as number[],
+  classIds: [] as number[],
   roles: [
     { name: '值班员', capacity: 1, duty: '负责接收调度指令并完成票据确认' },
     { name: '信号员', capacity: 1, duty: '负责设备状态确认和联锁操作' }
@@ -556,41 +563,20 @@ const topicOptions: SelectableItem[] = [
   { id: 4, name: '调度命令闭环演练', meta: '调度 / 30 分钟 / 20 分', category: '调度', duration: 30, score: 20 }
 ];
 
-const resourceOptions: SelectableItem[] = [
-  { id: 11, name: '信号系统实训指导书', meta: '文档 / 12.6MB', type: '文档', size: '12.6MB' },
-  { id: 12, name: '道岔设备三维演示课件', meta: '视频 / 86.2MB', type: '视频', size: '86.2MB' },
-  { id: 13, name: '站务应急处置评分表', meta: '表格 / 2.1MB', type: '表格', size: '2.1MB' }
-];
-
-const paperOptions: SelectableItem[] = [
-  { id: 21, name: '信号基础理论试卷 A', meta: '20 题 / 100 分' },
-  { id: 22, name: '站务应急理论测评', meta: '15 题 / 100 分' }
-];
-
-const classOptions: SelectableItem[] = [
+const classOptions = ref<SelectableItem[]>([
   { id: 31, name: '城轨信号2401班', meta: '48 人 / 交通运输学院' },
   { id: 32, name: '城轨车辆2401班', meta: '42 人 / 车辆工程学院' },
   { id: 33, name: '张明亮、孙志强、王欣欣', meta: '指定学生 / 3 人' }
-];
-
-const teacherOptions: SelectableItem[] = [
-  { id: 41, name: '李明峰', meta: '实训教师 / 交通运输学院' },
-  { id: 42, name: '王志强', meta: '监考教师 / 交通运输学院' },
-  { id: 43, name: '陈志远', meta: '实训教师 / 调度教研室' }
-];
-
-const roomOptions: SelectableItem[] = [
-  { id: 51, name: '实训室A-301', meta: '48 座 / 摄像头 4 路 / 在线' },
-  { id: 52, name: '驾驶模拟室B-101', meta: '36 座 / 摄像头 3 路 / 在线' },
-  { id: 53, name: '调度实训室D-401', meta: '40 座 / 摄像头 4 路 / 在线' }
-];
+]);
+const majorOptions = ref<Array<{ majorId: number; majorName: string; enabled?: boolean }>>([]);
+const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string; current?: boolean }> }>>([]);
 
 const selectedTopicIds = ref([1, 2]);
-const selectedResourceIds = ref([11, 12]);
-const selectedPaperId = ref(21);
+const selectedResourceIds = ref<number[]>([]);
+const selectedPaperId = ref<number>(0);
 const selectedClassIds = ref([31]);
-const selectedTeacherIds = ref([41, 42]);
-const selectedRoomId = ref(51);
+const selectedTeacherIds = ref<number[]>([]);
+const selectedRoomId = ref<number>(0);
 
 const cameras = ref<Array<{ name: string; location: string; online: boolean; streamUrl?: string }>>([]);
 
@@ -606,13 +592,17 @@ const markingRows = [
 
 const statsSummary = ref<AdminTrainingStatistics>({});
 const statsRows = ref<Array<{ className: string; total: number; finished: number; avg: string; passRate: string }>>([]);
+const resourceOptions = ref<SelectableItem[]>([]);
+const paperOptions = ref<SelectableItem[]>([]);
+const teacherOptions = ref<SelectableItem[]>([]);
+const roomOptions = ref<SelectableItem[]>([]);
 
 const selectedTopics = computed(() => topicOptions.filter((item) => selectedTopicIds.value.includes(item.id)));
-const selectedResources = computed(() => resourceOptions.filter((item) => selectedResourceIds.value.includes(item.id)));
-const selectedPaper = computed(() => paperOptions.find((item) => item.id === selectedPaperId.value));
-const selectedClasses = computed(() => classOptions.filter((item) => selectedClassIds.value.includes(item.id)));
-const selectedTeachers = computed(() => teacherOptions.filter((item) => selectedTeacherIds.value.includes(item.id)));
-const selectedRoom = computed(() => roomOptions.find((item) => item.id === selectedRoomId.value));
+const selectedResources = computed(() => resourceOptions.value.filter((item) => selectedResourceIds.value.includes(item.id)));
+const selectedPaper = computed(() => paperOptions.value.find((item) => item.id === selectedPaperId.value));
+const selectedClasses = computed(() => classOptions.value.filter((item) => selectedClassIds.value.includes(item.id)));
+const selectedTeachers = computed(() => teacherOptions.value.filter((item) => selectedTeacherIds.value.includes(item.id)));
+const selectedRoom = computed(() => roomOptions.value.find((item) => item.id === selectedRoomId.value));
 const totalScore = computed(() => selectedTopics.value.reduce((sum, item) => sum + (item.score ?? 0), 0));
 const formatRange = computed(() => form.range.length === 2 ? `${form.range[0]}\n至 ${form.range[1]}` : '未选择时间');
 
@@ -628,11 +618,11 @@ const selectorTitle = computed(() => ({
 const selectorItems = computed(() => {
   const source = {
     topic: topicOptions,
-    resource: resourceOptions,
-    paper: paperOptions,
-    class: classOptions,
-    teacher: teacherOptions,
-    room: roomOptions
+    resource: resourceOptions.value,
+    paper: paperOptions.value,
+    class: classOptions.value,
+    teacher: teacherOptions.value,
+    room: roomOptions.value
   }[selectorKind.value];
 
   return source.filter((item) => {
@@ -665,11 +655,11 @@ function resetForm() {
   form.range = [];
   form.description = '';
   selectedTopicIds.value = [1, 2];
-  selectedResourceIds.value = [11, 12];
-  selectedPaperId.value = 21;
-  selectedClassIds.value = [31];
-  selectedTeacherIds.value = [41, 42];
-  selectedRoomId.value = 51;
+  selectedResourceIds.value = resourceOptions.value.slice(0, 2).map((item) => item.id);
+  selectedPaperId.value = paperOptions.value[0]?.id || 0;
+  selectedClassIds.value = classOptions.value[0] ? [classOptions.value[0].id] : [];
+  selectedTeacherIds.value = teacherOptions.value.slice(0, 2).map((item) => item.id);
+  selectedRoomId.value = roomOptions.value[0]?.id || 0;
   activeStep.value = 'base';
 }
 
@@ -936,6 +926,64 @@ async function loadCourses() {
   }
 }
 
+async function loadOptions() {
+  try {
+    const [years, majors, classes, teachers, papers, resources, classrooms] = await Promise.all([
+      fetchAdminAcademicYears(),
+      fetchAdminMajors(),
+      fetchAdminSettingsClasses(),
+      fetchAdminTeachers(),
+      fetchAdminPapers({ page: 1, pageSize: 200 }),
+      fetchAdminResources({ page: 1, pageSize: 200 }),
+      fetchAdminClassrooms()
+    ]);
+    academicYears.value = years;
+    majorOptions.value = majors.filter((item) => item.enabled !== false);
+    classOptions.value = classes.filter((item) => item.enabled !== false).map((item) => ({
+      id: item.classId,
+      name: item.className,
+      meta: item.majorName ? `${item.majorName}` : '班级',
+      category: item.majorName || 'class'
+    }));
+    teacherOptions.value = teachers.filter((item) => item.enabled !== false).map((item) => ({
+      id: item.userId,
+      name: item.realName || item.accountNo || `教师${item.userId}`,
+      meta: item.accountNo ? item.accountNo : '教师',
+      category: 'teacher'
+    }));
+    paperOptions.value = (papers.records || []).map((item) => ({
+      id: item.paperId,
+      name: item.paperName,
+      meta: `${item.questionCount || 0} 题 / ${item.totalScore || 0} 分`,
+      category: item.publishStatus
+    }));
+    resourceOptions.value = (resources.records || []).map((item) => ({
+      id: item.resourceId,
+      name: item.resourceName,
+      meta: `${item.resourceType || '资源'} / ${item.fileSize ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB` : '-'}`,
+      category: item.resourceType,
+      type: item.resourceType,
+      size: item.fileSize ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB` : '-'
+    }));
+    roomOptions.value = classrooms.map((item) => ({
+      id: item.classroomId,
+      name: item.roomName,
+      meta: `${item.cameraCount} 路摄像头`,
+      category: 'room'
+    }));
+    form.semester = semesters[0];
+    form.majorId = majorOptions.value[0]?.majorId;
+    form.teacherIds = teacherOptions.value.slice(0, 2).map((item) => item.id);
+    form.classIds = classOptions.value[0]?.id ? [classOptions.value[0].id] : [];
+    selectedResourceIds.value = resourceOptions.value.slice(0, 2).map((item) => item.id);
+    selectedPaperId.value = paperOptions.value[0]?.id || 0;
+    selectedTeacherIds.value = teacherOptions.value.slice(0, 2).map((item) => item.id);
+    selectedRoomId.value = roomOptions.value[0]?.id || 0;
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '课程基础数据加载失败');
+  }
+}
+
 function mapCourse(item: AdminTraining): CourseRow {
   const type = apiTrainingTypeToText(item.trainingType);
   return {
@@ -1061,6 +1109,7 @@ function passRate(stats: AdminTrainingStatistics) {
 }
 
 onMounted(() => {
+  void loadOptions();
   void loadCourses();
 });
 </script>

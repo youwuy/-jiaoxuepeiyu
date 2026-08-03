@@ -13,6 +13,7 @@ public class StudentTrainingRecord {
     private int roleCount;
     private boolean appRequired;
     private boolean appInstalled;
+    private Long latestAttemptId;
 
     public Long getTrainingId() {
         return trainingId;
@@ -84,5 +85,13 @@ public class StudentTrainingRecord {
 
     public void setAppInstalled(boolean appInstalled) {
         this.appInstalled = appInstalled;
+    }
+
+    public Long getLatestAttemptId() {
+        return latestAttemptId;
+    }
+
+    public void setLatestAttemptId(Long latestAttemptId) {
+        this.latestAttemptId = latestAttemptId;
     }
 }

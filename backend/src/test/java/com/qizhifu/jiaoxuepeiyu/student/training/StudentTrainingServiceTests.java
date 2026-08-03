@@ -159,6 +159,11 @@ class StudentTrainingServiceTests {
         }
 
         @Override
+        public Optional<Long> findLatestAttemptId(Long studentId, Long trainingId) {
+            return Optional.of(88L);
+        }
+
+        @Override
         public TrainingAppInstallation findAppInstallation(Long studentId) {
             TrainingAppInstallation installation = new TrainingAppInstallation();
             installation.setInstalled(true);

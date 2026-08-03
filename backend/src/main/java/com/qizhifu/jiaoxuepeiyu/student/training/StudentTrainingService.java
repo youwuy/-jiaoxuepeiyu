@@ -48,6 +48,7 @@ public class StudentTrainingService {
             training.setAppRequired(record.isAppRequired());
             training.setAppInstalled(record.isAppInstalled());
             training.setActiveRoomId(activeRoomId);
+            training.setLatestAttemptId(record.getLatestAttemptId());
             training.setStatus(status(record, now));
             trainings.add(training);
         }

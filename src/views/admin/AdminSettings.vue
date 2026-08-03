@@ -839,7 +839,7 @@ function editRoom(camera: CameraRow) {
 }
 
 function editGrade(rule: AdminScoreGradeRule) {
-  ElMessage.info(`编辑${rule.gradeName}等级`);
+  ElMessage.warning(`当前暂无${rule.gradeName}等级编辑接口`);
 }
 
 function newCamera(id: number): CameraRow {

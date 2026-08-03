@@ -297,7 +297,7 @@ function goBack() {
 }
 
 function showComingSoon(label: string) {
-  ElMessage.info(`${label}功能待接入资源/作业选择接口`);
+  ElMessage.warning(`${label}暂未接入资源/作业选择接口`);
 }
 
 function formatLocalDateTime(value?: Date) {

@@ -12,6 +12,8 @@ public interface StudentTrainingRepository {
 
     Optional<StudentTrainingRecord> findTraining(Long studentId, Long trainingId);
 
+    Optional<Long> findLatestAttemptId(Long studentId, Long trainingId);
+
     TrainingAppInstallation findAppInstallation(Long studentId);
 
     Optional<Long> findActiveRoomId(Long studentId);

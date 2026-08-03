@@ -25,6 +25,7 @@ export interface StudentTraining {
   attempts?: number;
   bestScore?: number;
   activeRoomId?: number;
+  latestAttemptId?: number;
   roles?: string[];
   steps?: StudentTrainingStep[];
 }

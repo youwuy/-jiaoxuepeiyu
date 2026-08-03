@@ -85,16 +85,47 @@
         </div>
       </article>
     </section>
+
+    <el-drawer v-model="scoreSheetVisible" direction="rtl" size="780px" :with-header="false" class="student-score-drawer">
+      <div class="student-score-head">
+        <div>
+          <span>成绩单</span>
+          <h3>{{ selectedScoreSheet?.trainingName || selectedTraining?.title || '成绩单' }}</h3>
+        </div>
+        <el-button text circle :icon="Close" @click="scoreSheetVisible = false" />
+      </div>
+
+      <template v-if="selectedScoreSheet">
+        <div class="student-score-meta">
+          <article><span>学生</span><strong>{{ selectedScoreSheet.studentName || '-' }}</strong></article>
+          <article><span>班级</span><strong>{{ selectedScoreSheet.className || '-' }}</strong></article>
+          <article><span>得分</span><strong>{{ selectedScoreSheet.personalScore ?? selectedScoreSheet.teamScore ?? 0 }}</strong></article>
+          <article><span>提交时间</span><strong>{{ selectedScoreSheet.submittedAt || '-' }}</strong></article>
+        </div>
+
+        <div v-if="selectedScoreSheet.recordingUrl" class="student-score-recording">
+          <el-button type="primary" @click="openScoreRecording">查看录屏</el-button>
+        </div>
+
+        <el-table :data="selectedScoreSheet.steps || []" class="student-score-table">
+          <el-table-column prop="name" label="步骤" min-width="180" />
+          <el-table-column prop="expected" label="标准操作" min-width="240" />
+          <el-table-column prop="actual" label="实际操作" min-width="240" />
+          <el-table-column prop="score" label="得分" width="100" />
+        </el-table>
+      </template>
+    </el-drawer>
   </StudentShell>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowDown, ArrowRight, Calendar, Clock, Document, Right, Search, Trophy, User } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowRight, Calendar, Clock, Close, Document, Right, Search, Trophy, User } from '@element-plus/icons-vue';
 import {
   createTrainingRoom,
   fetchStudentTrainings,
+  fetchStudentTrainingScoreSheet,
   fetchTrainingAppInstallation,
   fetchTrainingRoom,
   startTrainingRoom
@@ -115,6 +146,9 @@ const loading = ref(false);
 const actionLoadingIds = ref<number[]>([]);
 const trainings = ref<StudentTraining[]>([]);
 const expandedIds = ref<number[]>([]);
+const scoreSheetVisible = ref(false);
+const selectedTraining = ref<StudentTraining>();
+const selectedScoreSheet = ref<any>();
 let trainingRequestId = 0;
 const modeOptions = [
   { label: '全部', value: 'all' },
@@ -171,6 +205,12 @@ function toggleTraining(id: number) {
     : [...expandedIds.value, id];
 }
 
+function openScoreRecording() {
+  if (selectedScoreSheet.value?.recordingUrl) {
+    window.open(selectedScoreSheet.value.recordingUrl, '_blank', 'noopener');
+  }
+}
+
 function actionText(training: StudentTraining, step: StudentTrainingStep) {
   if (training.status === 'completed' || step.action === 'score') {
     return '查看成绩单';
@@ -193,7 +233,19 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
   }
 
   if (training.status === 'completed' || step.action === 'score') {
-    ElMessage.info(`正在查看成绩单：${step.title}`);
+    const attemptId = training.latestAttemptId;
+    if (!attemptId) {
+      ElMessage.warning('暂无可查看的成绩单');
+      return;
+    }
+
+    selectedTraining.value = training;
+    try {
+      selectedScoreSheet.value = await fetchStudentTrainingScoreSheet(attemptId);
+      scoreSheetVisible.value = true;
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '成绩单加载失败');
+    }
     return;
   }
 

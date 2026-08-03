@@ -1017,7 +1017,7 @@ function submitEditRestatement() {
   }
 
   editRestatementVisible.value = false;
-  ElMessage.success('重申内容已提交');
+  ElMessage.warning('重申接口暂未提供，当前仅关闭弹窗');
 }
 
 function copyFileLink(application: PublicApplicationRow) {
