@@ -8192,20 +8192,36 @@ a {
   appearance: textfield;
 }
 
-.admin-settings-grade-input input::-webkit-outer-spin-button,
-.admin-settings-grade-input input::-webkit-inner-spin-button {
+.admin-settings-grade-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-settings-grade-name-input.el-input {
+  width: 128px;
+}
+
+.admin-settings-grade-score-input.el-input {
+  width: 78px;
+}
+
+.admin-settings-grade-score-input input::-webkit-outer-spin-button,
+.admin-settings-grade-score-input input::-webkit-inner-spin-button {
   margin: 0;
   appearance: none;
 }
 
-.admin-settings-grade-input input[type='number'] {
+.admin-settings-grade-score-input input[type='number'] {
   appearance: textfield;
 }
 
 .admin-settings-weight-form .el-input__wrapper,
 .admin-settings-add-form .el-input__wrapper,
 .admin-settings-add-form .el-select__wrapper,
-.admin-settings-room-form .el-input__wrapper {
+.admin-settings-room-form .el-input__wrapper,
+.admin-settings-grade-name-input .el-input__wrapper,
+.admin-settings-grade-score-input .el-input__wrapper {
   min-height: 40px;
   border-radius: 8px;
   box-shadow: 0 0 0 1px #cbd5e1 inset;
