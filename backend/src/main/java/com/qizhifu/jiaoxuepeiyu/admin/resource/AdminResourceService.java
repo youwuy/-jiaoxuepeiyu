@@ -25,7 +25,7 @@ public class AdminResourceService {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final long MAX_RESOURCE_FILE_BYTES = 200L * 1024L * 1024L;
-    private static final Set<String> DOCUMENT_EXTENSIONS = new HashSet<String>(Arrays.asList("doc", "docx", "xls", "xlsx"));
+    private static final Set<String> DOCUMENT_EXTENSIONS = new HashSet<String>(Arrays.asList("pdf", "doc", "docx", "xls", "xlsx"));
     private static final Set<String> PRESENTATION_EXTENSIONS = new HashSet<String>(Arrays.asList("ppt", "pptx"));
     private static final Set<String> IMAGE_EXTENSIONS = new HashSet<String>(Arrays.asList("jpg", "jpeg", "png", "gif"));
     private static final Set<String> VIDEO_EXTENSIONS = new HashSet<String>(Arrays.asList("mp4", "mov", "avi", "flv", "wmv"));

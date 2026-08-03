@@ -14,7 +14,9 @@ export function resourcePreviewSource(resource?: Pick<PreviewableResource, 'file
 
 export function resourcePreviewKind(resource?: PreviewableResource | null): ResourcePreviewKind {
   const extension = fileExtension(resource);
-  const type = String(resource?.resourceType || '').toLowerCase();
+  const rawType = String(resource?.resourceType || '');
+  const type = rawType.toLowerCase();
+  const enumType = rawType.toUpperCase();
 
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension) || type.includes('图片')) {
     return 'image';
@@ -28,7 +30,13 @@ export function resourcePreviewKind(resource?: PreviewableResource | null): Reso
     return 'audio';
   }
 
-  if (['pdf', 'txt', 'html', 'htm'].includes(extension)) {
+  if (
+    ['pdf', 'txt', 'html', 'htm'].includes(extension) ||
+    enumType === 'DOCUMENT' ||
+    type.includes('pdf') ||
+    type.includes('文档') ||
+    type.includes('文本')
+  ) {
     return 'frame';
   }
 
