@@ -455,8 +455,8 @@ const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allC
 function createEmptyForm(): ResourceForm {
   return {
     resourceName: '',
-    resourceType: resourceTypeOptions[0]?.value ?? '文本文档',
-    majorId: majorOptions[0]?.value ?? null,
+    resourceType: '',
+    majorId: null,
     courseName: '',
     uploaderName: '',
     coverUrl: '',
@@ -600,8 +600,8 @@ function openEditPanel(row: ResourceRow) {
   resourceFormVisible.value = true;
   Object.assign(form, {
     resourceName: row.resourceName,
-    resourceType: row.resourceType || '文本文档',
-    majorId: row.majorId ?? majorOptions[0]?.value ?? null,
+    resourceType: row.resourceType || '',
+    majorId: row.majorId ?? null,
     courseName: row.courseName || '',
     uploaderName: row.uploaderName || '',
     coverUrl: row.coverUrl || '',

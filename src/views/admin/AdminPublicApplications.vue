@@ -973,7 +973,7 @@ function openEditRestatement(application: PublicApplicationRow) {
     coverSize: '',
     fileName: application.fileName || '',
     fileSizeLabel: application.fileSizeLabel === '-' ? '-' : application.fileSizeLabel,
-    majorId: application.majorId ?? majorOptions[0]?.value ?? null,
+    majorId: application.majorId ?? null,
     courseName: application.courseName || ''
   });
   editRestatementVisible.value = true;

@@ -645,15 +645,15 @@ function resetForm() {
   form.name = '';
   form.type = '考试';
   form.mode = '协同实训';
-  form.semester = semesterOptions.value[0]?.value || '';
+  form.semester = '';
   form.range = [];
   form.description = '';
   selectedTopicIds.value = [];
-  selectedResourceIds.value = resourceOptions.value.slice(0, 2).map((item) => item.id);
-  selectedPaperId.value = paperOptions.value[0]?.id || 0;
-  selectedClassIds.value = classOptions.value[0] ? [classOptions.value[0].id] : [];
-  selectedTeacherIds.value = teacherOptions.value.slice(0, 2).map((item) => item.id);
-  selectedRoomId.value = roomOptions.value[0]?.id || 0;
+  selectedResourceIds.value = [];
+  selectedPaperId.value = 0;
+  selectedClassIds.value = [];
+  selectedTeacherIds.value = [];
+  selectedRoomId.value = 0;
   activeStep.value = 'base';
 }
 
@@ -965,14 +965,14 @@ async function loadOptions() {
       meta: `${item.cameraCount} 路摄像头`,
       category: 'room'
     }));
-    form.semester = semesterOptions.value[0]?.value || '';
-    form.majorId = majorOptions.value[0]?.majorId;
-    form.teacherIds = teacherOptions.value.slice(0, 2).map((item) => item.id);
-    form.classIds = classOptions.value[0]?.id ? [classOptions.value[0].id] : [];
-    selectedResourceIds.value = resourceOptions.value.slice(0, 2).map((item) => item.id);
-    selectedPaperId.value = paperOptions.value[0]?.id || 0;
-    selectedTeacherIds.value = teacherOptions.value.slice(0, 2).map((item) => item.id);
-    selectedRoomId.value = roomOptions.value[0]?.id || 0;
+    form.semester = '';
+    form.majorId = undefined;
+    form.teacherIds = [];
+    form.classIds = [];
+    selectedResourceIds.value = [];
+    selectedPaperId.value = 0;
+    selectedTeacherIds.value = [];
+    selectedRoomId.value = 0;
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : '课程基础数据加载失败');
   }
@@ -991,7 +991,7 @@ function mapCourse(item: AdminTraining): CourseRow {
     room: `${item.roomCount || 0} 间`,
     status: apiStatusToText(item.publishStatus),
     createdAt: formatDateTime(item.createdAt),
-    topicCount: Math.max(1, item.roles?.length || 1),
+    topicCount: item.roles?.length || 0,
     exam: type === '考试'
   };
 }

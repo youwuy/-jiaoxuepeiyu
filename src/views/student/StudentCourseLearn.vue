@@ -68,7 +68,7 @@
               <h2>{{ selectedItem.title }}</h2>
               <p>
                 课件类型：{{ selectedItem.resourceType ?? itemTypeText[selectedItem.type] }}
-                <span>最低学习时长：{{ selectedItem.minDurationMinutes ?? 15 }}分钟</span>
+                <span>最低学习时长：{{ selectedItem.minDurationMinutes ?? '-' }}分钟</span>
               </p>
             </div>
             <div class="learn-timer">

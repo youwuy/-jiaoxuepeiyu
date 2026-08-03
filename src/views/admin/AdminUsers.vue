@@ -771,7 +771,7 @@ function openCreate() {
   formMode.value = 'create';
   editingId.value = null;
   applyForm(emptyForm());
-  form.orgId = selectedOrgId.value || orgOptions.value[0]?.orgId || null;
+  form.orgId = selectedOrgId.value || null;
   resetBioState();
   if (activeKind.value === 'teacher') {
     teacherFormPageVisible.value = true;
@@ -1103,7 +1103,7 @@ function parseImportRows(): AdminAccountImportRow[] {
     .filter((line, index) => index > 0 || !/^(工号|学号),姓名,手机号/.test(line))
     .map((line, index) => {
       const [accountNo = '', realName = '', phone = ''] = line.split(',').map((item) => item.trim());
-      return { rowNo: index + 1, accountNo, realName, phone, orgId: orgOptions.value[0]?.orgId, classId: activeKind.value === 'student' ? classOptions.value[0]?.classId : undefined };
+      return { rowNo: index + 1, accountNo, realName, phone };
     })
     .filter((row) => row.accountNo || row.realName || row.phone);
 }

@@ -36,7 +36,7 @@
             {{ training.category === 'exam' ? '考试' : '练习' }}
           </span>
 
-          <strong class="training-topic-count">{{ training.topicCount ?? training.steps?.length ?? 1 }} 题</strong>
+          <strong class="training-topic-count">{{ training.topicCount ?? training.steps?.length ?? 0 }} 题</strong>
 
           <span class="training-term">{{ training.term }}</span>
 

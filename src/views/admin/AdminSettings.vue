@@ -700,7 +700,7 @@ function openAdd(kind: AddKind) {
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
-    addClassMajorId.value = displayMajors.value[0]?.majorId ?? null;
+    addClassMajorId.value = null;
   }
   if (kind === 'jobRole') {
     addJobRoleName.value = '';
@@ -822,7 +822,7 @@ function toClassroomCommand(roomName: string, cameras: CameraRow[]): AdminClassr
 }
 
 function currentSemesterId() {
-  return semesterRows.value.find((semester) => semester.current)?.semesterId ?? semesterRows.value[0]?.semesterId;
+  return semesterRows.value.find((semester) => semester.current)?.semesterId;
 }
 
 function addCamera() {

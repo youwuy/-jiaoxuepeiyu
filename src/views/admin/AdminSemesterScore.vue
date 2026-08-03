@@ -329,7 +329,7 @@ async function loadOptions() {
     classOptions.value = classes;
     if (!draft.semesterId) {
       const currentSemester = semesterOptions.value.find((item) => item.current);
-      draft.semesterId = currentSemester?.semesterId ?? semesterOptions.value[0]?.semesterId ?? null;
+      draft.semesterId = currentSemester?.semesterId ?? null;
       applied.value.semesterId = draft.semesterId;
     }
   } catch (error) {
@@ -393,7 +393,7 @@ function applyFilters() {
 function resetFilters() {
   Object.assign(draft, { semesterId: null, classId: null, courseName: '', studentName: '', studentNo: '' });
   const currentSemester = semesterOptions.value.find((item) => item.current);
-  draft.semesterId = currentSemester?.semesterId ?? semesterOptions.value[0]?.semesterId ?? null;
+  draft.semesterId = currentSemester?.semesterId ?? null;
   applyFilters();
 }
 

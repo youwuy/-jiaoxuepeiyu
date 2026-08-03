@@ -471,10 +471,10 @@ async function loadOptions() {
     majorOptions.value = majors.filter((item) => item.enabled !== false);
     classOptions.value = classes.filter((item) => item.enabled !== false);
     teacherOptions.value = teachers.filter((item) => item.enabled !== false);
-    form.semesterKey = semesterOptions.value.find((item) => item.current)?.key || semesterOptions.value[0]?.key || '';
-    form.majorId = majorOptions.value[0]?.majorId;
-    form.teacherIds = teacherOptions.value[0]?.userId ? [teacherOptions.value[0].userId] : [];
-    form.classIds = classOptions.value[0]?.classId ? [classOptions.value[0].classId] : [];
+    form.semesterKey = semesterOptions.value.find((item) => item.current)?.key || '';
+    form.majorId = undefined;
+    form.teacherIds = [];
+    form.classIds = [];
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : '课程基础数据加载失败');
   }
