@@ -308,15 +308,7 @@
       </template>
 
       <div v-if="previewTarget" class="admin-public-resource-preview-doc">
-        <h2>第一章 转向架结构与原理</h2>
-        <p>§ 1.1 转向架的组成与分类</p>
-        <article v-for="item in previewSections" :key="item.index" :class="item.tone">
-          <span>{{ item.index }}</span>
-          <div>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.content }}</p>
-          </div>
-        </article>
+        <el-empty description="暂无可预览内容" />
       </div>
 
       <template #footer>
@@ -424,27 +416,6 @@ const takeDownVisible = ref(false);
 const takeDownTarget = ref<PublicResourceRow | null>(null);
 const takeDownReason = ref('');
 const selectedIds = ref<number[]>([]);
-const previewSections = [
-  {
-    index: 1,
-    tone: 'blue',
-    title: '转向架定义',
-    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全运行。'
-  },
-  {
-    index: 2,
-    tone: 'green',
-    title: '转向架主要部件',
-    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
-  },
-  {
-    index: 3,
-    tone: 'orange',
-    title: '转向架检修流程',
-    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
-  }
-];
-
 const draft = reactive({
   keyword: '',
   resourceType: '',

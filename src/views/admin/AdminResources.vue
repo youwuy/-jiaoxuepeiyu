@@ -168,8 +168,8 @@
             <div v-if="panelMode === 'edit' && form.coverUrl" class="admin-resource-file-card cover">
               <img :src="form.coverUrl" alt="封面图" />
               <div>
-                <strong>{{ form.coverName || 'resource-cover.jpg' }}</strong>
-                <p>{{ form.coverSize || '2.4 MB' }}</p>
+                <strong>{{ form.coverName || '-' }}</strong>
+                <p>{{ form.coverSize || '-' }}</p>
               </div>
               <el-button text circle :icon="Delete" @click="clearCover" />
             </div>
@@ -189,7 +189,7 @@
               </span>
               <div>
                 <strong>{{ form.fileName }}</strong>
-                <p>{{ form.fileSizeLabel || form.fileSize || '18.5 MB' }} <i></i> 上传完成 <em>✓</em></p>
+                <p>{{ form.fileSizeLabel || form.fileSize || '-' }} <i></i> 上传完成 <em>✓</em></p>
               </div>
               <el-button text circle :icon="Delete" @click="clearFile" />
             </div>
@@ -235,15 +235,7 @@
 
         <section class="admin-resource-preview-content">
           <div class="admin-resource-preview-document">
-            <h2>第一章 转向架结构与原理</h2>
-            <p>§ 1.1 转向架的组成与分类</p>
-            <article v-for="item in previewSections" :key="item.index" :class="item.tone">
-              <span>{{ item.index }}</span>
-              <div>
-                <strong>{{ item.title }}</strong>
-                <p>{{ item.content }}</p>
-              </div>
-            </article>
+            <el-empty description="暂无可预览内容" />
           </div>
         </section>
 
@@ -460,27 +452,6 @@ const filteredResources = computed(() =>
 const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value));
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
-const previewSections = [
-  {
-    index: 1,
-    tone: 'blue',
-    title: '转向架定义',
-    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全运行。'
-  },
-  {
-    index: 2,
-    tone: 'green',
-    title: '转向架主要部件',
-    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
-  },
-  {
-    index: 3,
-    tone: 'orange',
-    title: '转向架检修流程',
-    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
-  }
-];
-
 function createEmptyForm(): ResourceForm {
   return {
     resourceName: '',
@@ -634,8 +605,8 @@ function openEditPanel(row: ResourceRow) {
     courseName: row.courseName || '',
     uploaderName: row.uploaderName || '',
     coverUrl: row.coverUrl || '',
-    coverName: row.coverUrl ? 'math-cover.jpg' : '',
-    coverSize: row.coverUrl ? '2.4 MB' : '',
+    coverName: row.coverUrl ? row.coverUrl.split('/').pop() || '-' : '',
+    coverSize: '',
     fileUrl: row.fileUrl || '',
     previewUrl: row.previewUrl || '',
     fileName: row.fileName || '',

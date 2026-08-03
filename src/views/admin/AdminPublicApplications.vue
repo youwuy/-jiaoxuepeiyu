@@ -32,15 +32,7 @@
             <strong>资源内容预览</strong>
           </div>
           <div class="admin-public-review-doc">
-            <h2>第一章 转向架结构与原理</h2>
-            <p>§ 1.1 转向架的组成与分类</p>
-            <article v-for="item in previewSections" :key="item.index" :class="item.tone">
-              <span>{{ item.index }}</span>
-              <div>
-                <strong>{{ item.title }}</strong>
-                <p>{{ item.content }}</p>
-              </div>
-            </article>
+            <el-empty description="暂无可预览内容" />
           </div>
         </section>
 
@@ -443,15 +435,7 @@
       </template>
 
       <div v-if="previewTarget" class="admin-public-preview-doc">
-        <h2>第一章 转向架结构与原理</h2>
-        <p>§ 1.1 转向架的组成与分类</p>
-        <article v-for="item in previewSections" :key="item.index" :class="item.tone">
-          <span>{{ item.index }}</span>
-          <div>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.content }}</p>
-          </div>
-        </article>
+        <el-empty description="暂无可预览内容" />
       </div>
     </el-dialog>
 
@@ -473,8 +457,8 @@
           <div class="admin-public-edit-file cover">
             <img :src="editForm.coverUrl" alt="封面图" />
             <div>
-              <strong>math-cover.jpg</strong>
-              <p>2.4 MB</p>
+              <strong>{{ editForm.coverName || '-' }}</strong>
+              <p>{{ editForm.coverSize || '-' }}</p>
             </div>
             <el-button text circle :icon="Close" />
           </div>
@@ -616,31 +600,13 @@ const editTarget = ref<PublicApplicationRow | null>(null);
 const editForm = reactive({
   resourceName: '',
   coverUrl: '',
+  coverName: '',
+  coverSize: '',
   fileName: '',
   fileSizeLabel: '',
   majorId: null as number | null,
   courseName: ''
 });
-const previewSections = [
-  {
-    index: 1,
-    tone: 'blue',
-    title: '转向架定义',
-    content: '转向架是城轨车辆走行部的重要组成部分，连接车体与轨道，承载并传递车辆载荷，保证车辆沿轨道安全平稳运行。'
-  },
-  {
-    index: 2,
-    tone: 'green',
-    title: '转向架主要部件',
-    content: '主要包括构架、轮对、轴箱、弹簧装置、减振器及牵引装置等部件，各部件协同工作确保运行品质。'
-  },
-  {
-    index: 3,
-    tone: 'orange',
-    title: '转向架检修流程',
-    content: '外观检查、尺寸测量、探伤检测、组装调试四步流程，严格执行检修规程。'
-  }
-];
 const reviewTimeline = computed(() => {
   const row = selectedApplication.value;
   if (!row) {
@@ -999,8 +965,10 @@ function openEditRestatement(application: PublicApplicationRow) {
   Object.assign(editForm, {
     resourceName: application.resourceName,
     coverUrl: application.coverResolved,
-    fileName: application.fileName || `${application.resourceName}.pdf`,
-    fileSizeLabel: application.fileSizeLabel === '-' ? '18.5 MB' : application.fileSizeLabel,
+    coverName: '',
+    coverSize: '',
+    fileName: application.fileName || '',
+    fileSizeLabel: application.fileSizeLabel === '-' ? '-' : application.fileSizeLabel,
     majorId: application.majorId ?? majorOptions[0]?.value ?? null,
     courseName: application.courseName || ''
   });
