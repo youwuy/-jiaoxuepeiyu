@@ -166,32 +166,85 @@
       </main>
     </section>
 
-    <section v-else-if="viewMode === 'manual-select'" class="admin-theory-paper-builder-page">
-      <BuilderHeader title="新增试卷" subtitle="手动组卷" @back="() => { viewMode = 'manual'; }" />
-      <section class="admin-theory-paper-manual-layout">
-        <section class="admin-theory-paper-builder-card">
-          <header><strong>题库选择</strong></header>
-          <div class="admin-theory-paper-question-filter"><el-input v-model="questionKeyword" placeholder="搜索题干" clearable /><el-select v-model="questionType" placeholder="题型" clearable><el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" /></el-select></div>
-          <table class="admin-theory-paper-question-table">
-            <thead><tr><th>题干</th><th>题型</th><th>分值</th><th>操作</th></tr></thead>
+    <section v-else-if="viewMode === 'manual-select'" class="admin-theory-paper-builder-page is-manage-prototype">
+      <header class="admin-theory-paper-create-nav">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>试题管理</el-breadcrumb-item>
+          <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
+          <el-breadcrumb-item>管理试题</el-breadcrumb-item>
+        </el-breadcrumb>
+        <div class="admin-theory-paper-manage-user"><span>管</span><b>管理员</b></div>
+      </header>
+      <main class="admin-theory-paper-manage-main">
+        <section class="admin-theory-paper-manage-filter">
+          <label class="admin-theory-paper-field is-type">
+            <span>题型</span>
+            <el-select v-model="questionType" placeholder="全部题型" clearable>
+              <el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="admin-theory-paper-field is-question-search">
+            <span>题干搜索</span>
+            <el-input v-model="questionKeyword" :prefix-icon="Search" placeholder="请输入题干关键词搜索" clearable />
+          </label>
+          <label class="admin-theory-paper-field is-creator">
+            <span>添加人</span>
+            <el-input v-model="manageCreator" :prefix-icon="Search" placeholder="请输入添加人" clearable />
+          </label>
+          <label class="admin-theory-paper-field is-course">
+            <span>所属课程</span>
+            <el-input v-model="manageCourse" :prefix-icon="Search" placeholder="请输入所属课程" clearable />
+          </label>
+          <div class="admin-theory-paper-manage-filter-buttons">
+            <el-button class="admin-theory-paper-query-button" @click="managePage = 1">查询</el-button>
+            <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
+          </div>
+        </section>
+
+        <section class="admin-theory-paper-manage-actions">
+          <el-button class="admin-theory-paper-primary" :icon="Plus" @click="addFilteredQuestions">加入试题篮</el-button>
+          <p><span>已加入试题篮：</span><b>{{ selectedQuestions.length }}</b><span>题</span></p>
+          <div class="admin-theory-paper-manage-stat">
+            <span v-for="item in questionStats" :key="item.type">{{ item.type }} <b>{{ item.count }}</b></span>
+          </div>
+        </section>
+
+        <section class="admin-theory-paper-builder-card is-manage-table">
+          <table class="admin-theory-paper-question-table is-manage">
+            <thead>
+              <tr>
+                <th class="check-col"><el-checkbox :model-value="allQuestionSelected" :indeterminate="partQuestionSelected" @change="toggleAllQuestions" /></th>
+                <th class="seq-col">序号</th>
+                <th class="type-col">题型</th>
+                <th>题干</th>
+                <th class="course-col">所属课程</th>
+                <th class="status-col">启用状态</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr v-for="item in filteredQuestionBank" :key="item.id">
-                <td>{{ item.title }}</td><td>{{ item.type }}</td><td>{{ item.score }}</td>
-                <td><el-button text @click="addQuestion(item)">添加</el-button></td>
+              <tr v-for="(item, index) in pagedManageQuestions" :key="item.id">
+                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
+                <td class="seq-col">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
+                <td class="type-col"><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
+                <td>{{ item.title }}</td>
+                <td class="course-col">{{ item.courseName }}</td>
+                <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
               </tr>
             </tbody>
           </table>
         </section>
-        <section class="admin-theory-paper-builder-card">
-          <header><strong>已选试题</strong><span>{{ selectedQuestions.length }}题 / {{ selectedScore }}分</span></header>
-          <article v-for="item in selectedQuestions" :key="item.id" class="admin-theory-paper-selected-question">
-            <div><strong>{{ item.title }}</strong><span>{{ item.type }}</span></div>
-            <label>分值 <el-input-number v-model="item.score" :min="1" :max="20" controls-position="right" /></label>
-            <el-button text class="warn" @click="removeQuestion(item.id)">移除</el-button>
-          </article>
-        </section>
-      </section>
-      <BuilderFooter @cancel="backToList" @preview="openPreview('manual')" @save="saveBuilder" />
+
+        <footer class="admin-theory-paper-manage-bottom">
+          <p>共 <b>{{ filteredQuestionBank.length }}</b> 条记录</p>
+          <el-pagination v-model:current-page="managePage" :page-size="managePageSize" :total="filteredQuestionBank.length" layout="prev, pager, next" background />
+        </footer>
+
+        <footer class="admin-theory-paper-builder-footer is-center is-manage-actions">
+          <button type="button" class="ghost" @click="backToList">取消</button>
+          <button type="button" class="lite" @click="openPreview('manual')">预览</button>
+          <button type="button" class="primary" @click="saveBuilder">保存试卷</button>
+        </footer>
+      </main>
     </section>
 
     <section v-else-if="viewMode === 'manage'" class="admin-theory-paper-builder-page is-manage-prototype">

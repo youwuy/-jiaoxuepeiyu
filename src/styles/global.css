@@ -14346,10 +14346,14 @@ a {
 }
 
 .admin-theory-paper-builder-footer.is-manage-actions .primary {
-  width: 96px;
+  min-width: 96px;
 }
 
 .admin-theory-paper-builder-footer.is-manage-actions .ghost {
+  width: 72px;
+}
+
+.admin-theory-paper-builder-footer.is-manage-actions .lite {
   width: 72px;
 }
 
