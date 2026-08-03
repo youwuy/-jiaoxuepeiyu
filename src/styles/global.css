@@ -8192,18 +8192,17 @@ a {
   appearance: textfield;
 }
 
-.admin-settings-grade-range {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.admin-settings-grade-form {
+  display: grid;
+  gap: 20px;
 }
 
 .admin-settings-grade-name-input.el-input {
-  width: 128px;
+  width: 112px;
 }
 
 .admin-settings-grade-score-input.el-input {
-  width: 78px;
+  width: 168px;
 }
 
 .admin-settings-grade-score-input input::-webkit-outer-spin-button,
@@ -8214,6 +8213,31 @@ a {
 
 .admin-settings-grade-score-input input[type='number'] {
   appearance: textfield;
+}
+
+.admin-settings-grade-table th:nth-child(1),
+.admin-settings-grade-table td:nth-child(1) {
+  width: 150px;
+}
+
+.admin-settings-grade-table th:nth-child(2),
+.admin-settings-grade-table td:nth-child(2),
+.admin-settings-grade-table th:nth-child(3),
+.admin-settings-grade-table td:nth-child(3) {
+  width: 180px;
+}
+
+.admin-settings-grade-table th:nth-child(4),
+.admin-settings-grade-table td:nth-child(4) {
+  width: 96px;
+}
+
+.admin-settings-grade-delete.el-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #ef4444;
 }
 
 .admin-settings-weight-form .el-input__wrapper,
