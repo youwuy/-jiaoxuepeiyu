@@ -46,13 +46,16 @@
                     v-if="row.moduleName"
                     :model-value="isModuleChecked(row.moduleIds)"
                     :indeterminate="isModuleIndeterminate(row.moduleIds)"
-                    @click.prevent="toggleModule(row.moduleIds)"
+                    @change="(value: string | number | boolean) => toggleModule(row.moduleIds, value)"
                   >
                     {{ row.moduleName }}
                   </el-checkbox>
                 </td>
                 <td>
-                  <el-checkbox :model-value="isPermissionChecked(row.pageId)" @click.prevent="togglePermission(row.pageId)">
+                  <el-checkbox
+                    :model-value="isPermissionChecked(row.pageId)"
+                    @change="(value: string | number | boolean) => togglePermission(row.pageId, value)"
+                  >
                     {{ row.pageName }}
                   </el-checkbox>
                 </td>
@@ -63,7 +66,7 @@
                       :key="action.key"
                       :model-value="isActionChecked(action)"
                       :disabled="action.virtual"
-                      @click.prevent="toggleAction(action)"
+                      @change="(value: string | number | boolean) => toggleAction(action, value)"
                     >
                       {{ action.label }}
                     </el-checkbox>
