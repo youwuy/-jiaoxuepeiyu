@@ -18691,6 +18691,169 @@ a {
   padding: 0;
 }
 
+.admin-semester-score-table th:nth-child(13),
+.admin-semester-score-table td:nth-child(13) {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #ffffff;
+  box-shadow: -8px 0 16px rgba(15, 23, 42, 0.06);
+}
+
+.admin-semester-score-table th:nth-child(13) {
+  z-index: 3;
+  background: #f8fafc;
+}
+
+.admin-semester-score-detail-dialog.el-dialog {
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.admin-semester-score-detail-dialog .el-dialog__header {
+  margin: 0;
+  padding: 20px 24px 16px;
+}
+
+.admin-semester-score-detail-dialog .el-dialog__body {
+  padding: 0 24px 16px;
+}
+
+.admin-semester-score-detail-dialog .el-dialog__footer {
+  display: none;
+}
+
+.admin-semester-score-dialog-head strong {
+  color: #1e293b;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-score {
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.admin-semester-score-detail-score span {
+  color: #64748b;
+}
+
+.admin-semester-score-detail-score strong {
+  color: #4f46e5;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-score i {
+  width: 2px;
+  height: 24px;
+  margin: 0 16px;
+  background: #e2e8f0;
+}
+
+.admin-semester-score-detail-score p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.admin-semester-score-detail-table {
+  padding: 0;
+}
+
+.admin-semester-score-detail-table table {
+  width: 100%;
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  overflow: hidden;
+}
+
+.admin-semester-score-detail-table th,
+.admin-semester-score-detail-table td {
+  height: 44px;
+  padding: 0 8px;
+  border: 0;
+  color: #1e293b;
+  font-size: 13px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.admin-semester-score-detail-table th {
+  height: 40px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.admin-semester-score-detail-table tbody tr:first-child td {
+  height: 132px;
+}
+
+.admin-semester-score-detail-table th:nth-child(1),
+.admin-semester-score-detail-table td:nth-child(1) {
+  width: 56px;
+}
+
+.admin-semester-score-detail-table th:nth-child(2),
+.admin-semester-score-detail-table td:nth-child(2) {
+  width: 120px;
+}
+
+.admin-semester-score-detail-table th:nth-child(3),
+.admin-semester-score-detail-table td:nth-child(3) {
+  width: 100px;
+}
+
+.admin-semester-score-detail-table th:nth-child(4),
+.admin-semester-score-detail-table td:nth-child(4) {
+  width: 340px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.admin-semester-score-detail-table th:nth-child(5),
+.admin-semester-score-detail-table td:nth-child(5) {
+  width: 100px;
+}
+
+.admin-semester-score-detail-table td span,
+.admin-semester-score-detail-table td strong {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-semester-score-detail-table td:nth-child(5) strong {
+  justify-content: center;
+}
+
+.admin-semester-score-detail-table td b {
+  color: #4f46e5;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-table td > strong {
+  color: #1e293b;
+  font-weight: 900;
+}
+
 @media (max-width: 1280px) {
   .admin-semester-score-filter-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));

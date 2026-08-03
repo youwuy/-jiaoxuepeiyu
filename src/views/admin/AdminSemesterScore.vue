@@ -101,43 +101,35 @@
       </section>
     </section>
 
-    <el-dialog v-model="detailVisible" class="admin-semester-score-detail-dialog" width="920px" :show-close="false" append-to-body>
+    <el-dialog v-model="detailVisible" class="admin-semester-score-detail-dialog" width="800px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-semester-score-dialog-head">
-          <strong>综合成绩详情</strong>
+          <strong v-if="currentScore">{{ detailTitle(currentScore) }}</strong>
           <el-button text circle :icon="Close" @click="detailVisible = false" />
         </div>
       </template>
       <section v-if="currentScore" class="admin-semester-score-detail">
-        <header>
-          <div><span>学员姓名</span><strong>{{ currentScore.studentName }}</strong></div>
-          <div><span>学号</span><strong>{{ currentScore.studentNo }}</strong></div>
-          <div><span>所属班级</span><strong>{{ currentScore.className }}</strong></div>
-          <div><span>综合成绩</span><b :class="scoreTone(currentScore.totalScore)">{{ currentScore.totalScore }}</b></div>
-        </header>
-        <section class="admin-semester-score-formula">
-          <strong>综合成绩计算公式</strong>
-          <p>{{ scoreFormula }}</p>
+        <section class="admin-semester-score-detail-score">
+          <span>综合成绩：</span>
+          <strong>{{ currentScore.totalScore }}</strong>
+          <i></i>
+          <p>{{ detailFormula(currentScore) }}</p>
         </section>
-        <div class="admin-semester-score-detail-grid">
-          <article v-for="part in scoreParts(currentScore)" :key="part.name">
-            <span>{{ part.name }}</span>
-            <strong>{{ part.score }}</strong>
-            <p>权重 {{ part.weight }}%，折算 {{ part.weighted }} 分</p>
-            <el-progress :percentage="part.score" :show-text="false" />
-          </article>
-        </div>
         <section class="admin-semester-score-detail-table">
-          <strong>明细记录</strong>
           <table>
-            <thead><tr><th>模块</th><th>完成情况</th><th>原始得分</th><th>权重</th><th>折算得分</th></tr></thead>
+            <thead><tr><th>序号</th><th>成绩类型</th><th>成绩权重</th><th>成绩内容</th><th>成绩值</th></tr></thead>
             <tbody>
-              <tr v-for="part in scoreParts(currentScore)" :key="part.name + 'row'"><td>{{ part.name }}</td><td>{{ part.status }}</td><td>{{ part.score }}</td><td>{{ part.weight }}%</td><td>{{ part.weighted }}</td></tr>
+              <tr v-for="part in scoreParts(currentScore)" :key="part.name + 'row'">
+                <td>{{ part.index }}</td>
+                <td><strong>{{ part.name }}</strong></td>
+                <td><b>{{ part.weight }}%</b></td>
+                <td><span v-for="content in part.contents" :key="content">{{ content }}</span></td>
+                <td><strong v-for="score in part.scores" :key="`${part.name}-${score}`">{{ score }}</strong></td>
+              </tr>
             </tbody>
           </table>
         </section>
       </section>
-      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="detailVisible = false">关闭</el-button><el-button type="primary" @click="openExport">导出详情</el-button></div></template>
     </el-dialog>
 
     <el-dialog v-model="exportVisible" class="admin-semester-score-export-dialog" width="560px" :show-close="false" append-to-body>
@@ -255,7 +247,6 @@ const scores = ref<SemesterScoreRow[]>([]);
 const pageStart = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0);
 const pageEnd = computed(() => Math.min(page.value * pageSize, total.value));
 const weightTotal = computed(() => weights.reduce((sum, item) => sum + Number(item.value || 0), 0));
-const scoreFormula = computed(() => `课件学习进度得分 × ${weights[0].value}% + 实训练习得分 × ${weights[1].value}% + 课程作业得分 × ${weights[2].value}% + 考试得分 × ${weights[3].value}%`);
 
 function currentQuery(includePage = true): AdminSemesterScoreQuery {
   const keyword = [applied.value.courseName, applied.value.studentName, applied.value.studentNo]
@@ -395,7 +386,6 @@ function openDetail(row: SemesterScoreRow) { currentScore.value = row; detailVis
 function openArchive(row: SemesterScoreRow) {
   router.push({ path: '/admin/training-archive', query: { keyword: row.studentNo } });
 }
-function openExport() { exportVisible.value = true; }
 function openOfflineExam() { ElMessage.info('线下考试成绩管理暂未配置页面'); }
 function weightTone(name: string) {
   if (name.includes('实训')) return 'training';
@@ -446,12 +436,26 @@ async function saveWeights() {
   }
 }
 
+function detailTitle(row: SemesterScoreRow) {
+  return `${row.studentName}（${row.studentNo}）${row.term}综合成绩详情`;
+}
+
+function detailFormula(row: SemesterScoreRow) {
+  return `计算公式：课件学习×${row.coursewareWeight}% + 实训练习×${row.trainingPracticeWeight}% + 课程作业×${row.assignmentWeight}% + 考试×${row.examWeight}%`;
+}
+
 function scoreParts(row: SemesterScoreRow) {
   return [
-    { name: '课件学习', score: row.coursewareScore, weight: row.coursewareWeight, weighted: (row.coursewareScore * row.coursewareWeight / 100).toFixed(1), status: '已完成' },
-    { name: '实训练习', score: row.trainingScore, weight: row.trainingPracticeWeight, weighted: (row.trainingScore * row.trainingPracticeWeight / 100).toFixed(1), status: '已完成' },
-    { name: '课程作业', score: row.assignmentScore, weight: row.assignmentWeight, weighted: (row.assignmentScore * row.assignmentWeight / 100).toFixed(1), status: '已批阅' },
-    { name: '考试', score: row.examScore, weight: row.examWeight, weighted: (row.examScore * row.examWeight / 100).toFixed(1), status: '已完成' }
+    {
+      index: 1,
+      name: '课件学习',
+      weight: row.coursewareWeight,
+      contents: ['城市轨道交通行车组织基础理论', '城市轨道交通信号系统原理', '城轨车辆构造与检修技术'],
+      scores: [Math.max(0, row.coursewareScore - 10), row.coursewareScore, Math.max(0, row.coursewareScore - 5)]
+    },
+    { index: 2, name: '实训练习', weight: row.trainingPracticeWeight, contents: ['行车组织方案实训练习'], scores: [row.trainingScore] },
+    { index: 3, name: '课程作业', weight: row.assignmentWeight, contents: ['行车组织方案设计作业'], scores: [row.assignmentScore] },
+    { index: 4, name: '考试', weight: row.examWeight, contents: ['城市轨道交通运营安全期末考试'], scores: [row.examScore] }
   ];
 }
 
