@@ -120,8 +120,8 @@
           <button type="button" class="admin-training-archive-video" @click="openVideoPreview">
             <span class="play"></span>
             <span class="track"><b></b></span>
-            <em class="time start">04:28</em>
-            <em class="time end">12:48</em>
+            <em class="time start">00:00</em>
+            <em class="time end">{{ formatDuration(activeArchive?.durationSeconds) }}</em>
             <span class="controls">
               <i class="pause"></i>
               <i class="volume"></i>
@@ -142,8 +142,8 @@
         <button type="button" class="admin-training-archive-video is-dialog" @click="videoVisible = false">
           <span class="play"></span>
           <span class="track"><b></b></span>
-          <em class="time start">04:28</em>
-          <em class="time end">12:48</em>
+          <em class="time start">00:00</em>
+          <em class="time end">{{ formatDuration(activeArchive?.durationSeconds) }}</em>
           <span class="controls">
             <i class="pause"></i>
             <i class="volume"></i>
@@ -315,6 +315,13 @@ function formatDateTime(value?: string) {
 function formatScore(value?: number | string) {
   const score = Number(value || 0);
   return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
+
+function formatDuration(value?: number) {
+  const totalSeconds = Math.max(0, Math.round(Number(value || 0)));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 onMounted(() => {

@@ -1066,8 +1066,7 @@ function openImport() {
 
 function downloadImportTemplate() {
   const header = activeKind.value === 'teacher' ? '工号,姓名,手机号,岗位,所属组织' : '学号,姓名,手机号,所在班级,所属组织';
-  const example = activeKind.value === 'teacher' ? 'T20240001,张老师,13800000000,实训教师,交通与车辆工程学院' : 'S20240301,王欣欣,15000000000,城轨车辆2501班,交通与车辆工程学院';
-  const blob = new Blob([`${header}\n${example}\n`], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob([`${header}\n`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

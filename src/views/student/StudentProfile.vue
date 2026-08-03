@@ -192,9 +192,9 @@
                 <h2><el-icon><VideoPlay /></el-icon>实训操作视频</h2>
                 <div class="archive-video-box"></div>
                 <div class="archive-video-progress">
-                  <span>01:24</span>
+                  <span>00:00</span>
                   <b></b>
-                  <span>04:58</span>
+                  <span>{{ archiveDetailDurationText }}</span>
                 </div>
                 <div class="archive-video-controls">
                   <button type="button"><el-icon><VideoPause /></el-icon></button>
@@ -250,7 +250,7 @@
                 </tbody>
               </table>
               <footer class="archive-table-footer">
-                <p>显示 1 到 5 条，共 5 条记录</p>
+                <p>显示 {{ archiveSummaryStart }} 到 {{ archiveSummaryEnd }} 条，共 {{ archiveRows.length }} 条记录</p>
                 <div class="profile-mini-pages">
                   <button type="button" disabled><el-icon><ArrowLeft /></el-icon></button>
                   <button type="button" class="active" disabled>1</button>
@@ -525,6 +525,9 @@ const archiveDetailDurationText = computed(() => {
   const restSeconds = seconds % 60;
   return `${minutes} 分 ${restSeconds} 秒`;
 });
+
+const archiveSummaryStart = computed(() => (archiveRows.value.length > 0 ? 1 : 0));
+const archiveSummaryEnd = computed(() => archiveRows.value.length);
 
 function openTab(tab: ProfileTab) {
   activeTab.value = tab;

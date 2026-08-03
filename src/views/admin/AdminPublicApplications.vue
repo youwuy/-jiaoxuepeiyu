@@ -656,22 +656,18 @@ const reviewTimeline = computed(() => {
       status: '',
       comment: ''
     },
-    {
-      title: '审核',
-      date: row.reviewedAtLabel === '-' ? '2025-01-16' : row.reviewedAtLabel.slice(0, 10),
-      operator: row.reviewerName || '李林芝',
-      time: row.reviewedAtLabel === '-' ? '09:15:42' : row.reviewedAtLabel.slice(11),
-      status: row.statusTone === 'approved' ? '审核通过' : row.statusTone === 'rejected' ? '审核驳回' : '',
-      comment: row.reviewComment || '实训内容结构完整，操作步骤清晰，知识点覆盖全面。建议在第三章增加转向架典型故障案例分析。'
-    },
-    {
-      title: '提交申请',
-      date: '2025-01-15',
-      operator: row.applicantName || '-',
-      time: '14:30:25',
-      status: '',
-      comment: ''
-    }
+    ...(row.reviewedAtLabel === '-'
+      ? []
+      : [
+          {
+            title: '审核',
+            date: row.reviewedAtLabel.slice(0, 10),
+            operator: row.reviewerName || '-',
+            time: row.reviewedAtLabel.slice(11) || '-',
+            status: row.statusTone === 'approved' ? '审核通过' : row.statusTone === 'rejected' ? '审核驳回' : '',
+            comment: row.reviewComment || '-'
+          }
+        ])
   ];
 });
 

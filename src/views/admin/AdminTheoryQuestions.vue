@@ -228,7 +228,7 @@
         </header>
 
         <section class="admin-question-preview-meta">
-          <p><span>所属课程：</span><strong>{{ importCourseName || '铁道概论' }}</strong></p>
+          <p><span>所属课程：</span><strong>{{ importCourseName || '-' }}</strong></p>
           <el-button class="admin-question-primary-button" @click="submitImport">提交</el-button>
         </section>
 
@@ -400,7 +400,7 @@ function mapRow(item: AdminQuestion): QuestionRow {
     ...item,
     questionTypeNormalized: type,
     typeLabel: typeLabels[type],
-    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '铁道概论',
+    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-',
     createdAtLabel: formatDateTime(item.createdAt || item.updatedAt),
     enabled: item.enabled ?? true
   };

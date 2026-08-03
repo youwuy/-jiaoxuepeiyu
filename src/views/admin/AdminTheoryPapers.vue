@@ -235,8 +235,8 @@
       </section>
 
       <footer class="admin-theory-paper-manage-bottom">
-        <p>共 <b>156</b> 条记录</p>
-        <el-pagination v-model:current-page="managePage" :page-size="6" :total="156" layout="prev, pager, next" background />
+        <p>共 <b>{{ filteredQuestionBank.length }}</b> 条记录</p>
+        <el-pagination v-model:current-page="managePage" :page-size="6" :total="filteredQuestionBank.length" layout="prev, pager, next" background />
       </footer>
 
       <footer class="admin-theory-paper-builder-footer is-center">
@@ -305,24 +305,27 @@
           </div>
         </section>
         <main class="admin-theory-paper-preview-layout">
-          <aside class="admin-theory-paper-answer-card">
-            <header><strong>答题卡</strong></header>
-            <section v-for="item in answerCardGroups" :key="item.type" :class="item.tone">
-              <p><span>{{ item.short }}</span>{{ item.count }}题 · {{ item.score }}分</p>
-              <div>
-                <button v-for="num in item.numbers" :key="num" :class="{ active: num === 1 }">{{ num }}</button>
-              </div>
-            </section>
-          </aside>
-          <div class="admin-theory-paper-preview-stack">
-            <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
-              <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
-              <article v-for="question in group.questions" :key="question.index">
-                <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
-                <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" /></label>
-              </article>
-            </section>
-          </div>
+          <template v-if="previewGroups.length > 0">
+            <aside class="admin-theory-paper-answer-card">
+              <header><strong>答题卡</strong></header>
+              <section v-for="item in answerCardGroups" :key="item.type" :class="item.tone">
+                <p><span>{{ item.short }}</span>{{ item.count }}题 · {{ item.score }}分</p>
+                <div>
+                  <button v-for="num in item.numbers" :key="num" :class="{ active: num === 1 }">{{ num }}</button>
+                </div>
+              </section>
+            </aside>
+            <div class="admin-theory-paper-preview-stack">
+              <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
+                <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
+                <article v-for="question in group.questions" :key="question.index">
+                  <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
+                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" /></label>
+                </article>
+              </section>
+            </div>
+          </template>
+          <el-empty v-else description="暂无试卷内容，请先加入试题" />
         </main>
       </section>
     </el-dialog>
@@ -375,6 +378,7 @@ interface QuestionItem {
   type: string;
   score: number;
   courseName: string;
+  options?: string[];
 }
 
 const BuilderHeader = defineComponent({
@@ -425,7 +429,7 @@ const draft = reactive({ keyword: '', courseName: '', creatorId: undefined as nu
 const applied = ref({ ...draft });
 const builder = reactive({
   paperName: '',
-  courseName: '铁道概论',
+  courseName: '',
   totalScore: 100,
   passScore: 60,
   rules: [
@@ -437,20 +441,43 @@ const builder = reactive({
   ]
 });
 const manageForm = reactive({ paperName: '', courseName: '' });
-const previewPaper = reactive({ paperName: '2025-2026学年期中考试', courseName: '铁道概论' });
+const previewPaper = reactive({ paperName: '', courseName: '' });
 
 const papers = ref<TheoryPaper[]>([]);
 const questionBank = ref<QuestionItem[]>([]);
 const selectedQuestions = ref<QuestionItem[]>([]);
-const previewGroups = reactive([
-  { type: '单选题', title: '一、单选题', meta: '20题 · 每题2分', tone: 'single', questions: [
-    { index: 1, title: '城市轨道交通中，CBTC系统的全称是什么？', score: 2, options: ['A. Communication-Based Train Control', 'B. Centralized Block Traffic Control', 'C. Computer-Based Train Communication', 'D. Continuous Braking Train Control'] },
-    { index: 2, title: '列车自动防护子系统（ATP）的主要功能是什么？', score: 2, options: ['A. 列车超速防护和间隔控制', 'B. 列车自动驾驶', 'C. 列车自动监控', 'D. 列车自动调度'] }
-  ] },
-  { type: '多选题', title: '二、多选题', meta: '10题 · 每题3分', tone: 'multiple', questions: [{ index: 21, title: '以下哪些属于城市轨道交通信号系统的组成部分？（多选）', score: 3, options: ['A. ATP列车自动防护', 'B. ATO列车自动驾驶', 'C. ATS列车自动监控', 'D. ATC列车自动控制'] }] },
-  { type: '判断题', title: '三、判断题', meta: '10题 · 每题1分', tone: 'judge', questions: [{ index: 31, title: 'CBTC系统可以实现列车精确定位和实时追踪。', score: 1, options: [] }] },
-  { type: '填空题', title: '四、填空题', meta: '5题 · 每题2分', tone: 'blank', questions: [{ index: 41, title: '城市轨道交通信号机一般设置在______和______位置。', score: 2, options: [] }] }
-]);
+const previewGroups = computed(() => {
+  const groupMap = new Map<string, QuestionItem[]>();
+  selectedQuestions.value.forEach((item) => {
+    const key = item.type || '未分类';
+    if (!groupMap.has(key)) {
+      groupMap.set(key, []);
+    }
+    groupMap.get(key)!.push(item);
+  });
+
+  return questionTypeOptions
+    .map((type, typeIndex) => {
+      const questions = groupMap.get(type) ?? [];
+      if (!questions.length) {
+        return null;
+      }
+
+      return {
+        type,
+        title: `${'一二三四五'[typeIndex]}、${type}`,
+        meta: `${questions.length}题 · 共${questions.reduce((sum, item) => sum + Number(item.score || 0), 0)}分`,
+        tone: typeTone(type),
+        questions: questions.map((question, index) => ({
+          index: index + 1,
+          title: question.title,
+          score: Number(question.score || 0),
+          options: question.options ?? []
+        }))
+      };
+    })
+    .filter(Boolean) as Array<{ type: string; title: string; meta: string; tone: string; questions: Array<{ index: number; title: string; score: number; options: string[] }> }>;
+});
 
 const creatorOptions = computed(() => {
   const map = new Map<number, string>();
@@ -476,12 +503,26 @@ const questionStats = computed(() => questionTypeOptions.map((type) => ({
   short: type.replace('题', ''),
   count: selectedQuestions.value.filter((item) => item.type === type).length
 })));
-const answerCardGroups = computed(() => [
-  { type: '单选题', short: '单选', tone: 'single', count: 20, score: 40, numbers: Array.from({ length: 19 }, (_, index) => index + 1) },
-  { type: '多选题', short: '多选', tone: 'multiple', count: 10, score: 30, numbers: Array.from({ length: 10 }, (_, index) => index + 21) },
-  { type: '判断题', short: '判断', tone: 'judge', count: 10, score: 10, numbers: Array.from({ length: 10 }, (_, index) => index + 31) },
-  { type: '填空题', short: '填空', tone: 'blank', count: 5, score: 10, numbers: Array.from({ length: 5 }, (_, index) => index + 41) }
-]);
+const answerCardGroups = computed(() => {
+  const groupMap = new Map<string, { short: string; tone: string; count: number; score: number; numbers: number[] }>();
+  selectedQuestions.value.forEach((item, index) => {
+    const type = item.type || '未分类';
+    if (!groupMap.has(type)) {
+      groupMap.set(type, { short: type.replace('题', ''), tone: typeTone(type), count: 0, score: 0, numbers: [] });
+    }
+    const group = groupMap.get(type)!;
+    group.count += 1;
+    group.score += Number(item.score || 0);
+    group.numbers.push(index + 1);
+  });
+
+  return questionTypeOptions
+    .map((type) => {
+      const group = groupMap.get(type);
+      return group ? { type, ...group } : null;
+    })
+    .filter(Boolean) as Array<{ type: string; short: string; tone: string; count: number; score: number; numbers: number[] }>;
+});
 const logRows = computed(() => [
   ...paperLogs.value.map((item) => ({
     action: item.action || '操作',
@@ -604,7 +645,7 @@ async function openManage(row: TheoryPaper) {
   viewMode.value = 'manage';
 }
 function backToList() { viewMode.value = 'list'; }
-function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '铁道概论', totalScore: 100, passScore: 60 }); }
+function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '', totalScore: 100, passScore: 60 }); }
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
 function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }
@@ -640,7 +681,7 @@ async function saveManage() {
   }
 }
 function openImport() { importVisible.value = true; }
-function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') { if (source !== 'upload') { previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '2025-2026学年期中考试'; previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '铁道概论'; } importVisible.value = false; previewVisible.value = true; }
+function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') { if (source !== 'upload') { previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '-'; previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '-'; } importVisible.value = false; previewVisible.value = true; }
 async function submitImport() {
   previewVisible.value = false;
   try {
