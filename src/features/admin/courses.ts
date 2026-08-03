@@ -103,7 +103,7 @@ function countContents(chapters?: AdminCourseChapter[]): number {
 export function mapAdminCourseView(course: AdminCourseRecord): AdminCourseView {
   const isPublished = (course.publishStatus ?? '').toUpperCase() === 'PUBLISHED';
   const chapterCount = course.chapters?.length ?? 0;
-  const contentCount = countContents(course.chapters);
+  const contentCount = countContents(course.chapters) || Number(course.coursewareCount ?? 0) + Number(course.assignmentCount ?? 0);
 
   return {
     ...course,

@@ -257,6 +257,7 @@ import {
 import {
   buildAdminCourseViews,
   formatCourseContentTitle as formatContentTitle,
+  mapAdminCourseView,
   type AdminCourseRecord,
   type AdminCourseView
 } from '../../features/admin/courses';
@@ -384,6 +385,14 @@ function setBusy(courseId: number | null) {
 async function publishCourse(course: AdminCourseView) {
   setBusy(course.id);
   try {
+    const detail = await fetchAdminCourseDetail(course.id);
+    const detailView = mapAdminCourseView(detail);
+    if (detailView.contentCount <= 0) {
+      ElMessage.warning('请先在课程中添加课件或作业内容后再发布');
+      mutateCourse(course.id, detail);
+      return;
+    }
+
     await publishAdminCourse(course.id);
     mutateCourse(course.id, { publishStatus: 'PUBLISHED' });
     ElMessage.success('课程已发布');
