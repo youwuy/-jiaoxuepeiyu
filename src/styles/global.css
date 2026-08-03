@@ -14157,6 +14157,202 @@ a {
   width: 126px;
 }
 
+.admin-theory-paper-builder-page.is-manage-prototype {
+  padding: 0;
+  background: #f8fafc;
+}
+
+.admin-theory-paper-manage-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.admin-theory-paper-manage-user span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-weight: 800;
+}
+
+.admin-theory-paper-manage-user b {
+  font-weight: 400;
+}
+
+.admin-theory-paper-manage-main {
+  display: grid;
+  gap: 20px;
+  padding: 24px 32px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-filter {
+  display: grid;
+  grid-template-columns: 180px 320px 200px 200px auto;
+  align-items: end;
+  gap: 16px;
+  margin: 0;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-field {
+  gap: 4px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-field > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .el-input__wrapper,
+.admin-theory-paper-builder-page.is-manage-prototype .el-select__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-manage-filter-buttons {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-query-button.el-button,
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-reset-button.el-button {
+  width: 72px;
+  height: 40px;
+  margin: 0;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding-top: 20px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-actions .admin-theory-paper-primary.el-button {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-actions p,
+.admin-theory-paper-manage-stat {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-actions p b,
+.admin-theory-paper-manage-stat b {
+  color: #4f46e5;
+  font-weight: 900;
+}
+
+.admin-theory-paper-manage-stat {
+  gap: 12px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-builder-card.is-manage-table {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border-color: #e2e8f0;
+  border-radius: 12px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table th {
+  height: 44px;
+  padding: 0 12px;
+  color: #475569;
+  font-size: 12px;
+  background: #f8fafc;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table td {
+  height: 52px;
+  padding: 0 12px;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .check-col {
+  width: 56px;
+  text-align: center;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .seq-col {
+  width: 72px;
+  text-align: center;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .type-col {
+  width: 100px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .course-col {
+  width: 230px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-question-table .status-col {
+  width: 120px;
+  text-align: center;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-type-pill {
+  border-radius: 9999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-bottom p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.admin-theory-paper-builder-page.is-manage-prototype .admin-theory-paper-manage-bottom p b {
+  color: #1e293b;
+}
+
+.admin-theory-paper-builder-footer.is-manage-actions {
+  padding: 0;
+  gap: 14px;
+}
+
+.admin-theory-paper-builder-footer.is-manage-actions button {
+  height: 40px;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-builder-footer.is-manage-actions .primary {
+  width: 96px;
+}
+
+.admin-theory-paper-builder-footer.is-manage-actions .ghost {
+  width: 72px;
+}
+
 .admin-theory-paper-rule-table .warn,
 .admin-theory-paper-selected-question .warn {
   color: #ef4444;

@@ -194,71 +194,84 @@
       <BuilderFooter @cancel="backToList" @preview="openPreview('manual')" @save="saveBuilder" />
     </section>
 
-    <section v-else-if="viewMode === 'manage'" class="admin-theory-paper-builder-page">
-      <BuilderHeader title="管理试题" :subtitle="activePaper?.paperName || '理论试卷'" @back="backToList" />
-      <section class="admin-theory-paper-manage-filter">
-        <label class="admin-theory-paper-field">
-          <span>题型</span>
-          <el-select v-model="questionType" placeholder="全部题型" clearable>
-            <el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </label>
-        <label class="admin-theory-paper-field is-question-search">
-          <span>题干搜索</span>
-          <el-input v-model="questionKeyword" placeholder="请输入题干关键词搜索" clearable />
-        </label>
-        <label class="admin-theory-paper-field">
-          <span>添加人</span>
-          <el-input v-model="manageCreator" placeholder="请输入添加人" clearable />
-        </label>
-        <label class="admin-theory-paper-field">
-          <span>所属课程</span>
-          <el-input v-model="manageCourse" placeholder="请输入所属课程" clearable />
-        </label>
-        <el-button class="admin-theory-paper-query-button">查询</el-button>
-        <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
-      </section>
+    <section v-else-if="viewMode === 'manage'" class="admin-theory-paper-builder-page is-manage-prototype">
+      <header class="admin-theory-paper-create-nav">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>试题管理</el-breadcrumb-item>
+          <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
+          <el-breadcrumb-item>管理试题</el-breadcrumb-item>
+        </el-breadcrumb>
+        <div class="admin-theory-paper-manage-user"><span>管</span><b>管理员</b></div>
+      </header>
+      <main class="admin-theory-paper-manage-main">
+        <section class="admin-theory-paper-manage-filter">
+          <label class="admin-theory-paper-field is-type">
+            <span>题型</span>
+            <el-select v-model="questionType" placeholder="全部题型" clearable>
+              <el-option v-for="item in questionTypeOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </label>
+          <label class="admin-theory-paper-field is-question-search">
+            <span>题干搜索</span>
+            <el-input v-model="questionKeyword" :prefix-icon="Search" placeholder="请输入题干关键词搜索" clearable />
+          </label>
+          <label class="admin-theory-paper-field is-creator">
+            <span>添加人</span>
+            <el-input v-model="manageCreator" :prefix-icon="Search" placeholder="请输入添加人" clearable />
+          </label>
+          <label class="admin-theory-paper-field is-course">
+            <span>所属课程</span>
+            <el-input v-model="manageCourse" :prefix-icon="Search" placeholder="请输入所属课程" clearable />
+          </label>
+          <div class="admin-theory-paper-manage-filter-buttons">
+            <el-button class="admin-theory-paper-query-button" @click="managePage = 1">查询</el-button>
+            <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
+          </div>
+        </section>
 
-      <section class="admin-theory-paper-manage-actions">
-        <el-button class="admin-theory-paper-primary" :icon="Plus" @click="addFilteredQuestions">加入试题篮</el-button>
-        <p>已加入试题篮：<b>{{ selectedQuestions.length }}</b> 题</p>
-        <span v-for="item in questionStats" :key="item.type">{{ item.short }} <b>{{ item.count }}</b></span>
-      </section>
+        <section class="admin-theory-paper-manage-actions">
+          <el-button class="admin-theory-paper-primary" :icon="Plus" @click="addFilteredQuestions">加入试题篮</el-button>
+          <p><span>已加入试题篮：</span><b>{{ selectedQuestions.length }}</b><span>题</span></p>
+          <div class="admin-theory-paper-manage-stat">
+            <span v-for="item in questionStats" :key="item.type">{{ item.type }} <b>{{ item.count }}</b></span>
+          </div>
+        </section>
 
-      <section class="admin-theory-paper-builder-card is-manage-table">
-        <table class="admin-theory-paper-question-table is-manage">
-          <thead>
-            <tr>
-              <th class="check-col"><el-checkbox :model-value="allQuestionSelected" :indeterminate="partQuestionSelected" @change="toggleAllQuestions" /></th>
-              <th>序号</th>
-              <th>题型</th>
-              <th>题干</th>
-              <th>所属课程</th>
-              <th>启用状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in filteredQuestionBank" :key="item.id">
-              <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
-              <td>{{ index + 1 }}</td>
-              <td><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.courseName }}</td>
-              <td><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+        <section class="admin-theory-paper-builder-card is-manage-table">
+          <table class="admin-theory-paper-question-table is-manage">
+            <thead>
+              <tr>
+                <th class="check-col"><el-checkbox :model-value="allQuestionSelected" :indeterminate="partQuestionSelected" @change="toggleAllQuestions" /></th>
+                <th class="seq-col">序号</th>
+                <th class="type-col">题型</th>
+                <th>题干</th>
+                <th class="course-col">所属课程</th>
+                <th class="status-col">启用状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in pagedManageQuestions" :key="item.id">
+                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
+                <td class="seq-col">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
+                <td class="type-col"><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
+                <td>{{ item.title }}</td>
+                <td class="course-col">{{ item.courseName }}</td>
+                <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
-      <footer class="admin-theory-paper-manage-bottom">
-        <p>共 <b>{{ filteredQuestionBank.length }}</b> 条记录</p>
-        <el-pagination v-model:current-page="managePage" :page-size="6" :total="filteredQuestionBank.length" layout="prev, pager, next" background />
-      </footer>
+        <footer class="admin-theory-paper-manage-bottom">
+          <p>共 <b>{{ filteredQuestionBank.length }}</b> 条记录</p>
+          <el-pagination v-model:current-page="managePage" :page-size="managePageSize" :total="filteredQuestionBank.length" layout="prev, pager, next" background />
+        </footer>
 
-      <footer class="admin-theory-paper-builder-footer is-center">
-        <button type="button" class="primary" @click="openPreview('manage')">预览试卷</button>
-        <button type="button" class="ghost" @click="backToList">取消</button>
-      </footer>
+        <footer class="admin-theory-paper-builder-footer is-center is-manage-actions">
+          <button type="button" class="primary" @click="openPreview('manage')">预览试卷</button>
+          <button type="button" class="ghost" @click="backToList">取消</button>
+        </footer>
+      </main>
     </section>
 
     <section v-else-if="viewMode === 'manage-edit'" class="admin-theory-paper-builder-page">
@@ -356,7 +369,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Close, Plus, UploadFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, Plus, Search, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   cancelPublishAdminPaper,
@@ -438,6 +451,7 @@ const questionType = ref('');
 const manageCreator = ref('');
 const manageCourse = ref('');
 const managePage = ref(1);
+const managePageSize = 6;
 const selectedQuestionIds = ref<number[]>([]);
 const paperLogs = ref<AdminPaperLog[]>([]);
 
@@ -506,6 +520,7 @@ const pageEnd = computed(() => Math.min(page.value * pageSize, totalCount.value)
 const selectedScore = computed(() => selectedQuestions.value.reduce((sum, item) => sum + Number(item.score || 0), 0));
 const autoQuestionTotal = computed(() => builder.rules.reduce((sum, rule) => sum + (rule.selected ? Number(rule.count || 0) : 0), 0));
 const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value) && (!manageCourse.value || item.courseName.includes(manageCourse.value))));
+const pagedManageQuestions = computed(() => filteredQuestionBank.value.slice((managePage.value - 1) * managePageSize, managePage.value * managePageSize));
 const allQuestionSelected = computed(() => filteredQuestionBank.value.length > 0 && filteredQuestionBank.value.every((item) => selectedQuestionIds.value.includes(item.id)));
 const partQuestionSelected = computed(() => selectedQuestionIds.value.length > 0 && !allQuestionSelected.value);
 const questionStats = computed(() => questionTypeOptions.map((type) => ({
@@ -670,7 +685,7 @@ function removeQuestion(id: number) { selectedQuestions.value = selectedQuestion
 function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }
 function toggleAllQuestions(value: string | number | boolean) { selectedQuestionIds.value = value ? Array.from(new Set([...selectedQuestionIds.value, ...filteredQuestionBank.value.map((item) => item.id)])) : selectedQuestionIds.value.filter((id) => !filteredQuestionBank.value.some((item) => item.id === id)); }
 function addFilteredQuestions() { filteredQuestionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
-function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; selectedQuestionIds.value = []; }
+function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; managePage.value = 1; selectedQuestionIds.value = []; }
 function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
 async function saveBuilder() {
   saving.value = true;
