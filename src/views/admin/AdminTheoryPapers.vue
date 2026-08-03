@@ -410,7 +410,7 @@
                 <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
                 <article v-for="question in group.questions" :key="question.index">
                   <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
-                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" /></label>
+                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" :controls="false" /></label>
                 </article>
               </section>
             </div>
