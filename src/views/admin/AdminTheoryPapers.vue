@@ -95,38 +95,46 @@
       </section>
     </section>
 
-    <section v-else-if="viewMode === 'auto'" class="admin-theory-paper-builder-page">
-      <BuilderHeader title="新增试卷" subtitle="自动组卷" @back="backToList" />
-      <section class="admin-theory-paper-builder-card">
-        <header><strong>基础信息</strong></header>
-        <div class="admin-theory-paper-create-basic">
-          <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
-          <label class="admin-theory-paper-field is-mode">
-            <span>组卷方式 <b>*</b></span>
-            <el-radio-group :model-value="viewMode" @change="switchCreateMode">
-              <el-radio label="auto">自动组卷</el-radio>
-              <el-radio label="manual">手动组卷</el-radio>
-            </el-radio-group>
-          </label>
-        </div>
-      </section>
-      <section class="admin-theory-paper-builder-card">
-        <header><strong>选题设置</strong></header>
-        <table class="admin-theory-paper-rule-table is-auto">
-          <thead><tr><th>题型</th><th>选题数量</th></tr></thead>
-          <tbody>
-            <tr v-for="rule in builder.rules" :key="rule.type">
-              <td><el-checkbox v-model="rule.selected">{{ rule.type }}</el-checkbox></td>
-              <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" controls-position="right" /></td>
-            </tr>
-          </tbody>
-        </table>
-        <footer class="admin-theory-paper-rule-summary">选题数量合计：<b>{{ autoQuestionTotal }}</b>题</footer>
-      </section>
-      <footer class="admin-theory-paper-builder-footer is-center">
-        <button type="button" class="ghost" @click="backToList">取消</button>
-        <button type="button" class="primary" @click="openPreview('auto')">下一步</button>
-      </footer>
+    <section v-else-if="viewMode === 'auto'" class="admin-theory-paper-builder-page is-create">
+      <header class="admin-theory-paper-create-nav">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item>试题管理</el-breadcrumb-item>
+          <el-breadcrumb-item>试卷管理</el-breadcrumb-item>
+          <el-breadcrumb-item>新增试卷</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
+      <main class="admin-theory-paper-create-main">
+        <section class="admin-theory-paper-builder-card is-create-card">
+          <header><strong>基本信息</strong></header>
+          <div class="admin-theory-paper-create-basic">
+            <label class="admin-theory-paper-field"><span>试卷名称 <b>*</b></span><el-input v-model="builder.paperName" placeholder="请输入试卷名称" /></label>
+            <label class="admin-theory-paper-field is-mode">
+              <span>组卷方式 <b>*</b></span>
+              <el-radio-group :model-value="viewMode" @change="switchCreateMode">
+                <el-radio label="auto">自动组卷</el-radio>
+                <el-radio label="manual">手动组卷</el-radio>
+              </el-radio-group>
+            </label>
+          </div>
+        </section>
+        <section class="admin-theory-paper-builder-card is-create-card">
+          <header><strong>选题设置</strong></header>
+          <table class="admin-theory-paper-rule-table is-auto">
+            <thead><tr><th>题型</th><th>选题数量</th></tr></thead>
+            <tbody>
+              <tr v-for="rule in builder.rules" :key="rule.type">
+                <td><el-checkbox v-model="rule.selected">{{ rule.type }}</el-checkbox></td>
+                <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" controls-position="right" /></td>
+              </tr>
+            </tbody>
+          </table>
+          <footer class="admin-theory-paper-rule-summary">选题数量合计：<b>{{ autoQuestionTotal }}题</b></footer>
+        </section>
+        <footer class="admin-theory-paper-builder-footer is-center is-create-actions">
+          <button type="button" class="ghost" @click="backToList">取消</button>
+          <button type="button" class="primary" @click="openPreview('auto')">下一步</button>
+        </footer>
+      </main>
     </section>
 
     <section v-else-if="viewMode === 'manual'" class="admin-theory-paper-builder-page">
@@ -432,13 +440,7 @@ const builder = reactive({
   courseName: '',
   totalScore: 100,
   passScore: 60,
-  rules: [
-    { type: '单选题', count: 0, score: 0, difficulty: '全部', selected: false },
-    { type: '多选题', count: 0, score: 0, difficulty: '全部', selected: false },
-    { type: '判断题', count: 0, score: 0, difficulty: '基础', selected: false },
-    { type: '填空题', count: 0, score: 0, difficulty: '全部', selected: false },
-    { type: '简答题', count: 0, score: 0, difficulty: '全部', selected: false }
-  ]
+  rules: createDefaultRules()
 });
 const manageForm = reactive({ paperName: '', courseName: '' });
 const previewPaper = reactive({ paperName: '', courseName: '' });
@@ -645,7 +647,16 @@ async function openManage(row: TheoryPaper) {
   viewMode.value = 'manage';
 }
 function backToList() { viewMode.value = 'list'; }
-function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '', totalScore: 100, passScore: 60 }); }
+function createDefaultRules() {
+  return [
+    { type: '单选题', count: 20, score: 1, difficulty: '全部', selected: true },
+    { type: '多选题', count: 10, score: 1, difficulty: '全部', selected: true },
+    { type: '判断题', count: 10, score: 1, difficulty: '基础', selected: true },
+    { type: '填空题', count: 5, score: 1, difficulty: '全部', selected: true },
+    { type: '简答题', count: 0, score: 1, difficulty: '全部', selected: false }
+  ];
+}
+function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '', totalScore: 100, passScore: 60, rules: createDefaultRules() }); }
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
 function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }

@@ -13981,6 +13981,171 @@ a {
   color: #152238;
 }
 
+.admin-theory-paper-builder-page.is-create {
+  padding: 0;
+  background: #f8fafc;
+}
+
+.admin-theory-paper-create-nav {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: #ffffff;
+}
+
+.admin-theory-paper-create-nav .el-breadcrumb__inner {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.admin-theory-paper-create-nav .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.admin-theory-paper-create-main {
+  display: grid;
+  gap: 24px;
+  padding: 24px 32px 32px;
+}
+
+.admin-theory-paper-builder-card.is-create-card {
+  margin: 0;
+  padding: 24px;
+  border-color: #e2e8f0;
+}
+
+.admin-theory-paper-builder-card.is-create-card > header {
+  min-height: auto;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.admin-theory-paper-builder-card.is-create-card > header::before {
+  width: 5px;
+  height: 18px;
+  content: '';
+  border-radius: 2px;
+  background: #4f46e5;
+}
+
+.admin-theory-paper-builder-card.is-create-card > header strong {
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-create-basic {
+  grid-template-columns: 400px minmax(320px, 1fr);
+  gap: 24px;
+  align-items: start;
+  max-width: 880px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field {
+  gap: 8px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .el-input__wrapper {
+  min-height: 40px;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field.is-mode .el-radio-group {
+  gap: 24px;
+  min-height: 40px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field.is-mode .el-radio {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-field.is-mode .el-radio.is-checked .el-radio__label {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table {
+  overflow: hidden;
+  max-width: 400px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table th {
+  height: 40px;
+  padding: 0 16px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table td {
+  height: 48px;
+  padding: 6px 16px;
+  font-size: 13px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto th:first-child,
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto td:first-child {
+  width: 200px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto .el-input-number {
+  width: 120px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto .el-input-number .el-input__wrapper {
+  min-height: 36px;
+  border-radius: 6px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-table.is-auto .el-checkbox {
+  height: auto;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-summary {
+  justify-content: flex-end;
+  gap: 16px;
+  max-width: 400px;
+  margin-top: 0;
+  padding: 8px 0 0;
+  border-top: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.admin-theory-paper-builder-card.is-create-card .admin-theory-paper-rule-summary b {
+  margin: 0;
+  color: #1e293b;
+  font-weight: 900;
+}
+
+.admin-theory-paper-builder-footer.is-create-actions {
+  padding: 8px 0 32px;
+  gap: 16px;
+}
+
+.admin-theory-paper-builder-footer.is-create-actions button {
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.admin-theory-paper-builder-footer.is-create-actions .ghost {
+  width: 100px;
+}
+
+.admin-theory-paper-builder-footer.is-create-actions .primary {
+  width: 126px;
+}
+
 .admin-theory-paper-rule-table .warn,
 .admin-theory-paper-selected-question .warn {
   color: #ef4444;
