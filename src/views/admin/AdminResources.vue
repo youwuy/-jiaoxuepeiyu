@@ -165,7 +165,7 @@
 
           <label class="admin-resource-modal-field">
             <span>封面图 <b>*</b></span>
-            <div v-if="panelMode === 'edit' && form.coverUrl" class="admin-resource-file-card cover">
+            <div v-if="form.coverUrl" class="admin-resource-file-card cover">
               <img :src="form.coverUrl" alt="封面图" />
               <div>
                 <strong>{{ form.coverName || '-' }}</strong>
@@ -183,7 +183,7 @@
 
           <label class="admin-resource-modal-field">
             <span>资源内容 <b>*</b></span>
-            <div v-if="panelMode === 'edit' && form.fileName" class="admin-resource-file-card content">
+            <div v-if="form.fileName" class="admin-resource-file-card content">
               <span class="admin-resource-file-icon">
                 <el-icon><Document /></el-icon>
               </span>
@@ -557,14 +557,18 @@ function formatFileSize(bytes?: number) {
   }
 
   if (bytes < 1024) {
-    return `${bytes} KB`;
+    return `${bytes} B`;
   }
 
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
   }
 
-  return `${(bytes / 1024 / 1024).toFixed(1)} GB`;
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
 function formatDateTime(value?: string) {
