@@ -41,12 +41,14 @@ class AdminAccountServiceTests {
         AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
         AdminAccountCommand command = student();
         command.setInitialPassword("admin123");
+        command.setOrgId(null);
 
         Long userId = service.createStudent(command);
 
         assertEquals(10L, userId.longValue());
         assertEquals("hashed:admin123", repository.createdPasswordHash);
         assertEquals("student", repository.createdCommand.getUserType());
+        assertEquals(null, repository.createdCommand.getOrgId());
     }
 
     @Test

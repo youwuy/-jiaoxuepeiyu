@@ -212,7 +212,7 @@ public class AdminAccountService {
         if (InputValidator.hasText(command.getIdCard()) && !InputValidator.isIdCard(command.getIdCard())) {
             throw new BusinessException(400, "ID card format is invalid");
         }
-        if (command.getOrgId() == null) {
+        if ("teacher".equals(userType) && command.getOrgId() == null) {
             throw new BusinessException(400, "Organization is required");
         }
         if ("student".equals(userType) && command.getClassId() == null) {
@@ -291,7 +291,7 @@ public class AdminAccountService {
         if (!InputValidator.isPhone(row.getPhone())) {
             errors.add("Phone format is invalid");
         }
-        if (row.getOrgId() == null) {
+        if ("teacher".equals(userType) && row.getOrgId() == null) {
             errors.add("Organization is required");
         }
         if ("student".equals(userType) && row.getClassId() == null) {

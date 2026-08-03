@@ -824,7 +824,7 @@ function validateForm() {
   if (!form.accountNo?.trim()) {
     throw new Error(activeKind.value === 'teacher' ? '请输入工号' : '请输入学号');
   }
-  if (!form.orgId) {
+  if (activeKind.value === 'teacher' && !form.orgId) {
     throw new Error('请选择所属组织');
   }
   if (!form.phone?.trim()) {
