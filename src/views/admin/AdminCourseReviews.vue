@@ -391,7 +391,27 @@ function goToPage(nextPage: number) {
   void loadRows();
 }
 
+function redirectMisroutedScoreDetail() {
+  const studentNo = String(route.query.studentNo || '').trim();
+  if (!studentNo) {
+    return false;
+  }
+
+  router.replace({
+    path: `/admin/courses/${courseId.value}/statistics`,
+    query: {
+      title: courseTitle.value,
+      studentNo
+    }
+  });
+  return true;
+}
+
 onMounted(() => {
+  if (redirectMisroutedScoreDetail()) {
+    return;
+  }
+
   void loadCourseDetail();
   void loadClassOptions();
   void loadRows();
