@@ -369,7 +369,7 @@ import {
 import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
 
-type ResourceStatus = 'DRAFT' | 'REVIEWING' | 'PUBLISHED';
+type ResourceStatus = 'DRAFT' | 'REVIEWING' | 'PUBLISHED' | 'REJECTED';
 type PanelMode = 'create' | 'edit';
 
 interface ResourceOption {
@@ -387,7 +387,7 @@ interface ResourceRow extends AdminResource {
   typeLabel: string;
   typeTone: string;
   statusLabel: string;
-  statusTone: 'draft' | 'reviewing' | 'published';
+  statusTone: 'draft' | 'reviewing' | 'published' | 'rejected';
   majorLabel: string;
   fileSizeLabel: string;
   updatedAtLabel: string;
@@ -540,16 +540,24 @@ function normalizeStatus(value?: string): ResourceStatus {
     return 'REVIEWING';
   }
 
+  if (upper === 'REJECTED' || upper === '驳回' || upper === '审核驳回' || upper === '已驳回') {
+    return 'REJECTED';
+  }
+
   return 'DRAFT';
 }
 
-function statusTone(status: ResourceStatus): 'draft' | 'reviewing' | 'published' {
+function statusTone(status: ResourceStatus): 'draft' | 'reviewing' | 'published' | 'rejected' {
   if (status === 'PUBLISHED') {
     return 'published';
   }
 
   if (status === 'REVIEWING') {
     return 'reviewing';
+  }
+
+  if (status === 'REJECTED') {
+    return 'rejected';
   }
 
   return 'draft';
@@ -582,7 +590,8 @@ function typeTone(type: string) {
 const statusLabels: Record<ResourceStatus, string> = {
   DRAFT: '未公示',
   REVIEWING: '审核中',
-  PUBLISHED: '已公示'
+  PUBLISHED: '已公示',
+  REJECTED: '审核驳回'
 };
 
 function formatFileSize(bytes?: number) {

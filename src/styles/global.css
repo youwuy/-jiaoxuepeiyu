@@ -11765,6 +11765,10 @@ a {
   color: #00a862;
 }
 
+.admin-resource-public-text.rejected {
+  color: #ef4444;
+}
+
 .admin-resource-row-actions.design {
   display: flex;
   align-items: center;
