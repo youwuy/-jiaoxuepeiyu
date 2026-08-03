@@ -398,12 +398,15 @@ a {
 }
 
 .admin-sidebar {
-  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 20px 12px 16px;
   background: linear-gradient(180deg, #0c1a3c 0%, #07142f 100%);
   color: #dce8ff;
+  overflow: hidden;
 }
 
 .admin-brand {
@@ -432,9 +435,27 @@ a {
 }
 
 .admin-nav-groups {
+  flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   padding: 8px 0 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(142, 163, 207, 0.42) transparent;
+}
+
+.admin-nav-groups::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-nav-groups::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(142, 163, 207, 0.42);
+}
+
+.admin-nav-groups::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .admin-nav-group {
@@ -487,6 +508,7 @@ a {
 }
 
 .admin-sidebar-footer {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1573,19 +1595,22 @@ a {
 }
 
 .admin-permission-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
+  position: fixed;
+  top: 50%;
+  left: 50%;
   z-index: 10;
-  width: 356px;
+  width: min(356px, calc(100vw - 48px));
+  max-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
-  min-height: 612px;
+  min-height: min(612px, calc(100vh - 80px));
   padding: 18px 18px 16px;
   border: 1px solid #e4e9f2;
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 18px 46px rgba(15, 23, 42, 0.1);
+  overflow: auto;
+  transform: translate(-50%, -50%);
 }
 
 .admin-permission-panel-head {
@@ -6518,6 +6543,10 @@ a {
   grid-template-columns: repeat(3, 320px);
 }
 
+.admin-user-teacher-grid.basic label:nth-child(5) {
+  grid-column: 2;
+}
+
 .admin-user-teacher-grid label {
   display: grid;
   gap: 8px;
@@ -9299,7 +9328,7 @@ a {
 }
 
 .admin-users-main-panel .admin-users-filter-grid {
-  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
 }
 
 .admin-users-main-panel .admin-users-filter-grid .el-input__wrapper,
@@ -9311,6 +9340,17 @@ a {
 
 .admin-users-main-panel .admin-users-head-actions {
   flex-wrap: wrap;
+}
+
+.admin-users-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.admin-users-filter-actions .el-button {
+  margin-left: 0;
 }
 
 .admin-users-main-panel .admin-users-primary-button.el-button,
@@ -9371,6 +9411,10 @@ a {
 
   .admin-users-main-panel .admin-users-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-users-filter-actions {
+    grid-column: span 2;
   }
 }
 
@@ -14197,14 +14241,17 @@ a {
 
 .admin-semester-score-page {
   min-height: 100vh;
-  padding: 0 24px 42px;
+  padding: 0 24px 40px;
   background: #f5f7fb;
 }
 
 .admin-semester-score-breadcrumb {
-  height: 52px;
+  height: 48px;
   display: flex;
   align-items: center;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .admin-semester-score-breadcrumb .el-breadcrumb__item:last-child .el-breadcrumb__inner {
@@ -14217,20 +14264,20 @@ a {
 .admin-semester-score-detail-dialog.el-dialog,
 .admin-semester-score-export-dialog.el-dialog {
   border: 1px solid #e3e8f0;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #ffffff;
 }
 
 .admin-semester-score-filter-card {
-  margin: 24px 0 16px;
-  padding: 20px 24px;
+  margin: 20px 0 16px;
+  padding: 22px 24px 24px;
 }
 
 .admin-semester-score-filter-row {
   display: grid;
-  grid-template-columns: 180px 160px 190px 170px 170px 72px 72px;
+  grid-template-columns: 160px 150px 190px 180px 150px 88px 74px;
   align-items: end;
-  gap: 16px;
+  gap: 14px;
 }
 
 .admin-semester-score-field {
@@ -14238,15 +14285,15 @@ a {
   display: grid;
   gap: 8px;
   color: #334155;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .admin-semester-score-field .el-input__wrapper,
 .admin-semester-score-field .el-select__wrapper {
-  min-height: 40px;
-  border-radius: 8px;
-  background: #f8fafc;
+  min-height: 48px;
+  border-radius: 10px;
+  background: #ffffff;
   box-shadow: 0 0 0 1px #dbe3ee inset;
 }
 
@@ -14254,9 +14301,14 @@ a {
 .admin-semester-score-reset.el-button,
 .admin-semester-score-primary.el-button,
 .admin-semester-score-lite.el-button {
-  height: 40px;
-  border-radius: 8px;
+  height: 48px;
+  border-radius: 10px;
   font-weight: 900;
+}
+
+.admin-semester-score-query.el-button,
+.admin-semester-score-reset.el-button {
+  min-width: 72px;
 }
 
 .admin-semester-score-query.el-button,
@@ -14276,29 +14328,31 @@ a {
 .admin-semester-score-summary {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
   margin-bottom: 16px;
 }
 
 .admin-semester-score-summary article {
-  padding: 18px 20px;
+  min-height: 114px;
+  padding: 20px 24px 18px;
   border: 1px solid #e3e8f0;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #ffffff;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
 }
 
 .admin-semester-score-summary span {
   display: block;
   color: #64748b;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .admin-semester-score-summary strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 10px;
   color: #152238;
-  font-size: 28px;
-  line-height: 34px;
+  font-size: 34px;
+  line-height: 1.08;
   font-weight: 900;
 }
 
@@ -14306,7 +14360,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .admin-semester-score-actions p {
@@ -14319,7 +14373,7 @@ a {
   color: #2563eb;
 }
 
-.admin-semester-score-actions > div {
+.admin-semester-score-actions-buttons {
   display: flex;
   gap: 12px;
 }
@@ -14329,15 +14383,16 @@ a {
 }
 
 .admin-semester-score-table {
-  min-width: 1280px;
+  min-width: 1360px;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  table-layout: fixed;
 }
 
 .admin-semester-score-table th {
-  height: 48px;
-  padding: 0 14px;
+  height: 46px;
+  padding: 0 12px;
   background: #f8fafc;
   color: #334155;
   font-size: 13px;
@@ -14346,11 +14401,76 @@ a {
 }
 
 .admin-semester-score-table td {
-  height: 58px;
-  padding: 10px 14px;
+  height: 56px;
+  padding: 10px 12px;
   border-top: 1px solid #eef2f7;
   color: #1f2d3d;
   font-size: 14px;
+}
+
+.admin-semester-score-table th,
+.admin-semester-score-table td {
+  white-space: nowrap;
+}
+
+.admin-semester-score-table th:nth-child(1),
+.admin-semester-score-table td:nth-child(1) {
+  width: 68px;
+  text-align: center;
+}
+
+.admin-semester-score-table th:nth-child(2),
+.admin-semester-score-table td:nth-child(2) {
+  width: 96px;
+}
+
+.admin-semester-score-table th:nth-child(3),
+.admin-semester-score-table td:nth-child(3) {
+  width: 132px;
+}
+
+.admin-semester-score-table th:nth-child(4),
+.admin-semester-score-table td:nth-child(4) {
+  width: 102px;
+}
+
+.admin-semester-score-table th:nth-child(5),
+.admin-semester-score-table td:nth-child(5) {
+  width: 164px;
+}
+
+.admin-semester-score-table th:nth-child(6),
+.admin-semester-score-table td:nth-child(6) {
+  width: 180px;
+}
+
+.admin-semester-score-table th:nth-child(7),
+.admin-semester-score-table td:nth-child(7),
+.admin-semester-score-table th:nth-child(8),
+.admin-semester-score-table td:nth-child(8),
+.admin-semester-score-table th:nth-child(9),
+.admin-semester-score-table td:nth-child(9),
+.admin-semester-score-table th:nth-child(10),
+.admin-semester-score-table td:nth-child(10) {
+  width: 94px;
+  text-align: center;
+}
+
+.admin-semester-score-table th:nth-child(11),
+.admin-semester-score-table td:nth-child(11) {
+  width: 108px;
+  text-align: center;
+}
+
+.admin-semester-score-table th:nth-child(12),
+.admin-semester-score-table td:nth-child(12) {
+  width: 90px;
+  text-align: center;
+}
+
+.admin-semester-score-table th:nth-child(13),
+.admin-semester-score-table td:nth-child(13) {
+  width: 122px;
 }
 
 .admin-semester-score-table td strong {
@@ -14395,14 +14515,14 @@ a {
 
 .admin-semester-score-row-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   white-space: nowrap;
 }
 
 .admin-semester-score-row-actions .el-button {
   height: 28px;
   margin: 0;
-  padding: 0 8px;
+  padding: 0 10px;
   border-radius: 6px;
   background: #eff6ff;
   color: #2563eb;
@@ -14414,7 +14534,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 12px 20px;
   border-top: 1px solid #eef2f7;
 }
 
@@ -14447,12 +14567,12 @@ a {
 .admin-semester-score-detail-dialog .el-dialog__header,
 .admin-semester-score-export-dialog .el-dialog__header {
   margin: 0;
-  padding: 20px 24px 12px;
+  padding: 20px 22px 12px;
 }
 
 .admin-semester-score-detail-dialog .el-dialog__body,
 .admin-semester-score-export-dialog .el-dialog__body {
-  padding: 16px 24px 24px;
+  padding: 16px 22px 22px;
 }
 
 .admin-semester-score-detail header {
@@ -14464,6 +14584,7 @@ a {
 .admin-semester-score-detail header div,
 .admin-semester-score-formula,
 .admin-semester-score-detail-grid article,
+.admin-semester-score-side-card,
 .admin-semester-score-detail-table {
   border: 1px solid #e3e8f0;
   border-radius: 10px;
@@ -14516,6 +14637,90 @@ a {
   font-size: 13px;
 }
 
+.admin-semester-score-detail-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 292px;
+  gap: 14px;
+}
+
+.admin-semester-score-detail-main {
+  min-width: 0;
+}
+
+.admin-semester-score-detail-side {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-semester-score-side-card {
+  padding: 16px 16px 14px;
+}
+
+.admin-semester-score-side-card > span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-semester-score-side-card > strong {
+  display: block;
+  margin-top: 8px;
+  color: #152238;
+  font-size: 28px;
+  line-height: 1.05;
+  font-weight: 900;
+}
+
+.admin-semester-score-side-card > strong.excellent {
+  color: #059669;
+}
+
+.admin-semester-score-side-card > strong.good {
+  color: #4f46e5;
+}
+
+.admin-semester-score-side-card > strong.normal {
+  color: #d97706;
+}
+
+.admin-semester-score-side-card > strong.bad {
+  color: #ef4444;
+}
+
+.admin-semester-score-side-card > p {
+  margin: 8px 0 0;
+  color: #52657d;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.admin-semester-score-side-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  border-top: 1px solid #e6edf5;
+}
+
+.admin-semester-score-side-row:first-of-type {
+  margin-top: 10px;
+  border-top: 0;
+}
+
+.admin-semester-score-side-row i {
+  color: #334155;
+  font-style: normal;
+  font-size: 13px;
+}
+
+.admin-semester-score-side-row b {
+  margin: 0;
+  color: #2563eb;
+  font-size: 13px;
+}
+
 .admin-semester-score-detail-table {
   margin-top: 14px;
   padding: 16px;
@@ -14551,7 +14756,7 @@ a {
 .admin-semester-score-export label,
 .admin-semester-score-weight-list label {
   display: grid;
-  grid-template-columns: 100px minmax(0, 1fr) 20px;
+  grid-template-columns: 108px minmax(0, 1fr) 20px;
   align-items: center;
   gap: 12px;
   color: #334155;
@@ -14559,11 +14764,511 @@ a {
   font-weight: 900;
 }
 
+.admin-semester-score-export .el-select {
+  width: 100%;
+}
+
 .admin-semester-score-weight-list p {
   margin: 0;
   text-align: right;
   color: #334155;
   font-weight: 900;
+}
+
+.admin-semester-score-weight-list .el-input-number {
+  width: 160px;
+}
+
+.admin-semester-score-archive-drawer .el-drawer__body {
+  padding: 0;
+  background: #f5f7fb;
+}
+
+.admin-semester-score-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e3e8f0;
+  background: #ffffff;
+}
+
+.admin-semester-score-drawer-head span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-semester-score-drawer-head h3 {
+  margin: 6px 0 0;
+  color: #152238;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.admin-semester-score-drawer-head p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.admin-semester-score-archive-layout {
+  display: grid;
+  grid-template-columns: 316px minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 24px 24px;
+}
+
+.admin-semester-score-archive-list,
+.admin-semester-score-archive-detail {
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-semester-score-archive-list {
+  padding: 16px;
+}
+
+.admin-semester-score-archive-list > p {
+  margin: 0 0 12px;
+  color: #152238;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-semester-score-archive-list article {
+  padding: 12px 14px;
+  border: 1px solid #e8edf4;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.admin-semester-score-archive-list article + article {
+  margin-top: 10px;
+}
+
+.admin-semester-score-archive-list article.active {
+  border-color: #2563eb;
+  background: #eef5ff;
+}
+
+.admin-semester-score-archive-list header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-semester-score-archive-list strong {
+  color: #152238;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-semester-score-archive-list span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.admin-semester-score-archive-list p {
+  margin: 8px 0 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.admin-semester-score-archive-list small {
+  display: inline-flex;
+  margin-top: 10px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-semester-score-archive-detail {
+  padding: 18px 20px;
+}
+
+.admin-semester-score-archive-detail strong {
+  color: #152238;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-semester-score-archive-detail > p {
+  margin: 8px 0 0;
+  color: #52657d;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.admin-semester-score-archive-detail dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.admin-semester-score-archive-detail dl div,
+.admin-semester-score-archive-chart,
+.admin-semester-score-archive-note {
+  padding: 14px 16px;
+  border: 1px solid #e8edf4;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.admin-semester-score-archive-detail dt {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.admin-semester-score-archive-detail dd {
+  margin: 6px 0 0;
+  color: #152238;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-archive-chart,
+.admin-semester-score-archive-note {
+  margin-top: 14px;
+}
+
+.admin-semester-score-archive-chart > span,
+.admin-semester-score-archive-note > span {
+  display: block;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-semester-score-archive-note p {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.admin-semester-score-detail-page {
+  min-height: 100vh;
+  padding: 18px 24px 40px;
+  background: #f5f7fb;
+}
+
+.admin-semester-score-detail-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+}
+
+.admin-semester-score-back {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.admin-semester-score-back:hover {
+  color: #2563eb;
+}
+
+.admin-semester-score-detail-breadcrumb {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-semester-score-detail-breadcrumb .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+  color: #2563eb;
+  font-weight: 900;
+}
+
+.admin-semester-score-student-card,
+.admin-semester-score-title-card,
+.admin-semester-score-detail-cards button,
+.admin-semester-score-record-card,
+.admin-semester-score-side-panel article {
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-semester-score-student-card {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 14px 20px;
+}
+
+.admin-semester-score-student-card span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-semester-score-student-card b {
+  color: #152238;
+  font-weight: 900;
+}
+
+.admin-semester-score-title-card {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+  padding: 20px 24px;
+}
+
+.admin-semester-score-title-card h1 {
+  margin: 0;
+  color: #152238;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 900;
+}
+
+.admin-semester-score-title-card p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-semester-score-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-semester-score-detail-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-semester-score-detail-cards button {
+  min-height: 116px;
+  padding: 18px 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-semester-score-detail-cards button.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+.admin-semester-score-detail-cards span {
+  display: block;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-semester-score-detail-cards strong {
+  display: block;
+  margin-top: 8px;
+  color: #152238;
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-cards em {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-style: normal;
+  font-size: 13px;
+}
+
+.admin-semester-score-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.admin-semester-score-record-card {
+  overflow: hidden;
+}
+
+.admin-semester-score-record-card header {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 20px;
+  border-bottom: 1px solid #edf2f8;
+}
+
+.admin-semester-score-record-card header strong {
+  color: #152238;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-semester-score-record-card header span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.admin-semester-score-record-card table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-semester-score-record-card th {
+  height: 46px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.admin-semester-score-record-card td {
+  height: 54px;
+  border-top: 1px solid #edf2f8;
+  color: #334155;
+  font-size: 14px;
+}
+
+.admin-semester-score-record-card th,
+.admin-semester-score-record-card td {
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.admin-semester-score-record-card th:nth-child(1),
+.admin-semester-score-record-card td:nth-child(1) {
+  width: 70px;
+  text-align: center;
+}
+
+.admin-semester-score-record-card th:nth-child(2),
+.admin-semester-score-record-card td:nth-child(2) {
+  width: 240px;
+}
+
+.admin-semester-score-record-card th:nth-child(3),
+.admin-semester-score-record-card td:nth-child(3) {
+  width: 100px;
+}
+
+.admin-semester-score-record-card th:nth-child(4),
+.admin-semester-score-record-card td:nth-child(4),
+.admin-semester-score-record-card th:nth-child(5),
+.admin-semester-score-record-card td:nth-child(5),
+.admin-semester-score-record-card th:nth-child(6),
+.admin-semester-score-record-card td:nth-child(6) {
+  width: 90px;
+  text-align: center;
+}
+
+.admin-semester-score-record-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 24px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-semester-score-side-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-semester-score-side-panel article {
+  padding: 18px 18px 16px;
+}
+
+.admin-semester-score-side-panel span {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-semester-score-side-panel strong {
+  display: block;
+  margin-top: 8px;
+  color: #152238;
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 900;
+}
+
+.admin-semester-score-side-panel strong.excellent {
+  color: #059669;
+}
+
+.admin-semester-score-side-panel strong.good {
+  color: #4f46e5;
+}
+
+.admin-semester-score-side-panel strong.normal {
+  color: #d97706;
+}
+
+.admin-semester-score-side-panel strong.bad {
+  color: #ef4444;
+}
+
+.admin-semester-score-side-panel p {
+  margin: 10px 0 0;
+  color: #52657d;
+  font-size: 13px;
+  line-height: 21px;
+}
+
+.admin-semester-score-side-panel ul {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-semester-score-side-panel li {
+  color: #334155;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+@media (max-width: 1180px) {
+  .admin-semester-score-filter-row,
+  .admin-semester-score-student-card,
+  .admin-semester-score-detail-cards,
+  .admin-semester-score-archive-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-semester-score-detail-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .admin-training-archive-page,
@@ -14640,11 +15345,27 @@ a {
   overflow: hidden;
 }
 
+.admin-training-archive-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.admin-training-archive-table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-training-archive-table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #dbe4ef;
+}
+
 .admin-training-archive-table {
   width: 100%;
-  min-width: 1260px;
+  min-width: 1188px;
   border-collapse: separate;
   border-spacing: 0;
+  table-layout: fixed;
 }
 
 .admin-training-archive-table th {
@@ -14660,10 +15381,88 @@ a {
 
 .admin-training-archive-table td {
   height: 50px;
-  padding: 8px 20px;
+  padding: 8px 14px;
   color: #24344d;
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-training-archive-table th {
+  padding: 0 14px;
+}
+
+.admin-training-archive-table th:nth-child(1),
+.admin-training-archive-table td:nth-child(1) {
+  width: 64px;
+}
+
+.admin-training-archive-table th:nth-child(2),
+.admin-training-archive-table td:nth-child(2) {
+  width: 148px;
+}
+
+.admin-training-archive-table th:nth-child(3),
+.admin-training-archive-table td:nth-child(3) {
+  width: 126px;
+}
+
+.admin-training-archive-table th:nth-child(4),
+.admin-training-archive-table td:nth-child(4) {
+  width: 96px;
+}
+
+.admin-training-archive-table th:nth-child(5),
+.admin-training-archive-table td:nth-child(5) {
+  width: 204px;
+}
+
+.admin-training-archive-table th:nth-child(6),
+.admin-training-archive-table td:nth-child(6) {
+  width: 108px;
+}
+
+.admin-training-archive-table th:nth-child(7),
+.admin-training-archive-table td:nth-child(7) {
+  width: 96px;
+}
+
+.admin-training-archive-table th:nth-child(8),
+.admin-training-archive-table td:nth-child(8) {
+  width: 168px;
+}
+
+.admin-training-archive-table th:nth-child(9),
+.admin-training-archive-table td:nth-child(9) {
+  width: 110px;
+}
+
+.admin-training-archive-table th:nth-child(10),
+.admin-training-archive-table td:nth-child(10),
+.admin-training-archive-table th:nth-child(11),
+.admin-training-archive-table td:nth-child(11),
+.admin-training-archive-table th:nth-child(12),
+.admin-training-archive-table td:nth-child(12) {
+  width: 92px;
+  text-align: center;
+}
+
+.admin-training-archive-table th:nth-child(13),
+.admin-training-archive-table td:nth-child(13) {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  width: 108px;
+  padding-right: 16px;
+  background: #ffffff;
+  text-align: center;
+  box-shadow: -12px 0 18px rgba(15, 23, 42, 0.06);
+}
+
+.admin-training-archive-table th:nth-child(13) {
+  z-index: 3;
+  background: #f8fafc;
 }
 
 .admin-training-archive-table tbody tr:first-child td {
@@ -15856,4 +16655,1039 @@ a {
   border: 1px solid #4f46e5;
   background: #4f46e5;
   color: #ffffff;
+}
+
+.admin-profile-page {
+  height: 100vh;
+  overflow: hidden;
+  padding: 0 31px 42px;
+  background: #ffffff;
+}
+
+.admin-content:has(.admin-profile-page) {
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.admin-profile-top {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  margin: 0 -31px;
+  padding: 0 24px;
+  background: #ffffff;
+  color: #7f94b2;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-profile-card {
+  width: min(100%, 1138px);
+  min-height: 288px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 24px;
+  margin: 24px 0 0;
+  padding: 28px 25px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-profile-field {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-profile-field > span {
+  color: #24344d;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 900;
+}
+
+.admin-profile-value {
+  width: 100%;
+  height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #172033;
+  text-align: left;
+}
+
+.admin-profile-value:disabled {
+  cursor: default;
+}
+
+.admin-profile-value.editable {
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.admin-profile-value b {
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-profile-value .el-icon {
+  color: #635bff;
+  font-size: 16px;
+}
+
+.admin-profile-edit-dialog.el-dialog {
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.admin-profile-edit-dialog .el-dialog__header {
+  margin: 0;
+  padding: 24px 24px 18px;
+}
+
+.admin-profile-edit-dialog .el-dialog__body {
+  padding: 20px 24px 16px;
+}
+
+.admin-profile-edit-dialog .el-dialog__footer {
+  padding: 10px 24px 24px;
+}
+
+.admin-profile-edit-dialog.is-compact .el-dialog__body {
+  padding-top: 28px;
+  padding-bottom: 14px;
+}
+
+.admin-profile-edit-dialog.is-password .el-dialog__body {
+  padding-top: 22px;
+}
+
+.admin-profile-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-profile-dialog-head strong {
+  color: #152238;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 900;
+}
+
+.admin-profile-dialog-head button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f6f8fb;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.admin-profile-dialog-body {
+  padding: 16px 0 14px;
+}
+
+.admin-profile-dialog-body .el-input__wrapper,
+.admin-profile-password-form .el-input__wrapper {
+  min-height: 42px;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px #cfd8e3 inset;
+}
+
+.admin-profile-dialog-body .el-input__inner,
+.admin-profile-password-form .el-input__inner {
+  color: #334155;
+  font-size: 14px;
+}
+
+.admin-profile-password-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-profile-password-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-profile-password-form label > span {
+  color: #152238;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-profile-password-form label > span b {
+  color: #ef4444;
+}
+
+.admin-profile-password-form em {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8aa0bd;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.admin-profile-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-profile-dialog-footer button {
+  min-width: 80px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-profile-dialog-footer .ghost {
+  border: 1px solid #cfd8e3;
+  background: #ffffff;
+  color: #334155;
+}
+
+.admin-profile-dialog-footer .primary {
+  border: 1px solid #4f46e5;
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .admin-profile-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-profile-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .admin-profile-top {
+    margin-right: -16px;
+    margin-left: -16px;
+  }
+
+  .admin-profile-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-semester-score-page,
+.admin-semester-score-offline-page {
+  min-height: 100vh;
+  padding: 0 24px 40px;
+  background: #f5f7fb;
+}
+
+.admin-semester-score-breadcrumb {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  color: #91a2bd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-semester-score-breadcrumb button {
+  border: 0;
+  background: transparent;
+  color: #91a2bd;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-semester-score-breadcrumb .el-breadcrumb__item:last-child .el-breadcrumb__inner {
+  color: #2563eb;
+  font-weight: 900;
+}
+
+.admin-semester-score-filter-card,
+.admin-semester-score-weight-card,
+.admin-semester-score-board,
+.admin-semester-score-offline-board {
+  border: 1px solid #e3e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.admin-semester-score-filter-card {
+  margin: 23px 0 18px;
+  padding: 14px 20px;
+}
+
+.admin-semester-score-filter-row {
+  display: grid;
+  grid-template-columns: 164px 116px 182px 182px 62px 62px;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-semester-score-filter-row .el-input__wrapper,
+.admin-semester-score-filter-row .el-select__wrapper {
+  min-height: 42px;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #dbe4ef inset;
+}
+
+.admin-semester-score-query.el-button,
+.admin-semester-score-reset.el-button {
+  min-width: 62px;
+  height: 42px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #52657d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-semester-score-query.el-button {
+  border-color: #dbe4ef;
+}
+
+.admin-semester-score-reset.el-button {
+  border-color: #dbe4ef;
+}
+
+.admin-semester-score-weight-card {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 16px 29px 16px 18px;
+}
+
+.admin-semester-score-weight-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 26px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-semester-score-weight-line .el-icon {
+  margin-right: -16px;
+  color: #3b82f6;
+  font-size: 15px;
+}
+
+.admin-semester-score-weight-line strong {
+  color: #152238;
+  font-weight: 900;
+}
+
+.admin-semester-score-weight-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #52657d;
+}
+
+.admin-semester-score-weight-line i {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+}
+
+.admin-semester-score-weight-line b {
+  color: #334155;
+}
+
+.admin-semester-score-primary.el-button {
+  min-width: 145px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-board {
+  overflow: hidden;
+}
+
+.admin-semester-score-table {
+  min-width: 1040px;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-semester-score-table th {
+  height: 46px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.admin-semester-score-table td {
+  height: 49px;
+  border-top: 0;
+  color: #24344d;
+  font-size: 14px;
+}
+
+.admin-semester-score-table tbody tr {
+  cursor: pointer;
+}
+
+.admin-semester-score-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.admin-semester-score-table th,
+.admin-semester-score-table td {
+  padding: 0 20px;
+  white-space: nowrap;
+}
+
+.admin-semester-score-table th:nth-child(1),
+.admin-semester-score-table td:nth-child(1) {
+  width: 60px;
+  text-align: left;
+}
+
+.admin-semester-score-table th:nth-child(2),
+.admin-semester-score-table td:nth-child(2) {
+  width: 90px;
+}
+
+.admin-semester-score-table th:nth-child(3),
+.admin-semester-score-table td:nth-child(3) {
+  width: 120px;
+}
+
+.admin-semester-score-table th:nth-child(4),
+.admin-semester-score-table td:nth-child(4) {
+  width: 150px;
+}
+
+.admin-semester-score-table th:nth-child(5),
+.admin-semester-score-table td:nth-child(5) {
+  width: 178px;
+}
+
+.admin-semester-score-table th:nth-child(6),
+.admin-semester-score-table td:nth-child(6),
+.admin-semester-score-table th:nth-child(7),
+.admin-semester-score-table td:nth-child(7),
+.admin-semester-score-table th:nth-child(8),
+.admin-semester-score-table td:nth-child(8),
+.admin-semester-score-table th:nth-child(9),
+.admin-semester-score-table td:nth-child(9),
+.admin-semester-score-table th:nth-child(10),
+.admin-semester-score-table td:nth-child(10) {
+  width: 110px;
+  text-align: center;
+}
+
+.admin-semester-score-table td strong,
+.admin-semester-score-table td b {
+  color: #152238;
+  font-weight: 900;
+}
+
+.admin-semester-score-total {
+  display: inline;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-footer,
+.admin-semester-score-offline-footer,
+.admin-semester-score-edit-body footer {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 20px 10px 22px;
+}
+
+.admin-semester-score-footer {
+  border-top: 0;
+}
+
+.admin-semester-score-footer p,
+.admin-semester-score-offline-footer p,
+.admin-semester-score-edit-body footer p {
+  margin: 0;
+  color: #52657d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-semester-score-upload.el-button {
+  min-width: 181px;
+  height: 40px;
+  margin: 26px 0 20px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-upload .el-icon {
+  font-size: 17px;
+}
+
+.admin-semester-score-offline-board {
+  margin: 0 7px;
+  overflow: hidden;
+}
+
+.admin-semester-score-offline-table {
+  width: 100%;
+  min-width: 1160px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-semester-score-offline-table th,
+.admin-semester-score-offline-table td {
+  height: 52px;
+  padding: 0 20px;
+  color: #40516c;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-semester-score-offline-table th {
+  height: 44px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-semester-score-offline-table th:nth-child(1),
+.admin-semester-score-offline-table td:nth-child(1) {
+  width: 56px;
+  text-align: center;
+}
+
+.admin-semester-score-offline-table th:nth-child(2),
+.admin-semester-score-offline-table td:nth-child(2) {
+  width: 260px;
+}
+
+.admin-semester-score-offline-table th:nth-child(3),
+.admin-semester-score-offline-table td:nth-child(3) {
+  width: 280px;
+}
+
+.admin-semester-score-offline-table th:nth-child(4),
+.admin-semester-score-offline-table td:nth-child(4) {
+  width: 176px;
+}
+
+.admin-semester-score-offline-table th:nth-child(5),
+.admin-semester-score-offline-table td:nth-child(5) {
+  width: 64px;
+}
+
+.admin-semester-score-offline-table th:nth-child(8),
+.admin-semester-score-offline-table td:nth-child(8) {
+  width: 118px;
+}
+
+.admin-semester-score-offline-table strong {
+  color: #152238;
+  font-weight: 900;
+}
+
+.admin-semester-score-edit-link.el-button {
+  height: 30px;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-semester-score-offline-footer {
+  padding: 18px 32px;
+}
+
+.admin-semester-score-detail-dialog.el-dialog,
+.admin-semester-score-import-dialog.el-dialog,
+.admin-semester-score-edit-dialog.el-dialog {
+  border-radius: 0;
+  background: #ffffff;
+}
+
+.admin-semester-score-detail-dialog .el-dialog__header,
+.admin-semester-score-import-dialog .el-dialog__header,
+.admin-semester-score-edit-dialog .el-dialog__header {
+  margin: 0;
+  padding: 20px 24px 8px;
+}
+
+.admin-semester-score-detail-dialog .el-dialog__body,
+.admin-semester-score-import-dialog .el-dialog__body,
+.admin-semester-score-edit-dialog .el-dialog__body {
+  padding: 12px 24px 0;
+}
+
+.admin-semester-score-import-dialog .el-dialog__footer,
+.admin-semester-score-edit-dialog .el-dialog__footer {
+  padding: 20px 24px 24px;
+}
+
+.admin-semester-score-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-semester-score-dialog-head strong {
+  color: #152238;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 900;
+}
+
+.admin-semester-score-dialog-head button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #f6f8fb;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.admin-semester-score-detail-score {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #8aa0bd;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-semester-score-detail-score strong {
+  color: #4f46e5;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail-score i {
+  width: 1px;
+  height: 28px;
+  background: #cbd5e1;
+}
+
+.admin-semester-score-detail-score p {
+  margin: 0;
+  color: #8aa0bd;
+}
+
+.admin-semester-score-detail table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-semester-score-detail th,
+.admin-semester-score-detail td {
+  height: 44px;
+  padding: 0 14px;
+  color: #334155;
+  font-size: 14px;
+  text-align: left;
+}
+
+.admin-semester-score-detail th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail th:nth-child(1),
+.admin-semester-score-detail td:nth-child(1) {
+  width: 76px;
+  text-align: center;
+}
+
+.admin-semester-score-detail th:nth-child(2),
+.admin-semester-score-detail td:nth-child(2) {
+  width: 112px;
+}
+
+.admin-semester-score-detail th:nth-child(3),
+.admin-semester-score-detail td:nth-child(3) {
+  width: 100px;
+  text-align: center;
+}
+
+.admin-semester-score-detail th:nth-child(5),
+.admin-semester-score-detail td:nth-child(5) {
+  width: 112px;
+  text-align: center;
+}
+
+.admin-semester-score-detail td b {
+  color: #4f46e5;
+  font-weight: 900;
+}
+
+.admin-semester-score-detail td strong {
+  color: #24344d;
+  font-weight: 900;
+}
+
+.admin-semester-score-import-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-semester-score-import-form label {
+  display: grid;
+  gap: 8px;
+  color: #152238;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-import-form label > span b {
+  color: #ef4444;
+}
+
+.admin-semester-score-import-form .el-input__wrapper,
+.admin-semester-score-import-form .el-select__wrapper,
+.admin-semester-score-edit-body .el-input__wrapper {
+  min-height: 42px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #cfd8e3 inset;
+}
+
+.admin-semester-score-import-form em {
+  justify-self: end;
+  margin-top: 4px;
+  color: #8aa0bd;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.admin-semester-score-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-semester-score-date-row i {
+  color: #8aa0bd;
+  font-style: normal;
+  text-align: center;
+}
+
+.admin-semester-score-upload-box {
+  min-height: 122px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 2px solid #cbd8ea;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #8aa0bd;
+}
+
+.admin-semester-score-upload-box .el-icon {
+  color: #8aa0bd;
+  font-size: 34px;
+}
+
+.admin-semester-score-upload-box strong {
+  color: #52657d;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-upload-box span {
+  color: #8aa0bd;
+  font-size: 13px;
+}
+
+.admin-semester-score-template-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.admin-semester-score-template-row button {
+  border: 0;
+  background: transparent;
+  color: #4f46e5;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-semester-score-template-row span {
+  color: #8aa0bd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-semester-score-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.admin-semester-score-dialog-footer .el-button {
+  min-width: 80px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.admin-semester-score-edit-body {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-semester-score-tip {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #52657d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-semester-score-tip .el-icon {
+  color: #4f46e5;
+}
+
+.admin-semester-score-edit-body table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-semester-score-edit-body th,
+.admin-semester-score-edit-body td {
+  height: 52px;
+  padding: 0 26px;
+  color: #40516c;
+  font-size: 14px;
+  text-align: left;
+}
+
+.admin-semester-score-edit-body th {
+  height: 44px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-semester-score-edit-body th:nth-child(1),
+.admin-semester-score-edit-body td:nth-child(1) {
+  width: 76px;
+  text-align: center;
+}
+
+.admin-semester-score-edit-body th:nth-child(2),
+.admin-semester-score-edit-body td:nth-child(2) {
+  width: 160px;
+}
+
+.admin-semester-score-edit-body th:nth-child(3),
+.admin-semester-score-edit-body td:nth-child(3) {
+  width: 120px;
+}
+
+.admin-semester-score-edit-body strong {
+  color: #152238;
+  font-weight: 900;
+}
+
+.admin-semester-score-edit-body footer {
+  padding: 0;
+}
+
+@media (max-width: 1280px) {
+  .admin-semester-score-filter-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-semester-score-weight-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.admin-training-archive-detail-page {
+  padding: 0 24px 64px;
+}
+
+.admin-training-archive-detail-top {
+  height: 64px;
+  gap: 16px;
+}
+
+.admin-training-archive-detail-breadcrumb {
+  color: #91a2bd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-training-archive-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.admin-training-archive-student-card {
+  min-height: 50px;
+  gap: 24px;
+  margin: 24px 0 20px;
+  padding: 0 24px;
+}
+
+.admin-training-archive-title-card {
+  min-height: 82px;
+  margin-bottom: 8px;
+  padding: 18px 24px;
+}
+
+.admin-training-archive-title-card h1 {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.admin-training-archive-detail-grid {
+  grid-template-columns: minmax(720px, 1.53fr) minmax(410px, 0.95fr);
+  gap: 20px;
+}
+
+.admin-training-archive-step-card {
+  min-height: 620px;
+}
+
+.admin-training-archive-step-card header,
+.admin-training-archive-video-card header {
+  min-height: 60px;
+  padding: 0 24px;
+}
+
+.admin-training-archive-step-card th {
+  height: 54px;
+  padding: 0 24px;
+}
+
+.admin-training-archive-step-card td {
+  height: 47px;
+  padding: 8px 24px;
+}
+
+.admin-training-archive-step-card th:nth-child(1),
+.admin-training-archive-step-card td:nth-child(1) {
+  width: 70px;
+  text-align: center;
+}
+
+.admin-training-archive-step-card th:nth-child(2),
+.admin-training-archive-step-card td:nth-child(2) {
+  width: 210px;
+}
+
+.admin-training-archive-step-card th:nth-child(3),
+.admin-training-archive-step-card td:nth-child(3),
+.admin-training-archive-step-card th:nth-child(4),
+.admin-training-archive-step-card td:nth-child(4) {
+  width: 190px;
+}
+
+.admin-training-archive-step-card th:nth-child(5),
+.admin-training-archive-step-card td:nth-child(5) {
+  width: 68px;
+  text-align: center;
+}
+
+.admin-training-archive-step-card th:nth-child(6),
+.admin-training-archive-step-card td:nth-child(6) {
+  width: 92px;
+  text-align: center;
+}
+
+.admin-training-archive-pill {
+  max-width: 166px;
+  padding: 3px 10px;
+}
+
+.admin-training-archive-video-card {
+  min-height: 444px;
+  padding-bottom: 24px;
+}
+
+.admin-training-archive-video-card .admin-training-archive-video {
+  width: calc(100% - 48px);
+  aspect-ratio: 496 / 360;
+  margin-top: 0;
+}
+
+@media (max-width: 1360px) {
+  .admin-training-archive-detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
