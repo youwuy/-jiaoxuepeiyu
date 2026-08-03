@@ -163,15 +163,15 @@
             <el-input v-model="form.resourceName" maxlength="20" show-word-limit placeholder="请输入资源名称" />
           </label>
 
-          <label class="admin-resource-modal-field">
+          <div class="admin-resource-modal-field">
             <span>封面图 <b>*</b></span>
-            <div v-if="form.coverUrl" class="admin-resource-file-card cover">
+            <div v-if="form.coverUrl" class="admin-resource-file-card cover" @click.stop>
               <img :src="form.coverUrl" alt="封面图" />
               <div>
                 <strong>{{ form.coverName || '-' }}</strong>
                 <p>{{ form.coverSize || '-' }}</p>
               </div>
-              <el-button text circle :icon="Delete" @click="clearCover" />
+              <el-button text circle :icon="Delete" @click.stop="clearCover" />
             </div>
             <button v-else type="button" class="admin-resource-upload-drop cover" :disabled="uploadingCover" @click="coverInput?.click()">
               <el-icon><Picture /></el-icon>
@@ -179,11 +179,11 @@
               <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
             </button>
             <input ref="coverInput" class="admin-resource-hidden-file" type="file" accept="image/jpeg,image/png,image/jpg" hidden @change="uploadCoverFile" />
-          </label>
+          </div>
 
-          <label class="admin-resource-modal-field">
+          <div class="admin-resource-modal-field">
             <span>资源内容 <b>*</b></span>
-            <div v-if="form.fileName" class="admin-resource-file-card content">
+            <div v-if="form.fileName" class="admin-resource-file-card content" @click.stop>
               <span class="admin-resource-file-icon">
                 <el-icon><Document /></el-icon>
               </span>
@@ -191,7 +191,7 @@
                 <strong>{{ form.fileName }}</strong>
                 <p>{{ form.fileSizeLabel || form.fileSize || '-' }} <i></i> 上传完成 <em>✓</em></p>
               </div>
-              <el-button text circle :icon="Delete" @click="clearFile" />
+              <el-button text circle :icon="Delete" @click.stop="clearFile" />
             </div>
             <button v-else type="button" class="admin-resource-upload-drop content" :disabled="uploadingFile" @click="fileInput?.click()">
               <el-icon><UploadFilled /></el-icon>
@@ -199,7 +199,7 @@
               <span>支持 PDF、Word、PPT、视频等多种格式，大小不超过 200MB</span>
             </button>
             <input ref="fileInput" class="admin-resource-hidden-file" type="file" hidden @change="uploadResourceFile" />
-          </label>
+          </div>
 
           <label class="admin-resource-modal-field">
             <span>所属专业 <b>*</b></span>
@@ -721,7 +721,6 @@ function toggleOne(resourceId: number) {
 
 function validateForm(): AdminResourceCommand {
   const resourceName = form.resourceName.trim();
-  const resourceType = form.resourceType.trim();
   const majorId = Number(form.majorId);
   const coverUrl = form.coverUrl.trim();
   const fileUrl = form.fileUrl.trim();
@@ -732,10 +731,6 @@ function validateForm(): AdminResourceCommand {
 
   if (!resourceName) {
     throw new Error('请输入资源名称');
-  }
-
-  if (!resourceType) {
-    throw new Error('请选择资源类型');
   }
 
   if (!majorId) {
@@ -768,7 +763,6 @@ function validateForm(): AdminResourceCommand {
     majorId,
     courseName: form.courseName.trim() || undefined,
     uploaderName: form.uploaderName.trim() || undefined,
-    resourceType,
     publicStatus: form.publicStatus,
     currentVersion,
     publicVersion
