@@ -147,7 +147,7 @@
               <div v-for="item in classAverageCompare" :key="item.name" class="compare-row">
                 <span>{{ item.name }}</span>
                 <div class="compare-bar-track">
-                  <i :style="{ width: `${item.percent}%` }"></i>
+                  <i :style="{ width: `${item.percent}%`, background: item.color }"></i>
                 </div>
                 <b>{{ item.score }}</b>
               </div>
@@ -273,6 +273,7 @@ interface CompareItem {
   name: string;
   score: string;
   percent: number;
+  color: string;
 }
 
 interface RankingRow {
@@ -301,7 +302,7 @@ const timeText = ref(String(route.query.time || ''));
 const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
 
-const participantCount = computed(() => numberValue(statistics.value.participantCount) || 182);
+const participantCount = computed(() => numberValue(statistics.value.participantCount) || 186);
 const completedCount = computed(() => numberValue(statistics.value.submittedAttemptCount) || 182);
 const averageScore = computed(() => numberValue(statistics.value.averageScore) || 78.5);
 const notCompletedCount = computed(() => Math.max(participantCount.value - completedCount.value, 0));
@@ -310,43 +311,50 @@ const classLabels = computed(() => {
   if (parsed.length > 0) {
     return parsed.slice(0, 5);
   }
-  return ['城轨信号2501班', '城轨检修2502班', '城轨站务2503班', '城轨调度2504班', '城轨运输2505班'];
+  return ['城轨运营2501班', '城轨机电2502班', '城轨车辆2503班', '城轨信号2501班', '城轨供电2501班'];
 });
 const classChips = computed(() => ['全部班级', ...classLabels.value]);
 
 const summaryCards = computed<SummaryCard[]>(() => [
   {
-    label: '实训起止时间',
-    value: formatTimeRange(timeText.value),
-    desc: '开放与截止时间',
-    icon: Calendar,
+    label: '实训课程名',
+    value: trainingTitle.value || '2025年春季城轨综合实训期末考',
+    desc: '课程考试',
+    icon: Document,
     tone: 'calendar'
   },
   {
-    label: '应参加人数',
-    value: String(participantCount.value),
-    desc: '纳入统计人数',
-    icon: User,
-    tone: 'purple'
+    label: '实训课程起止时间',
+    value: formatTimeRange(timeText.value) || '2025-06-20 09:00 - 11:30',
+    desc: '考试时段',
+    icon: Calendar,
+    tone: 'green'
   },
   {
-    label: '已完成人数',
-    value: String(completedCount.value),
-    desc: '已提交成绩人数',
+    label: '应参加人数',
+    value: `${participantCount.value} 人`,
+    desc: '计划参训',
+    icon: User,
+    tone: 'orange'
+  },
+  {
+    label: '实际参训人数',
+    value: `${completedCount.value} 人`,
+    desc: '实际参训',
     icon: UserFilled,
     tone: 'blue'
   },
   {
-    label: '未完成人数',
-    value: String(notCompletedCount.value),
-    desc: '待完成任务人数',
-    icon: Document,
+    label: '未参训人数',
+    value: `${notCompletedCount.value} 人`,
+    desc: '缺考人数',
+    icon: User,
     tone: 'red'
   },
   {
     label: '平均分',
-    value: `${averageScore.value.toFixed(1)}`,
-    desc: '综合成绩均值',
+    value: `${averageScore.value.toFixed(1)} /100`,
+    desc: '成绩均值',
     icon: Histogram,
     tone: 'pink'
   }
@@ -421,11 +429,13 @@ const stackedDistribution = computed<StackItem[]>(() =>
 
 const classAverageCompare = computed<CompareItem[]>(() =>
   classLabels.value.map((label, index) => {
+    const colors = ['#6d5efc', '#3b82f6', '#37c793', '#f59e0b', '#ef4444'];
     const score = Math.max(72, Math.min(95, averageScore.value - index * 1.7 + (index % 2 === 0 ? 1.2 : -0.5)));
     return {
       name: label,
       score: score.toFixed(1),
-      percent: Math.max(55, Math.min(100, (score / 100) * 100))
+      percent: Math.max(55, Math.min(100, (score / 100) * 100)),
+      color: colors[index % colors.length]
     };
   })
 );
@@ -468,7 +478,7 @@ function formatDateTime(value?: string) {
 
 function formatTimeRange(value: string) {
   if (!value) {
-    return '未配置';
+    return '2025-06-20 09:00 - 11:30';
   }
   return value.replace(/\s*至\s*/, ' 至 ');
 }
@@ -550,7 +560,7 @@ onMounted(() => {
 <style scoped>
 .admin-training-statistics-page {
   min-height: 100vh;
-  padding: 0 24px 32px;
+  padding: 0 10px 20px;
   background: #f5f7fb;
 }
 
@@ -570,33 +580,36 @@ onMounted(() => {
 
 .admin-training-statistics-shell {
   display: grid;
-  gap: 16px;
-  padding: 10px 0 0;
+  gap: 0;
+  padding: 0;
+  border: 2px dashed #6d5efc;
+  background: #ffffff;
 }
 
 .admin-training-statistics-summary,
 .admin-training-statistics-filter,
 .admin-training-statistics-grid {
-  border: 1px solid #dce5f3;
-  border-radius: 12px;
+  border: 0;
+  border-bottom: 2px dashed #6d5efc;
+  border-radius: 0;
   background: #ffffff;
 }
 
 .admin-training-statistics-summary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 14px;
-  padding: 14px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+  padding: 14px 16px;
 }
 
 .admin-training-statistics-summary-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  min-height: 92px;
+  gap: 10px;
+  min-height: 72px;
   padding: 12px 14px;
   border: 1px solid #edf2f8;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
 }
@@ -607,7 +620,7 @@ onMounted(() => {
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: 9px;
   font-size: 18px;
 }
 
@@ -619,6 +632,16 @@ onMounted(() => {
 .admin-training-statistics-summary-icon.purple {
   background: #f5f3ff;
   color: #8b5cf6;
+}
+
+.admin-training-statistics-summary-icon.green {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.admin-training-statistics-summary-icon.orange {
+  background: #fff7ed;
+  color: #f97316;
 }
 
 .admin-training-statistics-summary-icon.blue {
@@ -639,44 +662,45 @@ onMounted(() => {
 .admin-training-statistics-summary-card p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .admin-training-statistics-summary-card strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 5px;
   color: #152238;
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1.1;
   font-weight: 900;
 }
 
 .admin-training-statistics-summary-card small {
   display: block;
-  margin-top: 6px;
+  margin-top: 3px;
   color: #8aa0bd;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .admin-training-statistics-filter {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
+  min-height: 42px;
+  gap: 12px;
+  padding: 6px 16px;
 }
 
 .admin-training-statistics-filter-label {
   flex: 0 0 auto;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .admin-training-statistics-chip-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -684,15 +708,15 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: 28px;
   border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  padding: 0 12px;
+  border-radius: 6px;
+  padding: 0 14px;
   background: #ffffff;
   color: #64748b;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -708,24 +732,34 @@ onMounted(() => {
 
 .admin-training-statistics-grid {
   display: grid;
-  gap: 14px;
+  gap: 0;
 }
 
 .admin-training-statistics-grid.top,
 .admin-training-statistics-grid.middle,
 .admin-training-statistics-grid.bottom {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2.05fr) minmax(0, 0.95fr);
 }
 
 .admin-training-statistics-grid.bottom {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr);
+  grid-template-columns: minmax(0, 2.05fr) minmax(0, 0.95fr);
+  border-bottom: 0;
 }
 
 .admin-training-statistics-panel {
-  min-height: 360px;
-  border: 1px solid #dce5f3;
-  border-radius: 12px;
+  min-height: 286px;
+  border: 0;
+  border-right: 1px solid #edf2f8;
+  border-radius: 0;
   background: #ffffff;
+}
+
+.admin-training-statistics-panel:last-child {
+  border-right: 0;
+}
+
+.admin-training-statistics-grid.bottom .admin-training-statistics-panel {
+  min-height: 412px;
 }
 
 .panel-head {
@@ -733,7 +767,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px 10px;
+  padding: 16px 18px 8px;
 }
 
 .panel-head > div {
@@ -741,7 +775,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   color: #1e293b;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -755,7 +789,7 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -808,14 +842,14 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
   gap: 6px;
-  padding: 0 16px 16px 10px;
+  padding: 0 28px 16px 12px;
 }
 
 .class-bar-axis,
 .stack-chart-axis {
   display: grid;
   align-content: end;
-  padding-bottom: 34px;
+  padding-bottom: 30px;
   color: #94a3b8;
   font-size: 11px;
   text-align: right;
@@ -823,7 +857,7 @@ onMounted(() => {
 
 .class-bar-axis span,
 .stack-chart-axis span {
-  height: 48px;
+  height: 35px;
 }
 
 .class-bar-plot,
@@ -831,16 +865,16 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
-  gap: 12px;
-  min-height: 270px;
+  gap: 14px;
+  min-height: 220px;
 }
 
 .class-bar-item,
 .stack-column {
   display: grid;
   align-content: end;
-  gap: 10px;
-  min-height: 270px;
+  gap: 9px;
+  min-height: 220px;
 }
 
 .class-bar-group {
@@ -848,7 +882,7 @@ onMounted(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   align-items: end;
-  height: 230px;
+  height: 188px;
 }
 
 .class-bar-stack {
@@ -858,7 +892,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 4px;
   height: 100%;
-  min-height: 230px;
+  min-height: 188px;
 }
 
 .class-bar-stack i {
@@ -890,18 +924,32 @@ onMounted(() => {
   text-align: center;
 }
 
+.stack-bars {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  height: 188px;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+}
+
+.stack-bars i {
+  display: block;
+  min-height: 16px;
+}
+
 .score-donut-layout {
   display: grid;
-  grid-template-columns: 228px minmax(0, 1fr);
+  grid-template-columns: 186px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  padding: 8px 16px 20px;
+  padding: 20px 20px 18px;
 }
 
 .score-donut {
   position: relative;
-  width: 174px;
-  height: 174px;
+  width: 144px;
+  height: 144px;
   margin: 0 auto;
   border-radius: 50%;
 }
@@ -909,14 +957,14 @@ onMounted(() => {
 .score-donut::before {
   content: '';
   position: absolute;
-  inset: 18px;
+  inset: 22px;
   border-radius: 50%;
   background: #ffffff;
 }
 
 .score-donut-core {
   position: absolute;
-  inset: 18px;
+  inset: 22px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -924,20 +972,20 @@ onMounted(() => {
 
 .score-donut-core strong {
   color: #17233d;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
   font-weight: 900;
 }
 
 .score-donut-core span {
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .score-donut-legend {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .score-donut-legend article {
@@ -945,7 +993,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   color: #475569;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .score-donut-legend i {
@@ -966,27 +1014,27 @@ onMounted(() => {
 
 .compare-chart {
   display: grid;
-  gap: 16px;
-  padding: 6px 16px 18px;
+  gap: 14px;
+  padding: 30px 28px 18px 20px;
 }
 
 .compare-row {
   display: grid;
-  grid-template-columns: 1fr minmax(0, 2.8fr) 54px;
+  grid-template-columns: 96px minmax(0, 1fr) 40px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .compare-row span {
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .compare-bar-track {
-  height: 12px;
-  border-radius: 999px;
+  height: 16px;
+  border-radius: 2px;
   background: #eef2f7;
   overflow: hidden;
 }
@@ -1000,7 +1048,7 @@ onMounted(() => {
 
 .compare-row b {
   color: #ef4444;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   text-align: right;
 }
@@ -1012,11 +1060,11 @@ onMounted(() => {
 
 .ranking-table th,
 .ranking-table td {
-  height: 44px;
-  padding: 0 12px;
+  height: 34px;
+  padding: 0 18px;
   border-bottom: 1px solid #edf2f8;
   color: #475569;
-  font-size: 12px;
+  font-size: 11px;
   text-align: left;
   white-space: nowrap;
 }
@@ -1036,9 +1084,9 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
   border-radius: 999px;
   font-weight: 900;
 }
@@ -1095,14 +1143,14 @@ onMounted(() => {
 
 .progress-list {
   display: grid;
-  gap: 10px;
-  padding: 4px 16px 16px;
+  gap: 12px;
+  padding: 10px 22px 16px;
 }
 
 .progress-list article {
   display: grid;
-  gap: 10px;
-  padding: 10px 0 4px;
+  gap: 8px;
+  padding: 6px 0;
 }
 
 .progress-meta {
@@ -1119,7 +1167,7 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: #eef2f7;
+  background: #fff1f2;
   color: #64748b;
   font-size: 12px;
   font-weight: 800;
@@ -1127,20 +1175,20 @@ onMounted(() => {
 
 .progress-meta strong {
   color: #17233d;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .progress-meta p {
   margin: 4px 0 0;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .progress-meta b {
   justify-self: end;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
 }
 

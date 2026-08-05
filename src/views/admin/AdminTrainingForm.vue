@@ -1,6 +1,6 @@
 <template>
   <AdminShell activeKey="admin-trainings">
-    <section v-if="!topicPickerVisible" class="admin-training-form-page">
+    <section class="admin-training-form-page">
       <header class="admin-training-form-topbar">
         <div class="admin-training-form-left">
           <el-button class="admin-training-form-back" :icon="ArrowLeft" @click="goBack" />
@@ -14,242 +14,182 @@
         <span></span>
       </header>
 
-      <main class="admin-training-form-content">
-        <div class="admin-training-form-panel">
-          <header class="admin-training-form-head">
+      <main v-loading="loading" class="admin-training-form-content">
+        <section class="admin-training-base-card">
+          <header class="admin-training-section-head">
+            <span class="admin-training-section-icon blue">
+              <el-icon><InfoFilled /></el-icon>
+            </span>
             <div>
-              <span>{{ formMode === 'create' ? '新增实训课' : '编辑实训课' }}</span>
-              <h2>{{ form.name || (formMode === 'create' ? '新增实训课' : '编辑实训课') }}</h2>
+              <strong>基础信息</strong>
+              <p>填写实训课程的基本信息，带 * 为必填项</p>
             </div>
-            <el-button class="admin-training-form-close" text circle :icon="Close" @click="goBack" />
           </header>
 
-          <div class="admin-training-stepper">
-            <button v-for="step in steps" :key="step.key" type="button" :class="{ active: activeStep === step.key }" @click="activeStep = step.key">
-              <i>{{ step.index }}</i>
-              <span>{{ step.label }}</span>
-            </button>
+          <div class="admin-training-base-grid">
+            <label class="admin-training-form-item">
+              <span><b>*</b> 实训课程名</span>
+              <el-input v-model="form.name" maxlength="30" placeholder="请输入实训课程名称" />
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 类型</span>
+              <el-radio-group v-model="form.type" class="admin-training-radio-line">
+                <el-radio label="练习">练习</el-radio>
+                <el-radio label="考试">考试</el-radio>
+              </el-radio-group>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 起止时间</span>
+              <div class="admin-training-date-range">
+                <el-date-picker v-model="form.range[0]" type="datetime" placeholder="开始时间" />
+                <em>至</em>
+                <el-date-picker v-model="form.range[1]" type="datetime" placeholder="结束时间" />
+              </div>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 所属学年学期</span>
+              <el-select v-model="form.semester" placeholder="请选择学年学期">
+                <el-option v-for="item in semesterOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 参训班级/学员</span>
+              <el-select v-model="selectedClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择参训班级/学员（可多选）">
+                <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 监考教师</span>
+              <el-select v-model="selectedTeacherIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择监考教师（可多选）">
+                <el-option v-for="item in teacherOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 教室</span>
+              <el-select v-model="selectedRoomId" placeholder="请选择教室">
+                <el-option v-for="item in roomOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 学生实训时是否自动录屏</span>
+              <el-radio-group v-model="form.recordingEnabled" class="admin-training-radio-line">
+                <el-radio :label="false">否</el-radio>
+                <el-radio :label="true">是</el-radio>
+              </el-radio-group>
+            </label>
+            <label class="admin-training-form-item">
+              <span><b>*</b> 最终成绩取值依据</span>
+              <el-radio-group v-model="form.scoreBasis" class="admin-training-radio-line">
+                <el-radio label="最高成绩">最高成绩</el-radio>
+                <el-radio label="最后一次提交的成绩">最后一次提交的成绩</el-radio>
+              </el-radio-group>
+            </label>
           </div>
+        </section>
 
-          <div class="admin-training-form-body">
-            <section v-show="activeStep === 'base'" class="admin-training-form-card">
-              <header><strong>基础信息</strong><p>配置实训课名称、类型、时间和说明</p></header>
-              <div class="admin-training-form-grid">
-                <label>
-                  <span>实训课名称 <b>*</b></span>
-                  <el-input v-model="form.name" maxlength="30" placeholder="请输入实训课名称" />
-                </label>
-                <label>
-                  <span>实训类型 <b>*</b></span>
-                  <el-radio-group v-model="form.type">
-                    <el-radio-button label="考试" />
-                    <el-radio-button label="练习" />
-                  </el-radio-group>
-                </label>
-                <label>
-                  <span>实训模式 <b>*</b></span>
-                  <el-radio-group v-model="form.mode">
-                    <el-radio-button label="单人实训" />
-                    <el-radio-button label="协同实训" />
-                  </el-radio-group>
-                </label>
-                <label>
-                  <span>学年学期 <b>*</b></span>
-                  <el-select v-model="form.semester" placeholder="请选择学期">
-                    <el-option v-for="item in semesterOptions" :key="item.value" :label="item.label" :value="item.value" />
-                  </el-select>
-                </label>
-                <label class="wide">
-                  <span>实训时间 <b>*</b></span>
-                  <el-date-picker v-model="form.range" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" />
-                </label>
-                <label class="wide">
-                  <span>实训说明</span>
-                  <el-input v-model="form.description" type="textarea" :rows="4" maxlength="200" show-word-limit placeholder="请输入实训说明" />
-                </label>
+        <section class="admin-training-question-card">
+          <header class="admin-training-question-head">
+            <div class="admin-training-section-head">
+              <span class="admin-training-section-icon purple">
+                <el-icon><Document /></el-icon>
+              </span>
+              <div>
+                <strong>实训题列表</strong>
+                <p>选择本次实训包含的题目，可拖拽排序，注意：暂考试题型，刷多人实训题只能添加一个，单人实训题数量不限</p>
               </div>
-            </section>
+            </div>
+            <el-button type="primary" class="admin-training-add-topic" :icon="Plus" @click="topicPickerVisible = true">添加实训题</el-button>
+          </header>
 
-            <section v-show="activeStep === 'resource'" class="admin-training-form-card">
-              <header>
-                <div><strong>实训内容</strong><p>选择实训任务、资源课件和理论试卷</p></div>
-                <div class="admin-training-card-actions">
-                  <el-button :icon="FolderOpened" @click="topicPickerVisible = true">添加实训题</el-button>
-                  <el-button :icon="Document" @click="openSelector('resource')">选择资源</el-button>
-                  <el-button :icon="Tickets" @click="openSelector('paper')">选择理论试卷</el-button>
-                </div>
-              </header>
-
-              <div class="admin-training-topic-summary">
-                <article>
-                  <span>已选实训题</span>
-                  <strong>{{ selectedTopics.length }} 个</strong>
-                </article>
-                <article>
-                  <span>资源课件</span>
-                  <strong>{{ selectedResources.length }} 个</strong>
-                </article>
-                <article>
-                  <span>理论试卷</span>
-                  <strong>{{ selectedPaper?.name || '未选择' }}</strong>
-                </article>
-              </div>
-
-              <div class="admin-training-selected-list">
-                <article v-for="item in selectedTopics" :key="item.id">
-                  <div>
-                    <strong>{{ item.name }}</strong>
-                    <span>{{ item.meta }}</span>
-                  </div>
-                  <el-button text type="danger" @click="removeSelected('topic', item.id)">移除</el-button>
-                </article>
-              </div>
-
-              <div class="admin-training-subsection">
-                <p>资源课件</p>
-                <div class="admin-training-resource-grid">
-                  <article v-for="item in selectedResources" :key="item.id">
-                    <el-icon><Document /></el-icon>
-                    <div><strong>{{ item.name }}</strong><span>{{ item.type }} / {{ item.size }}</span></div>
-                    <button @click="removeSelected('resource', item.id)">移除</button>
-                  </article>
-                </div>
-              </div>
-
-              <div class="admin-training-paper-row">
-                <span>理论试卷</span>
-                <strong>{{ selectedPaper?.name || '未选择' }}</strong>
-                <el-button link type="primary" @click="openSelector('paper')">重新选择</el-button>
-              </div>
-            </section>
-
-            <section v-show="activeStep === 'target'" class="admin-training-form-card">
-              <header>
-                <div><strong>参训对象与场地</strong><p>配置班级、学生、监考教师和实训教室</p></div>
-                <div class="admin-training-card-actions">
-                  <el-button :icon="UserFilled" @click="openSelector('class')">选择班级/学生</el-button>
-                  <el-button :icon="User" @click="openSelector('teacher')">选择教师</el-button>
-                  <el-button :icon="OfficeBuilding" @click="openSelector('room')">选择教室</el-button>
-                </div>
-              </header>
-              <div class="admin-training-target-grid">
-                <article>
-                  <span>参训班级/学生</span>
-                  <strong>{{ selectedClasses.map((item) => item.name).join('、') || '未选择' }}</strong>
-                </article>
-                <article>
-                  <span>监考教师</span>
-                  <strong>{{ selectedTeachers.map((item) => item.name).join('、') || '未选择' }}</strong>
-                </article>
-                <article>
-                  <span>实训教室</span>
-                  <strong>{{ selectedRoom?.name || '未选择' }}</strong>
-                </article>
-              </div>
-            </section>
-
-            <section v-show="activeStep === 'rule'" class="admin-training-form-card">
-              <header>
-                <div><strong>协同角色与评分规则</strong><p>配置小组角色、流程节点和得分规则</p></div>
-                <div class="admin-training-card-actions">
-                  <el-button :icon="Plus" @click="openRoleDialog">新增角色</el-button>
-                  <el-button :icon="View" @click="previewVisible = true">预览组课</el-button>
-                </div>
-              </header>
-
-              <div class="admin-training-role-grid">
-                <article v-for="role in form.roles" :key="role.name">
-                  <div><strong>{{ role.name }}</strong><span>{{ role.capacity }} 人 / {{ role.duty }}</span></div>
-                  <el-input-number v-model="role.capacity" :min="1" :max="8" size="small" />
-                </article>
-              </div>
-
-              <div class="admin-training-flow">
-                <article v-for="(node, index) in form.flow" :key="node.name">
-                  <i>{{ index + 1 }}</i>
-                  <div><strong>{{ node.name }}</strong><span>{{ node.rule }}</span></div>
-                  <el-input-number v-model="node.score" :min="0" :max="100" size="small" />
-                </article>
-              </div>
-            </section>
+          <div class="admin-training-topic-table-scroll">
+            <table class="admin-training-topic-table">
+              <thead>
+                <tr>
+                  <th>排序</th>
+                  <th>序号</th>
+                  <th>实训题名称</th>
+                  <th>实训模式</th>
+                  <th>训练角色 <el-icon><QuestionFilled /></el-icon></th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in selectedTopicRows" :key="item.id">
+                  <td><span class="admin-training-drag-handle">⠿</span></td>
+                  <td>{{ index + 1 }}</td>
+                  <td class="topic-name">{{ item.name }}</td>
+                  <td>{{ item.mode }}</td>
+                  <td>
+                    <div v-if="item.roles.length" class="admin-training-role-checks">
+                      <el-checkbox v-for="role in item.roles" :key="role" :model-value="true" disabled>{{ role }}</el-checkbox>
+                    </div>
+                    <span v-else>-</span>
+                  </td>
+                  <td>
+                    <el-button class="admin-training-delete-topic" text type="danger" :icon="Delete" @click="removeSelected('topic', item.id)">删除</el-button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+          <footer class="admin-training-question-summary">已选择 <b>{{ selectedTopics.length }}</b> 道实训题</footer>
+        </section>
 
-        <div class="admin-training-form-footer">
+        <footer class="admin-training-form-footer">
           <el-button @click="goBack">取消</el-button>
-          <el-button @click="saveDraft">保存草稿</el-button>
-          <el-button type="primary" @click="saveAndPublish">保存并发布</el-button>
-        </div>
+          <el-button type="primary" :icon="Check" @click="saveAndPublish">保存</el-button>
+        </footer>
       </main>
     </section>
 
-    <section v-else class="admin-training-topic-page">
-      <header class="admin-training-topic-topbar">
-        <div class="admin-training-topic-left">
-          <el-button class="admin-training-topic-back" :icon="ArrowLeft" @click="topicPickerVisible = false" />
-          <el-breadcrumb class="admin-training-topic-breadcrumb" separator="/">
-            <el-breadcrumb-item>教学实训</el-breadcrumb-item>
-            <el-breadcrumb-item>实训组课</el-breadcrumb-item>
-            <el-breadcrumb-item>添加实训题</el-breadcrumb-item>
-          </el-breadcrumb>
+    <el-dialog v-model="topicPickerVisible" class="admin-training-topic-dialog" width="920px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-training-dialog-head">
+          <strong>添加实训题</strong>
+          <el-button text circle :icon="Close" @click="topicPickerVisible = false" />
         </div>
-        <h1>添加实训题</h1>
-        <span></span>
-      </header>
-
-      <main class="admin-training-topic-content">
-        <header class="admin-training-topic-head">
-          <div>
-            <span>添加实训题</span>
-            <h2>{{ form.name || '新增实训课' }}</h2>
-          </div>
-          <el-button class="admin-training-topic-close" @click="topicPickerVisible = false">返回实训课</el-button>
-        </header>
-
-        <section class="admin-training-topic-toolbar">
-          <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="搜索实训题名称" clearable />
+      </template>
+      <section class="admin-training-topic-picker">
+        <div class="admin-training-topic-toolbar">
+          <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名称" clearable />
           <el-select v-model="topicType" class="admin-training-topic-select" placeholder="实训题类型" clearable>
             <el-option label="信号" value="信号" />
             <el-option label="站务" value="站务" />
             <el-option label="调度" value="调度" />
           </el-select>
-          <el-button type="primary" class="admin-training-topic-confirm" @click="topicPickerVisible = false">完成选择</el-button>
-        </section>
-
-        <section class="admin-training-topic-card">
-          <div class="admin-training-topic-card-head">
-            <strong>实训题列表</strong>
-            <span>已选 {{ selectedTopicIds.length }} 项</span>
-          </div>
-          <div class="admin-training-topic-table-scroll">
-            <table class="admin-training-topic-table">
-              <thead>
-                <tr>
-                  <th>选择</th>
-                  <th>实训题名称</th>
-                  <th>类型</th>
-                  <th>时长</th>
-                  <th>分值</th>
-                  <th>说明</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in filteredTopics" :key="item.id">
-                  <td>
-                    <el-checkbox :model-value="selectedTopicIds.includes(item.id)" @change="toggleTopic(item.id)" />
-                  </td>
-                  <td class="topic-name">{{ item.name }}</td>
-                  <td><span class="topic-pill">{{ item.category }}</span></td>
-                  <td>{{ item.duration }} 分钟</td>
-                  <td>{{ item.score }} 分</td>
-                  <td>{{ item.meta }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </section>
+        </div>
+        <div class="admin-training-topic-dialog-table">
+          <table class="admin-training-topic-table">
+            <thead>
+              <tr>
+                <th>选择</th>
+                <th>实训题名称</th>
+                <th>类型</th>
+                <th>实训模式</th>
+                <th>时长</th>
+                <th>分值</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredTopicRows" :key="item.id">
+                <td><el-checkbox :model-value="selectedTopicIds.includes(item.id)" @change="toggleTopic(item.id)" /></td>
+                <td class="topic-name">{{ item.name }}</td>
+                <td><span class="topic-pill">{{ item.category }}</span></td>
+                <td>{{ item.mode }}</td>
+                <td>{{ item.duration }} 分钟</td>
+                <td>{{ item.score }} 分</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <template #footer>
+        <div class="admin-training-dialog-footer">
+          <el-button @click="topicPickerVisible = false">取消</el-button>
+          <el-button type="primary" @click="topicPickerVisible = false">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="selectorVisible" class="admin-training-dialog" width="760px" :show-close="false" append-to-body>
       <template #header>
@@ -316,7 +256,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Close, Document, FolderOpened, OfficeBuilding, Plus, Search, Tickets, User, UserFilled, View } from '@element-plus/icons-vue';
+import { ArrowLeft, Check, Close, Delete, Document, InfoFilled, Plus, QuestionFilled, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { fetchAdminPapers } from '../../api/admin-paper';
 import { fetchAdminResources } from '../../api/admin-resource';
@@ -332,7 +272,6 @@ import type { AdminClass } from '../../api/admin-settings';
 import type { AdminPaper } from '../../api/admin-paper';
 import type { AdminResource } from '../../api/admin-resource';
 
-type StepKey = 'base' | 'resource' | 'target' | 'rule';
 type SelectorKind = 'resource' | 'paper' | 'class' | 'teacher' | 'room';
 
 interface TopicItem {
@@ -342,6 +281,11 @@ interface TopicItem {
   duration: number;
   score: number;
   meta: string;
+}
+
+interface TopicRow extends TopicItem {
+  mode: string;
+  roles: string[];
 }
 
 interface SelectableItem {
@@ -371,7 +315,6 @@ const route = useRoute();
 const router = useRouter();
 const trainingId = computed(() => Number(route.params.id));
 const formMode = computed(() => (route.name === 'admin-training-edit' ? 'edit' : 'create'));
-const activeStep = ref<StepKey>('base');
 const loading = ref(false);
 const topicPickerVisible = ref(false);
 const previewVisible = ref(false);
@@ -415,18 +358,13 @@ const form = reactive({
   description: '',
   teacherIds: [] as number[],
   classIds: [] as number[],
+  recordingEnabled: false,
+  scoreBasis: '最高成绩' as '最高成绩' | '最后一次提交的成绩',
   roles: [] as TrainingRole[],
   flow: [] as TrainingFlowNode[]
 });
 
 const roleForm = reactive({ name: '', capacity: 1, duty: '' });
-
-const steps = [
-  { key: 'base' as StepKey, index: 1, label: '基础信息' },
-  { key: 'resource' as StepKey, index: 2, label: '实训内容' },
-  { key: 'target' as StepKey, index: 3, label: '对象场地' },
-  { key: 'rule' as StepKey, index: 4, label: '角色规则' }
-];
 
 const semesterOptions = computed(() =>
   academicYears.value.flatMap((year) =>
@@ -439,13 +377,13 @@ const semesterOptions = computed(() =>
 );
 
 const selectedTopics = computed(() => topicOptions.value.filter((item) => selectedTopicIds.value.includes(item.id)));
-const selectedResources = computed(() => resourceOptions.value.filter((item) => selectedResourceIds.value.includes(item.id)));
-const selectedPaper = computed(() => paperOptions.value.find((item) => item.id === selectedPaperId.value));
 const selectedClasses = computed(() => classOptions.value.filter((item) => selectedClassIds.value.includes(item.id)));
 const selectedTeachers = computed(() => teacherOptions.value.filter((item) => selectedTeacherIds.value.includes(item.id)));
 const selectedRoom = computed(() => roomOptions.value.find((item) => item.id === selectedRoomId.value));
 const totalScore = computed(() => selectedTopics.value.reduce((sum, item) => sum + item.score, 0));
 const formatRange = computed(() => (form.range.length === 2 ? `${form.range[0]} 至 ${form.range[1]}` : '未选择时间'));
+const selectedTopicRows = computed<TopicRow[]>(() => selectedTopics.value.map(mapTopicRow));
+const filteredTopicRows = computed<TopicRow[]>(() => filteredTopics.value.map(mapTopicRow));
 
 const selectorTitle = computed(() => ({
   resource: '选择资源',
@@ -493,6 +431,8 @@ function resetForm() {
   form.description = '';
   form.teacherIds = [];
   form.classIds = [];
+  form.recordingEnabled = false;
+  form.scoreBasis = '最高成绩';
   form.roles = [];
   form.flow = [];
   selectedTopicIds.value = [];
@@ -501,7 +441,6 @@ function resetForm() {
   selectedClassIds.value = [];
   selectedTeacherIds.value = [];
   selectedRoomId.value = 0;
-  activeStep.value = 'base';
 }
 
 async function loadDetail() {
@@ -577,13 +516,6 @@ async function loadOptions() {
   }
 }
 
-function openSelector(kind: SelectorKind) {
-  selectorKind.value = kind;
-  selectorKeyword.value = '';
-  selectorType.value = '';
-  selectorVisible.value = true;
-}
-
 function isSelected(id: number) {
   const current = currentSelectedIds(selectorKind.value);
   return current.includes(id);
@@ -645,13 +577,6 @@ function toggleTopic(id: number) {
     : [...selectedTopicIds.value, id];
 }
 
-function openRoleDialog() {
-  roleForm.name = '';
-  roleForm.capacity = 1;
-  roleForm.duty = '';
-  roleVisible.value = true;
-}
-
 function addRole() {
   if (!roleForm.name.trim()) {
     ElMessage.warning('请输入角色名称');
@@ -672,7 +597,7 @@ function buildTrainingCommand(publishStatus: string) {
     openStartTime: form.range[0],
     openEndTime: form.range[1],
     teamSize: form.roles.reduce((sum, role) => sum + Number(role.capacity || 0), 0) || 1,
-    appRequired: true,
+    appRequired: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
     roles: form.roles.map((role, index) => ({
       roleName: role.name,
@@ -683,25 +608,6 @@ function buildTrainingCommand(publishStatus: string) {
     })),
     publishStatus
   };
-}
-
-async function saveDraft() {
-  if (!form.name.trim()) {
-    ElMessage.warning('请输入实训课名称');
-    return;
-  }
-  try {
-    const command = buildTrainingCommand('DRAFT');
-    if (formMode.value === 'edit' && form.id) {
-      await updateAdminTraining(form.id, command);
-    } else {
-      await createAdminTraining(command);
-    }
-    ElMessage.success('草稿已保存');
-    goBack();
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '保存草稿失败');
-  }
 }
 
 async function saveAndPublish() {
@@ -749,6 +655,15 @@ function trainingModeToApi(mode?: string) {
 
 function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {
   return mode === 'SINGLE' ? '单人实训' : '协同实训';
+}
+
+function mapTopicRow(item: TopicItem): TopicRow {
+  const multi = item.id % 2 === 0;
+  return {
+    ...item,
+    mode: multi ? '多人实训' : '单人实训',
+    roles: multi ? (item.id === 2 ? ['司机', '调度员', '信号员'] : ['站台员', '维修员']) : []
+  };
 }
 
 onMounted(async () => {
@@ -1388,6 +1303,388 @@ onMounted(async () => {
   .admin-training-topic-search,
   .admin-training-topic-select {
     width: 100%;
+  }
+}
+
+.admin-training-form-page {
+  min-height: 100vh;
+  padding: 0 20px 0;
+  background: #f6f8fc;
+}
+
+.admin-training-form-topbar {
+  min-height: 52px;
+  margin: 0 -20px;
+  padding: 0 20px;
+  border-bottom: 2px solid #6d5efc;
+  background: #ffffff;
+}
+
+.admin-training-form-left {
+  gap: 12px;
+}
+
+.admin-training-form-back.el-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.admin-training-form-breadcrumb {
+  font-size: 13px;
+}
+
+.admin-training-form-topbar h1 {
+  font-size: 16px;
+}
+
+.admin-training-form-content {
+  min-height: calc(100vh - 52px);
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  border: 0;
+  border-radius: 0;
+  padding: 20px 0 76px;
+  background: #f6f8fc;
+}
+
+.admin-training-base-card,
+.admin-training-question-card {
+  border: 1px solid #e1e8f2;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.admin-training-base-card {
+  min-height: 458px;
+  padding: 22px 22px 18px;
+}
+
+.admin-training-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-training-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.admin-training-section-icon.blue {
+  background: #eaf3ff;
+  color: #3b82f6;
+}
+
+.admin-training-section-icon.purple {
+  background: #f3e8ff;
+  color: #a855f7;
+}
+
+.admin-training-section-head strong {
+  display: block;
+  color: #17233d;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 900;
+}
+
+.admin-training-section-head p {
+  margin: 4px 0 0;
+  color: #8aa0bd;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.admin-training-base-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px 26px;
+  margin-top: 22px;
+}
+
+.admin-training-form-item {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.admin-training-form-item > span {
+  color: #334155;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 800;
+}
+
+.admin-training-form-item b {
+  color: #ef4444;
+  font-weight: 900;
+}
+
+.admin-training-form-item :deep(.el-input__wrapper),
+.admin-training-form-item :deep(.el-select__wrapper),
+.admin-training-date-range :deep(.el-input__wrapper) {
+  min-height: 40px;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #dfe7f1 inset;
+}
+
+.admin-training-form-item :deep(.el-input__inner),
+.admin-training-form-item :deep(.el-select__placeholder),
+.admin-training-date-range :deep(.el-input__inner) {
+  color: #8aa0bd;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-training-date-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-training-date-range em {
+  color: #8aa0bd;
+  font-style: normal;
+  font-size: 13px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.admin-training-radio-line {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.admin-training-radio-line :deep(.el-radio) {
+  margin-right: 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.admin-training-radio-line :deep(.el-radio__label) {
+  font-size: 14px;
+}
+
+.admin-training-radio-line :deep(.el-radio__input.is-checked .el-radio__inner) {
+  border-color: #3b82f6;
+  background: #3b82f6;
+}
+
+.admin-training-radio-line :deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: #3b82f6;
+}
+
+.admin-training-question-card {
+  overflow: hidden;
+}
+
+.admin-training-question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+}
+
+.admin-training-add-topic.el-button {
+  width: 112px;
+  height: 36px;
+  border: 0;
+  border-radius: 7px;
+  background: #3b82f6;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-training-topic-table-scroll {
+  margin: 0 22px;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-training-topic-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.admin-training-topic-table th,
+.admin-training-topic-table td {
+  height: 50px;
+  padding: 0 18px;
+  border-bottom: 1px solid #edf2f8;
+  font-size: 13px;
+}
+
+.admin-training-topic-table th {
+  background: #f8fafc;
+  color: #52657d;
+  font-weight: 900;
+}
+
+.admin-training-topic-table th:first-child,
+.admin-training-topic-table td:first-child {
+  width: 64px;
+  text-align: center;
+}
+
+.admin-training-topic-table th:nth-child(2),
+.admin-training-topic-table td:nth-child(2) {
+  width: 72px;
+  text-align: center;
+}
+
+.admin-training-topic-table th:nth-child(4),
+.admin-training-topic-table td:nth-child(4) {
+  width: 130px;
+}
+
+.admin-training-topic-table th:nth-child(5),
+.admin-training-topic-table td:nth-child(5) {
+  width: 250px;
+}
+
+.admin-training-topic-table th:nth-child(6),
+.admin-training-topic-table td:nth-child(6) {
+  width: 170px;
+}
+
+.admin-training-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #9aabc0;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.topic-name {
+  color: #17233d;
+  font-weight: 800;
+}
+
+.admin-training-role-checks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-training-role-checks :deep(.el-checkbox) {
+  height: 24px;
+  margin-right: 0;
+}
+
+.admin-training-role-checks :deep(.el-checkbox__label) {
+  padding-left: 5px;
+  color: #52657d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-training-delete-topic.el-button {
+  min-width: 58px;
+  height: 28px;
+  border-radius: 5px;
+  background: #fff1f2;
+  color: #ff5a67;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-training-question-summary {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  color: #8aa0bd;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-training-question-summary b {
+  margin: 0 4px;
+  color: #3b82f6;
+}
+
+.admin-training-form-footer {
+  position: fixed;
+  right: 20px;
+  bottom: 0;
+  left: 20px;
+  z-index: 8;
+  min-height: 62px;
+  align-items: center;
+  padding: 0 20px;
+  border: 1px solid #e1e8f2;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+
+.admin-training-form-footer .el-button {
+  min-width: 76px;
+  height: 36px;
+  border-radius: 7px;
+  font-weight: 800;
+}
+
+.admin-training-form-footer .el-button--primary {
+  background: #3b82f6;
+}
+
+.admin-training-topic-dialog.el-dialog {
+  border-radius: 10px;
+}
+
+.admin-training-topic-picker {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-training-topic-dialog-table {
+  max-height: 440px;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.admin-training-topic-dialog-table .admin-training-topic-table {
+  min-width: 820px;
+}
+
+@media (max-width: 980px) {
+  .admin-training-base-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-training-date-range {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-training-date-range em {
+    display: none;
+  }
+
+  .admin-training-form-footer {
+    right: 12px;
+    left: 12px;
   }
 }
 </style>
