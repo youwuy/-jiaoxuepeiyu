@@ -47,21 +47,45 @@
             <h3>学员监控</h3>
             <el-button :icon="Monitor" type="primary" plain @click="openStudentMonitor">查看学员桌面</el-button>
           </div>
-          <el-table v-if="students.length" :data="students">
-            <el-table-column prop="name" label="学员姓名" min-width="120" />
-            <el-table-column prop="studentNo" label="学号" min-width="150" />
-            <el-table-column prop="topic" label="当前实训题" min-width="180" />
-            <el-table-column prop="mode" label="模式" width="110" />
-            <el-table-column prop="room" label="所在房间" width="130" />
-            <el-table-column prop="ip" label="IP" width="150" />
-            <el-table-column label="在线状态" width="112">
-              <template #default="{ row }">
-                <el-tag :type="row.online ? 'success' : 'info'" size="small">
-                  {{ row.online ? '在线' : '离线' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div v-if="students.length" class="admin-training-monitor-table-scroll">
+            <table class="admin-training-monitor-table">
+              <colgroup>
+                <col class="admin-training-monitor-col-name" />
+                <col class="admin-training-monitor-col-student-no" />
+                <col class="admin-training-monitor-col-topic" />
+                <col class="admin-training-monitor-col-mode" />
+                <col class="admin-training-monitor-col-room" />
+                <col class="admin-training-monitor-col-ip" />
+                <col class="admin-training-monitor-col-status" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>学员姓名</th>
+                  <th>学号</th>
+                  <th>当前实训题</th>
+                  <th>模式</th>
+                  <th>所在房间</th>
+                  <th>IP</th>
+                  <th>在线状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="student in students" :key="student.id">
+                  <td>{{ student.name }}</td>
+                  <td>{{ student.studentNo }}</td>
+                  <td>{{ student.topic }}</td>
+                  <td>{{ student.mode }}</td>
+                  <td>{{ student.room }}</td>
+                  <td>{{ student.ip }}</td>
+                  <td>
+                    <span class="admin-training-monitor-status" :class="{ offline: !student.online }">
+                      {{ student.online ? '在线' : '离线' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <el-empty v-else description="暂无在线学员信息" />
         </section>
       </main>
@@ -276,13 +300,13 @@ onMounted(() => {
 }
 
 .admin-training-monitor-back.el-button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 1px solid #dce5f1;
-  border-radius: 8px;
+  border-radius: 9px;
   background: #ffffff;
   color: #53657f;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .admin-training-monitor-breadcrumb {
@@ -310,7 +334,7 @@ onMounted(() => {
   min-height: calc(100vh - 96px);
   border: 1px solid #e5ebf3;
   border-radius: 10px;
-  padding: 24px;
+  padding: 30px;
   background: #ffffff;
 }
 
@@ -325,21 +349,23 @@ onMounted(() => {
 .admin-training-monitor-heading h2 {
   margin: 0;
   color: #0f172a;
-  font-size: 22px;
-  line-height: 30px;
+  font-size: 26px;
+  line-height: 34px;
 }
 
 .admin-training-monitor-heading p {
-  margin: 6px 0 0;
-  color: #64748b;
-  font-size: 13px;
+  margin: 8px 0 0;
+  color: #647895;
+  font-size: 16px;
 }
 
 .admin-training-monitor-back-list.el-button {
-  height: 36px;
+  height: 44px;
+  padding: 0 16px;
   border-color: #d9e4f0;
-  border-radius: 7px;
+  border-radius: 8px;
   color: #53657f;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -352,16 +378,133 @@ onMounted(() => {
 }
 
 .admin-training-monitor-page .monitor-student-panel {
-  margin-top: 22px;
+  margin-top: 30px;
+  border-color: #dfe7f1;
+  border-radius: 9px;
 }
 
 .admin-training-monitor-empty {
   display: grid;
-  min-height: 260px;
+  min-height: 366px;
   place-items: center;
   border: 1px dashed #dce5f1;
   border-radius: 8px;
-  background: #fbfdff;
+  background: #fcfdff;
+}
+
+.admin-training-monitor-empty :deep(.el-empty) {
+  padding: 0;
+}
+
+.admin-training-monitor-empty :deep(.el-empty__image) {
+  width: 160px;
+}
+
+.admin-training-monitor-empty :deep(.el-empty__description) {
+  margin-top: 14px;
+  color: #9aa9bc;
+  font-size: 16px;
+}
+
+.admin-training-monitor-page .panel-heading {
+  min-height: 70px;
+  padding: 0 16px;
+  border-bottom-color: #dfe7f1;
+}
+
+.admin-training-monitor-page .panel-heading h3 {
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.admin-training-monitor-page .panel-heading .el-button {
+  height: 40px;
+  border-color: #90b9ff;
+  border-radius: 6px;
+  color: #367df5;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.admin-training-monitor-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-training-monitor-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-training-monitor-table th,
+.admin-training-monitor-table td {
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid #e5ebf3;
+  color: #53657d;
+  font-size: 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-training-monitor-table th {
+  height: 58px;
+  color: #93a0b1;
+  font-weight: 900;
+}
+
+.admin-training-monitor-table td {
+  font-weight: 500;
+}
+
+.admin-training-monitor-col-name {
+  width: 15%;
+}
+
+.admin-training-monitor-col-student-no {
+  width: 18%;
+}
+
+.admin-training-monitor-col-topic {
+  width: 22%;
+}
+
+.admin-training-monitor-col-mode {
+  width: 10%;
+}
+
+.admin-training-monitor-col-room {
+  width: 12%;
+}
+
+.admin-training-monitor-col-ip {
+  width: 12%;
+}
+
+.admin-training-monitor-col-status {
+  width: 11%;
+}
+
+.admin-training-monitor-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 24px;
+  border: 1px solid #d9edcb;
+  border-radius: 5px;
+  padding: 0 8px;
+  background: #f0f9e9;
+  color: #67c23a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-training-monitor-status.offline {
+  border-color: #e1e7ef;
+  background: #f5f7fa;
+  color: #909399;
 }
 
 .admin-training-student-monitor-dialog.el-dialog {
@@ -573,7 +716,7 @@ onMounted(() => {
   }
 
   .admin-training-monitor-content {
-    padding: 18px;
+    padding: 22px;
   }
 
   .admin-training-student-monitor-body {
@@ -598,8 +741,20 @@ onMounted(() => {
     flex-direction: column;
   }
 
+  .admin-training-monitor-content {
+    padding: 16px;
+  }
+
   .admin-training-monitor-back-list.el-button {
     width: 100%;
+  }
+
+  .admin-training-monitor-empty {
+    min-height: 280px;
+  }
+
+  .admin-training-monitor-page .panel-heading {
+    min-height: 62px;
   }
 
   .admin-training-student-monitor-dialog.el-dialog {
