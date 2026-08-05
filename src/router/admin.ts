@@ -21,6 +21,8 @@ import AdminTrainingArchive from '../views/admin/AdminTrainingArchive.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
 import AdminTrainingMonitor from '../views/admin/AdminTrainingMonitor.vue';
 import AdminTrainingReviews from '../views/admin/AdminTrainingReviews.vue';
+import AdminTrainingStatistics from '../views/admin/AdminTrainingStatistics.vue';
+import AdminTrainingForm from '../views/admin/AdminTrainingForm.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
 
 export const adminRoutes: RouteRecordRaw[] = [
@@ -119,6 +121,16 @@ export const adminRoutes: RouteRecordRaw[] = [
     component: AdminTrainingCourses
   },
   {
+    path: '/admin/training/new',
+    name: 'admin-training-new',
+    component: AdminTrainingForm
+  },
+  {
+    path: '/admin/training/:id/edit',
+    name: 'admin-training-edit',
+    component: AdminTrainingForm
+  },
+  {
     path: '/admin/training/:id/monitor',
     name: 'admin-training-monitor',
     component: AdminTrainingMonitor
@@ -127,6 +139,11 @@ export const adminRoutes: RouteRecordRaw[] = [
     path: '/admin/training/:id/reviews',
     name: 'admin-training-reviews',
     component: AdminTrainingReviews
+  },
+  {
+    path: '/admin/training/:id/statistics',
+    name: 'admin-training-statistics',
+    component: AdminTrainingStatistics
   },
   {
     path: '/admin/semester-score',

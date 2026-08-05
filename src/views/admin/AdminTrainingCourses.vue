@@ -381,22 +381,6 @@
         <el-empty v-if="logs.length === 0" description="暂无操作日志" />
       </el-drawer>
 
-      <el-drawer v-model="statsVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
-        <div class="admin-training-drawer-head compact"><div><span>成绩统计</span><h3>{{ selectedCourse?.name || '成绩统计' }}</h3></div><el-button text circle :icon="Close" @click="statsVisible = false" /></div>
-        <div class="admin-training-stats-grid">
-          <article><span>应参加</span><strong>{{ statsSummary.participantCount || 0 }}</strong></article>
-          <article><span>已完成</span><strong>{{ statsSummary.submittedAttemptCount || 0 }}</strong></article>
-          <article><span>平均分</span><strong>{{ formatNumber(statsSummary.averageScore) }}</strong></article>
-          <article><span>通过率</span><strong>{{ passRate(statsSummary) }}</strong></article>
-        </div>
-        <el-table :data="statsRows">
-          <el-table-column prop="className" label="班级" min-width="160" />
-          <el-table-column prop="total" label="人数" width="90" />
-          <el-table-column prop="finished" label="完成人数" width="110" />
-          <el-table-column prop="avg" label="平均分" width="100" />
-          <el-table-column prop="passRate" label="通过率" width="100" />
-        </el-table>
-      </el-drawer>
     </section>
   </AdminShell>
 </template>
@@ -416,12 +400,10 @@ import {
   fetchAdminTraining,
   fetchAdminTrainingLogs,
   fetchAdminTrainings,
-  fetchAdminTrainingStatistics,
   publishAdminTraining,
   updateAdminTraining,
   type AdminTraining,
-  type AdminTrainingLog,
-  type AdminTrainingStatistics
+  type AdminTrainingLog
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses, fetchAdminMajors } from '../../api/admin-settings';
 import { fetchAdminTeachers } from '../../api/admin-course';
@@ -481,7 +463,6 @@ const activeStep = ref<StepKey>('base');
 const selectedCourse = ref<CourseRow>();
 const previewCourse = ref<CourseRow>();
 const logVisible = ref(false);
-const statsVisible = ref(false);
 const selectorVisible = ref(false);
 const selectorKind = ref<SelectorKind>('topic');
 const selectorKeyword = ref('');
@@ -546,8 +527,6 @@ const selectedRoomId = ref<number>(0);
 
 const logs = ref<Array<{ time: string; operator: string; action: string; content: string }>>([]);
 
-const statsSummary = ref<AdminTrainingStatistics>({});
-const statsRows = ref<Array<{ className: string; total: number; finished: number; avg: string; passRate: string }>>([]);
 const resourceOptions = ref<SelectableItem[]>([]);
 const paperOptions = ref<SelectableItem[]>([]);
 const teacherOptions = ref<SelectableItem[]>([]);
@@ -602,39 +581,12 @@ function refreshCourses() {
   void loadCourses();
 }
 
-function resetForm() {
-  form.id = 0;
-  form.name = '';
-  form.type = '考试';
-  form.mode = '协同实训';
-  form.semester = '';
-  form.range = [];
-  form.description = '';
-  selectedTopicIds.value = [];
-  selectedResourceIds.value = [];
-  selectedPaperId.value = 0;
-  selectedClassIds.value = [];
-  selectedTeacherIds.value = [];
-  selectedRoomId.value = 0;
-  activeStep.value = 'base';
-}
-
 function openCreate() {
-  resetForm();
-  formMode.value = 'create';
-  formVisible.value = true;
+  router.push({ name: 'admin-training-new' });
 }
 
 function openEdit(course: CourseRow) {
-  formMode.value = 'edit';
-  form.id = course.id;
-  form.name = course.name;
-  form.type = course.type;
-  form.mode = course.mode;
-  form.range = course.time.split('\n至 ');
-  selectedCourse.value = course;
-  activeStep.value = 'base';
-  formVisible.value = true;
+  router.push({ name: 'admin-training-edit', params: { id: course.id } });
 }
 
 async function saveDraft() {
@@ -778,23 +730,12 @@ function openMarking(row: CourseRow) {
   });
 }
 
-async function openStats(row: CourseRow) {
-  selectedCourse.value = row;
-  try {
-    statsSummary.value = await fetchAdminTrainingStatistics(row.id);
-    statsRows.value = [{
-      className: row.target || '-',
-      total: Number(statsSummary.value.participantCount || 0),
-      finished: Number(statsSummary.value.submittedAttemptCount || 0),
-      avg: formatNumber(statsSummary.value.averageScore),
-      passRate: passRate(statsSummary.value)
-    }];
-  } catch (error) {
-    statsSummary.value = {};
-    statsRows.value = [];
-    ElMessage.error(error instanceof Error ? error.message : '成绩统计加载失败');
-  }
-  statsVisible.value = true;
+function openStats(row: CourseRow) {
+  router.push({
+    name: 'admin-training-statistics',
+    params: { id: row.id },
+    query: { title: row.name, target: row.target }
+  });
 }
 
 async function openLogs(row: CourseRow) {
@@ -1024,18 +965,6 @@ function semesterIdFromLabel(label: string) {
 function formatDateTime(value?: string) {
   if (!value) return '-';
   return value.replace('T', ' ').slice(0, 16);
-}
-
-function formatNumber(value?: number) {
-  if (value === undefined || value === null || Number.isNaN(Number(value))) return '-';
-  return Number(value).toFixed(1).replace(/\.0$/, '');
-}
-
-function passRate(stats: AdminTrainingStatistics) {
-  const totalCount = Number(stats.participantCount || 0);
-  const finishedCount = Number(stats.submittedAttemptCount || 0);
-  if (!totalCount) return '0%';
-  return `${Math.round((finishedCount / totalCount) * 100)}%`;
 }
 
 onMounted(() => {

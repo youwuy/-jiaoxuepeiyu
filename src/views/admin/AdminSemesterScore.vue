@@ -32,8 +32,10 @@
             <span>学号</span>
             <el-input v-model="draft.studentNo" placeholder="请输入学号" clearable @keyup.enter="applyFilters" />
           </label>
-          <el-button class="admin-semester-score-query" @click="applyFilters">查询</el-button>
-          <el-button class="admin-semester-score-reset" @click="resetFilters">重置</el-button>
+          <div class="admin-semester-score-actions-inline">
+            <el-button class="admin-semester-score-query" @click="applyFilters">查询</el-button>
+            <el-button class="admin-semester-score-reset" @click="resetFilters">重置</el-button>
+          </div>
         </div>
       </section>
 
@@ -461,3 +463,38 @@ onMounted(async () => {
   await loadPageData();
 });
 </script>
+
+<style scoped>
+.admin-semester-score-filter-row {
+  grid-template-columns: 160px 150px minmax(220px, 1fr) minmax(220px, 1fr) 150px auto;
+  column-gap: 16px;
+}
+
+.admin-semester-score-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 8px;
+  padding-bottom: 1px;
+}
+
+.admin-semester-score-query.el-button,
+.admin-semester-score-reset.el-button {
+  min-width: 76px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1280px) {
+  .admin-semester-score-filter-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-semester-score-actions-inline {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    padding-top: 2px;
+    padding-bottom: 0;
+    justify-content: flex-start;
+  }
+}
+</style>
