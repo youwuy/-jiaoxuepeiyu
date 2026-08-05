@@ -13,6 +13,7 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptStepCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.ue.port.UeTrainingCallbackRepository;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -90,6 +91,23 @@ class StudentTrainingAttemptServiceTests {
 
         @Override
         public void insertAttemptStep(Long attemptId, TrainingAttemptStepCommand step, int sortOrder) {
+        }
+
+        @Override
+        public Optional<Long> findCurrentSemesterId() {
+            return Optional.of(202601L);
+        }
+
+        @Override
+        public UeScoreWeight findLatestScoreWeight(Long semesterId) {
+            return new UeScoreWeight(20, 35, 15, 30);
+        }
+
+        @Override
+        public void upsertTrainingPracticeScore(Long studentId,
+                                                Long semesterId,
+                                                BigDecimal trainingPracticeScore,
+                                                UeScoreWeight weight) {
         }
     }
 

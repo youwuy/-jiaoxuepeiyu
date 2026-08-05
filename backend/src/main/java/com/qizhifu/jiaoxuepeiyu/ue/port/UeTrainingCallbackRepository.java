@@ -4,6 +4,8 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptStepCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public interface UeTrainingCallbackRepository {
@@ -15,4 +17,13 @@ public interface UeTrainingCallbackRepository {
     Long insertAttempt(TrainingAttemptSubmission submission);
 
     void insertAttemptStep(Long attemptId, TrainingAttemptStepCommand step, int sortOrder);
+
+    Optional<Long> findCurrentSemesterId();
+
+    UeScoreWeight findLatestScoreWeight(Long semesterId);
+
+    void upsertTrainingPracticeScore(Long studentId,
+                                     Long semesterId,
+                                     BigDecimal trainingPracticeScore,
+                                     UeScoreWeight weight);
 }

@@ -8,6 +8,7 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingStatusCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.ue.port.UeTrainingCallbackRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -96,7 +97,20 @@ public class UeTrainingCallbackService {
         repository.upsertMonitorSnapshot(snapshot(studentId, trainingId, null, "ONLINE",
                 "NORMAL".equals(submitType) ? "SUBMITTED" : "ABNORMAL",
                 normalized.getPersonalScore(), normalized.getTeamScore(), submission.getSubmittedAt()));
+        syncTrainingPracticeScore(studentId, normalized.getPersonalScore());
         return attemptId;
+    }
+
+    private void syncTrainingPracticeScore(Long studentId, BigDecimal personalScore) {
+        if (personalScore == null) {
+            return;
+        }
+        Long semesterId = repository.findCurrentSemesterId().orElse(null);
+        if (semesterId == null) {
+            return;
+        }
+        UeScoreWeight weight = repository.findLatestScoreWeight(semesterId);
+        repository.upsertTrainingPracticeScore(studentId, semesterId, personalScore, weight);
     }
 
     private TrainingMonitorSnapshotCommand snapshot(Long studentId,

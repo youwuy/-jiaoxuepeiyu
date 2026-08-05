@@ -16,6 +16,12 @@ Authentication:
 - Compatibility fallback: `X-User-Id: <studentId>`.
 - The backend resolves the current student identity from the request. UE clients must not submit another student's id in the body.
 
+Scope:
+
+- 当前三维实训只保留 4 个对接接口：获取实训任务、上传实训录屏、回传实时状态、提交实训成绩。
+- 管理端实训档案、学生端实训档案读取三维成绩提交后写入的 `training_attempt` / `training_attempt_step`。
+- 管理端综合成绩、学生端综合成绩中的“实训练习”成绩由三维成绩提交接口的 `personalScore` 同步写入当前学期综合成绩。
+
 ## Training Task
 
 ### `GET /api/ue/trainings/{trainingId}/task`
@@ -50,6 +56,36 @@ Behavior:
 - Rejects trainings not assigned to the current student.
 - Rejects unpublished or deleted trainings.
 - For team trainings, `aiRoleNames` contains unclaimed room role names so UE can mark those roles as AI-filled launch parameters.
+
+## Recording Upload
+
+### `POST /api/files`
+
+Uploads a training recording file. Use `multipart/form-data`.
+
+Request form fields:
+
+- `file`: required recording file.
+- `category`: optional, recommended value `recordings`.
+
+Example response `data`:
+
+```json
+{
+  "fileUrl": "/uploads/recordings/6d7e8f9a.mp4",
+  "fileName": "training-run.mp4",
+  "storedFileName": "6d7e8f9a.mp4",
+  "fileSize": 2048576,
+  "contentType": "video/mp4",
+  "category": "recordings"
+}
+```
+
+Behavior:
+
+- Returns the public `fileUrl`.
+- UE passes that `fileUrl` as `recordingUrl` when calling `POST /api/ue/trainings/{trainingId}/attempts`.
+- Maximum upload size follows backend config `app.file.max-size-bytes`.
 
 ## Live Status Callback
 
@@ -130,4 +166,5 @@ Behavior:
 - Scores must be between `0` and `100` when present.
 - Inserts one immutable `training_attempt` row and ordered `training_attempt_step` rows.
 - Updates `training_monitor_snapshot` to `SUBMITTED` for `NORMAL`, otherwise `ABNORMAL`.
+- Synchronizes `personalScore` to `score_semester_summary.training_practice_score` for the current semester, so admin and student comprehensive scores use the UE-submitted training score.
 - Recording files can be uploaded with `POST /api/files` first, then passed as `recordingUrl`.

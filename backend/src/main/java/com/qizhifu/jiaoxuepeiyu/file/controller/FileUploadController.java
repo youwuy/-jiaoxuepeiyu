@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/files")
-@Tag(name = "Files", description = "Local file upload APIs for admin and student clients.")
+@Tag(name = "Files", description = "Local file upload APIs for admin, student, and UE training clients.")
 public class FileUploadController {
 
     private static final String USER_ID_HEADER = "X-User-Id";
@@ -31,10 +31,10 @@ public class FileUploadController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload file", description = "Stores a multipart file locally and returns metadata that can be used by resource create or update APIs.")
+    @Operation(summary = "Upload file", description = "Stores a multipart file locally and returns metadata. UE clients can upload training recordings with category=recordings, then pass data.fileUrl to the training result callback.")
     public ApiResponse<StoredFile> upload(@Parameter(description = "Multipart file content.")
                                           @RequestParam("file") MultipartFile file,
-                                          @Parameter(description = "Optional storage category such as resources, covers, or assignments.")
+                                          @Parameter(description = "Optional storage category such as resources, covers, assignments, or recordings.")
                                           @RequestParam(value = "category", required = false) String category,
                                           HttpServletRequest request) {
         requireUploadUserId(request);

@@ -4,7 +4,9 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptStepCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.ue.port.UeTrainingCallbackRepository;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -41,6 +43,25 @@ public class MyBatisUeTrainingCallbackRepository implements UeTrainingCallbackRe
     public void insertAttemptStep(Long attemptId, TrainingAttemptStepCommand step, int sortOrder) {
         mapper.insertAttemptStep(attemptId, step, defaultInteger(step.getDurationSeconds()),
                 defaultInteger(step.getVideoStartSecond()), sortOrder);
+    }
+
+    @Override
+    public Optional<Long> findCurrentSemesterId() {
+        return Optional.ofNullable(mapper.findCurrentSemesterId());
+    }
+
+    @Override
+    public UeScoreWeight findLatestScoreWeight(Long semesterId) {
+        UeScoreWeight weight = mapper.findLatestScoreWeight(semesterId);
+        return weight == null ? new UeScoreWeight(20, 35, 15, 30) : weight;
+    }
+
+    @Override
+    public void upsertTrainingPracticeScore(Long studentId,
+                                            Long semesterId,
+                                            BigDecimal trainingPracticeScore,
+                                            UeScoreWeight weight) {
+        mapper.upsertTrainingPracticeScore(studentId, semesterId, trainingPracticeScore, weight);
     }
 
     private int defaultInteger(Integer value) {

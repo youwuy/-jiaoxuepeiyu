@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/ue/trainings")
-@Tag(name = "UE Training Callback", description = "Task launch, live status, and result callbacks for the UE training program.")
+@Tag(name = "UE Training Callback", description = "Four integration APIs for the UE training program: task metadata, recording upload through /api/files, live status, and result callback.")
 public class UeTrainingCallbackController {
 
     private final UeTrainingCallbackService service;
@@ -45,7 +45,7 @@ public class UeTrainingCallbackController {
     }
 
     @PostMapping("/{trainingId}/attempts")
-    @Operation(summary = "Submit UE training result", description = "Creates an immutable training archive with optional step records and updates monitor status.")
+    @Operation(summary = "Submit UE training result", description = "Creates an immutable training archive with optional step records, updates monitor status, and synchronizes the submitted personalScore to semester comprehensive scores as the training-practice score.")
     public ApiResponse<Long> submitAttempt(@PathVariable Long trainingId,
                                            @RequestBody TrainingAttemptCommand body,
                                            HttpServletRequest request) {

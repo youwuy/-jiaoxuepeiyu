@@ -4,6 +4,8 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptStepCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
+import java.math.BigDecimal;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -63,4 +65,36 @@ public interface UeTrainingCallbackMapper {
                            @Param("durationSeconds") int durationSeconds,
                            @Param("videoStartSecond") int videoStartSecond,
                            @Param("sortOrder") int sortOrder);
+
+    @Select("SELECT id FROM edu_semester ORDER BY current_flag DESC, id DESC LIMIT 1")
+    Long findCurrentSemesterId();
+
+    @Select("SELECT courseware_weight, training_practice_weight, assignment_weight, exam_weight "
+            + "FROM edu_score_weight WHERE semester_id = #{semesterId} "
+            + "ORDER BY effective_from DESC, id DESC LIMIT 1")
+    UeScoreWeight findLatestScoreWeight(@Param("semesterId") Long semesterId);
+
+    @Insert("INSERT INTO score_semester_summary "
+            + "(student_id, semester_id, courseware_learning_score, training_practice_score, "
+            + "course_assignment_score, exam_score, courseware_weight, training_practice_weight, "
+            + "assignment_weight, exam_weight, comprehensive_score, published_at, created_at, updated_at) "
+            + "VALUES (#{studentId}, #{semesterId}, 0, #{trainingPracticeScore}, 0, 0, "
+            + "#{weight.coursewareWeight}, #{weight.trainingPracticeWeight}, #{weight.assignmentWeight}, #{weight.examWeight}, "
+            + "ROUND(#{trainingPracticeScore} * #{weight.trainingPracticeWeight} / 100, 1), NOW(), NOW(), NOW()) "
+            + "ON DUPLICATE KEY UPDATE "
+            + "training_practice_score = VALUES(training_practice_score), "
+            + "courseware_weight = VALUES(courseware_weight), "
+            + "training_practice_weight = VALUES(training_practice_weight), "
+            + "assignment_weight = VALUES(assignment_weight), "
+            + "exam_weight = VALUES(exam_weight), "
+            + "comprehensive_score = ROUND("
+            + "COALESCE(courseware_learning_score, 0) * VALUES(courseware_weight) / 100 + "
+            + "VALUES(training_practice_score) * VALUES(training_practice_weight) / 100 + "
+            + "COALESCE(course_assignment_score, 0) * VALUES(assignment_weight) / 100 + "
+            + "COALESCE(exam_score, 0) * VALUES(exam_weight) / 100, 1), "
+            + "published_at = NOW(), updated_at = NOW()")
+    void upsertTrainingPracticeScore(@Param("studentId") Long studentId,
+                                     @Param("semesterId") Long semesterId,
+                                     @Param("trainingPracticeScore") BigDecimal trainingPracticeScore,
+                                     @Param("weight") UeScoreWeight weight);
 }

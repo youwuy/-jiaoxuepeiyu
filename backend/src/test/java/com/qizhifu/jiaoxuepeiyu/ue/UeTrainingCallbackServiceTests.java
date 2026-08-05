@@ -11,6 +11,7 @@ import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptSubmission;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingMonitorSnapshotCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingStatusCommand;
+import com.qizhifu.jiaoxuepeiyu.ue.model.UeScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.ue.port.UeTrainingCallbackRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -93,6 +94,8 @@ class UeTrainingCallbackServiceTests {
         assertEquals("SUBMITTED", repository.snapshot.getProgressStatus());
         assertEquals(new BigDecimal("92.5"), repository.snapshot.getScore());
         assertEquals(new BigDecimal("88.0"), repository.snapshot.getTeamScore());
+        assertEquals(Long.valueOf(202601L), repository.syncedSemesterId);
+        assertEquals(new BigDecimal("92.5"), repository.syncedTrainingPracticeScore);
     }
 
     private TrainingLaunchTask task() {
@@ -117,6 +120,8 @@ class UeTrainingCallbackServiceTests {
         private TrainingLaunchTask task;
         private TrainingMonitorSnapshotCommand snapshot;
         private TrainingAttemptSubmission submission;
+        private Long syncedSemesterId;
+        private BigDecimal syncedTrainingPracticeScore;
         private final List<TrainingAttemptStepCommand> steps = new ArrayList<TrainingAttemptStepCommand>();
 
         @Override
@@ -144,6 +149,25 @@ class UeTrainingCallbackServiceTests {
             step.setAttemptId(attemptId);
             step.setSortOrder(sortOrder);
             steps.add(step);
+        }
+
+        @Override
+        public Optional<Long> findCurrentSemesterId() {
+            return Optional.of(202601L);
+        }
+
+        @Override
+        public UeScoreWeight findLatestScoreWeight(Long semesterId) {
+            return new UeScoreWeight(20, 35, 15, 30);
+        }
+
+        @Override
+        public void upsertTrainingPracticeScore(Long studentId,
+                                                Long semesterId,
+                                                BigDecimal trainingPracticeScore,
+                                                UeScoreWeight weight) {
+            this.syncedSemesterId = semesterId;
+            this.syncedTrainingPracticeScore = trainingPracticeScore;
         }
     }
 }
