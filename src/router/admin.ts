@@ -19,6 +19,8 @@ import AdminTheoryPapers from '../views/admin/AdminTheoryPapers.vue';
 import AdminTheoryQuestions from '../views/admin/AdminTheoryQuestions.vue';
 import AdminTrainingArchive from '../views/admin/AdminTrainingArchive.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
+import AdminTrainingMonitor from '../views/admin/AdminTrainingMonitor.vue';
+import AdminTrainingReviews from '../views/admin/AdminTrainingReviews.vue';
 import AdminUsers from '../views/admin/AdminUsers.vue';
 
 export const adminRoutes: RouteRecordRaw[] = [
@@ -115,6 +117,16 @@ export const adminRoutes: RouteRecordRaw[] = [
     path: '/admin/training',
     name: 'admin-training',
     component: AdminTrainingCourses
+  },
+  {
+    path: '/admin/training/:id/monitor',
+    name: 'admin-training-monitor',
+    component: AdminTrainingMonitor
+  },
+  {
+    path: '/admin/training/:id/reviews',
+    name: 'admin-training-reviews',
+    component: AdminTrainingReviews
   },
   {
     path: '/admin/semester-score',

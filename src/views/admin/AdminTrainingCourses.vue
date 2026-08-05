@@ -38,6 +38,17 @@
         </div>
         <div v-else class="admin-training-table-scroll">
           <table class="admin-training-table">
+            <colgroup>
+              <col class="admin-training-col-name" />
+              <col class="admin-training-col-type" />
+              <col class="admin-training-col-time" />
+              <col class="admin-training-col-target" />
+              <col class="admin-training-col-teacher" />
+              <col class="admin-training-col-room" />
+              <col class="admin-training-col-status" />
+              <col class="admin-training-col-created" />
+              <col class="admin-training-col-operation" />
+            </colgroup>
             <thead>
               <tr>
                 <th>实训课名称</th>
@@ -48,7 +59,7 @@
                 <th>实训教室</th>
                 <th>发布状态</th>
                 <th>创建时间</th>
-                <th>操作</th>
+                <th class="admin-training-operation-cell">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -70,7 +81,7 @@
                   </span>
                 </td>
                 <td>{{ course.createdAt }}</td>
-                <td>
+                <td class="admin-training-operation-cell">
                   <div class="admin-row-actions">
                     <template v-if="course.status === '未发布'">
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
@@ -357,34 +368,6 @@
         <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :disabled="!importChecked" @click="confirmImport">确认导入</el-button></div></template>
       </el-dialog>
 
-      <el-drawer v-model="monitorVisible" size="72%" direction="rtl" class="monitor-drawer">
-        <template #header>
-          <div class="monitor-title">
-            <h2>{{ selectedCourse?.name || '实时监考' }}</h2>
-            <p>{{ selectedCourse?.time }} / {{ selectedCourse?.room }}</p>
-          </div>
-        </template>
-        <div class="monitor-grid">
-          <article v-for="camera in cameras" :key="camera.name" class="camera-card">
-            <div class="camera-screen"><span class="live-dot">直播</span><strong>{{ camera.name }}</strong><p>RTSP 可配置接入</p></div>
-            <footer><span>{{ camera.location }}</span><el-tag size="small" type="success">在线</el-tag></footer>
-          </article>
-        </div>
-        <div class="monitor-student-panel">
-          <div class="panel-heading"><h3>学员监控</h3><el-button :icon="Monitor" type="primary" plain>查看学员桌面</el-button></div>
-          <el-table v-if="students.length" :data="students">
-            <el-table-column prop="name" label="学员姓名" min-width="100" />
-            <el-table-column prop="studentNo" label="学号" min-width="120" />
-            <el-table-column prop="topic" label="当前实训题" min-width="160" />
-            <el-table-column prop="mode" label="模式" width="92" />
-            <el-table-column prop="room" label="所在房间" width="120" />
-            <el-table-column prop="ip" label="IP" width="140" />
-            <el-table-column label="在线状态" width="104"><template #default="{ row }"><el-tag :type="row.online ? 'success' : 'info'" size="small">{{ row.online ? '在线' : '离线' }}</el-tag></template></el-table-column>
-          </el-table>
-          <el-empty v-else description="暂无在线学员信息" />
-        </div>
-      </el-drawer>
-
       <el-drawer v-model="logVisible" class="admin-training-log-drawer" direction="rtl" size="520px" :with-header="false">
         <div class="admin-training-drawer-head compact">
           <div><span>操作日志</span><h3>{{ selectedCourse?.name || '实训课记录' }}</h3></div>
@@ -396,19 +379,6 @@
           <small>{{ item.operator }}</small>
         </article>
         <el-empty v-if="logs.length === 0" description="暂无操作日志" />
-      </el-drawer>
-
-      <el-drawer v-model="markingVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
-        <div class="admin-training-drawer-head compact"><div><span>阅卷</span><h3>{{ selectedCourse?.name || '阅卷' }}</h3></div><el-button text circle :icon="Close" @click="markingVisible = false" /></div>
-        <el-table v-if="markingRows.length" :data="markingRows">
-          <el-table-column prop="student" label="学员" width="120" />
-          <el-table-column prop="className" label="班级" min-width="160" />
-          <el-table-column prop="submitAt" label="提交时间" width="160" />
-          <el-table-column prop="score" label="得分" width="100" />
-          <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === '已阅' ? 'success' : 'warning'" size="small">{{ row.status }}</el-tag></template></el-table-column>
-          <el-table-column label="操作" width="120"><template #default><el-button link type="primary">进入阅卷</el-button></template></el-table-column>
-        </el-table>
-        <el-empty v-else description="暂无阅卷记录" />
       </el-drawer>
 
       <el-drawer v-model="statsVisible" class="admin-training-work-drawer" direction="rtl" size="760px" :with-header="false">
@@ -433,8 +403,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowDown, Close, Document, FolderOpened, Monitor, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
+import { ArrowDown, Close, Document, FolderOpened, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { fetchAdminPapers } from '../../api/admin-paper';
 import { fetchAdminResources } from '../../api/admin-resource';
@@ -444,19 +415,18 @@ import {
   deleteAdminTraining,
   fetchAdminTraining,
   fetchAdminTrainingLogs,
-  fetchAdminTrainingMonitor,
   fetchAdminTrainings,
   fetchAdminTrainingStatistics,
   publishAdminTraining,
   updateAdminTraining,
   type AdminTraining,
-  type AdminTrainingCameraState,
   type AdminTrainingLog,
-  type AdminTrainingStatistics,
-  type AdminTrainingStudentState
+  type AdminTrainingStatistics
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses, fetchAdminMajors } from '../../api/admin-settings';
 import { fetchAdminTeachers } from '../../api/admin-course';
+
+const router = useRouter();
 
 type CourseStatus = '已发布' | '未发布';
 type SelectorKind = 'topic' | 'resource' | 'paper' | 'class' | 'teacher' | 'room';
@@ -510,9 +480,7 @@ const formMode = ref<'create' | 'edit'>('create');
 const activeStep = ref<StepKey>('base');
 const selectedCourse = ref<CourseRow>();
 const previewCourse = ref<CourseRow>();
-const monitorVisible = ref(false);
 const logVisible = ref(false);
-const markingVisible = ref(false);
 const statsVisible = ref(false);
 const selectorVisible = ref(false);
 const selectorKind = ref<SelectorKind>('topic');
@@ -576,13 +544,7 @@ const selectedClassIds = ref<number[]>([]);
 const selectedTeacherIds = ref<number[]>([]);
 const selectedRoomId = ref<number>(0);
 
-const cameras = ref<Array<{ name: string; location: string; online: boolean; streamUrl?: string }>>([]);
-
-const students = ref<Array<{ name: string; studentNo: string; topic: string; mode: string; room: string; ip: string; online: boolean }>>([]);
-
 const logs = ref<Array<{ time: string; operator: string; action: string; content: string }>>([]);
-
-const markingRows = ref<Array<{ student: string; className: string; submitAt: string; score: number | string; status: string }>>([]);
 
 const statsSummary = ref<AdminTrainingStatistics>({});
 const statsRows = ref<Array<{ className: string; total: number; finished: number; avg: string; passRate: string }>>([]);
@@ -800,24 +762,20 @@ function confirmImport() {
   ElMessage.warning('实训课导入接口暂未提供，当前不能生成真实草稿');
 }
 
-async function openMonitor(row: CourseRow) {
-  selectedCourse.value = row;
-  try {
-    const snapshot = await fetchAdminTrainingMonitor(row.id);
-    cameras.value = (snapshot.cameras || []).map(mapCamera);
-    students.value = (snapshot.students || []).map(mapStudent);
-    statsSummary.value = snapshot.statistics || {};
-  } catch (error) {
-    cameras.value = [];
-    students.value = [];
-    ElMessage.error(error instanceof Error ? error.message : '实训监控加载失败');
-  }
-  monitorVisible.value = true;
+function openMonitor(row: CourseRow) {
+  router.push({
+    name: 'admin-training-monitor',
+    params: { id: row.id },
+    query: { title: row.name, time: row.time, room: row.room }
+  });
 }
 
 function openMarking(row: CourseRow) {
-  selectedCourse.value = row;
-  markingVisible.value = true;
+  router.push({
+    name: 'admin-training-reviews',
+    params: { id: row.id },
+    query: { title: row.name }
+  });
 }
 
 async function openStats(row: CourseRow) {
@@ -1020,27 +978,6 @@ function buildTrainingCommand(publishStatus: string) {
   };
 }
 
-function mapCamera(item: AdminTrainingCameraState) {
-  return {
-    name: item.cameraName || `摄像头${item.cameraId || ''}`,
-    location: item.classroomName || '-',
-    online: item.cameraStatus !== 'OFFLINE',
-    streamUrl: item.streamUrl
-  };
-}
-
-function mapStudent(item: AdminTrainingStudentState) {
-  return {
-    name: item.studentName || '-',
-    studentNo: item.studentNo || '-',
-    topic: item.roleName || '-',
-    mode: apiTrainingModeToText(item.roomStatus),
-    room: item.roomId ? `房间 ${item.roomId}` : '-',
-    ip: item.deskStatus || '-',
-    online: item.progressStatus !== 'OFFLINE'
-  };
-}
-
 function mapLog(item: AdminTrainingLog) {
   return {
     time: formatDateTime(item.createdAt),
@@ -1171,9 +1108,45 @@ onMounted(() => {
 
 .admin-training-table {
   width: 100%;
-  min-width: 1400px;
+  min-width: 1480px;
   border-collapse: collapse;
   table-layout: fixed;
+}
+
+.admin-training-col-name {
+  width: 220px;
+}
+
+.admin-training-col-type {
+  width: 82px;
+}
+
+.admin-training-col-time {
+  width: 170px;
+}
+
+.admin-training-col-target {
+  width: 170px;
+}
+
+.admin-training-col-teacher {
+  width: 120px;
+}
+
+.admin-training-col-room {
+  width: 120px;
+}
+
+.admin-training-col-status {
+  width: 100px;
+}
+
+.admin-training-col-created {
+  width: 142px;
+}
+
+.admin-training-col-operation {
+  width: 256px;
 }
 
 .admin-training-table th {
@@ -1193,6 +1166,16 @@ onMounted(() => {
   color: #334155;
   font-size: 13px;
   vertical-align: middle;
+}
+
+.admin-training-table th.admin-training-operation-cell,
+.admin-training-table td.admin-training-operation-cell {
+  padding-right: 14px;
+  padding-left: 14px;
+}
+
+.admin-training-table td.admin-training-operation-cell {
+  vertical-align: top;
 }
 
 .admin-training-name-cell {
