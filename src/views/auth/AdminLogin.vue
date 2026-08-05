@@ -72,7 +72,6 @@
             show-password
             maxlength="20"
             @input="onPasswordInput"
-            @keyup.enter="submit"
           />
           <p v-if="errors.password" class="admin-calicat-error">{{ errors.password }}</p>
         </div>
@@ -148,6 +147,10 @@ function validateForm() {
 }
 
 async function submit() {
+  if (loading.value) {
+    return;
+  }
+
   validateForm();
 
   if (Object.values(errors).some(Boolean)) {

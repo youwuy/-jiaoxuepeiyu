@@ -85,7 +85,6 @@
             show-password
             maxlength="20"
             @input="onPasswordInput"
-            @keyup.enter="submit"
           />
           <p v-if="errors.password" class="calicat-field-error">{{ errors.password }}</p>
         </div>
@@ -162,6 +161,10 @@ function onPasswordInput(value: string) {
 }
 
 async function submit() {
+  if (loading.value) {
+    return;
+  }
+
   clearErrors();
   Object.assign(errors, validateStudentLogin(mode.value, form));
 
