@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:8080",
+      "url": "http://8.130.35.250",
       "description": "Generated server url"
     }
   ],
@@ -17,24 +17,20 @@
       "description": "Teacher and student account management APIs."
     },
     {
-      "name": "Student Training",
-      "description": "Student training center and team room APIs. Header X-User-Id identifies the student."
-    },
-    {
-      "name": "Admin Education Config",
-      "description": "Academic year, semester, major, and class configuration APIs."
-    },
-    {
       "name": "Student Messages",
       "description": "Student notification and read-state APIs. Header X-User-Id identifies the student."
     },
     {
-      "name": "Admin Score Config",
-      "description": "Comprehensive score weight and grade rule configuration APIs."
-    },
-    {
       "name": "Admin Papers",
       "description": "Theory paper APIs for manual assembly, automatic assembly, publishing, and logs."
+    },
+    {
+      "name": "Student Training Launch",
+      "description": "Creates short-lived launch sessions for the local UE training program."
+    },
+    {
+      "name": "Online Presence",
+      "description": "Heartbeat and online status APIs."
     },
     {
       "name": "Admin Questions",
@@ -49,32 +45,84 @@
       "description": "Login APIs for admin and student portals."
     },
     {
-      "name": "Student Archives",
-      "description": "Student training archive query APIs. Header X-User-Id identifies the student."
-    },
-    {
       "name": "Health",
       "description": "Service health check API."
+    },
+    {
+      "name": "Admin Training Archives",
+      "description": "Training archive list, detail, statistics, and export-ready data APIs."
     },
     {
       "name": "Admin Courses",
       "description": "Teaching course lifecycle, publication, content, statistics, and operation logs."
     },
     {
-      "name": "Student Scores",
-      "description": "Student comprehensive score APIs. Header X-User-Id identifies the student."
+      "name": "Admin Education Config",
+      "description": "Academic year, semester, major, class, and subway job role configuration APIs."
+    },
+    {
+      "name": "Admin Trainings",
+      "description": "Training course lifecycle, publication, monitoring, statistics, and operation logs."
     },
     {
       "name": "Admin Facility Config",
       "description": "Classroom and NVR camera configuration APIs."
     },
     {
+      "name": "Student Profile",
+      "description": "Student profile and password APIs. Header X-User-Id identifies the student."
+    },
+    {
+      "name": "Admin Device Efficiency",
+      "description": "Device usage dashboard, real-time state, trends, utilization, and heat ranking APIs."
+    },
+    {
+      "name": "Admin Organization",
+      "description": "Organization tree management APIs."
+    },
+    {
+      "name": "Admin Profile",
+      "description": "Current admin or teacher profile APIs."
+    },
+    {
+      "name": "Student Training",
+      "description": "Student training center and team room APIs. Header X-User-Id identifies the student."
+    },
+    {
+      "name": "Student Training Attempts",
+      "description": "Student training result submission and score sheet APIs."
+    },
+    {
+      "name": "Admin Score Config",
+      "description": "Comprehensive score weight and grade rule configuration APIs."
+    },
+    {
+      "name": "Files",
+      "description": "Local file upload APIs for admin, student, and UE training clients."
+    },
+    {
+      "name": "Admin IAM",
+      "description": "Role, permission, data scope, and role operation log APIs."
+    },
+    {
+      "name": "Student Archives",
+      "description": "Student training archive query APIs. Header X-User-Id identifies the student."
+    },
+    {
+      "name": "Student Scores",
+      "description": "Student comprehensive score APIs. Header X-User-Id identifies the student."
+    },
+    {
+      "name": "Admin Semester Scores",
+      "description": "Semester comprehensive score list, statistics, ranking, and export-ready data APIs."
+    },
+    {
       "name": "Student Resources",
       "description": "Student public resource query APIs."
     },
     {
-      "name": "Student Profile",
-      "description": "Student profile and password APIs. Header X-User-Id identifies the student."
+      "name": "UE Training Callback",
+      "description": "Four integration APIs for the UE training program: task metadata, recording upload through /api/files, live status, and result callback."
     },
     {
       "name": "Student Courses",
@@ -83,10 +131,6 @@
     {
       "name": "Student Assignments",
       "description": "Student theory assignment APIs. Header X-User-Id identifies the student."
-    },
-    {
-      "name": "Admin Organization",
-      "description": "Organization tree management APIs."
     },
     {
       "name": "Admin Resources",
@@ -190,6 +234,112 @@
         }
       }
     },
+    "/api/auth/password": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Change password",
+        "description": "Changes the current user's password after validating the current password and password policy.",
+        "operationId": "changePassword_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Get training detail",
+        "description": "Returns one training course with bound classes and team roles.",
+        "operationId": "getTraining",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminTraining"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Update training",
+        "description": "Updates training metadata and fully replaces submitted class bindings and team roles.",
+        "operationId": "updateTraining",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTrainingCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/score-grade-rules": {
       "get": {
         "tags": [
@@ -226,6 +376,123 @@
                 "items": {
                   "$ref": "#/components/schemas/AdminScoreGradeRuleCommand"
                 }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}": {
+      "get": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Get role detail",
+        "description": "Returns one role with data scope and bound permission ids.",
+        "operationId": "getRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminRole"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Update role",
+        "description": "Updates role metadata, data scope, and submitted permission bindings.",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRoleCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}/permissions": {
+      "put": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Update role permissions",
+        "description": "Fully replaces permission bindings for one role using the role's current data scope.",
+        "operationId": "updateRolePermissions",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRolePermissionCommand"
               }
             }
           },
@@ -425,6 +692,145 @@
         }
       }
     },
+    "/api/admin/profile/phone": {
+      "put": {
+        "tags": [
+          "Admin Profile"
+        ],
+        "summary": "Update admin phone",
+        "description": "Updates the current admin or teacher phone number.",
+        "operationId": "updatePhone_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/profile/id-card": {
+      "put": {
+        "tags": [
+          "Admin Profile"
+        ],
+        "summary": "Update admin ID card",
+        "description": "Updates the current admin or teacher ID card number.",
+        "operationId": "updateIdCard_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdCardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/{permissionId}": {
+      "put": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Update permission node",
+        "description": "Updates permission metadata and hierarchy without changing role bindings.",
+        "operationId": "updatePermission",
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPermissionCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/sort": {
+      "put": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Update permission sort order",
+        "description": "Persists drag-sort order for menu, page, or button permission nodes within their current parent group.",
+        "operationId": "updatePermissionSorts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPermissionSortCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/papers/{paperId}": {
       "get": {
         "tags": [
@@ -505,7 +911,7 @@
           "Admin Organization"
         ],
         "summary": "Update organization",
-        "description": "Updates an organization node and rejects self-parenting.",
+        "description": "Updates organization name and sort order while preserving its parent node.",
         "operationId": "update",
         "parameters": [
           {
@@ -523,6 +929,84 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AdminOrgCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/org/sort": {
+      "put": {
+        "tags": [
+          "Admin Organization"
+        ],
+        "summary": "Update organization sort order",
+        "description": "Persists drag-and-drop sort weights for organization nodes.",
+        "operationId": "updateSort",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdminOrgSortCommand"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/job-roles/{jobRoleId}": {
+      "put": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Update subway job role",
+        "description": "Updates a subway job role name and sort order.",
+        "operationId": "updateJobRole",
+        "parameters": [
+          {
+            "name": "jobRoleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminJobRoleCommand"
               }
             }
           },
@@ -623,7 +1107,7 @@
         ],
         "summary": "Get classroom detail",
         "description": "Returns one classroom and its camera list.",
-        "operationId": "get_4",
+        "operationId": "get_5",
         "parameters": [
           {
             "name": "classroomId",
@@ -850,6 +1334,92 @@
         }
       }
     },
+    "/api/ue/trainings/{trainingId}/status": {
+      "post": {
+        "tags": [
+          "UE Training Callback"
+        ],
+        "summary": "Report UE training status",
+        "description": "Updates the latest monitor snapshot for the current student's running training.",
+        "operationId": "reportStatus",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingStatusCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ue/trainings/{trainingId}/attempts": {
+      "post": {
+        "tags": [
+          "UE Training Callback"
+        ],
+        "summary": "Submit UE training result",
+        "description": "Creates an immutable training archive with optional step records, updates monitor status, and synchronizes the submitted personalScore to semester comprehensive scores as the training-practice score.",
+        "operationId": "submitAttempt",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingAttemptCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/student/trainings/{trainingId}/rooms": {
       "post": {
         "tags": [
@@ -883,6 +1453,39 @@
         }
       }
     },
+    "/api/student/trainings/{trainingId}/launch-session": {
+      "post": {
+        "tags": [
+          "Student Training Launch"
+        ],
+        "summary": "Create UE launch session",
+        "description": "Validates the assigned training and returns an eight-hour token scoped to the current student and training.",
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUeLaunchSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/student/training-rooms/{roomId}/start": {
       "post": {
         "tags": [
@@ -894,6 +1497,48 @@
         "parameters": [
           {
             "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-rooms/{roomId}/roles/{roleId}/release": {
+      "post": {
+        "tags": [
+          "Student Training"
+        ],
+        "summary": "Release training role",
+        "description": "Releases a room role claimed by the current student and returns updated room state.",
+        "operationId": "releaseRole",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "roleId",
             "in": "path",
             "required": true,
             "schema": {
@@ -1017,6 +1662,38 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-attempts": {
+      "post": {
+        "tags": [
+          "Student Training Attempts"
+        ],
+        "summary": "Submit training attempt",
+        "description": "Creates an immutable training archive from a student or UE client training result.",
+        "operationId": "submitAttempt_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentTrainingAttemptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
                 }
               }
             }
@@ -1198,6 +1875,102 @@
         }
       }
     },
+    "/api/online/offline": {
+      "post": {
+        "tags": [
+          "Online Presence"
+        ],
+        "summary": "Mark current user offline",
+        "description": "Clears the current user's heartbeat so management pages show the user offline immediately.",
+        "operationId": "offline",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/online/heartbeat": {
+      "post": {
+        "tags": [
+          "Online Presence"
+        ],
+        "summary": "Send heartbeat",
+        "description": "Updates the current user's heartbeat time and IP address.",
+        "operationId": "heartbeat",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOnlineHeartbeatResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Upload file",
+        "description": "Stores a multipart file locally and returns metadata. UE clients can upload training recordings with category=recordings, then pass data.fileUrl to the training result callback.",
+        "operationId": "upload",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Optional storage category such as resources, covers, assignments, or recordings.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "Multipart file content.",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStoredFile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/student/login": {
       "post": {
         "tags": [
@@ -1223,6 +1996,28 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseLoginResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout",
+        "description": "Invalidates the current Authorization Bearer token session.",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -1262,6 +2057,167 @@
         }
       }
     },
+    "/api/admin/trainings": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "List trainings",
+        "description": "Returns paged training courses filtered by name, term, major, class, type, mode, or publish status.",
+        "operationId": "listTrainings_1",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResponseAdminTraining"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Create training",
+        "description": "Creates a draft training course with class bindings, paper selection metadata, and team roles.",
+        "operationId": "createTraining",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTrainingCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/publish": {
+      "post": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Publish training",
+        "description": "Publishes a training course, synchronizes participants from bound classes, and sends training notifications.",
+        "operationId": "publishTraining",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/delete": {
+      "post": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Delete training",
+        "description": "Soft deletes a training course and takes it offline.",
+        "operationId": "deleteTraining",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/cancel-publish": {
+      "post": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Cancel training publish",
+        "description": "Marks a training course offline while preserving rooms, participants, and monitor records.",
+        "operationId": "cancelPublishTraining",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/semesters/{semesterId}/current": {
       "post": {
         "tags": [
@@ -1288,6 +2244,70 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/import": {
+      "post": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "Import semester scores",
+        "description": "Upserts validated offline score rows and calculates comprehensive scores on the backend.",
+        "operationId": "importScores",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSemesterScoreImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminSemesterScoreImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/import/preview": {
+      "post": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "Preview semester score import",
+        "description": "Validates parsed offline score rows and returns row-level errors with calculated comprehensive scores for valid rows.",
+        "operationId": "previewImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSemesterScoreImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminSemesterScoreImportPreview"
                 }
               }
             }
@@ -1351,6 +2371,167 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles": {
+      "get": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "List roles",
+        "description": "Returns paged roles filtered by role name/code keyword or enabled status.",
+        "operationId": "listRoles",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminRoleQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResponseAdminRole"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Create role",
+        "description": "Creates an enabled role, binds submitted permissions, and writes a role operation log.",
+        "operationId": "createRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRoleCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}/enable": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Enable role",
+        "description": "Enables the selected role while preserving its user and permission bindings.",
+        "operationId": "enableRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}/disable": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Disable role",
+        "description": "Disables the selected role while preserving historical bindings and logs.",
+        "operationId": "disableRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}/delete": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Delete role",
+        "description": "Soft deletes the selected role and disables it for future use.",
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -1620,7 +2801,7 @@
         ],
         "summary": "Preview question import",
         "description": "Validates parsed Excel rows and returns valid row count plus row-level errors.",
-        "operationId": "previewImport",
+        "operationId": "previewImport_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1717,6 +2898,137 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Create permission node",
+        "description": "Creates a menu, page, or button permission node for role authorization.",
+        "operationId": "createPermission",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPermissionCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/{permissionId}/enable": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Enable permission node",
+        "description": "Marks a permission node visible for menu and authorization tree rendering.",
+        "operationId": "enablePermission",
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/{permissionId}/disable": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Disable permission node",
+        "description": "Hides a permission node while preserving role permission bindings.",
+        "operationId": "disablePermission",
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/{permissionId}/delete": {
+      "post": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "Delete permission node",
+        "description": "Deletes an unbound leaf permission node from the permission tree.",
+        "operationId": "deletePermission",
+        "parameters": [
+          {
+            "name": "permissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -1866,7 +3178,7 @@
         ],
         "summary": "Preview paper import",
         "description": "Validates parsed Excel rows for manual or automatic paper definitions and returns row-level errors.",
-        "operationId": "previewImport_1",
+        "operationId": "previewImport_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1898,7 +3210,7 @@
         ],
         "summary": "Create organization",
         "description": "Creates an organization node and returns the new organization id.",
-        "operationId": "create",
+        "operationId": "create_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1929,7 +3241,7 @@
           "Admin Organization"
         ],
         "summary": "Enable organization",
-        "description": "Enables an organization node.",
+        "description": "Enables the selected organization node only.",
         "operationId": "enable",
         "parameters": [
           {
@@ -1962,7 +3274,7 @@
           "Admin Organization"
         ],
         "summary": "Disable organization",
-        "description": "Disables an organization node.",
+        "description": "Disables the selected organization node and all descendant nodes.",
         "operationId": "disable",
         "parameters": [
           {
@@ -2107,13 +3419,131 @@
         }
       }
     },
+    "/api/admin/job-roles": {
+      "get": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "List subway job roles",
+        "description": "Returns all subway job roles with enabled status and sort order.",
+        "operationId": "listJobRoles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminJobRole"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Create subway job role",
+        "description": "Creates a subway job role dictionary item and returns the new id.",
+        "operationId": "createJobRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminJobRoleCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/job-roles/{jobRoleId}/enable": {
+      "post": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Enable subway job role",
+        "description": "Enables a subway job role for future selection.",
+        "operationId": "enableJobRole",
+        "parameters": [
+          {
+            "name": "jobRoleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/job-roles/{jobRoleId}/disable": {
+      "post": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Disable subway job role",
+        "description": "Disables a subway job role while preserving historical records.",
+        "operationId": "disableJobRole",
+        "parameters": [
+          {
+            "name": "jobRoleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/courses": {
       "get": {
         "tags": [
           "Admin Courses"
         ],
         "summary": "List courses",
-        "description": "Returns paged teaching courses filtered by name, term, major, class, teacher, or publish status.",
+        "description": "Returns paged teaching courses filtered by name, term, major, class, teacher, teaching-time overlap, or publish status.",
         "operationId": "listCourses",
         "parameters": [
           {
@@ -2143,7 +3573,7 @@
           "Admin Courses"
         ],
         "summary": "Create course",
-        "description": "Creates a draft teaching course with teachers, classes, chapters, courseware, and assignment nodes.",
+        "description": "Creates a draft teaching course with teachers, classes, chapters, courseware learning rules, and assignment nodes.",
         "operationId": "createCourse",
         "requestBody": {
           "content": {
@@ -2328,7 +3758,7 @@
         ],
         "summary": "Create classroom",
         "description": "Creates a classroom with at least one NVR camera and returns the new classroom id.",
-        "operationId": "create_1",
+        "operationId": "create_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2409,6 +3839,72 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/classes/{classId}/enable": {
+      "post": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Enable class",
+        "description": "Enables a class for selection.",
+        "operationId": "enableClass",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/classes/{classId}/disable": {
+      "post": {
+        "tags": [
+          "Admin Education Config"
+        ],
+        "summary": "Disable class",
+        "description": "Disables a class while preserving historical account, course, and score records.",
+        "operationId": "disableClass",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -2587,6 +4083,70 @@
         }
       }
     },
+    "/api/admin/accounts/teachers/import": {
+      "post": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Import teacher accounts",
+        "description": "Creates teacher accounts from validated parsed rows using the configured initial password hash.",
+        "operationId": "importTeachers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminAccountImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/teachers/import/preview": {
+      "post": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Preview teacher account import",
+        "description": "Validates parsed teacher account rows before submission and returns row-level errors.",
+        "operationId": "previewTeacherImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminAccountImportPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/accounts/students": {
       "get": {
         "tags": [
@@ -2649,13 +4209,77 @@
         }
       }
     },
+    "/api/admin/accounts/students/import": {
+      "post": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Import student accounts",
+        "description": "Creates student accounts from validated parsed rows using the configured initial password hash.",
+        "operationId": "importStudents",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminAccountImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/students/import/preview": {
+      "post": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Preview student account import",
+        "description": "Validates parsed student account rows before submission and returns row-level errors.",
+        "operationId": "previewStudentImport",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminAccountImportPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/accounts/batch/reset-password": {
       "post": {
         "tags": [
           "Admin Account"
         ],
         "summary": "Batch reset passwords",
-        "description": "Resets selected accounts to the configured initial password hash without returning plaintext passwords.",
+        "description": "Resets selected accounts to the submitted password hash without returning plaintext passwords.",
         "operationId": "resetPasswords",
         "requestBody": {
           "content": {
@@ -2765,6 +4389,39 @@
         }
       }
     },
+    "/api/ue/trainings/{trainingId}/task": {
+      "get": {
+        "tags": [
+          "UE Training Callback"
+        ],
+        "summary": "Get UE training task",
+        "description": "Returns launch metadata for a training assigned to the current student.",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTrainingLaunchTask"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/student/trainings": {
       "get": {
         "tags": [
@@ -2853,6 +4510,39 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseTrainingRoom"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/training-attempts/{attemptId}/score-sheet": {
+      "get": {
+        "tags": [
+          "Student Training Attempts"
+        ],
+        "summary": "Get training score sheet",
+        "description": "Returns the current student's training attempt score sheet and step details.",
+        "operationId": "getScoreSheet",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStudentTrainingArchiveDetail"
                 }
               }
             }
@@ -3185,7 +4875,7 @@
           "Health"
         ],
         "summary": "Health check",
-        "description": "Returns service status, service name, and current server time.",
+        "description": "Returns service status, runtime version, database target, and current server time.",
         "operationId": "health",
         "responses": {
           "200": {
@@ -3193,7 +4883,393 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseHealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/current": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current user",
+        "description": "Returns the authenticated user resolved from the Authorization Bearer token.",
+        "operationId": "currentUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthenticatedUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/statistics": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Get training statistics",
+        "description": "Returns participant count, room counts, submitted monitor score count, and score aggregates.",
+        "operationId": "getStatistics",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminTrainingStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/monitor": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Get training monitor snapshot",
+        "description": "Returns camera states, student desk/progress states, room role states, and statistics for the management monitor page.",
+        "operationId": "getMonitorSnapshot",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminTrainingMonitorSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/logs": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "List training logs",
+        "description": "Returns operation logs for one training course sorted by newest first.",
+        "operationId": "listTrainingLogs",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminTrainingLog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/export": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Export training rows",
+        "description": "Returns export-ready training course rows for frontend-controlled export.",
+        "operationId": "exportTrainings",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminTraining"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/export/file": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Download training CSV",
+        "description": "Downloads filtered training course rows as an Excel-compatible CSV file.",
+        "operationId": "exportTrainingFile",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester": {
+      "get": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "List semester scores",
+        "description": "Returns paged student semester comprehensive score rows filtered by term, major, class, student, or keyword.",
+        "operationId": "listScores",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminSemesterScoreQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResponseAdminSemesterScore"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/statistics": {
+      "get": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "Get semester score statistics",
+        "description": "Returns count, average, max, min, excellent count, and pass count for the selected filters.",
+        "operationId": "getStatistics_1",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminSemesterScoreQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminSemesterScoreStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/ranking": {
+      "get": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "List semester score ranking",
+        "description": "Returns top students ranked by comprehensive score for the selected filters.",
+        "operationId": "listRanking",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminSemesterScoreQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminSemesterScore"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/export": {
+      "get": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "Export semester score rows",
+        "description": "Returns export-ready semester score rows for frontend-controlled export.",
+        "operationId": "exportScores",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminSemesterScoreQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminSemesterScore"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/scores/semester/export/file": {
+      "get": {
+        "tags": [
+          "Admin Semester Scores"
+        ],
+        "summary": "Download semester score CSV",
+        "description": "Downloads filtered semester score rows as an Excel-compatible CSV file.",
+        "operationId": "exportScoreFile",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminSemesterScoreQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/roles/{roleId}/logs": {
+      "get": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "List role logs",
+        "description": "Returns operation logs for one role sorted by newest first.",
+        "operationId": "listRoleLogs",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminRoleLog"
                 }
               }
             }
@@ -3364,6 +5440,50 @@
         }
       }
     },
+    "/api/admin/profile": {
+      "get": {
+        "tags": [
+          "Admin Profile"
+        ],
+        "summary": "Get admin profile",
+        "description": "Returns the current admin or teacher profile with masked phone and ID card.",
+        "operationId": "get_4",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/permissions/tree": {
+      "get": {
+        "tags": [
+          "Admin IAM"
+        ],
+        "summary": "List permission tree",
+        "description": "Returns menu, page, and button permissions assembled from the parent-child permission table.",
+        "operationId": "listPermissionTree",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminPermission"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/papers/{paperId}/logs": {
       "get": {
         "tags": [
@@ -3403,8 +5523,29 @@
           "Admin Organization"
         ],
         "summary": "Get organization tree",
-        "description": "Returns the sorted organization tree with children nested under their parent nodes.",
+        "description": "Returns the sorted organization tree with optional fuzzy name search. Set enabledOnly=true for parent organization picker options.",
         "operationId": "tree",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "Optional fuzzy organization name keyword.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "enabledOnly",
+            "in": "query",
+            "description": "When true, returns enabled organizations only.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -3419,6 +5560,284 @@
         }
       }
     },
+    "/api/admin/online/users": {
+      "get": {
+        "tags": [
+          "Online Presence"
+        ],
+        "summary": "List online users",
+        "description": "Returns online user summary and current user states for management dashboards.",
+        "operationId": "listOnlineUsers",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OnlineUserQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseOnlinePresenceDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/devices/efficiency": {
+      "get": {
+        "tags": [
+          "Admin Device Efficiency"
+        ],
+        "summary": "Get device efficiency dashboard",
+        "description": "Returns summary metrics, real-time device states, monthly trends, and heat ranking for the selected date range.",
+        "operationId": "getDashboard",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminDeviceEfficiencyQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminDeviceEfficiencyReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/devices/efficiency/summary": {
+      "get": {
+        "tags": [
+          "Admin Device Efficiency"
+        ],
+        "summary": "Get device efficiency summary",
+        "description": "Returns device totals, online count, active count, cumulative usage minutes, utilization rate, and active training count.",
+        "operationId": "getSummary",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminDeviceEfficiencyQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminDeviceEfficiencySummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/devices/efficiency/realtime": {
+      "get": {
+        "tags": [
+          "Admin Device Efficiency"
+        ],
+        "summary": "List real-time device states",
+        "description": "Returns current classroom, device status, active training, active student, and heartbeat metadata.",
+        "operationId": "listRealtimeStates",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminDeviceEfficiencyQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminDeviceRealtimeState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/devices/efficiency/monthly-trends": {
+      "get": {
+        "tags": [
+          "Admin Device Efficiency"
+        ],
+        "summary": "List monthly device usage trends",
+        "description": "Returns usage minutes, usage count, and utilization rate grouped by month.",
+        "operationId": "listMonthlyTrends",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminDeviceEfficiencyQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminDeviceMonthlyTrend"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/devices/efficiency/heat-ranking": {
+      "get": {
+        "tags": [
+          "Admin Device Efficiency"
+        ],
+        "summary": "List device heat ranking",
+        "description": "Returns devices ranked by usage minutes within the selected date range.",
+        "operationId": "listHeatRanking",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminDeviceEfficiencyQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminDeviceHeatRank"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{courseId}/student-statistics": {
+      "get": {
+        "tags": [
+          "Admin Courses"
+        ],
+        "summary": "List course student statistics",
+        "description": "Returns paged student learning progress and assignment scores for one course.",
+        "operationId": "listStudentStatistics",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminCourseStudentStatisticsQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResponseAdminCourseStudentStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/courses/{courseId}/student-statistics/export/file": {
+      "get": {
+        "tags": [
+          "Admin Courses"
+        ],
+        "summary": "Download course student statistics CSV",
+        "description": "Downloads filtered student course statistics rows as an Excel-compatible CSV file.",
+        "operationId": "exportStudentStatistics",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminCourseStudentStatisticsQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/courses/{courseId}/statistics": {
       "get": {
         "tags": [
@@ -3426,7 +5845,7 @@
         ],
         "summary": "Get course statistics",
         "description": "Returns student completion counts, pending review count, and average assignment score.",
-        "operationId": "getStatistics",
+        "operationId": "getStatistics_2",
         "parameters": [
           {
             "name": "courseId",
@@ -3583,6 +6002,171 @@
         }
       }
     },
+    "/api/admin/archives": {
+      "get": {
+        "tags": [
+          "Admin Training Archives"
+        ],
+        "summary": "List training archives",
+        "description": "Returns paged immutable training attempt archives filtered by training, student, class, mode, submit type, time, or keyword.",
+        "operationId": "listArchives",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingArchiveQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageResponseAdminTrainingArchive"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/archives/{archiveId}": {
+      "get": {
+        "tags": [
+          "Admin Training Archives"
+        ],
+        "summary": "Get training archive detail",
+        "description": "Returns archive metadata, recording URL, and ordered step records.",
+        "operationId": "getArchiveDetail",
+        "parameters": [
+          {
+            "name": "archiveId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminTrainingArchiveDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/archives/statistics": {
+      "get": {
+        "tags": [
+          "Admin Training Archives"
+        ],
+        "summary": "Get training archive statistics",
+        "description": "Returns archive counts, submit type counts, average score, and average duration for selected filters.",
+        "operationId": "getStatistics_3",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingArchiveQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminTrainingArchiveStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/archives/export": {
+      "get": {
+        "tags": [
+          "Admin Training Archives"
+        ],
+        "summary": "Export training archive rows",
+        "description": "Returns export-ready archive rows for frontend-controlled export.",
+        "operationId": "exportArchives",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingArchiveQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminTrainingArchive"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/archives/export/file": {
+      "get": {
+        "tags": [
+          "Admin Training Archives"
+        ],
+        "summary": "Download training archive CSV",
+        "description": "Downloads filtered training archive rows as an Excel-compatible CSV file.",
+        "operationId": "exportArchiveFile",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminTrainingArchiveQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/accounts/{userId}": {
       "get": {
         "tags": [
@@ -3590,7 +6174,7 @@
         ],
         "summary": "Get account detail",
         "description": "Returns one account detail with phone and ID card masked.",
-        "operationId": "get_5",
+        "operationId": "get_6",
         "parameters": [
           {
             "name": "userId",
@@ -3609,6 +6193,142 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAdminAccount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/teachers/export": {
+      "get": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Export teacher accounts",
+        "description": "Returns export-ready teacher account rows with masked sensitive fields.",
+        "operationId": "exportTeachers",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminAccountQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminAccountExportRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/teachers/export/file": {
+      "get": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Download teacher account CSV",
+        "description": "Downloads teacher account rows as an Excel-compatible CSV file with masked sensitive fields.",
+        "operationId": "exportTeacherFile",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminAccountQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/students/export": {
+      "get": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Export student accounts",
+        "description": "Returns export-ready student account rows with masked sensitive fields.",
+        "operationId": "exportStudents",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminAccountQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminAccountExportRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/accounts/students/export/file": {
+      "get": {
+        "tags": [
+          "Admin Account"
+        ],
+        "summary": "Download student account CSV",
+        "description": "Downloads student account rows as an Excel-compatible CSV file with masked sensitive fields.",
+        "operationId": "exportStudentFile",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AdminAccountQuery"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "byte"
+                  }
                 }
               }
             }
@@ -3675,6 +6395,85 @@
           }
         }
       },
+      "AdminTrainingCommand": {
+        "type": "object",
+        "properties": {
+          "trainingName": {
+            "type": "string"
+          },
+          "academicYearId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "coverUrl": {
+            "type": "string"
+          },
+          "trainingType": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "paperMode": {
+            "type": "string"
+          },
+          "paperId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teamSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "appRequired": {
+            "type": "boolean"
+          },
+          "classIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingRoleCommand"
+            }
+          },
+          "publishStatus": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminTrainingRoleCommand": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AdminScoreGradeRuleCommand": {
         "type": "object",
         "properties": {
@@ -3686,6 +6485,42 @@
           },
           "maxScore": {
             "type": "number"
+          }
+        }
+      },
+      "AdminRoleCommand": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string"
+          },
+          "roleCode": {
+            "type": "string"
+          },
+          "dataScope": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "AdminRolePermissionCommand": {
+        "type": "object",
+        "properties": {
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         }
       },
@@ -3784,6 +6619,66 @@
           }
         }
       },
+      "AdminPermissionCommand": {
+        "type": "object",
+        "properties": {
+          "permissionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "permissionName": {
+            "type": "string"
+          },
+          "permissionCode": {
+            "type": "string"
+          },
+          "permissionType": {
+            "type": "string"
+          },
+          "routePath": {
+            "type": "string"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminPermissionSortCommand": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPermissionSortItem"
+            }
+          }
+        }
+      },
+      "AdminPermissionSortItem": {
+        "type": "object",
+        "properties": {
+          "permissionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AdminPaperAutoRule": {
         "type": "object",
         "properties": {
@@ -3847,6 +6742,36 @@
             "format": "int64"
           },
           "orgName": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminOrgSortCommand": {
+        "type": "object",
+        "properties": {
+          "orgId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminJobRoleCommand": {
+        "required": [
+          "roleName"
+        ],
+        "type": "object",
+        "properties": {
+          "roleName": {
             "type": "string"
           },
           "sortOrder": {
@@ -3966,6 +6891,36 @@
             "type": "integer",
             "format": "int32"
           },
+          "learningStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "learningEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignmentCompletionRule": {
+            "type": "string"
+          },
+          "passScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentPublishMode": {
+            "type": "string"
+          },
+          "answerStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "answerEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignmentTotalScore": {
+            "type": "integer",
+            "format": "int32"
+          },
           "sortOrder": {
             "type": "integer",
             "format": "int32"
@@ -4051,6 +7006,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "initialPassword": {
+            "type": "string"
+          },
           "roleIds": {
             "type": "array",
             "items": {
@@ -4083,6 +7041,114 @@
               "type": "integer",
               "format": "int64"
             }
+          }
+        }
+      },
+      "TrainingStatusCommand": {
+        "type": "object",
+        "properties": {
+          "classroomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deskStatus": {
+            "type": "string"
+          },
+          "progressStatus": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "eventTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TrainingAttemptCommand": {
+        "type": "object",
+        "properties": {
+          "clientAttemptId": {
+            "type": "string"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "recordingUrl": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingAttemptStepCommand"
+            }
+          }
+        }
+      },
+      "TrainingAttemptStepCommand": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stepName": {
+            "type": "string"
+          },
+          "standardOperation": {
+            "type": "string"
+          },
+          "actualOperation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseLong": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -4184,6 +7250,86 @@
           }
         }
       },
+      "ApiResponseUeLaunchSession": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UeLaunchSession"
+          }
+        }
+      },
+      "UeLaunchSession": {
+        "type": "object",
+        "properties": {
+          "launchToken": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "StudentTrainingAttemptRequest": {
+        "required": [
+          "trainingId"
+        ],
+        "type": "object",
+        "properties": {
+          "clientAttemptId": {
+            "type": "string"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "recordingUrl": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainingAttemptStepCommand"
+            }
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "ProgressRequest": {
         "required": [
           "contentId"
@@ -4261,6 +7407,77 @@
           }
         }
       },
+      "ApiResponseOnlineHeartbeatResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OnlineHeartbeatResult"
+          }
+        }
+      },
+      "OnlineHeartbeatResult": {
+        "type": "object",
+        "properties": {
+          "heartbeatAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "heartbeatIntervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offlineTimeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseStoredFile": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StoredFile"
+          }
+        }
+      },
+      "StoredFile": {
+        "type": "object",
+        "properties": {
+          "fileUrl": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "storedFileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "account",
@@ -4328,6 +7545,139 @@
           }
         }
       },
+      "AdminSemesterScoreImportCommand": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSemesterScoreImportRow"
+            }
+          }
+        }
+      },
+      "AdminSemesterScoreImportRow": {
+        "type": "object",
+        "properties": {
+          "rowNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "coursewareLearningScore": {
+            "type": "number"
+          },
+          "trainingPracticeScore": {
+            "type": "number"
+          },
+          "courseAssignmentScore": {
+            "type": "number"
+          },
+          "examScore": {
+            "type": "number"
+          },
+          "coursewareWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trainingPracticeWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "examWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comprehensiveScore": {
+            "type": "number"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminSemesterScoreImportResult": {
+        "type": "object",
+        "properties": {
+          "importedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseAdminSemesterScoreImportResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminSemesterScoreImportResult"
+          }
+        }
+      },
+      "AdminSemesterScoreImportPreview": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSemesterScoreImportRow"
+            }
+          }
+        }
+      },
+      "ApiResponseAdminSemesterScoreImportPreview": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminSemesterScoreImportPreview"
+          }
+        }
+      },
       "AdminScoreWeightCommand": {
         "type": "object",
         "properties": {
@@ -4350,22 +7700,6 @@
           "examWeight": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "ApiResponseLong": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "type": "integer",
-            "format": "int64"
           }
         }
       },
@@ -4655,6 +7989,148 @@
           }
         }
       },
+      "AdminAccountImportCommand": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountImportRow"
+            }
+          }
+        }
+      },
+      "AdminAccountImportRow": {
+        "type": "object",
+        "properties": {
+          "rowNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accountNo": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "idCard": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "orgId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "managedOrgIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "teachingClassIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminAccountImportResult": {
+        "type": "object",
+        "properties": {
+          "importedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "ApiResponseAdminAccountImportResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminAccountImportResult"
+          }
+        }
+      },
+      "AdminAccountImportPreview": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "validCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountImportRow"
+            }
+          }
+        }
+      },
+      "ApiResponseAdminAccountImportPreview": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminAccountImportPreview"
+          }
+        }
+      },
       "AccountIdsCommand": {
         "type": "object",
         "properties": {
@@ -4664,6 +8140,9 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -4691,6 +8170,85 @@
         "properties": {
           "yearName": {
             "type": "string"
+          }
+        }
+      },
+      "ApiResponseTrainingLaunchTask": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TrainingLaunchTask"
+          }
+        }
+      },
+      "TrainingLaunchTask": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingType": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "paperId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roomCode": {
+            "type": "string"
+          },
+          "roomStatus": {
+            "type": "string"
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "teamSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "aiRoleNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -4753,6 +8311,10 @@
           "activeRoomId": {
             "type": "integer",
             "format": "int64"
+          },
+          "latestAttemptId": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -4785,6 +8347,103 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "ApiResponseStudentTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentTrainingArchiveDetail"
+          }
+        }
+      },
+      "StudentTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "archiveId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "recordingUrl": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentTrainingArchiveStep"
+            }
+          }
+        }
+      },
+      "StudentTrainingArchiveStep": {
+        "type": "object",
+        "properties": {
+          "stepId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stepName": {
+            "type": "string"
+          },
+          "standardOperation": {
+            "type": "string"
+          },
+          "actualOperation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -5169,6 +8828,14 @@
             "type": "integer",
             "format": "int32"
           },
+          "learningStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "learningEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
           "studiedSeconds": {
             "type": "integer",
             "format": "int32"
@@ -5217,6 +8884,24 @@
           "deadline": {
             "type": "string",
             "format": "date-time"
+          },
+          "answerStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "answerEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completionRule": {
+            "type": "string"
+          },
+          "passScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishMode": {
+            "type": "string"
           },
           "totalScore": {
             "type": "integer",
@@ -5387,7 +9072,7 @@
           }
         }
       },
-      "ApiResponseStudentTrainingArchiveDetail": {
+      "ApiResponseHealthStatus": {
         "type": "object",
         "properties": {
           "code": {
@@ -5398,25 +9083,396 @@
             "type": "string"
           },
           "data": {
-            "$ref": "#/components/schemas/StudentTrainingArchiveDetail"
+            "$ref": "#/components/schemas/HealthStatus"
           }
         }
       },
-      "StudentTrainingArchiveDetail": {
+      "HealthStatus": {
         "type": "object",
         "properties": {
-          "archiveId": {
+          "status": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "javaVersion": {
+            "type": "string"
+          },
+          "databaseVersionTarget": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseAuthenticatedUser": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthenticatedUser"
+          }
+        }
+      },
+      "AdminTrainingQuery": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string"
+          },
+          "academicYearId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingType": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "publishStatus": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminTraining": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
             "type": "integer",
             "format": "int64"
           },
           "trainingName": {
             "type": "string"
           },
+          "academicYearId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "academicYearName": {
+            "type": "string"
+          },
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "semesterName": {
+            "type": "string"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorName": {
+            "type": "string"
+          },
+          "coverUrl": {
+            "type": "string"
+          },
+          "trainingType": {
+            "type": "string"
+          },
           "trainingMode": {
             "type": "string"
           },
+          "paperMode": {
+            "type": "string"
+          },
+          "paperId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paperName": {
+            "type": "string"
+          },
+          "publishStatus": {
+            "type": "string"
+          },
+          "openStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teamSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "appRequired": {
+            "type": "boolean"
+          },
+          "classNames": {
+            "type": "string"
+          },
+          "classIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingRole"
+            }
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startedRoomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "creatorName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminTrainingRole": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "roleName": {
             "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponsePageResponseAdminTraining": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResponseAdminTraining"
+          }
+        }
+      },
+      "PageResponseAdminTraining": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTraining"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseAdminTraining": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminTraining"
+          }
+        }
+      },
+      "AdminTrainingStatistics": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "waitingRoomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startedRoomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dissolvedRoomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedAttemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "minScore": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ApiResponseAdminTrainingStatistics": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminTrainingStatistics"
+          }
+        }
+      },
+      "AdminTrainingCameraState": {
+        "type": "object",
+        "properties": {
+          "cameraId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classroomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classroomName": {
+            "type": "string"
+          },
+          "cameraName": {
+            "type": "string"
+          },
+          "streamUrl": {
+            "type": "string"
+          },
+          "cameraStatus": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminTrainingMonitorSnapshot": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cameras": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingCameraState"
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingStudentState"
+            }
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/AdminTrainingStatistics"
+          }
+        }
+      },
+      "AdminTrainingStudentState": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
           },
           "studentName": {
             "type": "string"
@@ -5424,67 +9480,39 @@
           "studentNo": {
             "type": "string"
           },
-          "className": {
-            "type": "string"
-          },
-          "submittedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "submitType": {
-            "type": "string"
-          },
-          "durationSeconds": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "personalScore": {
-            "type": "number"
-          },
-          "teamScore": {
-            "type": "number"
-          },
-          "recordingUrl": {
-            "type": "string"
-          },
-          "steps": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StudentTrainingArchiveStep"
-            }
-          }
-        }
-      },
-      "StudentTrainingArchiveStep": {
-        "type": "object",
-        "properties": {
-          "stepId": {
+          "classId": {
             "type": "integer",
             "format": "int64"
           },
-          "stepName": {
+          "className": {
             "type": "string"
           },
-          "standardOperation": {
+          "clientIp": {
             "type": "string"
           },
-          "actualOperation": {
+          "deskStatus": {
+            "type": "string"
+          },
+          "progressStatus": {
             "type": "string"
           },
           "score": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
-          "durationSeconds": {
+          "roomId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
-          "videoStartSecond": {
-            "type": "integer",
-            "format": "int32"
+          "roomStatus": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
           }
         }
       },
-      "ApiResponseMapStringObject": {
+      "ApiResponseAdminTrainingMonitorSnapshot": {
         "type": "object",
         "properties": {
           "code": {
@@ -5495,9 +9523,287 @@
             "type": "string"
           },
           "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object"
+            "$ref": "#/components/schemas/AdminTrainingMonitorSnapshot"
+          }
+        }
+      },
+      "AdminTrainingLog": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operatorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListAdminTrainingLog": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingLog"
+            }
+          }
+        }
+      },
+      "ApiResponseListAdminTraining": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTraining"
+            }
+          }
+        }
+      },
+      "AdminSemesterScoreQuery": {
+        "type": "object",
+        "properties": {
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminSemesterScore": {
+        "type": "object",
+        "properties": {
+          "scoreId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "className": {
+            "type": "string"
+          },
+          "majorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "majorName": {
+            "type": "string"
+          },
+          "semesterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "academicTerm": {
+            "type": "string"
+          },
+          "coursewareLearningScore": {
+            "type": "number"
+          },
+          "trainingPracticeScore": {
+            "type": "number"
+          },
+          "courseAssignmentScore": {
+            "type": "number"
+          },
+          "examScore": {
+            "type": "number"
+          },
+          "coursewareWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trainingPracticeWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "examWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comprehensiveScore": {
+            "type": "number"
+          },
+          "rankNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponsePageResponseAdminSemesterScore": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResponseAdminSemesterScore"
+          }
+        }
+      },
+      "PageResponseAdminSemesterScore": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSemesterScore"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AdminSemesterScoreStatistics": {
+        "type": "object",
+        "properties": {
+          "studentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "minScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "excellentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "passCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseAdminSemesterScoreStatistics": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminSemesterScoreStatistics"
+          }
+        }
+      },
+      "ApiResponseListAdminSemesterScore": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminSemesterScore"
             }
           }
         }
@@ -5597,6 +9903,173 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AdminScoreGradeRule"
+            }
+          }
+        }
+      },
+      "AdminRoleQuery": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminRole": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "roleCode": {
+            "type": "string"
+          },
+          "dataScope": {
+            "type": "string"
+          },
+          "remark": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "userCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponsePageResponseAdminRole": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResponseAdminRole"
+          }
+        }
+      },
+      "PageResponseAdminRole": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRole"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResponseAdminRole": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminRole"
+          }
+        }
+      },
+      "AdminRoleLog": {
+        "type": "object",
+        "properties": {
+          "logId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operatorId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListAdminRoleLog": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRoleLog"
             }
           }
         }
@@ -6127,6 +10600,101 @@
           }
         }
       },
+      "AdminProfile": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "accountNo": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "idCard": {
+            "type": "string"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseAdminProfile": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminProfile"
+          }
+        }
+      },
+      "AdminPermission": {
+        "type": "object",
+        "properties": {
+          "permissionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "permissionName": {
+            "type": "string"
+          },
+          "permissionCode": {
+            "type": "string"
+          },
+          "permissionType": {
+            "type": "string"
+          },
+          "routePath": {
+            "type": "string"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseListAdminPermission": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPermission"
+            }
+          }
+        }
+      },
       "AdminPaperQuery": {
         "type": "object",
         "properties": {
@@ -6360,6 +10928,28 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "createdBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createdName": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updatedName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -6378,6 +10968,102 @@
             "items": {
               "$ref": "#/components/schemas/AdminOrg"
             }
+          }
+        }
+      },
+      "OnlineUserQuery": {
+        "type": "object",
+        "properties": {
+          "userType": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "onlineOnly": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseOnlinePresenceDashboard": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OnlinePresenceDashboard"
+          }
+        }
+      },
+      "OnlinePresenceDashboard": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onlineCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "offlineCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "heartbeatIntervalSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offlineTimeoutSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OnlineUser"
+            }
+          }
+        }
+      },
+      "OnlineUser": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"
+          },
+          "lastLoginIp": {
+            "type": "string"
+          },
+          "lastHeartbeatTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "online": {
+            "type": "boolean"
           }
         }
       },
@@ -6414,6 +11100,344 @@
           }
         }
       },
+      "AdminJobRole": {
+        "type": "object",
+        "properties": {
+          "jobRoleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseListAdminJobRole": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminJobRole"
+            }
+          }
+        }
+      },
+      "AdminDeviceEfficiencyQuery": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endExclusiveDateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "classroomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "deviceStatus": {
+            "type": "string"
+          },
+          "dayCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAvailableMinutes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rankLimit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminDeviceEfficiencyReport": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/AdminDeviceEfficiencySummary"
+          },
+          "realtimeStates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceRealtimeState"
+            }
+          },
+          "monthlyTrends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceMonthlyTrend"
+            }
+          },
+          "heatRanking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceHeatRank"
+            }
+          }
+        }
+      },
+      "AdminDeviceEfficiencySummary": {
+        "type": "object",
+        "properties": {
+          "totalDeviceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "onlineDeviceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeDeviceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "faultDeviceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalUsageMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageUtilizationRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "activeTrainingCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminDeviceHeatRank": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deviceCode": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "classroomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classroomName": {
+            "type": "string"
+          },
+          "usageMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "utilizationRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "rankNo": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminDeviceMonthlyTrend": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "usageMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "usageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "utilizationRate": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AdminDeviceRealtimeState": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deviceCode": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "deviceStatus": {
+            "type": "string"
+          },
+          "classroomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classroomName": {
+            "type": "string"
+          },
+          "currentTrainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currentTrainingName": {
+            "type": "string"
+          },
+          "currentStudentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currentStudentName": {
+            "type": "string"
+          },
+          "currentStartedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentUsageMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastHeartbeatAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseAdminDeviceEfficiencyReport": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminDeviceEfficiencyReport"
+          }
+        }
+      },
+      "ApiResponseAdminDeviceEfficiencySummary": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminDeviceEfficiencySummary"
+          }
+        }
+      },
+      "ApiResponseListAdminDeviceRealtimeState": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceRealtimeState"
+            }
+          }
+        }
+      },
+      "ApiResponseListAdminDeviceMonthlyTrend": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceMonthlyTrend"
+            }
+          }
+        }
+      },
+      "ApiResponseListAdminDeviceHeatRank": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDeviceHeatRank"
+            }
+          }
+        }
+      },
       "AdminCourseQuery": {
         "type": "object",
         "properties": {
@@ -6439,6 +11463,14 @@
           "teacherId": {
             "type": "integer",
             "format": "int64"
+          },
+          "teachingStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "teachingEndTime": {
+            "type": "string",
+            "format": "date-time"
           },
           "publishStatus": {
             "type": "string"
@@ -6522,6 +11554,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "pendingReviewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "publishStatus": {
             "type": "string"
           },
@@ -6581,6 +11617,10 @@
             "type": "integer",
             "format": "int64"
           },
+          "parentChapterId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "chapterTitle": {
             "type": "string"
           },
@@ -6622,6 +11662,36 @@
             "format": "int64"
           },
           "requiredDurationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "learningStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "learningEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignmentCompletionRule": {
+            "type": "string"
+          },
+          "passScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentPublishMode": {
+            "type": "string"
+          },
+          "answerStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "answerEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignmentTotalScore": {
             "type": "integer",
             "format": "int32"
           },
@@ -6681,6 +11751,105 @@
           },
           "data": {
             "$ref": "#/components/schemas/AdminCourse"
+          }
+        }
+      },
+      "AdminCourseStudentStatisticsQuery": {
+        "type": "object",
+        "properties": {
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminCourseStudentStatistics": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "className": {
+            "type": "string"
+          },
+          "progressPercent": {
+            "type": "number"
+          },
+          "progressScore": {
+            "type": "number"
+          },
+          "assignmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentScore": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponsePageResponseAdminCourseStudentStatistics": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResponseAdminCourseStudentStatistics"
+          }
+        }
+      },
+      "PageResponseAdminCourseStudentStatistics": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseStudentStatistics"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -7165,6 +12334,321 @@
           }
         }
       },
+      "AdminTrainingArchiveQuery": {
+        "type": "object",
+        "properties": {
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "submittedStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "submittedEndDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "submittedStartTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedEndExclusiveTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "archiveId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "className": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponsePageResponseAdminTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResponseAdminTrainingArchive"
+          }
+        }
+      },
+      "PageResponseAdminTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingArchive"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "AdminTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "archiveId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trainingName": {
+            "type": "string"
+          },
+          "trainingMode": {
+            "type": "string"
+          },
+          "studentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "roleName": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitType": {
+            "type": "string"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "personalScore": {
+            "type": "number"
+          },
+          "teamScore": {
+            "type": "number"
+          },
+          "recordingUrl": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingArchiveStep"
+            }
+          }
+        }
+      },
+      "AdminTrainingArchiveStep": {
+        "type": "object",
+        "properties": {
+          "stepId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stepName": {
+            "type": "string"
+          },
+          "standardOperation": {
+            "type": "string"
+          },
+          "actualOperation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResponseAdminTrainingArchiveDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminTrainingArchiveDetail"
+          }
+        }
+      },
+      "AdminTrainingArchiveStatistics": {
+        "type": "object",
+        "properties": {
+          "archiveCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "normalSubmitCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "abnormalSubmitCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roomDissolvedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averagePersonalScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "averageDurationSeconds": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ApiResponseAdminTrainingArchiveStatistics": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminTrainingArchiveStatistics"
+          }
+        }
+      },
+      "ApiResponseListAdminTrainingArchive": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingArchive"
+            }
+          }
+        }
+      },
       "AdminAccount": {
         "type": "object",
         "properties": {
@@ -7182,6 +12666,9 @@
             "type": "string"
           },
           "maskedPhone": {
+            "type": "string"
+          },
+          "idCard": {
             "type": "string"
           },
           "maskedIdCard": {
@@ -7287,6 +12774,9 @@
           "phone": {
             "type": "string"
           },
+          "jobTitle": {
+            "type": "string"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -7339,6 +12829,64 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "AdminAccountExportRow": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "accountNo": {
+            "type": "string"
+          },
+          "realName": {
+            "type": "string"
+          },
+          "maskedPhone": {
+            "type": "string"
+          },
+          "maskedIdCard": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"
+          },
+          "orgName": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListAdminAccountExportRow": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountExportRow"
+            }
           }
         }
       },
