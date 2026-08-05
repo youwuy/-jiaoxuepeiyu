@@ -251,8 +251,8 @@
 
     <el-dialog
       v-model="outlineDialogVisible"
-      class="admin-course-outline-dialog"
-      width="520px"
+      :class="['admin-course-outline-dialog', { homework: outlineDialogKind === 'homework' }]"
+      :width="outlineDialogKind === 'homework' ? '760px' : '520px'"
       :show-close="false"
       append-to-body
     >
@@ -279,6 +279,89 @@
             placeholder="请输入作业说明"
           />
         </label>
+        <section v-if="outlineDialogKind === 'homework'" class="admin-course-homework-question-section">
+          <div class="admin-course-homework-question-head">
+            <div>
+              <strong>作业题目</strong>
+              <small>可从实训题库和理论题库中选择题目</small>
+            </div>
+            <span>已选 {{ outlineForm.questions.length }} 题</span>
+          </div>
+          <el-tabs
+            v-model="homeworkQuestionTab"
+            class="admin-course-homework-question-tabs"
+            @tab-change="handleQuestionTabChange"
+          >
+            <el-tab-pane v-for="tab in questionTabs" :key="tab.name" :label="tab.label" :name="tab.name">
+              <div class="admin-course-question-picker-body">
+                <div class="admin-course-question-picker-toolbar">
+                  <el-input
+                    v-model="questionKeyword"
+                    :prefix-icon="Search"
+                    clearable
+                    :placeholder="`请输入${tab.label}名称搜索`"
+                    @keyup.enter="loadQuestionRows"
+                  />
+                  <el-button type="primary" @click="loadQuestionRows">查询</el-button>
+                </div>
+                <div v-loading="questionPickerLoading" class="admin-course-question-picker-list">
+                  <article
+                    v-for="item in questionRows"
+                    :key="`${item.kind}-${item.id}`"
+                    class="admin-course-question-picker-row"
+                    :class="{ selected: isQuestionSelected(item) }"
+                    @click="toggleQuestionSelection(item)"
+                  >
+                    <el-checkbox
+                      :model-value="isQuestionSelected(item)"
+                      @click.stop
+                      @change="toggleQuestionSelection(item)"
+                    />
+                    <div>
+                      <strong>{{ item.title }}</strong>
+                      <small>{{ item.typeLabel }} · {{ item.meta }}</small>
+                    </div>
+                    <b v-if="item.score">{{ item.score }} 分</b>
+                    <el-button text type="primary" @click.stop="openQuestionDetail(item)">查看详情</el-button>
+                  </article>
+                  <el-empty v-if="!questionPickerLoading && questionRows.length === 0" description="暂无可添加题目" />
+                </div>
+                <div class="admin-course-question-picker-footer">
+                  <span>已选 {{ selectedQuestionCount(tab.name) }} 题</span>
+                  <el-pagination
+                    layout="prev, pager, next"
+                    :current-page="questionPage"
+                    :page-size="questionPageSize"
+                    :total="questionTotal"
+                    @current-change="handleQuestionPageChange"
+                  />
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+
+          <div v-if="outlineForm.questions.length" class="admin-course-homework-question-list">
+            <div class="admin-course-homework-question-list-head">
+              <strong>已添加题目</strong>
+              <span>点击“查看详情”可预览题干内容</span>
+            </div>
+            <article v-for="item in outlineForm.questions" :key="`${item.kind}-${item.id}`">
+              <span class="admin-course-homework-question-type" :class="item.kind">
+                {{ item.kind === 'practice' ? '实训题' : '理论题' }}
+              </span>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.typeLabel }} · {{ item.score ? `${item.score} 分` : item.meta }}</small>
+              </div>
+              <el-button text type="primary" @click="openQuestionDetail(item)">查看详情</el-button>
+              <el-button text type="danger" @click="removeHomeworkQuestion(item)">移除</el-button>
+            </article>
+          </div>
+          <div v-else class="admin-course-homework-question-empty">
+            <el-icon><Document /></el-icon>
+            <span>暂未添加题目，请在上方选择实训题或理论题</span>
+          </div>
+        </section>
       </div>
 
       <template #footer>
@@ -290,9 +373,67 @@
     </el-dialog>
 
     <el-dialog
+      v-model="questionDetailVisible"
+      class="admin-course-question-detail-dialog"
+      width="720px"
+      :show-close="false"
+      append-to-body
+    >
+      <template #header>
+        <div class="admin-course-question-dialog-head">
+          <div>
+            <strong>{{ questionDetail?.kind === 'practice' ? '实训题详情' : '理论题详情' }}</strong>
+            <span>{{ questionDetail?.typeLabel || '题目详情' }}</span>
+          </div>
+          <el-button text circle :icon="Close" @click="questionDetailVisible = false" />
+        </div>
+      </template>
+
+      <div v-if="questionDetailLoading" class="admin-course-question-detail-loading">题目详情加载中...</div>
+      <div v-else-if="questionDetail" class="admin-course-question-detail-body">
+        <div class="admin-course-question-detail-meta">
+          <span class="admin-course-homework-question-type" :class="questionDetail.kind">
+            {{ questionDetail.kind === 'practice' ? '实训题' : '理论题' }}
+          </span>
+          <span>{{ questionDetail.typeLabel }}</span>
+          <span v-if="questionDetail.score">{{ questionDetail.score }} 分</span>
+          <span>{{ questionDetail.meta }}</span>
+        </div>
+        <h2>{{ questionDetail.title }}</h2>
+        <section v-if="questionDetail.options?.length" class="admin-course-question-detail-block">
+          <strong>选项</strong>
+          <ol>
+            <li v-for="option in questionDetail.options" :key="option.label" :class="{ correct: option.correct }">
+              <span>{{ option.label }}</span>
+              <b v-if="option.correct">正确答案</b>
+            </li>
+          </ol>
+        </section>
+        <section v-if="questionDetail.coverUrl" class="admin-course-question-detail-block">
+          <strong>实训封面</strong>
+          <img :src="questionDetail.coverUrl" alt="实训题封面" class="admin-course-question-detail-cover" />
+        </section>
+        <section v-if="questionDetail.answer" class="admin-course-question-detail-block">
+          <strong>{{ questionDetail.kind === 'practice' ? '任务说明' : '标准答案' }}</strong>
+          <p>{{ questionDetail.answer }}</p>
+        </section>
+        <section v-if="questionDetail.extra" class="admin-course-question-detail-block">
+          <strong>{{ questionDetail.kind === 'practice' ? '实训信息' : '题目来源' }}</strong>
+          <p>{{ questionDetail.extra }}</p>
+        </section>
+      </div>
+
+      <template #footer>
+        <div class="admin-course-question-dialog-footer">
+          <el-button type="primary" @click="questionDetailVisible = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
       v-model="resourceDialogVisible"
       class="admin-course-resource-dialog"
-      width="860px"
+      width="920px"
       :show-close="false"
       append-to-body
     >
@@ -304,75 +445,169 @@
       </template>
 
       <div class="admin-course-resource-dialog-body">
-        <div class="admin-course-resource-searchbar">
-          <el-input
-            v-model="resourceKeyword"
-            :prefix-icon="Search"
-            clearable
-            placeholder="请输入资源名称"
-            @keyup.enter="handleResourceSearch"
-            @clear="handleResourceSearch"
-          />
-          <el-button type="primary" @click="handleResourceSearch">查询</el-button>
-        </div>
-
-        <div class="admin-course-resource-tabs">
-          <button
-            v-for="item in resourceTypeTabs"
-            :key="item.value"
-            type="button"
-            :class="{ active: resourceTypeFilter === item.value }"
-            @click="changeResourceType(item.value)"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-
-        <div class="admin-course-resource-table" v-loading="resourceLoading">
-          <div class="admin-course-resource-table-head">
-            <span>资源名称</span>
-            <span>资源类型</span>
-            <span>所属课程</span>
-            <span>上传人</span>
-            <span>上传时间</span>
+        <section class="admin-course-resource-step-card">
+          <div class="admin-course-resource-step-title">
+            <span>1</span>
+            <strong>设置学习限制</strong>
           </div>
-          <button
-            v-for="item in resourceRows"
-            :key="item.resourceId"
-            type="button"
-            class="admin-course-resource-row"
-            :class="{ active: selectedResource?.resourceId === item.resourceId }"
-            @click="selectResource(item)"
-          >
-            <span class="admin-course-resource-name">
-              <i>{{ resourceInitial(item) }}</i>
-              <strong>{{ item.resourceName }}</strong>
-              <small>{{ item.fileName || formatResourceSize(item.fileSize) }}</small>
-            </span>
-            <span>{{ resourceTypeLabel(item.resourceType) }}</span>
-            <span>{{ item.courseName || '-' }}</span>
-            <span>{{ item.uploaderName || '-' }}</span>
-            <span>{{ formatResourceDate(item.createdAt) }}</span>
-          </button>
-          <el-empty v-if="!resourceLoading && resourceRows.length === 0" description="暂无可添加资源" />
-        </div>
+          <div class="admin-course-resource-limit-fields">
+            <label class="admin-course-resource-limit-field">
+              <span>开放时段</span>
+              <div class="admin-course-resource-date-range">
+                <el-date-picker
+                  v-model="resourceOpenStartTime"
+                  type="datetime"
+                  format="YYYY-MM-DD HH:mm"
+                  placeholder="开始时间"
+                />
+                <i>至</i>
+                <el-date-picker
+                  v-model="resourceOpenEndTime"
+                  type="datetime"
+                  format="YYYY-MM-DD HH:mm"
+                  placeholder="结束时间"
+                />
+              </div>
+            </label>
+            <label class="admin-course-resource-limit-field">
+              <span>最低学习时长</span>
+              <div class="admin-course-resource-duration">
+                <el-input-number
+                  v-model="resourceStudyMinutes"
+                  :min="0"
+                  :max="999"
+                  :controls="false"
+                  placeholder="请输入"
+                />
+                <em>分</em>
+                <el-input-number
+                  v-model="resourceStudySeconds"
+                  :min="0"
+                  :max="59"
+                  :controls="false"
+                  placeholder="请输入"
+                />
+                <em>秒</em>
+                <small>（学习时长达到才算完成）</small>
+              </div>
+            </label>
+          </div>
+        </section>
 
-        <div class="admin-course-resource-pagination">
-          <span>共 {{ resourceTotal }} 条</span>
-          <el-pagination
-            layout="prev, pager, next"
-            :current-page="resourcePage"
-            :page-size="resourcePageSize"
-            :total="resourceTotal"
-            @current-change="handleResourcePageChange"
-          />
-        </div>
+        <section class="admin-course-resource-step-card admin-course-resource-selection-card">
+          <div class="admin-course-resource-step-title">
+            <span>2</span>
+            <strong>选择资源</strong>
+          </div>
+
+          <div class="admin-course-resource-filter">
+            <div class="admin-course-resource-filter-row">
+              <label class="admin-course-resource-filter-field resource-name">
+                <span>资源名称</span>
+                <el-input
+                  v-model="resourceKeyword"
+                  :prefix-icon="Search"
+                  clearable
+                  placeholder="请输入资源名称搜索"
+                  @keyup.enter="handleResourceSearch"
+                  @clear="handleResourceSearch"
+                />
+              </label>
+              <label class="admin-course-resource-filter-field resource-type">
+                <span>资源分类</span>
+                <el-select v-model="resourceTypeFilter" placeholder="请选择资源分类" clearable>
+                  <el-option v-for="item in resourceTypeTabs" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </label>
+            </div>
+            <div class="admin-course-resource-filter-row">
+              <label class="admin-course-resource-filter-field resource-major">
+                <span>所属专业</span>
+                <el-select v-model="resourceMajorId" placeholder="请选择所属专业" clearable>
+                  <el-option v-for="item in majorOptions" :key="item.majorId" :label="item.majorName" :value="item.majorId" />
+                </el-select>
+              </label>
+              <label class="admin-course-resource-filter-field resource-course">
+                <span>适用课程</span>
+                <el-input
+                  v-model="resourceCourseKeyword"
+                  :prefix-icon="Search"
+                  clearable
+                  placeholder="请输入适用课程搜索"
+                  @keyup.enter="handleResourceSearch"
+                  @clear="handleResourceSearch"
+                />
+              </label>
+              <div class="admin-course-resource-filter-actions">
+                <el-button type="primary" @click="handleResourceSearch">查询</el-button>
+                <el-button @click="resetResourceFilters">重置</el-button>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-course-resource-selection-summary">
+            <span>共 <b>{{ resourceTotal }}</b> 条资源，已选 <b>{{ resourceSelectedCount }}</b> 条</span>
+            <small>灰色复选框表示资源已绑定当前课程，不可取消</small>
+          </div>
+
+          <div class="admin-course-resource-table" v-loading="resourceLoading">
+            <div class="admin-course-resource-table-head">
+              <span class="check-cell">
+                <el-checkbox
+                  :model-value="resourcePageSelected"
+                  :indeterminate="resourcePageIndeterminate"
+                  @change="toggleResourcePageSelection"
+                />
+              </span>
+              <span>序号</span>
+              <span>资源名称</span>
+              <span>分类</span>
+              <span>所属专业</span>
+              <span>所属课程</span>
+            </div>
+            <div
+              v-for="(item, index) in resourceRows"
+              :key="item.resourceId"
+              class="admin-course-resource-row"
+              :class="{ active: isResourceSelected(item) }"
+              @click="toggleResourceSelection(item, !isResourceSelected(item))"
+            >
+              <span class="check-cell" @click.stop>
+                <el-checkbox
+                  :model-value="isResourceSelected(item)"
+                  @change="handleResourceCheckboxChange(item, $event)"
+                />
+              </span>
+              <span>{{ (resourcePage - 1) * resourcePageSize + index + 1 }}</span>
+              <span class="admin-course-resource-name" :title="item.resourceName">{{ item.resourceName }}</span>
+              <span>
+                <b class="admin-course-resource-type-tag" :class="resourceTypeTone(item.resourceType)">
+                  {{ resourceCategoryLabel(item.resourceType) }}
+                </b>
+              </span>
+              <span class="admin-course-resource-text" :title="item.majorName">{{ item.majorName || '-' }}</span>
+              <span class="admin-course-resource-text" :title="item.courseName">{{ item.courseName || '-' }}</span>
+            </div>
+            <el-empty v-if="!resourceLoading && resourceRows.length === 0" description="暂无可添加资源" />
+          </div>
+
+          <div class="admin-course-resource-pagination">
+            <span>显示 {{ resourcePageStart }} 到 {{ resourcePageEnd }} 条，共 {{ resourceTotal }} 条记录</span>
+            <el-pagination
+              layout="prev, pager, next"
+              :current-page="resourcePage"
+              :page-size="resourcePageSize"
+              :total="resourceTotal"
+              @current-change="handleResourcePageChange"
+            />
+          </div>
+        </section>
       </div>
 
       <template #footer>
         <div class="admin-course-resource-dialog-footer">
           <el-button @click="resourceDialogVisible = false">取消</el-button>
-          <el-button type="primary" :disabled="!selectedResource" @click="confirmAddResource">确定</el-button>
+          <el-button type="primary" :disabled="!resourceSelectedCount" @click="confirmAddResource">确定添加</el-button>
         </div>
       </template>
     </el-dialog>
@@ -409,6 +644,16 @@ import {
   type AdminMajorOption,
   type AdminTeacherOption
 } from '../../api/admin-course';
+import {
+  fetchAdminQuestion,
+  fetchAdminQuestions,
+  type AdminQuestion
+} from '../../api/admin-question';
+import {
+  fetchAdminTraining,
+  fetchAdminTrainings,
+  type AdminTraining
+} from '../../api/admin-training';
 import { fetchAdminResources, type AdminResource } from '../../api/admin-resource';
 
 const router = useRouter();
@@ -451,7 +696,11 @@ interface OutlineItem {
   type: 'homework' | 'resource';
   title: string;
   desc: string;
+  questions?: HomeworkQuestion[];
   resourceId?: number;
+  requiredDurationSeconds?: number;
+  learningStartTime?: string;
+  learningEndTime?: string;
 }
 
 interface OutlineSection {
@@ -468,6 +717,28 @@ interface OutlineChapter {
 
 type OutlineDialogKind = 'chapter' | 'section' | 'homework';
 type OutlineDialogMode = 'create' | 'edit';
+type HomeworkQuestionKind = 'practice' | 'theory';
+
+interface HomeworkQuestion {
+  id: number;
+  kind: HomeworkQuestionKind;
+  title: string;
+  typeLabel: string;
+  score: number;
+  meta: string;
+  coverUrl?: string;
+}
+
+interface HomeworkQuestionOption {
+  label: string;
+  correct: boolean;
+}
+
+interface HomeworkQuestionDetail extends HomeworkQuestion {
+  answer?: string;
+  options?: HomeworkQuestionOption[];
+  extra?: string;
+}
 
 const chapters = ref<OutlineChapter[]>([]);
 let outlineIdSeed = 1;
@@ -476,28 +747,65 @@ const outlineDialogKind = ref<OutlineDialogKind>('chapter');
 const outlineDialogMode = ref<OutlineDialogMode>('create');
 const outlineForm = reactive({
   title: '',
-  desc: ''
+  desc: '',
+  questions: [] as HomeworkQuestion[]
 });
 const outlineTargetChapter = ref<OutlineChapter | null>(null);
 const outlineTargetSection = ref<OutlineSection | null>(null);
 const outlineTargetItem = ref<OutlineItem | null>(null);
+const homeworkQuestionTab = ref<HomeworkQuestionKind>('practice');
+const questionTabs: Array<{ label: string; name: HomeworkQuestionKind }> = [
+  { label: '实训题', name: 'practice' },
+  { label: '理论题', name: 'theory' }
+];
+const questionPickerLoading = ref(false);
+const questionKeyword = ref('');
+const questionPage = ref(1);
+const questionPageSize = 8;
+const questionTotal = ref(0);
+const questionRows = ref<HomeworkQuestion[]>([]);
+const questionDetailVisible = ref(false);
+const questionDetailLoading = ref(false);
+const questionDetail = ref<HomeworkQuestionDetail>();
 const resourceDialogVisible = ref(false);
 const resourceLoading = ref(false);
 const resourceKeyword = ref('');
 const resourceTypeFilter = ref('');
+const resourceMajorId = ref<number | null>(null);
+const resourceCourseKeyword = ref('');
 const resourceRows = ref<AdminResource[]>([]);
 const resourceTotal = ref(0);
 const resourcePage = ref(1);
 const resourcePageSize = 8;
-const selectedResource = ref<AdminResource>();
+const resourceSelectedIds = ref<number[]>([]);
+const resourceSelectedMap = ref<Record<number, AdminResource>>({});
+const resourceOpenStartTime = ref<Date>();
+const resourceOpenEndTime = ref<Date>();
+const resourceStudyMinutes = ref(0);
+const resourceStudySeconds = ref(0);
 const resourceTargetSection = ref<OutlineSection | null>(null);
 const resourceTypeTabs = [
-  { label: '全部', value: '' },
-  { label: '文档', value: 'DOCUMENT' },
-  { label: '课件', value: 'PRESENTATION' },
+  { label: '全部资源', value: '' },
+  { label: '文本文件', value: 'DOCUMENT' },
+  { label: '演示文稿', value: 'PRESENTATION' },
   { label: '视频', value: 'VIDEO' },
-  { label: '图片', value: 'IMAGE' }
+  { label: '音频', value: 'AUDIO' },
+  { label: '图像', value: 'IMAGE' }
 ];
+
+const resourceSelectedCount = computed(() => resourceSelectedIds.value.length);
+const resourcePageStart = computed(() =>
+  resourceTotal.value === 0 ? 0 : (resourcePage.value - 1) * resourcePageSize + 1
+);
+const resourcePageEnd = computed(() => Math.min(resourcePage.value * resourcePageSize, resourceTotal.value));
+const resourcePageSelected = computed(
+  () => resourceRows.value.length > 0 && resourceRows.value.every((item) => resourceSelectedIds.value.includes(item.resourceId))
+);
+const resourcePageIndeterminate = computed(
+  () =>
+    !resourcePageSelected.value &&
+    resourceRows.value.some((item) => resourceSelectedIds.value.includes(item.resourceId))
+);
 
 const outlineDialogTitle = computed(() => {
   const action = outlineDialogMode.value === 'create' ? '新增' : '编辑';
@@ -551,6 +859,7 @@ async function promptOutlineText(message: string, title: string, initialValue = 
 function resetOutlineDialog() {
   outlineForm.title = '';
   outlineForm.desc = '';
+  outlineForm.questions = [];
   outlineTargetChapter.value = null;
   outlineTargetSection.value = null;
   outlineTargetItem.value = null;
@@ -565,6 +874,14 @@ function openOutlineDialog(kind: OutlineDialogKind, mode: OutlineDialogMode) {
   outlineDialogKind.value = kind;
   outlineDialogMode.value = mode;
   outlineDialogVisible.value = true;
+  if (kind === 'homework') {
+    homeworkQuestionTab.value = 'practice';
+    questionKeyword.value = '';
+    questionPage.value = 1;
+    questionRows.value = [];
+    questionTotal.value = 0;
+    void loadQuestionRows();
+  }
 }
 
 function addChapter() {
@@ -621,12 +938,170 @@ async function addOutlineItem(section: OutlineSection, type: OutlineItem['type']
   openOutlineDialog('homework', 'create');
 }
 
+function questionKey(item: HomeworkQuestion) {
+  return `${item.kind}-${item.id}`;
+}
+
+function questionTypeLabel(type?: string) {
+  const labels: Record<string, string> = {
+    SINGLE: '单选题',
+    MULTIPLE: '多选题',
+    JUDGE: '判断题',
+    FILL_BLANK: '填空题',
+    SHORT_ANSWER: '简答题'
+  };
+  return type ? labels[type.toUpperCase()] || type : '理论题';
+}
+
+function mapTheoryQuestion(item: AdminQuestion): HomeworkQuestion {
+  return {
+    id: item.questionId,
+    kind: 'theory',
+    title: item.title,
+    typeLabel: questionTypeLabel(item.questionType),
+    score: Number(item.score || 0),
+    meta: item.creatorName ? `添加人：${item.creatorName}` : '理论题库'
+  };
+}
+
+function mapPracticeQuestion(item: AdminTraining): HomeworkQuestion {
+  const meta = [item.majorName, item.trainingMode, item.publishStatus].filter(Boolean).join(' · ');
+  return {
+    id: item.trainingId,
+    kind: 'practice',
+    title: item.trainingName || `实训题 ${item.trainingId}`,
+    typeLabel: item.trainingType || '实训任务',
+    score: 0,
+    meta: meta || '实训题库',
+    coverUrl: item.coverUrl
+  };
+}
+
+function selectedQuestionCount(kind: HomeworkQuestionKind) {
+  return outlineForm.questions.filter((item) => item.kind === kind).length;
+}
+
+function isQuestionSelected(item: HomeworkQuestion) {
+  return outlineForm.questions.some((question) => questionKey(question) === questionKey(item));
+}
+
+function handleQuestionTabChange(value: string | number) {
+  homeworkQuestionTab.value = value === 'theory' ? 'theory' : 'practice';
+  questionKeyword.value = '';
+  questionPage.value = 1;
+  void loadQuestionRows();
+}
+
+async function loadQuestionRows() {
+  questionPickerLoading.value = true;
+  try {
+    if (homeworkQuestionTab.value === 'theory') {
+      const result = await fetchAdminQuestions({
+        keyword: questionKeyword.value,
+        enabled: true,
+        page: questionPage.value,
+        pageSize: questionPageSize
+      });
+      questionRows.value = result.records.map(mapTheoryQuestion);
+      questionTotal.value = result.total;
+    } else {
+      const result = await fetchAdminTrainings({
+        keyword: questionKeyword.value,
+        page: questionPage.value,
+        pageSize: questionPageSize
+      });
+      questionRows.value = result.records.map(mapPracticeQuestion);
+      questionTotal.value = result.total;
+    }
+  } catch (error) {
+    questionRows.value = [];
+    questionTotal.value = 0;
+    ElMessage.error(error instanceof Error ? error.message : '题目列表加载失败');
+  } finally {
+    questionPickerLoading.value = false;
+  }
+}
+
+function toggleQuestionSelection(item: HomeworkQuestion) {
+  const selectedIndex = outlineForm.questions.findIndex(
+    (question) => questionKey(question) === questionKey(item)
+  );
+  if (selectedIndex >= 0) {
+    outlineForm.questions.splice(selectedIndex, 1);
+  } else {
+    outlineForm.questions.push({ ...item });
+  }
+}
+
+function handleQuestionPageChange(page: number) {
+  questionPage.value = page;
+  void loadQuestionRows();
+}
+
+function removeHomeworkQuestion(item: HomeworkQuestion) {
+  outlineForm.questions = outlineForm.questions.filter((question) => questionKey(question) !== questionKey(item));
+}
+
+async function openQuestionDetail(item: HomeworkQuestion) {
+  questionDetailVisible.value = true;
+  questionDetailLoading.value = true;
+  questionDetail.value = { ...item };
+  try {
+    if (item.kind === 'theory') {
+      const detail = await fetchAdminQuestion(item.id);
+      const standardAnswers = new Set(
+        (detail.standardAnswer ?? '')
+          .split(/[,\s，、;；]+/)
+          .map((answer) => answer.trim().toUpperCase())
+          .filter(Boolean)
+      );
+      questionDetail.value = {
+        ...item,
+        title: detail.title || item.title,
+        typeLabel: questionTypeLabel(detail.questionType),
+        score: Number(detail.score || item.score || 0),
+        options: detail.options?.map((option) => {
+          const optionKey = option.optionKey?.trim().toUpperCase();
+          return {
+            label: `${option.optionKey || ''} ${option.optionText || ''}`.trim() || '未命名选项',
+            correct: Boolean(option.correct || (optionKey && standardAnswers.has(optionKey)))
+          };
+        }),
+        answer: detail.standardAnswer || '暂未配置标准答案',
+        extra: detail.creatorName ? `添加人：${detail.creatorName}` : '理论题库'
+      };
+    } else {
+      const detail = await fetchAdminTraining(item.id);
+      questionDetail.value = {
+        ...item,
+        title: detail.trainingName || item.title,
+        typeLabel: detail.trainingType || item.typeLabel,
+        meta: [detail.majorName, detail.trainingMode].filter(Boolean).join(' · ') || item.meta,
+        coverUrl: detail.coverUrl || item.coverUrl,
+        answer: detail.coverUrl ? '已配置实训任务封面和实训内容' : '该实训题暂无任务说明',
+        extra: `开放时间：${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`
+      };
+    }
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '题目详情加载失败');
+  } finally {
+    questionDetailLoading.value = false;
+  }
+}
+
 function openResourceDialog(section: OutlineSection) {
   resourceTargetSection.value = section;
-  selectedResource.value = undefined;
+  resourceSelectedIds.value = [];
+  resourceSelectedMap.value = {};
   resourceKeyword.value = '';
   resourceTypeFilter.value = '';
+  resourceMajorId.value = null;
+  resourceCourseKeyword.value = '';
   resourcePage.value = 1;
+  resourceOpenStartTime.value = undefined;
+  resourceOpenEndTime.value = undefined;
+  resourceStudyMinutes.value = 0;
+  resourceStudySeconds.value = 0;
   resourceDialogVisible.value = true;
   void loadResourceRows();
 }
@@ -637,6 +1112,8 @@ async function loadResourceRows() {
     const result = await fetchAdminResources({
       keyword: resourceKeyword.value,
       resourceType: resourceTypeFilter.value,
+      majorId: resourceMajorId.value,
+      courseName: resourceCourseKeyword.value,
       page: resourcePage.value,
       pageSize: resourcePageSize
     });
@@ -653,41 +1130,99 @@ async function loadResourceRows() {
 
 function handleResourceSearch() {
   resourcePage.value = 1;
-  selectedResource.value = undefined;
+  resourceSelectedIds.value = [];
+  resourceSelectedMap.value = {};
   void loadResourceRows();
 }
 
-function changeResourceType(value: string) {
-  resourceTypeFilter.value = value;
+function resetResourceFilters() {
+  resourceKeyword.value = '';
+  resourceTypeFilter.value = '';
+  resourceMajorId.value = null;
+  resourceCourseKeyword.value = '';
   handleResourceSearch();
 }
 
 function handleResourcePageChange(page: number) {
   resourcePage.value = page;
-  selectedResource.value = undefined;
   void loadResourceRows();
 }
 
-function selectResource(item: AdminResource) {
-  selectedResource.value = item;
+function isResourceSelected(item: AdminResource) {
+  return resourceSelectedIds.value.includes(item.resourceId);
+}
+
+function toggleResourceSelection(item: AdminResource, checked: boolean) {
+  const nextIds = new Set(resourceSelectedIds.value);
+  if (checked) {
+    nextIds.add(item.resourceId);
+    resourceSelectedMap.value[item.resourceId] = item;
+  } else {
+    nextIds.delete(item.resourceId);
+    delete resourceSelectedMap.value[item.resourceId];
+  }
+  resourceSelectedIds.value = Array.from(nextIds);
+}
+
+function toggleResourcePageSelection(value: boolean | string | number) {
+  const checked = Boolean(value);
+  resourceRows.value.forEach((item) => toggleResourceSelection(item, checked));
+}
+
+function handleResourceCheckboxChange(item: AdminResource, value: boolean | string | number) {
+  toggleResourceSelection(item, Boolean(value));
+}
+
+function resourceCategoryLabel(type?: string) {
+  const labels: Record<string, string> = {
+    DOCUMENT: '文本文件',
+    PRESENTATION: '演示文稿',
+    VIDEO: '视频',
+    AUDIO: '音频',
+    IMAGE: '图像',
+    EXAM: '试题'
+  };
+  return type ? labels[type] || type : '未分类';
+}
+
+function resourceTypeTone(type?: string) {
+  const tones: Record<string, string> = {
+    DOCUMENT: 'document',
+    PRESENTATION: 'presentation',
+    VIDEO: 'video',
+    AUDIO: 'audio',
+    IMAGE: 'image',
+    EXAM: 'exam'
+  };
+  return tones[type || ''] || 'default';
 }
 
 function confirmAddResource() {
-  if (!selectedResource.value || !resourceTargetSection.value) {
+  if (!resourceSelectedIds.value.length || !resourceTargetSection.value) {
     ElMessage.warning('请选择教学资源');
     return;
   }
 
-  const resource = selectedResource.value;
-  resourceTargetSection.value.items.push({
-    id: nextOutlineId(),
-    type: 'resource',
-    title: resource.resourceName,
-    desc: `${resourceTypeLabel(resource.resourceType)} · ${resource.courseName || resource.fileName || '教学资源'}`,
-    resourceId: resource.resourceId
-  });
+  const requiredDurationSeconds = resourceStudyMinutes.value * 60 + resourceStudySeconds.value;
+  const learningStartTime = formatLocalDateTime(resourceOpenStartTime.value);
+  const learningEndTime = formatLocalDateTime(resourceOpenEndTime.value);
+  resourceSelectedIds.value
+    .map((resourceId) => resourceSelectedMap.value[resourceId])
+    .filter((resource): resource is AdminResource => Boolean(resource))
+    .forEach((resource) => {
+      resourceTargetSection.value?.items.push({
+        id: nextOutlineId(),
+        type: 'resource',
+        title: resource.resourceName,
+        desc: `${resourceCategoryLabel(resource.resourceType)} · ${resource.courseName || resource.fileName || '教学资源'}`,
+        resourceId: resource.resourceId,
+        requiredDurationSeconds: requiredDurationSeconds || undefined,
+        learningStartTime,
+        learningEndTime
+      });
+    });
   resourceDialogVisible.value = false;
-  ElMessage.success('已添加教学资源');
+  ElMessage.success(`已添加 ${resourceSelectedCount.value} 条教学资源`);
 }
 
 async function editOutlineItem(item: OutlineItem) {
@@ -695,6 +1230,7 @@ async function editOutlineItem(item: OutlineItem) {
     resetOutlineDialog();
     outlineForm.title = item.title;
     outlineForm.desc = item.desc === '-' ? '' : item.desc;
+    outlineForm.questions = item.questions ? item.questions.map((question) => ({ ...question })) : [];
     outlineTargetItem.value = item;
     openOutlineDialog('homework', 'edit');
     return;
@@ -737,8 +1273,15 @@ function confirmOutlineDialog() {
     if (outlineDialogMode.value === 'edit' && outlineTargetItem.value) {
       outlineTargetItem.value.title = title;
       outlineTargetItem.value.desc = desc;
+      outlineTargetItem.value.questions = outlineForm.questions.map((question) => ({ ...question }));
     } else if (outlineTargetSection.value) {
-      outlineTargetSection.value.items.push({ id: nextOutlineId(), type: 'homework', title, desc });
+      outlineTargetSection.value.items.push({
+        id: nextOutlineId(),
+        type: 'homework',
+        title,
+        desc,
+        questions: outlineForm.questions.map((question) => ({ ...question }))
+      });
     }
     closeOutlineDialog();
   }
@@ -762,6 +1305,13 @@ function formatLocalDateTime(value?: Date) {
   return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(
     value.getMinutes()
   )}:${pad(value.getSeconds())}`;
+}
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return '未设置';
+  }
+  return value.replace('T', ' ').slice(0, 16);
 }
 
 function selectedSemester() {
@@ -839,7 +1389,10 @@ async function saveCourse() {
             itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
             title: item.title.slice(0, 30),
             sortOrder: itemIndex + 1,
-            resourceId: item.resourceId
+            resourceId: item.resourceId,
+            requiredDurationSeconds: item.requiredDurationSeconds,
+            learningStartTime: item.learningStartTime,
+            learningEndTime: item.learningEndTime
           }))
         }))
       }))
@@ -851,39 +1404,6 @@ async function saveCourse() {
   } finally {
     saving.value = false;
   }
-}
-
-function resourceTypeLabel(type?: string) {
-  const labels: Record<string, string> = {
-    DOCUMENT: '文档',
-    PRESENTATION: '课件',
-    VIDEO: '视频',
-    IMAGE: '图片',
-    AUDIO: '音频',
-    EXAM: '试题'
-  };
-  return type ? labels[type] || type : '资源';
-}
-
-function formatResourceSize(size?: number) {
-  if (!size) {
-    return '未配置大小';
-  }
-  if (size < 1024 * 1024) {
-    return `${Math.max(1, Math.round(size / 1024))}KB`;
-  }
-  return `${(size / 1024 / 1024).toFixed(1)}MB`;
-}
-
-function formatResourceDate(value?: string) {
-  if (!value) {
-    return '-';
-  }
-  return value.slice(0, 10);
-}
-
-function resourceInitial(item: AdminResource) {
-  return resourceTypeLabel(item.resourceType).slice(0, 1);
 }
 
 async function loadOptions() {
