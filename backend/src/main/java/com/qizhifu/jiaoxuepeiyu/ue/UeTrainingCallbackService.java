@@ -69,6 +69,16 @@ public class UeTrainingCallbackService {
     public Long submitAttempt(Long studentId, Long trainingId, TrainingAttemptCommand command) {
         TrainingLaunchTask task = getTask(studentId, trainingId);
         TrainingAttemptCommand normalized = command == null ? new TrainingAttemptCommand() : command;
+        String clientAttemptId = trimToNull(normalized.getClientAttemptId());
+        if (clientAttemptId != null && clientAttemptId.length() > 64) {
+            throw new BusinessException(400, "Client attempt id is too long");
+        }
+        if (clientAttemptId != null) {
+            Long existingAttemptId = repository.findAttemptId(studentId, trainingId, clientAttemptId).orElse(null);
+            if (existingAttemptId != null) {
+                return existingAttemptId;
+            }
+        }
         String submitType = normalizeStatus(normalized.getSubmitType(), "NORMAL", SUBMIT_TYPES, "Submit type is invalid");
         assertNonNegative(normalized.getDurationSeconds(), "Duration seconds is invalid");
         assertScore(normalized.getPersonalScore(), "Personal score is invalid");
@@ -76,6 +86,7 @@ public class UeTrainingCallbackService {
         validateSteps(normalized.getSteps());
 
         TrainingAttemptSubmission submission = new TrainingAttemptSubmission();
+        submission.setClientAttemptId(clientAttemptId);
         submission.setStudentId(studentId);
         submission.setTrainingId(trainingId);
         submission.setTrainingName(task.getTrainingName());

@@ -68,6 +68,7 @@ class UeTrainingCallbackServiceTests {
         UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
         TrainingAttemptCommand command = new TrainingAttemptCommand();
         command.setSubmitType("NORMAL");
+        command.setClientAttemptId("attempt-20260805-001");
         command.setDurationSeconds(480);
         command.setPersonalScore(new BigDecimal("92.5"));
         command.setTeamScore(new BigDecimal("88.0"));
@@ -98,6 +99,22 @@ class UeTrainingCallbackServiceTests {
         assertEquals(new BigDecimal("92.5"), repository.syncedTrainingPracticeScore);
     }
 
+    @Test
+    void returnsExistingAttemptForRepeatedClientAttemptId() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+        TrainingAttemptCommand command = new TrainingAttemptCommand();
+        command.setClientAttemptId("attempt-20260805-001");
+        command.setPersonalScore(new BigDecimal("92.5"));
+
+        Long firstAttemptId = service.submitAttempt(7L, 15L, command);
+        Long repeatedAttemptId = service.submitAttempt(7L, 15L, command);
+
+        assertEquals(firstAttemptId, repeatedAttemptId);
+        assertEquals(1, repository.insertCount);
+    }
+
     private TrainingLaunchTask task() {
         TrainingLaunchTask task = new TrainingLaunchTask();
         task.setTrainingId(15L);
@@ -122,6 +139,7 @@ class UeTrainingCallbackServiceTests {
         private TrainingAttemptSubmission submission;
         private Long syncedSemesterId;
         private BigDecimal syncedTrainingPracticeScore;
+        private int insertCount;
         private final List<TrainingAttemptStepCommand> steps = new ArrayList<TrainingAttemptStepCommand>();
 
         @Override
@@ -140,8 +158,17 @@ class UeTrainingCallbackServiceTests {
         @Override
         public Long insertAttempt(TrainingAttemptSubmission submission) {
             this.submission = submission;
+            insertCount++;
             submission.setAttemptId(101L);
             return 101L;
+        }
+
+        @Override
+        public Optional<Long> findAttemptId(Long studentId, Long trainingId, String clientAttemptId) {
+            if (submission != null && clientAttemptId.equals(submission.getClientAttemptId())) {
+                return Optional.of(101L);
+            }
+            return Optional.empty();
         }
 
         @Override

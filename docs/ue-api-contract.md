@@ -12,8 +12,9 @@ UE callback APIs use the common response envelope:
 
 Authentication:
 
-- Preferred: `Authorization: Bearer <student-token>`.
-- Compatibility fallback: `X-User-Id: <studentId>`.
+- Production UE client: `X-UE-Token: <launchToken>` issued by the launch-session API.
+- Browser/student compatibility: `Authorization: Bearer <student-token>`.
+- Temporary legacy fallback: `X-User-Id: <studentId>`.
 - The backend resolves the current student identity from the request. UE clients must not submit another student's id in the body.
 
 Scope:
@@ -21,6 +22,32 @@ Scope:
 - 当前三维实训只保留 4 个对接接口：获取实训任务、上传实训录屏、回传实时状态、提交实训成绩。
 - 管理端实训档案、学生端实训档案读取三维成绩提交后写入的 `training_attempt` / `training_attempt_step`。
 - 管理端综合成绩、学生端综合成绩中的“实训练习”成绩由三维成绩提交接口的 `personalScore` 同步写入当前学期综合成绩。
+
+## Launch Session
+
+### `POST /api/student/trainings/{trainingId}/launch-session`
+
+Requires the logged-in student's bearer token. It validates that the published training is assigned to the student and returns an eight-hour token scoped to that student and training.
+
+Response `data`:
+
+```json
+{
+  "launchToken": "short-lived-token",
+  "studentId": 7,
+  "trainingId": 15,
+  "roomId": 22,
+  "expiresAt": "2026-08-05T22:00:00"
+}
+```
+
+The web client opens the following registered protocol after creating the session:
+
+```text
+jiaoyu-ue://launch?protocolVersion=1&apiBase=http%3A%2F%2Fjiaoyu.luoyan.xin%2Fapi&trainingId=15&studentId=7&roomId=22&launchToken=...
+```
+
+The UE installer must register the `jiaoyu-ue` protocol and map these values to the executable's command-line arguments. UE then sends `X-UE-Token` on task, upload, status, and result requests.
 
 ## Training Task
 
@@ -132,6 +159,7 @@ Request body:
 
 ```json
 {
+  "clientAttemptId": "attempt-20260805-001",
   "submitType": "NORMAL",
   "durationSeconds": 480,
   "personalScore": 92.5,
@@ -162,6 +190,7 @@ Response `data`: new training archive id.
 Behavior:
 
 - Defaults `submitType` to `NORMAL`.
+- `clientAttemptId` is optional but strongly recommended. Repeating the same value for the same student and training returns the original archive id without creating duplicate scores.
 - Defaults missing duration fields to `0`.
 - Scores must be between `0` and `100` when present.
 - Inserts one immutable `training_attempt` row and ordered `training_attempt_step` rows.

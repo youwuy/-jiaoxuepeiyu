@@ -6,6 +6,7 @@ import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.file.FileStorageService;
 import com.qizhifu.jiaoxuepeiyu.file.model.StoredFile;
+import com.qizhifu.jiaoxuepeiyu.ue.UeIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,9 +26,11 @@ public class FileUploadController {
     private static final String USER_ID_HEADER = "X-User-Id";
 
     private final FileStorageService storageService;
+    private final UeIdentityResolver ueIdentityResolver;
 
-    public FileUploadController(FileStorageService storageService) {
+    public FileUploadController(FileStorageService storageService, UeIdentityResolver ueIdentityResolver) {
         this.storageService = storageService;
+        this.ueIdentityResolver = ueIdentityResolver;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -42,6 +45,10 @@ public class FileUploadController {
     }
 
     private Long requireUploadUserId(HttpServletRequest request) {
+        String ueToken = request.getHeader(UeIdentityResolver.UE_TOKEN_HEADER);
+        if (ueToken != null && ueToken.trim().length() > 0) {
+            return ueIdentityResolver.requireUeStudentId(request);
+        }
         Object currentUser = request.getAttribute(AuthenticatedUserContext.REQUEST_ATTRIBUTE);
         if (currentUser instanceof AuthenticatedUser) {
             return ((AuthenticatedUser) currentUser).getId();

@@ -12,6 +12,10 @@ public interface UeTrainingCallbackRepository {
 
     Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId);
 
+    default Optional<Long> findAttemptId(Long studentId, Long trainingId, String clientAttemptId) {
+        return Optional.empty();
+    }
+
     void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command);
 
     Long insertAttempt(TrainingAttemptSubmission submission);

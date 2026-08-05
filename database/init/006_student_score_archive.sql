@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `training_attempt` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `student_id` BIGINT NOT NULL,
   `training_id` BIGINT DEFAULT NULL,
+  `client_attempt_id` VARCHAR(64) DEFAULT NULL COMMENT 'UE client idempotency key',
   `training_name` VARCHAR(128) NOT NULL,
   `training_mode` VARCHAR(16) NOT NULL COMMENT 'SINGLE/TEAM',
   `role_name` VARCHAR(64) DEFAULT NULL,
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS `training_attempt` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_training_attempt_client` (`student_id`, `training_id`, `client_attempt_id`),
   KEY `idx_training_attempt_student_time` (`student_id`, `submitted_at`),
   KEY `idx_training_attempt_mode` (`training_mode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='immutable student training attempts';

@@ -70,6 +70,16 @@ export function resolvePublicUrl(path?: string | null): string {
   return normalizedPath;
 }
 
+export function resolveApiBaseUrl(): string {
+  if (/^https?:\/\//i.test(apiBaseUrl)) {
+    return apiBaseUrl;
+  }
+  if (typeof window === 'undefined') {
+    return apiBaseUrl;
+  }
+  return `${window.location.origin}${apiBaseUrl.startsWith('/') ? apiBaseUrl : `/${apiBaseUrl}`}`;
+}
+
 function inferPortal(path: string): AuthPortal | undefined {
   const normalized = path.replace(/^https?:\/\/[^/]+/i, '');
 

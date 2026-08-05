@@ -7,6 +7,7 @@ import java.util.List;
 
 public class TrainingAttemptCommand {
 
+    private String clientAttemptId;
     private String submitType;
     private Integer durationSeconds;
     private BigDecimal personalScore;
@@ -14,6 +15,14 @@ public class TrainingAttemptCommand {
     private String recordingUrl;
     private LocalDateTime submittedAt;
     private List<TrainingAttemptStepCommand> steps = new ArrayList<TrainingAttemptStepCommand>();
+
+    public String getClientAttemptId() {
+        return clientAttemptId;
+    }
+
+    public void setClientAttemptId(String clientAttemptId) {
+        this.clientAttemptId = clientAttemptId;
+    }
 
     public String getSubmitType() {
         return submitType;

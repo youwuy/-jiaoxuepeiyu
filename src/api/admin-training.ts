@@ -111,6 +111,7 @@ export interface AdminTrainingStudentState {
   studentName?: string;
   studentNo?: string;
   className?: string;
+  clientIp?: string;
   deskStatus?: string;
   progressStatus?: string;
   score?: number;

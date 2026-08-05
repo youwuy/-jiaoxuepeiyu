@@ -91,6 +91,14 @@ export interface TrainingRoom {
   teamSize?: number;
 }
 
+export interface UeLaunchSession {
+  launchToken: string;
+  studentId: number;
+  trainingId: number;
+  roomId?: number;
+  expiresAt: string;
+}
+
 interface BackendResource {
   resourceId: number;
   resourceName: string;
@@ -491,6 +499,13 @@ export async function startTrainingRoom(roomId: number): Promise<TrainingRoom> {
   return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}/start`, {
     method: 'POST',
     fallbackLabel: '开始组队实训'
+  });
+}
+
+export async function createUeLaunchSession(trainingId: number): Promise<UeLaunchSession> {
+  return requestJson<UeLaunchSession>(`/student/trainings/${trainingId}/launch-session`, {
+    method: 'POST',
+    fallbackLabel: '启动三维实训'
   });
 }
 

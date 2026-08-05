@@ -7,6 +7,7 @@ public class AdminTrainingStudentState {
     private String studentNo;
     private Long classId;
     private String className;
+    private String clientIp;
     private String deskStatus;
     private String progressStatus;
     private Double score;
@@ -52,6 +53,14 @@ public class AdminTrainingStudentState {
 
     public void setClassName(String className) {
         this.className = className;
+    }
+
+    public String getClientIp() {
+        return clientIp;
+    }
+
+    public void setClientIp(String clientIp) {
+        this.clientIp = clientIp;
     }
 
     public String getDeskStatus() {

@@ -63,6 +63,8 @@ class StudentTrainingServiceTests {
 
         assertEquals(101L, room.getRoomId().longValue());
         assertEquals(7L, repository.addedMemberStudentId.longValue());
+        assertEquals(501L, repository.claimedRoleId.longValue());
+        assertEquals(501L, room.getMembers().get(0).getRoleId().longValue());
     }
 
     @Test
@@ -124,15 +126,12 @@ class StudentTrainingServiceTests {
     }
 
     @Test
-    void startsRoomWhenOwnerHasFullTeamAndRoles() {
+    void startsRoomWithUnclaimedRolesFilledByAi() {
         FakeTrainings repository = new FakeTrainings();
         repository.room.getMembers().clear();
         repository.room.getMembers().add(member(7L, 501L));
-        repository.room.getMembers().add(member(8L, 502L));
         repository.room.getRoles().get(0).setClaimed(true);
         repository.room.getRoles().get(0).setClaimedByStudentId(7L);
-        repository.room.getRoles().get(1).setClaimed(true);
-        repository.room.getRoles().get(1).setClaimedByStudentId(8L);
         StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
 
         TrainingRoom room = service.startRoom(7L, 101L);
@@ -144,6 +143,7 @@ class StudentTrainingServiceTests {
     private static class FakeTrainings implements StudentTrainingRepository {
         private Long activeRoomId = 99L;
         private Long addedMemberStudentId;
+        private Long claimedRoleId;
         private Long releasedRoleId;
         private Long startedRoomId;
         private TrainingRoom room = room();
@@ -184,7 +184,10 @@ class StudentTrainingServiceTests {
         @Override
         public void addMember(Long roomId, Long studentId) {
             addedMemberStudentId = studentId;
-            room.getMembers().add(member(studentId, null));
+            boolean exists = room.getMembers().stream().anyMatch(item -> studentId.equals(item.getStudentId()));
+            if (!exists) {
+                room.getMembers().add(member(studentId, null));
+            }
         }
 
         @Override
@@ -194,6 +197,7 @@ class StudentTrainingServiceTests {
 
         @Override
         public void claimRole(Long roomId, Long studentId, Long roleId) {
+            claimedRoleId = roleId;
             room.getMembers().get(0).setRoleId(roleId);
             room.getRoles().get(0).setClaimed(true);
             room.getRoles().get(0).setClaimedByStudentId(studentId);

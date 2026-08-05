@@ -124,12 +124,14 @@ import { ElMessage } from 'element-plus';
 import { ArrowDown, ArrowRight, Calendar, Clock, Close, Document, Right, Search, Trophy, User } from '@element-plus/icons-vue';
 import {
   createTrainingRoom,
+  createUeLaunchSession,
   fetchStudentTrainings,
   fetchStudentTrainingScoreSheet,
-  fetchTrainingAppInstallation,
   fetchTrainingRoom,
   startTrainingRoom
 } from '../../api/student';
+import type { UeLaunchSession } from '../../api/student';
+import { resolveApiBaseUrl } from '../../api/http';
 import StudentShell from '../../components/student/StudentShell.vue';
 import {
   filterTrainings,
@@ -251,29 +253,45 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
 
   actionLoadingIds.value = [...actionLoadingIds.value, step.id];
   try {
+    let roomId = training.activeRoomId;
     if (step.mode === 'team' || step.action === 'team') {
-      const room = training.activeRoomId
+      let room = training.activeRoomId
         ? await fetchTrainingRoom(training.activeRoomId)
         : await createTrainingRoom(training.id);
-      ElMessage.success(`组队房间已准备：${room.roomCode || room.roomId}`);
-      return;
+      if (room.roomStatus === 'WAITING') {
+        room = await startTrainingRoom(room.roomId);
+      }
+      roomId = room.roomId;
     }
 
-    const installation = await fetchTrainingAppInstallation();
-    if (installation.installed === false) {
-      ElMessage.warning(installation.message || '实训应用未安装，请先安装后再开始实训');
-      return;
-    }
-
-    if (training.activeRoomId) {
-      await startTrainingRoom(training.activeRoomId);
-    }
-    ElMessage.success(`开始实训：${step.title}`);
+    const session = await createUeLaunchSession(training.id);
+    launchUeApplication({ ...session, roomId: session.roomId || roomId });
+    ElMessage.success(`正在启动三维实训：${step.title}`);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '实训接口调用失败');
   } finally {
     actionLoadingIds.value = actionLoadingIds.value.filter((id) => id !== step.id);
   }
+}
+
+function launchUeApplication(session: UeLaunchSession) {
+  const query = new URLSearchParams({
+    protocolVersion: '1',
+    apiBase: resolveApiBaseUrl(),
+    trainingId: String(session.trainingId),
+    studentId: String(session.studentId),
+    launchToken: session.launchToken
+  });
+  if (session.roomId) {
+    query.set('roomId', String(session.roomId));
+  }
+
+  const scheme = String(import.meta.env.VITE_UE_PROTOCOL || 'jiaoyu-ue').replace(/[^a-z0-9+.-]/gi, '');
+  const launcher = document.createElement('iframe');
+  launcher.hidden = true;
+  launcher.src = `${scheme}://launch?${query.toString()}`;
+  document.body.appendChild(launcher);
+  window.setTimeout(() => launcher.remove(), 2000);
 }
 
 watch([mode, keyword], () => {

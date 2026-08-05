@@ -29,6 +29,11 @@ public class MyBatisUeTrainingCallbackRepository implements UeTrainingCallbackRe
     }
 
     @Override
+    public Optional<Long> findAttemptId(Long studentId, Long trainingId, String clientAttemptId) {
+        return Optional.ofNullable(mapper.findAttemptId(studentId, trainingId, clientAttemptId));
+    }
+
+    @Override
     public void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command) {
         mapper.upsertMonitorSnapshot(command);
     }

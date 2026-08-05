@@ -224,8 +224,8 @@ function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStud
     topic: item.roleName || '-',
     mode: item.roomStatus === 'SINGLE' ? '单人实训' : '协同实训',
     room: item.roomId ? `房间 ${item.roomId}` : '-',
-    ip: item.deskStatus || '-',
-    online: item.progressStatus !== 'OFFLINE'
+    ip: item.clientIp || '-',
+    online: item.deskStatus !== 'OFFLINE'
   };
 }
 

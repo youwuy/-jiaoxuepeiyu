@@ -243,7 +243,7 @@ public interface AdminTrainingMapper {
     List<AdminTrainingCameraState> findMonitorCameras(@Param("trainingId") Long trainingId);
 
     @Select("SELECT u.id AS student_id, u.real_name AS student_name, u.username AS student_no, "
-            + "u.class_id, c.class_name, COALESCE(ms.desk_status, 'OFFLINE') AS desk_status, "
+            + "u.class_id, c.class_name, u.last_login_ip AS client_ip, COALESCE(ms.desk_status, 'OFFLINE') AS desk_status, "
             + "COALESCE(ms.progress_status, 'NOT_STARTED') AS progress_status, ms.score, "
             + "r.id AS room_id, r.room_status, rr.role_name "
             + "FROM training_participant tp "

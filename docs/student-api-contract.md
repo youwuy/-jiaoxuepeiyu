@@ -359,7 +359,7 @@ Behavior:
 
 - Creates a room for a team training.
 - Rejects the request when the student is already in another active room.
-- Adds the creator as room owner and member.
+- Adds the creator as room owner and member, then automatically claims the first available human role.
 
 Response `data`: same as `GET /api/student/training-rooms/{roomId}`.
 
@@ -418,8 +418,13 @@ Behavior:
 Behavior:
 
 - Only the owner can start.
-- Requires the room to be full and every member to have a role.
+- Automatically assigns available roles to human members who do not have one.
+- Allows a room to start before it is full; unclaimed roles are returned to UE as `aiRoleNames` for AI markers.
 - Changes room status to `STARTED`.
+
+### `POST /api/student/trainings/{trainingId}/launch-session`
+
+Creates an eight-hour UE token scoped to the current student and training. The training must be published and assigned to the student. The browser passes the response to the registered `jiaoyu-ue://launch` protocol; see `docs/ue-api-contract.md`.
 
 UE launch and callback integration:
 

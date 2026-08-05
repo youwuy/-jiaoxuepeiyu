@@ -30,6 +30,12 @@ public interface UeTrainingCallbackMapper {
             + "AND t.publish_status = 'PUBLISHED' AND t.deleted_flag = 0 LIMIT 1")
     TrainingLaunchTask findTask(@Param("trainingId") Long trainingId, @Param("studentId") Long studentId);
 
+    @Select("SELECT id FROM training_attempt WHERE student_id = #{studentId} "
+            + "AND training_id = #{trainingId} AND client_attempt_id = #{clientAttemptId} LIMIT 1")
+    Long findAttemptId(@Param("studentId") Long studentId,
+                       @Param("trainingId") Long trainingId,
+                       @Param("clientAttemptId") String clientAttemptId);
+
     @Select("SELECT rr.role_name FROM training_team_room_role rr "
             + "LEFT JOIN training_team_room_member m "
             + "ON m.room_id = rr.room_id AND m.role_id = rr.role_id AND m.member_status = 'ACTIVE' "
@@ -48,9 +54,9 @@ public interface UeTrainingCallbackMapper {
     void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command);
 
     @Insert("INSERT INTO training_attempt "
-            + "(student_id, training_id, training_name, training_mode, role_name, submitted_at, submit_type, "
+            + "(student_id, training_id, client_attempt_id, training_name, training_mode, role_name, submitted_at, submit_type, "
             + "duration_seconds, personal_score, team_score, recording_url, created_at, updated_at) "
-            + "VALUES (#{studentId}, #{trainingId}, #{trainingName}, #{trainingMode}, #{roleName}, #{submittedAt}, "
+            + "VALUES (#{studentId}, #{trainingId}, #{clientAttemptId}, #{trainingName}, #{trainingMode}, #{roleName}, #{submittedAt}, "
             + "#{submitType}, #{durationSeconds}, #{personalScore}, #{teamScore}, #{recordingUrl}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "attemptId")
     void insertAttempt(TrainingAttemptSubmission submission);

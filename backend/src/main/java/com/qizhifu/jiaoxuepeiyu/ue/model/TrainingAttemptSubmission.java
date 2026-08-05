@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class TrainingAttemptSubmission {
 
     private Long attemptId;
+    private String clientAttemptId;
     private Long studentId;
     private Long trainingId;
     private String trainingName;
@@ -24,6 +25,14 @@ public class TrainingAttemptSubmission {
 
     public void setAttemptId(Long attemptId) {
         this.attemptId = attemptId;
+    }
+
+    public String getClientAttemptId() {
+        return clientAttemptId;
+    }
+
+    public void setClientAttemptId(String clientAttemptId) {
+        this.clientAttemptId = clientAttemptId;
     }
 
     public Long getStudentId() {
