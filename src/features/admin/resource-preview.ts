@@ -1,3 +1,5 @@
+import { resolvePublicUrl } from '../../api/http';
+
 export interface PreviewableResource {
   resourceName?: string;
   resourceType?: string;
@@ -9,7 +11,7 @@ export interface PreviewableResource {
 export type ResourcePreviewKind = 'image' | 'video' | 'audio' | 'frame' | 'unsupported';
 
 export function resourcePreviewSource(resource?: Pick<PreviewableResource, 'fileUrl' | 'previewUrl'> | null) {
-  return resource?.previewUrl || resource?.fileUrl || '';
+  return resolvePublicUrl(resource?.previewUrl || resource?.fileUrl);
 }
 
 export function resourcePreviewKind(resource?: PreviewableResource | null): ResourcePreviewKind {

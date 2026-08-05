@@ -8,6 +8,10 @@ export default defineConfig({
       '/api': {
         target: 'http://jiaoyu.luoyan.xin',
         changeOrigin: true
+      },
+      '/uploads': {
+        target: 'http://jiaoyu.luoyan.xin',
+        changeOrigin: true
       }
     }
   },

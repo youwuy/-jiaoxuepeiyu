@@ -611,6 +611,7 @@ import {
   type AdminResourceLog,
   type AdminResourceQuery
 } from '../../api/admin-resource';
+import { resolvePublicUrl } from '../../api/http';
 import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
 
@@ -861,11 +862,14 @@ function mapApplicationRow(application: AdminPublicApplication): PublicApplicati
   const typeLabel = normalizeResourceType(application.resourceType);
   const status = normalizeStatus(application.publicStatus);
   const majorLabel = application.majorName || findMajorLabel(application.majorId);
+  const resolvedCoverUrl = resolvePublicUrl(application.coverUrl);
   return {
     ...application,
     resourceType: typeLabel,
-    coverUrl: application.coverUrl || coverForResourceType(typeLabel),
-    coverResolved: application.coverUrl || coverForResourceType(typeLabel),
+    coverUrl: resolvedCoverUrl || coverForResourceType(typeLabel),
+    coverResolved: resolvedCoverUrl || coverForResourceType(typeLabel),
+    fileUrl: resolvePublicUrl(application.fileUrl),
+    previewUrl: resolvePublicUrl(application.previewUrl),
     typeLabel,
     typeTone: typeTone(typeLabel),
     statusLabel: statusLabel(status),

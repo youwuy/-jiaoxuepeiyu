@@ -1,4 +1,4 @@
-import { requestJson } from './http';
+import { requestJson, resolvePublicUrl } from './http';
 import type { CourseCatalogItem, CourseChapter, CourseItemStatus, CourseItemType, StudentCourse } from '../features/student/courses';
 import type { ScorePart, SemesterScore, StudentMessage, TrainingArchive, TrainingArchiveDetail, TrainingArchiveStep } from '../features/student/profile';
 import { coverForResourceType, type StudentResource } from '../features/student/resources';
@@ -349,9 +349,9 @@ function mapResource(item: BackendResource): StudentResource {
     type,
     courseName: item.majorName || item.uploaderName,
     author: item.uploaderName,
-    coverUrl: item.coverUrl || coverForResourceType(type),
-    previewUrl: item.previewUrl,
-    fileUrl: item.fileUrl,
+    coverUrl: resolvePublicUrl(item.coverUrl) || coverForResourceType(type),
+    previewUrl: resolvePublicUrl(item.previewUrl),
+    fileUrl: resolvePublicUrl(item.fileUrl),
     updatedAt: formatDate(item.updatedAt),
     size: formatFileSize(item.fileSize)
   };

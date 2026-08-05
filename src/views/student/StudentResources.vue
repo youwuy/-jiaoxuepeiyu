@@ -40,7 +40,7 @@
       <section class="resource-card-grid">
         <article v-for="resource in pageResources" :key="resource.id" class="resource-card" @click="previewResource(resource)">
           <div class="resource-cover">
-            <img :src="resource.coverUrl" :alt="resource.title" />
+            <img :src="resource.coverUrl" :alt="resource.title" @error="useFallbackCover(resource)" />
             <span class="resource-type-badge" :class="typeClass(resource.type)">
               <el-icon>
                 <VideoPlay v-if="resource.type === '视频'" />
@@ -100,7 +100,7 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft, ArrowRight, Document, Headset, Picture, Search, User, VideoPlay } from '@element-plus/icons-vue';
 import { fetchStudentResources } from '../../api/student';
 import StudentShell from '../../components/student/StudentShell.vue';
-import { filterResources, type StudentResource } from '../../features/student/resources';
+import { coverForResourceType, filterResources, type StudentResource } from '../../features/student/resources';
 
 const keyword = ref('');
 const category = ref('全部');
@@ -223,6 +223,13 @@ function typeClass(value: string) {
   }
 
   return 'is-document';
+}
+
+function useFallbackCover(resource: StudentResource) {
+  const fallback = coverForResourceType(resource.type);
+  if (resource.coverUrl !== fallback) {
+    resource.coverUrl = fallback;
+  }
 }
 
 function previewResource(resource: StudentResource) {
