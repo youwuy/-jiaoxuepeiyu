@@ -15,6 +15,7 @@ import AdminPublicApplications from '../views/admin/AdminPublicApplications.vue'
 import AdminPublicResources from '../views/admin/AdminPublicResources.vue';
 import AdminResources from '../views/admin/AdminResources.vue';
 import AdminSemesterScore from '../views/admin/AdminSemesterScore.vue';
+import AdminSemesterScoreOffline from '../views/admin/AdminSemesterScoreOffline.vue';
 import AdminTheoryPapers from '../views/admin/AdminTheoryPapers.vue';
 import AdminTheoryQuestions from '../views/admin/AdminTheoryQuestions.vue';
 import AdminTrainingArchive from '../views/admin/AdminTrainingArchive.vue';
@@ -132,6 +133,11 @@ export const adminRoutes: RouteRecordRaw[] = [
     path: '/admin/semester-score',
     name: 'admin-semester-score',
     component: AdminSemesterScore
+  },
+  {
+    path: '/admin/semester-score/offline',
+    name: 'admin-semester-score-offline',
+    component: AdminSemesterScoreOffline
   },
   {
     path: '/admin/training-archive',

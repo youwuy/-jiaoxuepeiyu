@@ -44,6 +44,35 @@ export interface AdminSemesterScoreStatistics {
   passCount: number;
 }
 
+export interface AdminSemesterScoreImportRow {
+  rowNo?: number;
+  studentNo?: string;
+  studentId?: number;
+  semesterId?: number;
+  coursewareLearningScore?: number;
+  trainingPracticeScore?: number;
+  courseAssignmentScore?: number;
+  examScore?: number;
+  coursewareWeight?: number;
+  trainingPracticeWeight?: number;
+  assignmentWeight?: number;
+  examWeight?: number;
+  comprehensiveScore?: number;
+  valid?: boolean;
+  errors?: string[];
+}
+
+export interface AdminSemesterScoreImportPreview {
+  totalCount: number;
+  validCount: number;
+  errorCount: number;
+  rows: AdminSemesterScoreImportRow[];
+}
+
+export interface AdminSemesterScoreImportResult {
+  importedCount: number;
+}
+
 function queryString(query: AdminSemesterScoreQuery = {}) {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
@@ -80,6 +109,22 @@ export function fetchAdminSemesterScores(query: AdminSemesterScoreQuery = {}) {
 export function fetchAdminSemesterScoreStatistics(query: AdminSemesterScoreQuery = {}) {
   return requestJson<AdminSemesterScoreStatistics>(`/admin/scores/semester/statistics${queryString(query)}`, {
     fallbackLabel: '综合成绩统计'
+  });
+}
+
+export function previewAdminSemesterScoreImport(rows: AdminSemesterScoreImportRow[]) {
+  return requestJson<AdminSemesterScoreImportPreview>('/admin/scores/semester/import/preview', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+    fallbackLabel: '线下成绩导入预览'
+  });
+}
+
+export function importAdminSemesterScores(rows: AdminSemesterScoreImportRow[]) {
+  return requestJson<AdminSemesterScoreImportResult>('/admin/scores/semester/import', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+    fallbackLabel: '线下成绩导入'
   });
 }
 

@@ -386,7 +386,7 @@ function openDetail(row: SemesterScoreRow) { currentScore.value = row; detailVis
 function openArchive(row: SemesterScoreRow) {
   router.push({ path: '/admin/training-archive', query: { keyword: row.studentNo } });
 }
-function openOfflineExam() { ElMessage.info('线下考试成绩管理暂未配置页面'); }
+function openOfflineExam() { router.push('/admin/semester-score/offline'); }
 function weightTone(name: string) {
   if (name.includes('实训')) return 'training';
   if (name.includes('作业')) return 'assignment';

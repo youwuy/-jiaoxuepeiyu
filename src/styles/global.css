@@ -19070,6 +19070,17 @@ a {
   overflow: hidden;
 }
 
+.admin-semester-score-offline-empty {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+}
+
+.admin-semester-score-offline-empty .el-empty {
+  padding: 48px 0;
+}
+
 .admin-semester-score-offline-table {
   width: 100%;
   min-width: 1160px;
@@ -19375,6 +19386,23 @@ a {
   color: #8aa0bd;
   font-size: 13px;
   font-weight: 700;
+}
+
+.admin-semester-score-import-preview {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #52657d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-semester-score-import-preview b {
+  margin: 0 4px;
+  color: #4f46e5;
 }
 
 .admin-semester-score-dialog-footer {
