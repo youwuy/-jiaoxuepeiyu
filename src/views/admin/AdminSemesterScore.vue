@@ -470,20 +470,22 @@ onMounted(async () => {
 <style scoped>
 .admin-semester-score-filter-row {
   grid-template-columns: 160px 150px minmax(220px, 1fr) minmax(220px, 1fr) 150px auto;
-  column-gap: 16px;
+  column-gap: 14px;
 }
 
 .admin-semester-score-actions-inline {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: 8px;
-  padding-bottom: 1px;
+  align-items: flex-end;
+  justify-self: start;
+  gap: 12px;
+  margin-left: 0;
+  padding-bottom: 0;
+  height: 48px;
 }
 
 .admin-semester-score-query.el-button,
 .admin-semester-score-reset.el-button {
-  min-width: 76px;
+  min-width: 60px;
   flex: 0 0 auto;
 }
 
@@ -495,7 +497,6 @@ onMounted(async () => {
   .admin-semester-score-actions-inline {
     grid-column: 1 / -1;
     margin-left: 0;
-    padding-top: 2px;
     padding-bottom: 0;
     justify-content: flex-start;
   }
