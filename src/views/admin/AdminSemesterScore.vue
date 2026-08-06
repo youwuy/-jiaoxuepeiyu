@@ -468,21 +468,24 @@ onMounted(async () => {
 .admin-semester-score-filter-row {
   grid-template-columns: 160px 150px minmax(220px, 1fr) minmax(220px, 1fr) 150px auto;
   column-gap: 14px;
+  align-items: end;
 }
 
 .admin-semester-score-actions-inline {
   display: flex;
   align-items: flex-end;
+  align-self: end;
   justify-self: start;
   gap: 12px;
   margin-left: 0;
   padding-bottom: 0;
-  height: 48px;
+  height: 42px;
 }
 
 .admin-semester-score-query.el-button,
 .admin-semester-score-reset.el-button {
   min-width: 60px;
+  height: 42px;
   flex: 0 0 auto;
 }
 
