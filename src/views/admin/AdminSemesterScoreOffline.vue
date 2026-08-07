@@ -363,8 +363,10 @@ async function parseSpreadsheet(file: File): Promise<LocalImportRow[]> {
   const sheet = workbook.Sheets[sheetName];
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: false });
   const headerIndex = matrix.findIndex((row) => {
-    const headers = row.map((cell) => String(cell ?? '').replace(/\s+/g, ''));
-    return headers.includes('姓名') && headers.includes('学号') && (headers.includes('成绩') || headers.includes('考试'));
+    const headers = row.map((cell) => normalizeHeader(String(cell ?? '')));
+    return headers.includes('姓名')
+      && headers.includes('学号')
+      && headers.some((header) => ['成绩', '考试', '考试成绩', 'examscore'].includes(header));
   });
   if (headerIndex < 0) {
     throw new Error('未找到“姓名、学号、成绩”表头，请使用线下考试成绩导入模板');
