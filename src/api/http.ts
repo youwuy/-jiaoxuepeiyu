@@ -246,6 +246,7 @@ const apiMessageMap: Record<string, string> = {
   'Choice option keys cannot repeat': '选项标识不能重复',
   'Choice question must contain at least two options': '选择题至少需要两个选项',
   'Course academic year and semester are required': '请选择课程所属学年学期',
+  'Course assignment is required': '课程作业数据不完整，请重新添加作业',
   'Course chapters cannot exceed 3 levels': '课程章节最多支持 3 级',
   'Course chapter title cannot exceed 20 characters': '课程章节标题不能超过 20 个字符',
   'Course chapter title is required': '请输入课程章节标题',

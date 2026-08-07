@@ -60,11 +60,13 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
     @Override
     public void updatePublishStatus(Long courseId, String publishStatus) {
         mapper.updatePublishStatus(courseId, publishStatus);
+        mapper.updateAssignmentPublishStatus(courseId, publishStatus);
     }
 
     @Override
     public void deleteCourse(Long courseId) {
         mapper.deleteCourse(courseId);
+        mapper.updateAssignmentPublishStatus(courseId, "OFFLINE");
     }
 
     @Override
@@ -136,8 +138,13 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         for (AdminCourseContentCommand contentCommand : chapterCommand.getContents()) {
             AdminCourseContent content = toContent(contentCommand);
             mapper.insertContent(courseId, chapter.getChapterId(), content);
-            if ("ASSIGNMENT".equals(content.getItemType()) && content.getAssignmentId() != null) {
-                mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId(), content);
+            if ("ASSIGNMENT".equals(content.getItemType())) {
+                if (content.getAssignmentId() == null) {
+                    mapper.insertAssignment(courseId, content.getContentId(), content);
+                    mapper.updateContentAssignmentId(content.getContentId(), content.getAssignmentId());
+                } else {
+                    mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId(), content);
+                }
             }
         }
         for (AdminCourseChapterCommand childCommand : chapterCommand.getChildren()) {

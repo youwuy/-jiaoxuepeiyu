@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.course;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourse;
@@ -104,6 +105,20 @@ class AdminCourseServiceTests {
         });
 
         assertEquals("Assignment pass score must be between 0 and total score", exception.getMessage());
+    }
+
+    @Test
+    void acceptsInlineAssignmentWithoutExistingAssignmentId() {
+        FakeCourses repository = new FakeCourses();
+        AdminCourseService service = new AdminCourseService(repository);
+        AdminCourseCommand command = courseCommand();
+        command.getChapters().get(0).getContents().get(1).setAssignmentId(null);
+
+        service.createCourse(command, 9L);
+
+        AdminCourseContentCommand assignment = repository.savedCommand.getChapters().get(0).getContents().get(1);
+        assertNull(assignment.getAssignmentId());
+        assertEquals("ASSIGNMENT", assignment.getItemType());
     }
 
     @Test

@@ -240,6 +240,22 @@ public interface AdminCourseMapper {
                        @Param("chapterId") Long chapterId,
                        @Param("content") AdminCourseContent content);
 
+    @Insert("INSERT INTO course_assignment "
+            + "(course_id, content_id, assignment_title, assignment_type, deadline, answer_start_time, answer_end_time, "
+            + "completion_rule, pass_score, publish_mode, total_score, publish_status, created_at, updated_at) "
+            + "VALUES (#{courseId}, #{contentId}, #{content.title}, 'THEORY', #{content.answerEndTime}, "
+            + "#{content.answerStartTime}, #{content.answerEndTime}, #{content.assignmentCompletionRule}, "
+            + "#{content.passScore}, #{content.assignmentPublishMode}, #{content.assignmentTotalScore}, "
+            + "'DRAFT', NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "content.assignmentId")
+    void insertAssignment(@Param("courseId") Long courseId,
+                          @Param("contentId") Long contentId,
+                          @Param("content") AdminCourseContent content);
+
+    @Update("UPDATE course_content SET assignment_id = #{assignmentId}, updated_at = NOW() WHERE id = #{contentId}")
+    void updateContentAssignmentId(@Param("contentId") Long contentId,
+                                   @Param("assignmentId") Long assignmentId);
+
     @Update("UPDATE course_assignment SET course_id = #{courseId}, content_id = #{contentId}, "
             + "completion_rule = #{content.assignmentCompletionRule}, pass_score = #{content.passScore}, "
             + "publish_mode = #{content.assignmentPublishMode}, "
@@ -250,6 +266,11 @@ public interface AdminCourseMapper {
                                  @Param("courseId") Long courseId,
                                  @Param("contentId") Long contentId,
                                  @Param("content") AdminCourseContent content);
+
+    @Update("UPDATE course_assignment SET publish_status = #{publishStatus}, updated_at = NOW() "
+            + "WHERE course_id = #{courseId}")
+    void updateAssignmentPublishStatus(@Param("courseId") Long courseId,
+                                       @Param("publishStatus") String publishStatus);
 
     @Update("UPDATE course SET publish_status = #{publishStatus}, updated_at = NOW() "
             + "WHERE id = #{courseId} AND deleted_flag = 0")

@@ -250,9 +250,6 @@ public class AdminCourseService {
                 normalizedContent.setLearningStartTime(content.getLearningStartTime());
                 normalizedContent.setLearningEndTime(content.getLearningEndTime());
             } else {
-                if (content.getAssignmentId() == null) {
-                    throw new BusinessException(400, "Course assignment is required");
-                }
                 normalizedContent.setAssignmentId(content.getAssignmentId());
                 normalizedContent.setRequiredDurationSeconds(Integer.valueOf(0));
                 normalizedContent.setAssignmentCompletionRule(normalizedEnum(content.getAssignmentCompletionRule(),
@@ -267,7 +264,8 @@ public class AdminCourseService {
                         "Assignment answer end time must be after start time");
                 normalizedContent.setAnswerStartTime(content.getAnswerStartTime());
                 normalizedContent.setAnswerEndTime(content.getAnswerEndTime());
-                normalizedContent.setAssignmentTotalScore(content.getAssignmentTotalScore());
+                normalizedContent.setAssignmentTotalScore(content.getAssignmentTotalScore() == null
+                        ? Integer.valueOf(0) : content.getAssignmentTotalScore());
             }
             normalizedContent.setSortOrder(content.getSortOrder() == null ? Integer.valueOf(defaultSort) : content.getSortOrder());
             normalized.add(normalizedContent);
