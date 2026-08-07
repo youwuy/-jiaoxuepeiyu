@@ -155,6 +155,7 @@ public class AdminQuestionService {
         normalized.setQuestionType(questionType);
         normalized.setTitle(title);
         normalized.setScore(command.getScore());
+        normalized.setExplanation(trimToNull(command.getExplanation()));
         if ("SINGLE".equals(questionType) || "MULTIPLE".equals(questionType)) {
             List<AdminQuestionOption> options = normalizedOptions(command.getOptions());
             normalized.setOptions(options);
@@ -247,6 +248,7 @@ public class AdminQuestionService {
         command.setTitle(row == null ? null : row.getTitle());
         command.setScore(row == null ? null : row.getScore());
         command.setStandardAnswer(row == null ? null : row.getStandardAnswer());
+        command.setExplanation(row == null ? null : row.getExplanation());
         command.setOptions(row == null ? null : row.getOptions());
         return command;
     }

@@ -9,6 +9,7 @@ public class AdminQuestion {
     private String questionType;
     private String title;
     private String standardAnswer;
+    private String explanation;
     private Integer score;
     private Boolean enabled;
     private Long creatorId;
@@ -47,6 +48,14 @@ public class AdminQuestion {
 
     public void setStandardAnswer(String standardAnswer) {
         this.standardAnswer = standardAnswer;
+    }
+
+    public String getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(String explanation) {
+        this.explanation = explanation;
     }
 
     public Integer getScore() {

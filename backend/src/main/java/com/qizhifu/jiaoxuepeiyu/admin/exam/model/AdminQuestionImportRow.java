@@ -8,6 +8,7 @@ public class AdminQuestionImportRow {
     private String questionType;
     private String title;
     private String standardAnswer;
+    private String explanation;
     private Integer score;
     private List<AdminQuestionOption> options;
 
@@ -41,6 +42,14 @@ public class AdminQuestionImportRow {
 
     public void setStandardAnswer(String standardAnswer) {
         this.standardAnswer = standardAnswer;
+    }
+
+    public String getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(String explanation) {
+        this.explanation = explanation;
     }
 
     public Integer getScore() {

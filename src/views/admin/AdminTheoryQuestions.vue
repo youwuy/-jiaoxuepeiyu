@@ -468,7 +468,7 @@ function toForm(row: QuestionRow): QuestionForm {
     title: row.title,
     standardAnswer: normalized === 'JUDGE' ? normalizeJudgeAnswer(row.standardAnswer) : row.standardAnswer || '',
     score: Number(row.score || 5),
-    explanation: '',
+    explanation: row.explanation || '',
     courseName: row.courseName,
     options: row.options?.map((item) => ({ optionKey: item.optionKey || 'A', optionText: item.optionText || '' })) || emptyForm(normalized).options
   };
@@ -506,11 +506,13 @@ function validateForm(): AdminQuestionCommand {
   if (!form.title.trim()) throw new Error('请输入题干内容');
   if (!form.courseName.trim()) throw new Error('请输入所属课程名称');
   if (!form.standardAnswer.trim()) throw new Error('请输入答案');
+  if (!form.explanation.trim()) throw new Error('请输入答案解析');
   if (isChoiceForm.value && form.options.some((item) => !item.optionText.trim())) throw new Error('请完善所有选项');
   return {
     questionType: form.questionType,
     title: form.title.trim(),
     standardAnswer: form.standardAnswer.trim(),
+    explanation: form.explanation.trim(),
     score: Number(form.score),
     options: isChoiceForm.value ? form.options.map((item) => ({ optionKey: item.optionKey, optionText: item.optionText.trim(), correct: form.standardAnswer.includes(item.optionKey) })) : []
   };
@@ -654,12 +656,16 @@ async function submitImport() {
 }
 
 function downloadTemplate() {
-  const worksheet = XLSX.utils.json_to_sheet([
-    { 题型: '单选题', 题干: '示例：请选择正确选项', 选项A: '选项一', 选项B: '选项二', 选项C: '选项三', 选项D: '选项四', 答案: 'A', 分值: 5, 解析: '示例解析' },
-    { 题型: '多选题', 题干: '示例：请选择所有正确选项', 选项A: '选项一', 选项B: '选项二', 选项C: '选项三', 选项D: '选项四', 答案: 'A,C', 分值: 10, 解析: '示例解析' },
-    { 题型: '判断题', 题干: '示例：该说法是否正确', 选项A: '', 选项B: '', 选项C: '', 选项D: '', 答案: '正确', 分值: 5, 解析: '示例解析' }
+  const instructions = '填写说明：1、题型必填，只能是这5个之一：单选题、多选题、判断题、填空题、简答题。\n'
+    + '2、单选题、多选题最多支持6个选项，不足6个的选项为空即可；多选题答案直接填写字母，如ABC。\n'
+    + '3、判断题答案填写正确或错误。\n4、未填写分值时系统按5分导入，可在预览页调整。';
+  const worksheet = XLSX.utils.aoa_to_sheet([
+    [instructions, '', '', '', '', '', '', '', '', ''],
+    ['题型*', '题干*', '选项 A', '选项 B', '选项 C', '选项 D', '选项 E', '选项 F', '正确答案*', '题目解析*'],
+    ['单选题', '示例：请选择正确选项', '选项一', '选项二', '选项三', '选项四', '', '', 'A', '示例解析']
   ]);
-  worksheet['!cols'] = [{ wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 30 }];
+  worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+  worksheet['!cols'] = [{ wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 36 }];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '理论试题');
   XLSX.writeFile(workbook, '理论试题上传模板.xlsx');
@@ -709,7 +715,22 @@ async function parseQuestionWorkbook(file: File): Promise<AdminQuestionImportRow
   const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
   const worksheet = workbook.Sheets[workbook.SheetNames[0]];
   if (!worksheet) return [];
-  const sourceRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '', raw: false });
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: '', raw: false });
+  const headerIndex = matrix.findIndex((row) => {
+    const headers = row.map((cell) => String(cell ?? '').replace(/[\s*＊]/g, ''));
+    return headers.includes('题型') && headers.includes('题干');
+  });
+  if (headerIndex < 0) {
+    throw new Error('未找到“题型、题干”表头，请使用试题上传模板');
+  }
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? ''));
+  const sourceRows = matrix.slice(headerIndex + 1).map((values) => {
+    const source: Record<string, unknown> = {};
+    headers.forEach((header, index) => {
+      if (header) source[header] = values[index] ?? '';
+    });
+    return source;
+  });
   return sourceRows.flatMap((source, index) => {
     const cells = normalizedCellMap(source);
     const title = readCell(cells, '题干', '题目', '试题内容', 'TITLE');
@@ -722,11 +743,14 @@ async function parseQuestionWorkbook(file: File): Promise<AdminQuestionImportRow
       return optionText ? [{ optionKey: key, optionText, correct: standardAnswer.split(',').includes(key) }] : [];
     });
     return [{
-      rowNumber: index + 2,
+      rowNumber: headerIndex + index + 2,
       questionType,
       title,
       standardAnswer,
-      score: Number(readCell(cells, '分值', '分数', 'SCORE')) || 0,
+      explanation: readCell(cells, '题目解析', '解析', '答案解析', 'EXPLANATION'),
+      score: readCell(cells, '分值', '分数', 'SCORE')
+        ? Number(readCell(cells, '分值', '分数', 'SCORE')) || 0
+        : 5,
       options
     }];
   });

@@ -80,6 +80,7 @@ public class MyBatisAdminQuestionRepository implements AdminQuestionRepository {
         question.setQuestionType(command.getQuestionType());
         question.setTitle(command.getTitle());
         question.setStandardAnswer(command.getStandardAnswer());
+        question.setExplanation(command.getExplanation());
         question.setScore(command.getScore());
         question.setEnabled(Boolean.valueOf(enabled));
         question.setCreatorId(creatorId);

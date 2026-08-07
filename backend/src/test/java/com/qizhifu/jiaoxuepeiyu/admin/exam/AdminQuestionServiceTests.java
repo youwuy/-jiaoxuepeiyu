@@ -29,6 +29,7 @@ class AdminQuestionServiceTests {
         assertEquals(11L, questionId.longValue());
         assertEquals("SINGLE", repository.savedCommand.getQuestionType());
         assertEquals("A", repository.savedCommand.getStandardAnswer());
+        assertEquals("Explanation", repository.savedCommand.getExplanation());
         assertEquals("CREATE", repository.lastLogAction);
     }
 
@@ -53,6 +54,7 @@ class AdminQuestionServiceTests {
         command.setTitle("Is this valid?");
         command.setScore(5);
         command.setStandardAnswer("MAYBE");
+        command.setExplanation("Explanation");
 
         BusinessException exception = assertThrows(BusinessException.class, () -> {
             service.createQuestion(command, 9L);
@@ -124,6 +126,7 @@ class AdminQuestionServiceTests {
         command.setQuestionType("SINGLE");
         command.setTitle("Pick one");
         command.setScore(10);
+        command.setExplanation("Explanation");
         command.setOptions(Arrays.asList(option("A", "Alpha", true), option("B", "Beta", false)));
         return command;
     }
@@ -143,6 +146,7 @@ class AdminQuestionServiceTests {
         row.setTitle(title);
         row.setScore(5);
         row.setStandardAnswer(answer);
+        row.setExplanation("Explanation for row " + rowNumber);
         row.setOptions(Arrays.asList(option("A", "Alpha", "A".equals(answer)), option("B", "Beta", false)));
         return row;
     }

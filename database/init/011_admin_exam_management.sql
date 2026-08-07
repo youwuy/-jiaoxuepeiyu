@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `exam_question` (
   `question_type` VARCHAR(32) NOT NULL COMMENT 'SINGLE/MULTIPLE/JUDGE/FILL_BLANK/SHORT_ANSWER',
   `title` VARCHAR(1000) NOT NULL,
   `standard_answer` TEXT NOT NULL,
+  `explanation` TEXT NULL,
   `score` INT NOT NULL DEFAULT 0,
   `enabled_flag` TINYINT NOT NULL DEFAULT 1,
   `creator_id` BIGINT NOT NULL,

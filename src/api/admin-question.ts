@@ -11,6 +11,7 @@ export interface AdminQuestion {
   questionType?: string;
   title: string;
   standardAnswer?: string;
+  explanation?: string;
   score?: number;
   enabled?: boolean;
   creatorId?: number;
@@ -33,6 +34,7 @@ export interface AdminQuestionCommand {
   questionType: string;
   title: string;
   standardAnswer: string;
+  explanation?: string;
   score: number;
   options?: AdminQuestionOption[];
 }
@@ -51,6 +53,7 @@ export interface AdminQuestionImportRow {
   questionType?: string;
   title?: string;
   standardAnswer?: string;
+  explanation?: string;
   score?: number;
   options?: AdminQuestionOption[];
 }
