@@ -18,7 +18,7 @@
         <header class="admin-training-monitor-heading">
           <div>
             <h2>{{ trainingTitle }}</h2>
-            <p>{{ monitorRange }} / {{ monitorRoom }} / {{ cameras.length }} 间</p>
+            <p>{{ monitorRange }} / {{ monitorClass }} / {{ monitorRoom }} / {{ cameras.length }} 间</p>
           </div>
           <el-button class="admin-training-monitor-back-list" @click="goBack">返回实训组课</el-button>
         </header>
@@ -195,6 +195,7 @@ const router = useRouter();
 const trainingId = computed(() => Number(route.params.id));
 const trainingTitle = ref(String(route.query.title || '实时监考'));
 const monitorRange = ref(String(route.query.time || '未配置开放时间').replace(/\n/g, ' '));
+const monitorClass = ref(String(route.query.className || '未配置班级'));
 const monitorRoom = ref(String(route.query.room || '未配置教室'));
 const loading = ref(false);
 const cameras = ref<MonitorCamera[]>([]);
@@ -248,6 +249,7 @@ async function loadMonitor() {
     const detail = await fetchAdminTraining(trainingId.value);
     trainingTitle.value = detail.trainingName || trainingTitle.value;
     monitorRange.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`;
+    monitorClass.value = detail.classNames || monitorClass.value;
     monitorRoom.value = detail.roomCount ? `${detail.roomCount} 间实训教室` : monitorRoom.value;
   } catch {
     trainingTitle.value = trainingTitle.value || '实时监考';
