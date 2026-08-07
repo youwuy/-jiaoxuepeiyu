@@ -19332,6 +19332,10 @@ a {
   gap: 14px;
 }
 
+.admin-semester-score-date-row .el-date-editor {
+  width: 100%;
+}
+
 .admin-semester-score-date-row i {
   color: #8aa0bd;
   font-style: normal;

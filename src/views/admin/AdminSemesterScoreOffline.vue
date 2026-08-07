@@ -87,9 +87,25 @@
         <label>
           <span>考试起止时间 <b>*</b></span>
           <div class="admin-semester-score-date-row">
-            <el-input v-model="importForm.startTime" :suffix-icon="Calendar" placeholder="开始时间" />
+            <el-date-picker
+              v-model="importForm.startTime"
+              type="datetime"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm"
+              placeholder="开始时间"
+              :editable="false"
+              clearable
+            />
             <i>至</i>
-            <el-input v-model="importForm.endTime" :suffix-icon="Calendar" placeholder="结束时间" />
+            <el-date-picker
+              v-model="importForm.endTime"
+              type="datetime"
+              format="YYYY-MM-DD HH:mm"
+              value-format="YYYY-MM-DD HH:mm"
+              placeholder="结束时间"
+              :editable="false"
+              clearable
+            />
           </div>
         </label>
         <label>
@@ -200,7 +216,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Calendar, Close, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
+import { Close, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useRouter } from 'vue-router';
 import AdminShell from '../../components/admin/AdminShell.vue';
@@ -434,6 +450,10 @@ function selectedWeights(semesterId: number | null) {
 async function confirmImport() {
   if (!importForm.name.trim() || !importForm.startTime.trim() || !importForm.endTime.trim() || !importForm.semesterId) {
     ElMessage.warning('请完整填写考试名称、考试时间和所属学年学期');
+    return;
+  }
+  if (importForm.endTime < importForm.startTime) {
+    ElMessage.warning('考试结束时间不能早于开始时间');
     return;
   }
   if (!parsedRows.value.length) {
