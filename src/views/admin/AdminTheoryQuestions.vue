@@ -197,10 +197,19 @@
         </label>
         <label>
           <span>试题内容 <b>*</b></span>
-          <el-upload drag action="#" :auto-upload="false">
+          <el-upload
+            v-model:file-list="importFileList"
+            drag
+            action="#"
+            accept=".xls,.xlsx"
+            :auto-upload="false"
+            :limit="1"
+            :on-change="handleImportFileChange"
+            :on-remove="handleImportFileRemove"
+          >
             <el-icon><Document /></el-icon>
             <div class="el-upload__text">点击或拖拽上传资源文件</div>
-            <template #tip><p>仅支持.excel 格式，大小不超过 200MB</p></template>
+            <template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template>
           </el-upload>
         </label>
         <label>
@@ -212,7 +221,7 @@
       <template #footer>
         <div class="admin-question-dialog-footer">
           <el-button @click="importVisible = false">取消</el-button>
-          <el-button type="primary" :icon="UploadFilled" @click="openPreview">确认上传</el-button>
+          <el-button type="primary" :icon="UploadFilled" :loading="importParsing" @click="openPreview">确认上传</el-button>
         </div>
       </template>
     </el-dialog>
@@ -229,7 +238,7 @@
 
         <section class="admin-question-preview-meta">
           <p><span>所属课程：</span><strong>{{ importCourseName || '-' }}</strong></p>
-          <el-button class="admin-question-primary-button" @click="submitImport">提交</el-button>
+          <el-button class="admin-question-primary-button" :loading="importing" @click="submitImport">提交</el-button>
         </section>
 
         <div v-if="previewGroups.length === 0" class="admin-question-preview-empty">
@@ -241,7 +250,7 @@
             <span>{{ group.questions.length }}题</span>
             <el-button text>批量修改分值</el-button>
           </header>
-          <article v-for="question in group.questions" :key="question.index">
+          <article v-for="question in group.questions" :key="question.rowNumber">
             <div>
               <h3>{{ question.index }}、{{ question.title }}</h3>
               <ol v-if="question.options.length">
@@ -275,7 +284,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import type { UploadFile, UploadFiles, UploadUserFile } from 'element-plus';
 import { CircleCheck, CircleClose, Close, Delete, Document, Plus, Refresh, Search, Upload, UploadFilled } from '@element-plus/icons-vue';
+import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminQuestion,
@@ -284,9 +295,12 @@ import {
   fetchAdminQuestion,
   fetchAdminQuestionLogs,
   fetchAdminQuestions,
+  importAdminQuestions,
+  previewAdminQuestionImport,
   updateAdminQuestion,
   type AdminQuestion,
   type AdminQuestionCommand,
+  type AdminQuestionImportRow,
   type AdminQuestionLog
 } from '../../api/admin-question';
 
@@ -338,6 +352,11 @@ const selectedIds = ref<number[]>([]);
 const questions = ref<QuestionRow[]>([]);
 const logs = ref<AdminQuestionLog[]>([]);
 const importCourseName = ref('');
+const importFile = ref<File | null>(null);
+const importFileList = ref<UploadUserFile[]>([]);
+const importRows = ref<AdminQuestionImportRow[]>([]);
+const importParsing = ref(false);
+const importing = ref(false);
 
 const draft = reactive({
   keyword: '',
@@ -351,7 +370,7 @@ const previewGroups = reactive<
   Array<{
     type: string;
     tone: 'single' | 'multiple' | 'judge' | 'blank';
-    questions: Array<{ index: number; title: string; score: number; options: string[] }>;
+    questions: Array<{ rowNumber: number; index: number; title: string; score: number; options: string[] }>;
   }>
 >([]);
 
@@ -549,31 +568,206 @@ async function batchEnable(enabled: boolean) {
 
 function openImport() {
   importCourseName.value = '';
+  importFile.value = null;
+  importFileList.value = [];
+  importRows.value = [];
+  previewGroups.splice(0);
   importVisible.value = true;
 }
 
-function openPreview() {
-  importVisible.value = false;
-  previewVisible.value = true;
+function handleImportFileChange(file: UploadFile, files: UploadFiles) {
+  importFileList.value = files;
+  importFile.value = file.raw ?? null;
 }
 
-function submitImport() {
+function handleImportFileRemove(_file: UploadFile, files: UploadFiles) {
+  importFileList.value = files;
+  importFile.value = null;
+  importRows.value = [];
+}
+
+async function openPreview() {
+  if (!importCourseName.value.trim()) {
+    ElMessage.warning('请输入所属课程名称');
+    return;
+  }
+  if (!importFile.value) {
+    ElMessage.warning('请选择需要导入的 Excel 文件');
+    return;
+  }
+  const file = importFile.value;
+  if (!/\.xlsx?$/i.test(file.name)) {
+    ElMessage.warning('仅支持 .xls、.xlsx 格式');
+    return;
+  }
+  if (file.size > 200 * 1024 * 1024) {
+    ElMessage.warning('文件大小不能超过 200MB');
+    return;
+  }
+
+  importParsing.value = true;
+  try {
+    const rows = await parseQuestionWorkbook(file);
+    if (rows.length === 0) {
+      throw new Error('文件中没有可解析的试题，请使用下载的模板填写');
+    }
+    const preview = await previewAdminQuestionImport({ fileName: file.name, fileSize: file.size, rows });
+    if ((preview.errorCount ?? 0) > 0) {
+      const first = preview.errors?.[0];
+      throw new Error(`第 ${first?.rowNumber ?? '-'} 行：${translateImportError(first?.message)}`);
+    }
+    importRows.value = preview.validRows ?? rows;
+    buildPreviewGroups(importRows.value);
+    importVisible.value = false;
+    previewVisible.value = true;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试题文件解析失败');
+  } finally {
+    importParsing.value = false;
+  }
+}
+
+async function submitImport() {
   if (previewGroups.length === 0) {
     ElMessage.warning('请先上传并解析试题文件');
     return;
   }
-  previewVisible.value = false;
-  ElMessage.success('试题已提交');
+  if (!importFile.value) {
+    ElMessage.warning('导入文件已失效，请重新选择');
+    return;
+  }
+  importing.value = true;
+  try {
+    const count = await importAdminQuestions({
+      fileName: importFile.value.name,
+      fileSize: importFile.value.size,
+      rows: rowsForSubmission()
+    });
+    previewVisible.value = false;
+    ElMessage.success(`成功导入 ${count} 道试题`);
+    await loadQuestions();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试题导入失败');
+  } finally {
+    importing.value = false;
+  }
 }
 
 function downloadTemplate() {
-  const content = '题型,题干,选项A,选项B,选项C,选项D,答案,分值,解析';
-  const blob = new Blob([`\ufeff${content}`], { type: 'text/csv;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = '理论试题上传模板.csv';
-  link.click();
-  URL.revokeObjectURL(link.href);
+  const worksheet = XLSX.utils.json_to_sheet([
+    { 题型: '单选题', 题干: '示例：请选择正确选项', 选项A: '选项一', 选项B: '选项二', 选项C: '选项三', 选项D: '选项四', 答案: 'A', 分值: 5, 解析: '示例解析' },
+    { 题型: '多选题', 题干: '示例：请选择所有正确选项', 选项A: '选项一', 选项B: '选项二', 选项C: '选项三', 选项D: '选项四', 答案: 'A,C', 分值: 10, 解析: '示例解析' },
+    { 题型: '判断题', 题干: '示例：该说法是否正确', 选项A: '', 选项B: '', 选项C: '', 选项D: '', 答案: '正确', 分值: 5, 解析: '示例解析' }
+  ]);
+  worksheet['!cols'] = [{ wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 30 }];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '理论试题');
+  XLSX.writeFile(workbook, '理论试题上传模板.xlsx');
+}
+
+function normalizedCellMap(row: Record<string, unknown>) {
+  const result: Record<string, string> = {};
+  Object.entries(row).forEach(([key, value]) => {
+    result[key.replace(/[\s*＊]/g, '').toUpperCase()] = String(value ?? '').trim();
+  });
+  return result;
+}
+
+function readCell(row: Record<string, string>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = row[key.replace(/[\s*＊]/g, '').toUpperCase()];
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizeImportType(value: string) {
+  const normalized = value.trim().toUpperCase().replace(/[\s_-]/g, '');
+  const types: Record<string, QuestionType> = {
+    SINGLE: 'SINGLE', SINGLECHOICE: 'SINGLE', 单选: 'SINGLE', 单选题: 'SINGLE',
+    MULTIPLE: 'MULTIPLE', MULTIPLECHOICE: 'MULTIPLE', 多选: 'MULTIPLE', 多选题: 'MULTIPLE',
+    JUDGE: 'JUDGE', TRUEFALSE: 'JUDGE', 判断: 'JUDGE', 判断题: 'JUDGE',
+    FILLBLANK: 'FILL_BLANK', 填空: 'FILL_BLANK', 填空题: 'FILL_BLANK',
+    SHORTANSWER: 'SHORT_ANSWER', ESSAY: 'SHORT_ANSWER', 简答: 'SHORT_ANSWER', 简答题: 'SHORT_ANSWER'
+  };
+  return types[normalized] ?? value.trim().toUpperCase();
+}
+
+function normalizeImportAnswer(type: string, value: string) {
+  const answer = value.trim();
+  if (type === 'JUDGE') {
+    if (/^(正确|对|TRUE|T|1|是|√)$/i.test(answer)) return 'TRUE';
+    if (/^(错误|错|FALSE|F|0|否|×|X)$/i.test(answer)) return 'FALSE';
+  }
+  if (type === 'SINGLE' || type === 'MULTIPLE') {
+    return Array.from(new Set(answer.toUpperCase().match(/[A-H]/g) ?? [])).join(',');
+  }
+  return answer;
+}
+
+async function parseQuestionWorkbook(file: File): Promise<AdminQuestionImportRow[]> {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!worksheet) return [];
+  const sourceRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '', raw: false });
+  return sourceRows.flatMap((source, index) => {
+    const cells = normalizedCellMap(source);
+    const title = readCell(cells, '题干', '题目', '试题内容', 'TITLE');
+    const typeText = readCell(cells, '题型', '试题类型', 'QUESTIONTYPE');
+    if (!title && !typeText) return [];
+    const questionType = normalizeImportType(typeText);
+    const standardAnswer = normalizeImportAnswer(questionType, readCell(cells, '答案', '正确答案', '标准答案', 'STANDARDANSWER'));
+    const options = 'ABCDEFGH'.split('').flatMap((key) => {
+      const optionText = readCell(cells, `选项${key}`, `${key}选项`, key);
+      return optionText ? [{ optionKey: key, optionText, correct: standardAnswer.split(',').includes(key) }] : [];
+    });
+    return [{
+      rowNumber: index + 2,
+      questionType,
+      title,
+      standardAnswer,
+      score: Number(readCell(cells, '分值', '分数', 'SCORE')) || 0,
+      options
+    }];
+  });
+}
+
+function buildPreviewGroups(rows: AdminQuestionImportRow[]) {
+  previewGroups.splice(0);
+  const order: QuestionType[] = ['SINGLE', 'MULTIPLE', 'JUDGE', 'FILL_BLANK', 'SHORT_ANSWER'];
+  const tones: Record<QuestionType, 'single' | 'multiple' | 'judge' | 'blank'> = {
+    SINGLE: 'single', MULTIPLE: 'multiple', JUDGE: 'judge', FILL_BLANK: 'blank', SHORT_ANSWER: 'blank'
+  };
+  order.forEach((type) => {
+    const questions = rows.filter((row) => row.questionType === type).map((row, index) => ({
+      rowNumber: row.rowNumber ?? index + 2,
+      index: index + 1,
+      title: row.title ?? '',
+      score: row.score ?? 0,
+      options: (row.options ?? []).map((option) => `${option.optionKey}. ${option.optionText}`)
+    }));
+    if (questions.length) previewGroups.push({ type: typeLabels[type], tone: tones[type], questions });
+  });
+}
+
+function rowsForSubmission() {
+  const scores = new Map<number, number>();
+  previewGroups.forEach((group) => group.questions.forEach((question) => scores.set(question.rowNumber, question.score)));
+  return importRows.value.map((row) => ({ ...row, score: scores.get(row.rowNumber ?? -1) ?? row.score }));
+}
+
+function translateImportError(message?: string) {
+  const messages: Record<string, string> = {
+    'Question type is invalid': '题型无法识别',
+    'Question title is required': '题干不能为空',
+    'Question score must be greater than 0': '分值必须大于 0',
+    'Choice question must contain at least two options': '选择题至少需要两个选项',
+    'Single choice must have exactly one correct option': '单选题必须有且只有一个正确答案',
+    'Multiple choice must have at least two correct options': '多选题至少需要两个正确答案',
+    'Judgment answer must be TRUE or FALSE': '判断题答案必须填写“正确”或“错误”',
+    'Standard answer is required': '标准答案不能为空'
+  };
+  return messages[message ?? ''] ?? message ?? '试题格式不正确';
 }
 
 async function openLogs(row: QuestionRow) {

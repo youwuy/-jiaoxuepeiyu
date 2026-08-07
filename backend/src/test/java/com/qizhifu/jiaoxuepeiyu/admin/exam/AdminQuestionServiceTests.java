@@ -77,6 +77,37 @@ class AdminQuestionServiceTests {
     }
 
     @Test
+    void importsAllValidatedRows() {
+        FakeQuestions repository = new FakeQuestions();
+        AdminQuestionService service = new AdminQuestionService(repository);
+        AdminQuestionImportCommand command = new AdminQuestionImportCommand();
+        command.setFileName("questions.xlsx");
+        command.setFileSize(1024L);
+        command.setRows(Arrays.asList(importRow(2, "SINGLE", "First", "A"),
+                importRow(3, "SINGLE", "Second", "A")));
+
+        int imported = service.importQuestions(command, 9L);
+
+        assertEquals(2, imported);
+        assertEquals(2, repository.createdCount);
+        assertEquals("IMPORT", repository.lastLogAction);
+    }
+
+    @Test
+    void rejectsWholeImportWhenAnyRowIsInvalid() {
+        FakeQuestions repository = new FakeQuestions();
+        AdminQuestionService service = new AdminQuestionService(repository);
+        AdminQuestionImportCommand command = new AdminQuestionImportCommand();
+        command.setFileName("questions.xlsx");
+        command.setFileSize(1024L);
+        command.setRows(Arrays.asList(importRow(2, "SINGLE", "Valid", "A"),
+                importRow(3, "BAD", "Invalid", "A")));
+
+        assertThrows(BusinessException.class, () -> service.importQuestions(command, 9L));
+        assertEquals(0, repository.createdCount);
+    }
+
+    @Test
     void disablesQuestionWithoutRemovingHistoricalReferences() {
         FakeQuestions repository = new FakeQuestions();
         AdminQuestionService service = new AdminQuestionService(repository);
@@ -121,6 +152,7 @@ class AdminQuestionServiceTests {
         private Long statusQuestionId;
         private Boolean statusEnabled;
         private String lastLogAction;
+        private int createdCount;
 
         @Override
         public List<AdminQuestion> findQuestions(AdminQuestionQuery query) {
@@ -143,7 +175,8 @@ class AdminQuestionServiceTests {
         @Override
         public Long createQuestion(AdminQuestionCommand command, Long creatorId) {
             this.savedCommand = command;
-            return 11L;
+            this.createdCount++;
+            return Long.valueOf(10L + createdCount);
         }
 
         @Override

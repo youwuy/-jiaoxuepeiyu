@@ -81,6 +81,13 @@ public class AdminQuestionController {
         return ApiResponse.ok(service.previewImport(body));
     }
 
+    @PostMapping("/import")
+    @Operation(summary = "Import questions", description = "Validates and atomically imports parsed Excel question rows.")
+    public ApiResponse<Integer> importQuestions(@RequestBody AdminQuestionImportCommand body,
+                                                HttpServletRequest request) {
+        return ApiResponse.ok(service.importQuestions(body, AdminContext.requireAdminId(request)));
+    }
+
     @GetMapping("/{questionId}/logs")
     @Operation(summary = "List question logs", description = "Returns operation logs for one question sorted by newest first.")
     public ApiResponse<List<AdminQuestionLog>> listQuestionLogs(@PathVariable Long questionId) {

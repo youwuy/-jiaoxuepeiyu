@@ -57,9 +57,15 @@ export interface AdminQuestionImportRow {
 
 export interface AdminQuestionImportPreview {
   validCount?: number;
-  invalidCount?: number;
+  errorCount?: number;
   errors?: Array<{ rowNumber?: number; message?: string }>;
-  rows?: AdminQuestionImportRow[];
+  validRows?: AdminQuestionImportRow[];
+}
+
+export interface AdminQuestionImportCommand {
+  fileName: string;
+  fileSize: number;
+  rows: AdminQuestionImportRow[];
 }
 
 export interface PageResponse<T> {
@@ -139,10 +145,18 @@ export function fetchAdminQuestionLogs(questionId: number) {
   return requestJson<AdminQuestionLog[]>(`/admin/questions/${questionId}/logs`, { fallbackLabel: '试题操作记录' });
 }
 
-export function previewAdminQuestionImport(rows: AdminQuestionImportRow[]) {
+export function previewAdminQuestionImport(command: AdminQuestionImportCommand) {
   return requestJson<AdminQuestionImportPreview>('/admin/questions/import/preview', {
     method: 'POST',
-    body: JSON.stringify({ rows }),
+    body: JSON.stringify(command),
     fallbackLabel: '导入预览'
+  });
+}
+
+export function importAdminQuestions(command: AdminQuestionImportCommand) {
+  return requestJson<number>('/admin/questions/import', {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '导入试题'
   });
 }
