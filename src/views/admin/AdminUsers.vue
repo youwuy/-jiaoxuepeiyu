@@ -508,10 +508,10 @@
       <button type="button" class="admin-users-template-button" @click="downloadImportTemplate">下载导入模板</button>
       <div class="admin-users-upload-divider"><span>上传文件</span></div>
       <label class="admin-users-upload-box">
-        <input ref="importFileInput" type="file" accept=".csv,.txt" @change="handleImportFile" />
+        <input ref="importFileInput" type="file" accept=".xlsx,.csv,.txt" @change="handleImportFile" />
         <el-icon><UploadFilled /></el-icon>
         <strong>{{ importFileName || '点击上传或拖拽文件到此处' }}</strong>
-        <span>仅支持 csv/txt 格式，文件大小不超过10MB</span>
+        <span>教师支持 xlsx，学员支持 csv/txt，文件大小不超过10MB</span>
       </label>
       <div v-if="importPreview" class="admin-users-import-preview">
         <div v-for="row in importPreview.rows.slice(0, 5)" :key="row.rowNo" :class="{ error: row.valid === false }">
@@ -533,6 +533,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Camera, Close, Plus, Pointer, Search, UploadFilled } from '@element-plus/icons-vue';
+import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminAccount,
@@ -1077,7 +1078,15 @@ function openImport() {
 }
 
 function downloadImportTemplate() {
-  const header = activeKind.value === 'teacher' ? '工号,姓名,手机号,岗位,所属组织' : '学号,姓名,手机号,所在班级,所属组织';
+  if (activeKind.value === 'teacher') {
+    const url = `/templates/${encodeURIComponent('教师导入表格.xlsx')}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '教师导入表格.xlsx';
+    link.click();
+    return;
+  }
+  const header = '学号,姓名,手机号,所在班级,所属组织';
   const blob = new Blob([`${header}\n`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -1087,7 +1096,7 @@ function downloadImportTemplate() {
   URL.revokeObjectURL(url);
 }
 
-function handleImportFile(event: Event) {
+async function handleImportFile(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) {
@@ -1098,6 +1107,15 @@ function handleImportFile(event: Event) {
     return;
   }
   importFileName.value = file.name;
+  if (activeKind.value === 'teacher' && /\.xlsx?$/i.test(file.name)) {
+    try {
+      importText.value = JSON.stringify(parseTeacherWorkbook(await file.arrayBuffer()));
+      await previewImportRows();
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '教师模板读取失败');
+    }
+    return;
+  }
   const reader = new FileReader();
   reader.onload = () => {
     importText.value = String(reader.result || '');
@@ -1107,7 +1125,55 @@ function handleImportFile(event: Event) {
   reader.readAsText(file);
 }
 
+function parseTeacherWorkbook(buffer: ArrayBuffer): AdminAccountImportRow[] {
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) return [];
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: false });
+  const headerIndex = matrix.findIndex((row) => {
+    const headers = row.map((cell) => String(cell ?? '').replace(/\s+/g, ''));
+    return headers.includes('姓名') && headers.includes('工号') && headers.includes('所属组织');
+  });
+  if (headerIndex < 0) throw new Error('未找到“姓名、工号、所属组织”表头，请使用教师导入模板');
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? '').replace(/[\s*＊]/g, ''));
+  return matrix.slice(headerIndex + 1).map((values, index) => {
+    const row = Object.fromEntries(headers.map((header, column) => [header, String(values[column] ?? '').trim()]));
+    const read = (...names: string[]) => names.map((name) => row[name.replace(/[\s*＊]/g, '')]).find(Boolean) || '';
+    const managedOrgNames = read('管理组织').split('、').map((name) => name.trim()).filter(Boolean);
+    const classNames = read('授课班级').split('、').map((name) => name.trim()).filter(Boolean);
+    return {
+      rowNo: headerIndex + index + 2,
+      accountNo: read('工号'),
+      realName: read('姓名'),
+      phone: read('手机号'),
+      idCard: read('身份证号'),
+      jobTitle: read('岗位'),
+      orgId: resolveOrgId(read('所属组织')),
+      managedOrgIds: managedOrgNames.map(resolveOrgId).filter((id): id is number => id !== undefined),
+      teachingClassIds: classNames.map(resolveClassId).filter((id): id is number => id !== undefined)
+    };
+  }).filter((row) => row.accountNo || row.realName || row.phone);
+}
+
+function resolveOrgId(path: string): number | undefined {
+  if (!path) return undefined;
+  const names = path.split('/').map((item) => item.trim()).filter(Boolean);
+  const name = names[names.length - 1];
+  return orgOptions.value.find((item) => item.orgName === name)?.orgId;
+}
+
+function resolveClassId(name: string): number | undefined {
+  return classOptions.value.find((item) => item.className === name)?.classId;
+}
+
 function parseImportRows(): AdminAccountImportRow[] {
+  if (activeKind.value === 'teacher' && importText.value.trim().startsWith('[')) {
+    try {
+      return JSON.parse(importText.value) as AdminAccountImportRow[];
+    } catch {
+      return [];
+    }
+  }
   return importText.value
     .split(/\n+/)
     .map((line) => line.trim())

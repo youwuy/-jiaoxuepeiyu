@@ -361,25 +361,35 @@ async function parseSpreadsheet(file: File): Promise<LocalImportRow[]> {
     return [];
   }
   const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: false });
+  const headerIndex = matrix.findIndex((row) => {
+    const headers = row.map((cell) => String(cell ?? '').replace(/\s+/g, ''));
+    return headers.includes('姓名') && headers.includes('学号') && (headers.includes('成绩') || headers.includes('考试'));
+  });
+  if (headerIndex < 0) {
+    throw new Error('未找到“姓名、学号、成绩”表头，请使用线下考试成绩导入模板');
+  }
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? ''));
+  const rows = matrix.slice(headerIndex + 1).map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])));
   const weights = selectedWeights(importForm.semesterId);
 
   return rows
     .map((row, index) => {
       const studentNo = textValue(readCell(row, ['学号', 'studentNo', 'student number']));
-      const studentName = textValue(readCell(row, ['姓名', '学员姓名', 'studentName'])) || '-';
-      if (!studentNo && !studentName.trim().length) {
+      const rawStudentName = textValue(readCell(row, ['姓名', '学员姓名', 'studentName']));
+      if (!studentNo && !rawStudentName) {
         return null;
       }
+      const studentName = rawStudentName || '-';
       return {
-        rowNo: index + 2,
+        rowNo: headerIndex + index + 2,
         studentNo,
         studentName,
         semesterId: importForm.semesterId || 0,
         coursewareLearningScore: numberValue(readCell(row, ['课件学习', '课件学习成绩', 'coursewareLearningScore'])),
         trainingPracticeScore: numberValue(readCell(row, ['实训练习', '实训练习成绩', 'trainingPracticeScore'])),
         courseAssignmentScore: numberValue(readCell(row, ['课程作业', '课程作业成绩', 'courseAssignmentScore'])),
-        examScore: numberValue(readCell(row, ['考试', '考试成绩', 'examScore'])),
+        examScore: numberValue(readCell(row, ['成绩', '考试', '考试成绩', 'examScore'])),
         coursewareWeight: weights.coursewareWeight,
         trainingPracticeWeight: weights.trainingPracticeWeight,
         assignmentWeight: weights.assignmentWeight,
@@ -396,7 +406,7 @@ function readCell(row: Record<string, unknown>, aliases: string[]) {
 }
 
 function normalizeHeader(value: string) {
-  return value.replace(/\s+/g, '').replace(/_/g, '').toLowerCase();
+  return value.replace(/[\s*＊]/g, '').replace(/_/g, '').toLowerCase();
 }
 
 function textValue(value: unknown) {
@@ -510,17 +520,13 @@ async function saveEditScores() {
 }
 
 function downloadTemplate() {
-  const header = '学号,姓名,课件学习,实训练习,课程作业,考试';
-  const example = 'student001,张三,80,90,85,88';
-  const blob = new Blob([`\ufeff${header}\n${example}\n`], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+  const url = `/templates/${encodeURIComponent('线下考试成绩导入表格.xlsx')}`;
   const link = document.createElement('a');
   link.href = url;
-  link.download = '线下成绩导入模板.csv';
+  link.download = '线下考试成绩导入表格.xlsx';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 function currentUploaderName() {

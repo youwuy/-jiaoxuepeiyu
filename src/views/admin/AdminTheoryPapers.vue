@@ -372,8 +372,8 @@
       </template>
       <div class="admin-theory-paper-upload-body">
         <label><span>试卷名称 <b>*</b></span><el-input v-model="previewPaper.paperName" maxlength="30" show-word-limit placeholder="请输入试卷名称" /></label>
-        <label><span>试卷模板</span><el-button class="admin-theory-paper-template-button">点击下载试卷上传模板</el-button></label>
-        <label><span>试卷内容 <b>*</b></span><el-upload drag action="#" :auto-upload="false"><el-icon><UploadFilled /></el-icon><div class="el-upload__text">点击或拖拽上传资源文件</div><template #tip><p>仅支持.excel 格式，大小不超过 200MB</p></template></el-upload></label>
+        <label><span>试卷模板</span><el-button class="admin-theory-paper-template-button" @click="downloadPaperTemplate">点击下载试卷上传模板</el-button></label>
+        <label><span>试卷内容 <b>*</b></span><el-upload drag action="#" accept=".xls,.xlsx" :auto-upload="false"><el-icon><UploadFilled /></el-icon><div class="el-upload__text">点击或拖拽上传资源文件</div><template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template></el-upload></label>
         <label><span>所属课程 <b>*</b></span><el-input v-model="previewPaper.courseName" maxlength="30" show-word-limit placeholder="请输入所属课程名称" /></label>
       </div>
       <template #footer><div class="admin-theory-paper-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :icon="UploadFilled" @click="openPreview('upload')">确认上传</el-button></div></template>
@@ -448,6 +448,16 @@ import {
 import { fetchAdminQuestions, type AdminQuestion } from '../../api/admin-question';
 
 type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
+
+function downloadPaperTemplate() {
+  const url = `/templates/${encodeURIComponent('试卷导入表格.xlsx')}`;
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = '试卷导入表格.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 interface TheoryPaper {
   paperId: number;
