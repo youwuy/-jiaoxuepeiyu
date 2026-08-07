@@ -108,6 +108,11 @@ public class AdminQuestionService {
 
     @Transactional
     public int importQuestions(AdminQuestionImportCommand command, Long operatorId) {
+        return importQuestionIds(command, operatorId).size();
+    }
+
+    @Transactional
+    public List<Long> importQuestionIds(AdminQuestionImportCommand command, Long operatorId) {
         requireOperator(operatorId);
         AdminQuestionImportCommand normalized = normalizedImport(command);
         List<AdminQuestionCommand> questions = new ArrayList<AdminQuestionCommand>();
@@ -122,11 +127,13 @@ public class AdminQuestionService {
         if (!errors.isEmpty()) {
             throw new BusinessException(400, "Import rows contain invalid questions");
         }
+        List<Long> questionIds = new ArrayList<Long>();
         for (AdminQuestionCommand question : questions) {
             Long questionId = repository.createQuestion(question, operatorId);
+            questionIds.add(questionId);
             repository.appendQuestionLog(questionId, operatorId, "IMPORT", "Import question from " + normalized.getFileName());
         }
-        return questions.size();
+        return questionIds;
     }
 
     private void updateStatus(Long questionId, boolean enabled, Long operatorId, String action, String content) {

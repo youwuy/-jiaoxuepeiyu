@@ -5,6 +5,7 @@ import java.util.List;
 public class AdminPaperCommand {
 
     private String paperName;
+    private String courseName;
     private String composeMode;
     private List<AdminPaperQuestionCommand> questions;
     private List<AdminPaperAutoRule> autoRules;
@@ -15,6 +16,14 @@ public class AdminPaperCommand {
 
     public void setPaperName(String paperName) {
         this.paperName = paperName;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
     }
 
     public String getComposeMode() {

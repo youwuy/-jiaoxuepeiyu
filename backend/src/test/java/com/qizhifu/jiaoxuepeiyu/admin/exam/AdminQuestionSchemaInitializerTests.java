@@ -30,13 +30,27 @@ class AdminQuestionSchemaInitializerTests {
         assertEquals(0, operations.executeCount);
     }
 
+    @Test
+    void addsMissingPaperCourseNameColumn() {
+        FakeSchemaOperations operations = new FakeSchemaOperations();
+        operations.paperTableExists = true;
+        operations.columns.add("explanation");
+        AdminQuestionSchemaInitializer initializer = new AdminQuestionSchemaInitializer(operations);
+
+        initializer.ensureQuestionCompatibility();
+
+        assertEquals(1, operations.executeCount);
+        assertEquals(true, operations.columns.contains("course_name"));
+    }
+
     private static class FakeSchemaOperations implements AdminQuestionSchemaOperations {
         private final Set<String> columns = new HashSet<String>();
         private int executeCount;
+        private boolean paperTableExists;
 
         @Override
         public boolean tableExists(String tableName) {
-            return "exam_question".equals(tableName);
+            return "exam_question".equals(tableName) || (paperTableExists && "exam_paper".equals(tableName));
         }
 
         @Override
@@ -47,7 +61,11 @@ class AdminQuestionSchemaInitializerTests {
         @Override
         public void execute(String sql) {
             executeCount++;
-            columns.add("explanation");
+            if (sql.contains("course_name")) {
+                columns.add("course_name");
+            } else {
+                columns.add("explanation");
+            }
         }
     }
 }

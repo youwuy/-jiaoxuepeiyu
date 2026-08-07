@@ -373,10 +373,10 @@
       <div class="admin-theory-paper-upload-body">
         <label><span>试卷名称 <b>*</b></span><el-input v-model="previewPaper.paperName" maxlength="30" show-word-limit placeholder="请输入试卷名称" /></label>
         <label><span>试卷模板</span><el-button class="admin-theory-paper-template-button" @click="downloadPaperTemplate">点击下载试卷上传模板</el-button></label>
-        <label><span>试卷内容 <b>*</b></span><el-upload drag action="#" accept=".xls,.xlsx" :auto-upload="false"><el-icon><UploadFilled /></el-icon><div class="el-upload__text">点击或拖拽上传资源文件</div><template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template></el-upload></label>
+        <label><span>试卷内容 <b>*</b></span><el-upload drag action="#" accept=".xls,.xlsx" :auto-upload="false" :limit="1" :on-change="handlePaperFileChange"><el-icon><UploadFilled /></el-icon><div class="el-upload__text">点击或拖拽上传资源文件</div><template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template></el-upload></label>
         <label><span>所属课程 <b>*</b></span><el-input v-model="previewPaper.courseName" maxlength="30" show-word-limit placeholder="请输入所属课程名称" /></label>
       </div>
-      <template #footer><div class="admin-theory-paper-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :icon="UploadFilled" @click="openPreview('upload')">确认上传</el-button></div></template>
+      <template #footer><div class="admin-theory-paper-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :icon="UploadFilled" :loading="importParsing" @click="openPreview('upload')">确认上传</el-button></div></template>
     </el-dialog>
 
     <el-dialog v-model="previewVisible" class="admin-theory-paper-preview-modal" fullscreen :show-close="false" append-to-body>
@@ -388,7 +388,7 @@
         <section class="admin-theory-paper-preview-meta">
           <p><span>试卷名称：</span><strong>{{ previewPaper.paperName }}</strong></p>
           <i></i>
-          <p><span>总分：</span><strong>100</strong><span>分</span></p>
+          <p><span>总分：</span><strong>{{ selectedScore }}</strong><span>分</span></p>
           <div>
             <el-button @click="previewVisible = false">返回</el-button>
             <el-button class="admin-theory-paper-primary" @click="submitImport">保存</el-button>
@@ -410,7 +410,7 @@
                 <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
                 <article v-for="question in group.questions" :key="question.index">
                   <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
-                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" :controls="false" /></label>
+                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" :controls="false" @change="updatePreviewScore(question.id, $event)" /></label>
                 </article>
               </section>
             </div>
@@ -430,7 +430,9 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import type { UploadFile } from 'element-plus';
 import { ArrowLeft, Close, Plus, Search, UploadFilled } from '@element-plus/icons-vue';
+import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   cancelPublishAdminPaper,
@@ -438,6 +440,7 @@ import {
   fetchAdminPaper,
   fetchAdminPaperLogs,
   fetchAdminPapers,
+  importAdminPaperQuestions,
   publishAdminPaper,
   updateAdminPaper,
   type AdminPaper,
@@ -445,7 +448,7 @@ import {
   type AdminPaperLog,
   type AdminPaperQuestion
 } from '../../api/admin-paper';
-import { fetchAdminQuestions, type AdminQuestion } from '../../api/admin-question';
+import { fetchAdminQuestions, previewAdminQuestionImport, type AdminQuestion, type AdminQuestionImportRow } from '../../api/admin-question';
 
 type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
 
@@ -457,6 +460,88 @@ function downloadPaperTemplate() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function normalizedPaperCellMap(row: Record<string, unknown>) {
+  const result: Record<string, string> = {};
+  Object.entries(row).forEach(([key, value]) => {
+    result[key.replace(/[\s*＊]/g, '').toUpperCase()] = String(value ?? '').trim();
+  });
+  return result;
+}
+
+function readPaperCell(row: Record<string, string>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = row[key.replace(/[\s*＊]/g, '').toUpperCase()];
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizePaperImportType(value: string) {
+  const normalized = value.trim().toUpperCase().replace(/[\s_-]/g, '');
+  const types: Record<string, string> = {
+    SINGLE: 'SINGLE', SINGLECHOICE: 'SINGLE', 单选: 'SINGLE', 单选题: 'SINGLE',
+    MULTIPLE: 'MULTIPLE', MULTIPLECHOICE: 'MULTIPLE', 多选: 'MULTIPLE', 多选题: 'MULTIPLE',
+    JUDGE: 'JUDGE', TRUEFALSE: 'JUDGE', 判断: 'JUDGE', 判断题: 'JUDGE',
+    FILLBLANK: 'FILL_BLANK', 填空: 'FILL_BLANK', 填空题: 'FILL_BLANK',
+    SHORTANSWER: 'SHORT_ANSWER', ESSAY: 'SHORT_ANSWER', 简答: 'SHORT_ANSWER', 简答题: 'SHORT_ANSWER'
+  };
+  return types[normalized] ?? value.trim().toUpperCase();
+}
+
+function normalizePaperImportAnswer(type: string, value: string) {
+  const answer = value.trim();
+  if (type === 'JUDGE') {
+    if (/^(正确|对|TRUE|T|1|是|√)$/i.test(answer)) return 'TRUE';
+    if (/^(错误|错|FALSE|F|0|否|×|X)$/i.test(answer)) return 'FALSE';
+  }
+  if (type === 'SINGLE' || type === 'MULTIPLE') {
+    return Array.from(new Set(answer.toUpperCase().match(/[A-H]/g) ?? [])).join(',');
+  }
+  return answer;
+}
+
+async function parsePaperWorkbook(file: File): Promise<AdminQuestionImportRow[]> {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!worksheet) return [];
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1, defval: '', raw: false });
+  const headerIndex = matrix.findIndex((row) => {
+    const headers = row.map((cell) => String(cell ?? '').replace(/[\s*＊]/g, ''));
+    return headers.includes('题型') && headers.includes('题干');
+  });
+  if (headerIndex < 0) throw new Error('未找到“题型、题干”表头，请使用试卷导入模板');
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? ''));
+  const sourceRows = matrix.slice(headerIndex + 1).map((values) => {
+    const source: Record<string, unknown> = {};
+    headers.forEach((header, index) => {
+      if (header) source[header] = values[index] ?? '';
+    });
+    return source;
+  });
+  return sourceRows.flatMap((source, index) => {
+    const cells = normalizedPaperCellMap(source);
+    const title = readPaperCell(cells, '题干', '题目', '试题内容', 'TITLE');
+    const typeText = readPaperCell(cells, '题型', '试题类型', 'QUESTIONTYPE');
+    if (!title && !typeText) return [];
+    const questionType = normalizePaperImportType(typeText);
+    const standardAnswer = normalizePaperImportAnswer(questionType, readPaperCell(cells, '答案', '正确答案', '标准答案', 'STANDARDANSWER'));
+    const options = 'ABCDEFGH'.split('').flatMap((key) => {
+      const optionText = readPaperCell(cells, `选项${key}`, `${key}选项`, key);
+      return optionText ? [{ optionKey: key, optionText, correct: standardAnswer.split(',').includes(key) }] : [];
+    });
+    const scoreText = readPaperCell(cells, '分值', '分数', 'SCORE');
+    return [{
+      rowNumber: headerIndex + index + 2,
+      questionType,
+      title,
+      standardAnswer,
+      explanation: readPaperCell(cells, '题目解析', '解析', '答案解析', 'EXPLANATION'),
+      score: scoreText ? Number(scoreText) || 0 : 5,
+      options
+    }];
+  });
 }
 
 interface TheoryPaper {
@@ -479,6 +564,7 @@ interface QuestionItem {
   score: number;
   courseName: string;
   options?: string[];
+  importRowNumber?: number;
 }
 
 const BuilderHeader = defineComponent({
@@ -511,6 +597,7 @@ const page = ref(1);
 const totalCount = ref(0);
 const loading = ref(false);
 const saving = ref(false);
+const importParsing = ref(false);
 const jumpPage = ref(1);
 const selectedIds = ref<number[]>([]);
 const importVisible = ref(false);
@@ -537,6 +624,9 @@ const builder = reactive({
 });
 const manageForm = reactive({ paperName: '', courseName: '' });
 const previewPaper = reactive({ paperName: '', courseName: '' });
+const paperImportFile = ref<File | null>(null);
+const paperImportRows = ref<AdminQuestionImportRow[]>([]);
+const uploadPreviewActive = ref(false);
 
 const papers = ref<TheoryPaper[]>([]);
 const questionBank = ref<QuestionItem[]>([]);
@@ -564,6 +654,7 @@ const previewGroups = computed(() => {
         meta: `${questions.length}题 · 共${questions.reduce((sum, item) => sum + Number(item.score || 0), 0)}分`,
         tone: typeTone(type),
         questions: questions.map((question, index) => ({
+          id: question.id,
           index: index + 1,
           title: question.title,
           score: Number(question.score || 0),
@@ -571,7 +662,7 @@ const previewGroups = computed(() => {
         }))
       };
     })
-    .filter(Boolean) as Array<{ type: string; title: string; meta: string; tone: string; questions: Array<{ index: number; title: string; score: number; options: string[] }> }>;
+    .filter(Boolean) as Array<{ type: string; title: string; meta: string; tone: string; questions: Array<{ id: number; index: number; title: string; score: number; options: string[] }> }>;
 });
 
 const creatorOptions = computed(() => {
@@ -651,7 +742,7 @@ function mapPaper(item: AdminPaper): TheoryPaper {
   return {
     paperId: item.paperId,
     paperName: item.paperName,
-    courseName: (item as AdminPaper & { courseName?: string }).courseName || '-',
+    courseName: item.courseName || '-',
     questionCount: item.questionCount || item.questions?.length || 0,
     totalScore: item.totalScore || 0,
     creatorId: item.creatorId,
@@ -673,6 +764,7 @@ function mapQuestion(item: AdminQuestion | AdminPaperQuestion): QuestionItem {
 }
 function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
   const paperName = mode === 'manage' ? manageForm.paperName.trim() : builder.paperName.trim();
+  const courseName = mode === 'manage' ? manageForm.courseName.trim() : builder.courseName.trim();
   if (!paperName) {
     throw new Error('请输入试卷名称');
   }
@@ -683,14 +775,14 @@ function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
     if (autoRules.length === 0) {
       throw new Error('请至少设置一种题型');
     }
-    return { paperName, composeMode: 'AUTO', autoRules };
+    return { paperName, courseName, composeMode: 'AUTO', autoRules };
   }
 
   const questions = selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }));
   if (questions.length === 0) {
     throw new Error('请至少加入一道试题');
   }
-  return { paperName, composeMode: 'MANUAL', questions };
+  return { paperName, courseName, composeMode: 'MANUAL', questions };
 }
 async function loadPapers() {
   loading.value = true;
@@ -786,17 +878,109 @@ async function saveManage() {
     saving.value = false;
   }
 }
-function openImport() { importVisible.value = true; }
-function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') { if (source !== 'upload') { previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '-'; previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '-'; } importVisible.value = false; previewVisible.value = true; }
-async function submitImport() {
-  previewVisible.value = false;
+function openImport() {
+  Object.assign(previewPaper, { paperName: '', courseName: '' });
+  paperImportFile.value = null;
+  paperImportRows.value = [];
+  uploadPreviewActive.value = false;
+  importVisible.value = true;
+}
+function handlePaperFileChange(file: UploadFile) {
+  paperImportFile.value = file.raw ?? null;
+}
+function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') {
+  if (source === 'upload') {
+    void prepareUploadPreview();
+    return;
+  }
+  uploadPreviewActive.value = false;
+  previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '-';
+  previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '-';
+  importVisible.value = false;
+  previewVisible.value = true;
+}
+async function prepareUploadPreview() {
+  if (!previewPaper.paperName.trim()) {
+    ElMessage.warning('请输入试卷名称');
+    return;
+  }
+  if (!previewPaper.courseName.trim()) {
+    ElMessage.warning('请输入所属课程名称');
+    return;
+  }
+  const file = paperImportFile.value;
+  if (!file) {
+    ElMessage.warning('请选择需要导入的 Excel 文件');
+    return;
+  }
+  if (!/\.xlsx?$/i.test(file.name)) {
+    ElMessage.warning('仅支持 .xls、.xlsx 格式');
+    return;
+  }
+  if (file.size > 200 * 1024 * 1024) {
+    ElMessage.warning('文件大小不能超过 200MB');
+    return;
+  }
+  importParsing.value = true;
   try {
-    await createAdminPaper(paperCommand(viewMode.value === 'auto' ? 'auto' : 'manual'));
+    const rows = await parsePaperWorkbook(file);
+    if (!rows.length) throw new Error('文件中没有可解析的试题，请使用试卷导入模板');
+    const result = await previewAdminQuestionImport({ fileName: file.name, fileSize: file.size, rows });
+    if ((result.errorCount ?? 0) > 0) {
+      const first = result.errors?.[0];
+      throw new Error(`第 ${first?.rowNumber ?? '-'} 行：${first?.message || '试题格式不正确'}`);
+    }
+    paperImportRows.value = result.validRows ?? rows;
+    selectedQuestions.value = paperImportRows.value.map((row, index) => ({
+      id: -(row.rowNumber ?? index + 1),
+      importRowNumber: row.rowNumber,
+      title: row.title || '-',
+      type: typeLabel(row.questionType),
+      score: Number(row.score || 5),
+      courseName: previewPaper.courseName,
+      options: (row.options ?? []).map((option) => `${option.optionKey}. ${option.optionText}`)
+    }));
+    uploadPreviewActive.value = true;
+    importVisible.value = false;
+    previewVisible.value = true;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷文件解析失败');
+  } finally {
+    importParsing.value = false;
+  }
+}
+function updatePreviewScore(questionId: number, value: number | undefined) {
+  const question = selectedQuestions.value.find((item) => item.id === questionId);
+  if (question && value !== undefined) question.score = Number(value);
+}
+function paperRowsForSubmission() {
+  const scores = new Map(selectedQuestions.value.map((item) => [item.importRowNumber, item.score]));
+  return paperImportRows.value.map((row) => ({ ...row, score: scores.get(row.rowNumber) ?? row.score }));
+}
+async function submitImport() {
+  saving.value = true;
+  try {
+    if (uploadPreviewActive.value) {
+      const file = paperImportFile.value;
+      if (!file) throw new Error('导入文件已失效，请重新选择');
+      await importAdminPaperQuestions({
+        paperName: previewPaper.paperName.trim(),
+        courseName: previewPaper.courseName.trim(),
+        fileName: file.name,
+        fileSize: file.size,
+        rows: paperRowsForSubmission()
+      });
+    } else {
+      await createAdminPaper(paperCommand(viewMode.value === 'auto' ? 'auto' : 'manual'));
+    }
+    previewVisible.value = false;
     ElMessage.success('试卷已提交');
     backToList();
     await loadPapers();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '试卷提交失败');
+  } finally {
+    saving.value = false;
   }
 }
 async function setEnabled(row: TheoryPaper) {

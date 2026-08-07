@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS `exam_question_import_batch` (
 CREATE TABLE IF NOT EXISTS `exam_paper` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `paper_name` VARCHAR(128) NOT NULL,
+  `course_name` VARCHAR(128) NULL,
   `compose_mode` VARCHAR(16) NOT NULL COMMENT 'MANUAL/AUTO',
   `total_score` INT NOT NULL DEFAULT 0,
   `question_count` INT NOT NULL DEFAULT 0,

@@ -7,6 +7,7 @@ public class AdminPaper {
 
     private Long paperId;
     private String paperName;
+    private String courseName;
     private String composeMode;
     private Integer totalScore;
     private Integer questionCount;
@@ -31,6 +32,14 @@ public class AdminPaper {
 
     public void setPaperName(String paperName) {
         this.paperName = paperName;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
     }
 
     public String getComposeMode() {

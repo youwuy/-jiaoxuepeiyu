@@ -134,6 +134,7 @@ public class AdminPaperService {
         }
         AdminPaperCommand normalized = new AdminPaperCommand();
         normalized.setPaperName(paperName);
+        normalized.setCourseName(trimToNull(command.getCourseName()));
         normalized.setComposeMode(composeMode);
         if ("AUTO".equals(composeMode)) {
             normalized.setAutoRules(command.getAutoRules());

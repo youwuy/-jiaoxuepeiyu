@@ -1,4 +1,5 @@
 import { requestJson } from './http';
+import type { AdminQuestionImportRow } from './admin-question';
 
 export interface AdminPaperQuestion {
   questionId: number;
@@ -13,6 +14,7 @@ export interface AdminPaperQuestion {
 export interface AdminPaper {
   paperId: number;
   paperName: string;
+  courseName?: string;
   composeMode?: string;
   totalScore?: number;
   questionCount?: number;
@@ -26,10 +28,11 @@ export interface AdminPaper {
 
 export interface AdminPaperAutoRule { questionType: string; questionCount: number; scorePerQuestion: number; }
 export interface AdminPaperQuestionCommand { questionId: number; score: number; }
-export interface AdminPaperCommand { paperName: string; composeMode: string; questions?: AdminPaperQuestionCommand[]; autoRules?: AdminPaperAutoRule[]; }
+export interface AdminPaperCommand { paperName: string; courseName?: string; composeMode: string; questions?: AdminPaperQuestionCommand[]; autoRules?: AdminPaperAutoRule[]; }
 export interface AdminPaperLog { logId: number; paperId: number; operatorName?: string; action?: string; content?: string; createdAt?: string; }
 export interface AdminPaperImportRow { rowNumber?: number; paperName?: string; composeMode?: string; questions?: AdminPaperQuestionCommand[]; autoRules?: AdminPaperAutoRule[]; }
 export interface AdminPaperImportPreview { validCount?: number; invalidCount?: number; errors?: Array<{ rowNumber?: number; message?: string }>; rows?: AdminPaperImportRow[]; }
+export interface AdminPaperQuestionImportCommand { paperName: string; courseName: string; fileName: string; fileSize: number; rows: AdminQuestionImportRow[]; }
 export interface PageResponse<T> { records: T[]; total: number; page?: number; pageSize?: number; }
 
 function query(params: Record<string, string | number | undefined>) {
@@ -53,3 +56,4 @@ export function publishAdminPaper(paperId: number) { return requestJson<void>(`/
 export function cancelPublishAdminPaper(paperId: number) { return requestJson<void>(`/admin/papers/${paperId}/cancel-publish`, { method: 'POST', fallbackLabel: '撤回试卷' }); }
 export function fetchAdminPaperLogs(paperId: number) { return requestJson<AdminPaperLog[]>(`/admin/papers/${paperId}/logs`, { fallbackLabel: '试卷操作记录' }); }
 export function previewAdminPaperImport(fileName: string, rows: AdminPaperImportRow[]) { return requestJson<AdminPaperImportPreview>('/admin/papers/import/preview', { method: 'POST', body: JSON.stringify({ fileName, fileSize: 0, rows }), fallbackLabel: '试卷导入预览' }); }
+export function importAdminPaperQuestions(command: AdminPaperQuestionImportCommand) { return requestJson<number>('/admin/papers/import/questions', { method: 'POST', body: JSON.stringify(command), fallbackLabel: '导入试卷' }); }

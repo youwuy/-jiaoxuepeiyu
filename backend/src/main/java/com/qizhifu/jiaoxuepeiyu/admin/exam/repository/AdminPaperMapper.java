@@ -22,12 +22,12 @@ import org.apache.ibatis.annotations.Update;
 public interface AdminPaperMapper {
 
     @Select("<script>"
-            + "SELECT p.id AS paper_id, p.paper_name, p.compose_mode, p.total_score, p.question_count, "
+            + "SELECT p.id AS paper_id, p.paper_name, p.course_name, p.compose_mode, p.total_score, p.question_count, "
             + "p.publish_status, p.creator_id, u.real_name AS creator_name, p.created_at, p.updated_at "
             + "FROM exam_paper p "
             + "LEFT JOIN sys_user u ON u.id = p.creator_id "
             + "WHERE p.deleted_flag = 0 "
-            + "<if test='keyword != null'>AND p.paper_name LIKE #{keyword}</if> "
+            + "<if test='keyword != null'>AND (p.paper_name LIKE #{keyword} OR p.course_name LIKE #{keyword})</if> "
             + "<if test='composeMode != null'>AND p.compose_mode = #{composeMode}</if> "
             + "<if test='publishStatus != null'>AND p.publish_status = #{publishStatus}</if> "
             + "<if test='creatorId != null'>AND p.creator_id = #{creatorId}</if> "
@@ -36,6 +36,7 @@ public interface AdminPaperMapper {
     @Results(id = "paperMap", value = {
             @Result(column = "paper_id", property = "paperId", id = true),
             @Result(column = "paper_name", property = "paperName"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "compose_mode", property = "composeMode"),
             @Result(column = "total_score", property = "totalScore"),
             @Result(column = "question_count", property = "questionCount"),
@@ -50,14 +51,14 @@ public interface AdminPaperMapper {
 
     @Select("<script>"
             + "SELECT COUNT(*) FROM exam_paper p WHERE p.deleted_flag = 0 "
-            + "<if test='keyword != null'>AND p.paper_name LIKE #{keyword}</if> "
+            + "<if test='keyword != null'>AND (p.paper_name LIKE #{keyword} OR p.course_name LIKE #{keyword})</if> "
             + "<if test='composeMode != null'>AND p.compose_mode = #{composeMode}</if> "
             + "<if test='publishStatus != null'>AND p.publish_status = #{publishStatus}</if> "
             + "<if test='creatorId != null'>AND p.creator_id = #{creatorId}</if> "
             + "</script>")
     long countPapers(AdminPaperQuery query);
 
-    @Select("SELECT p.id AS paper_id, p.paper_name, p.compose_mode, p.total_score, p.question_count, "
+    @Select("SELECT p.id AS paper_id, p.paper_name, p.course_name, p.compose_mode, p.total_score, p.question_count, "
             + "p.publish_status, p.creator_id, u.real_name AS creator_name, p.created_at, p.updated_at "
             + "FROM exam_paper p "
             + "LEFT JOIN sys_user u ON u.id = p.creator_id "
@@ -65,6 +66,7 @@ public interface AdminPaperMapper {
     @Results(id = "paperDetailMap", value = {
             @Result(column = "paper_id", property = "paperId", id = true),
             @Result(column = "paper_name", property = "paperName"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "compose_mode", property = "composeMode"),
             @Result(column = "total_score", property = "totalScore"),
             @Result(column = "question_count", property = "questionCount"),
@@ -132,13 +134,13 @@ public interface AdminPaperMapper {
     List<AdminQuestionOption> findQuestionOptions(@Param("questionId") Long questionId);
 
     @Insert("INSERT INTO exam_paper "
-            + "(paper_name, compose_mode, total_score, question_count, publish_status, creator_id, deleted_flag, created_at, updated_at) "
-            + "VALUES (#{paperName}, #{composeMode}, #{totalScore}, #{questionCount}, #{publishStatus}, "
+            + "(paper_name, course_name, compose_mode, total_score, question_count, publish_status, creator_id, deleted_flag, created_at, updated_at) "
+            + "VALUES (#{paperName}, #{courseName}, #{composeMode}, #{totalScore}, #{questionCount}, #{publishStatus}, "
             + "#{creatorId}, 0, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "paperId")
     void insertPaper(AdminPaper paper);
 
-    @Update("UPDATE exam_paper SET paper_name = #{paperName}, compose_mode = #{composeMode}, "
+    @Update("UPDATE exam_paper SET paper_name = #{paperName}, course_name = #{courseName}, compose_mode = #{composeMode}, "
             + "total_score = #{totalScore}, question_count = #{questionCount}, updated_at = NOW() "
             + "WHERE id = #{paperId} AND deleted_flag = 0")
     void updatePaper(AdminPaper paper);

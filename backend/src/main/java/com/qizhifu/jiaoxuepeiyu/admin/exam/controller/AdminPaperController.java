@@ -2,12 +2,14 @@ package com.qizhifu.jiaoxuepeiyu.admin.exam.controller;
 
 import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.AdminPaperService;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.AdminPaperQuestionImportService;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaper;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperLog;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuery;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuestionImportCommand;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,9 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminPaperController {
 
     private final AdminPaperService service;
+    private final AdminPaperQuestionImportService questionImportService;
 
-    public AdminPaperController(AdminPaperService service) {
+    public AdminPaperController(AdminPaperService service, AdminPaperQuestionImportService questionImportService) {
         this.service = service;
+        this.questionImportService = questionImportService;
     }
 
     @GetMapping
@@ -79,6 +83,13 @@ public class AdminPaperController {
     @Operation(summary = "Preview paper import", description = "Validates parsed Excel rows for manual or automatic paper definitions and returns row-level errors.")
     public ApiResponse<AdminPaperImportPreview> previewImport(@RequestBody AdminPaperImportCommand body) {
         return ApiResponse.ok(service.previewImport(body));
+    }
+
+    @PostMapping("/import/questions")
+    @Operation(summary = "Import question rows as a paper", description = "Atomically imports Excel questions into the question bank and creates a manual paper.")
+    public ApiResponse<Long> importQuestionPaper(@RequestBody AdminPaperQuestionImportCommand body,
+                                                 HttpServletRequest request) {
+        return ApiResponse.ok(questionImportService.importPaper(body, AdminContext.requireAdminId(request)));
     }
 
     @GetMapping("/{paperId}/logs")

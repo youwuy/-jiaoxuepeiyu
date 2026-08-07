@@ -27,6 +27,10 @@ public class AdminQuestionSchemaInitializer implements ApplicationRunner {
                 && !operations.columnExists("exam_question", "explanation")) {
             operations.execute("ALTER TABLE `exam_question` ADD COLUMN `explanation` TEXT NULL AFTER `standard_answer`");
         }
+        if (operations.tableExists("exam_paper")
+                && !operations.columnExists("exam_paper", "course_name")) {
+            operations.execute("ALTER TABLE `exam_paper` ADD COLUMN `course_name` VARCHAR(128) NULL AFTER `paper_name`");
+        }
     }
 }
 

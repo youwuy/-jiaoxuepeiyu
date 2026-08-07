@@ -122,6 +122,7 @@ public class MyBatisAdminPaperRepository implements AdminPaperRepository {
         AdminPaper paper = new AdminPaper();
         paper.setPaperId(paperId);
         paper.setPaperName(command.getPaperName());
+        paper.setCourseName(command.getCourseName());
         paper.setComposeMode(command.getComposeMode());
         paper.setTotalScore(totalScore);
         paper.setQuestionCount(Integer.valueOf(command.getQuestions() == null ? 0 : command.getQuestions().size()));
