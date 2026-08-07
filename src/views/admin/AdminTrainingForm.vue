@@ -271,6 +271,7 @@ import { fetchAdminTeachers, type AdminTeacherOption } from '../../api/admin-cou
 import type { AdminClass } from '../../api/admin-settings';
 import type { AdminPaper } from '../../api/admin-paper';
 import type { AdminResource } from '../../api/admin-resource';
+import trainingCoverUrl from '../../assets/course-station-preview.png';
 
 type SelectorKind = 'resource' | 'paper' | 'class' | 'teacher' | 'room';
 
@@ -292,6 +293,7 @@ interface SelectableItem {
   id: number;
   name: string;
   meta: string;
+  majorId?: number;
   category?: string;
   duration?: number;
   score?: number;
@@ -370,6 +372,7 @@ const semesterOptions = computed(() =>
   academicYears.value.flatMap((year) =>
     (year.semesters ?? []).map((semester) => ({
       semesterId: semester.semesterId,
+      academicYearId: year.academicYearId,
       value: `${year.yearName} ${semester.semesterName}`,
       label: `${year.yearName} ${semester.semesterName}`
     }))
@@ -483,6 +486,7 @@ async function loadOptions() {
       id: item.classId,
       name: item.className,
       meta: item.majorName || '班级',
+      majorId: item.majorId,
       category: item.majorName || 'class'
     }));
     teacherOptions.value = (teachers as AdminTeacherOption[]).filter((item) => item.enabled !== false).map((item) => ({
@@ -587,22 +591,30 @@ function addRole() {
 }
 
 function buildTrainingCommand(publishStatus: string) {
+  const semester = semesterOptions.value.find((item) => item.value === form.semester);
+  const majorId = classOptions.value.find((item) => selectedClassIds.value.includes(item.id))?.majorId;
+  const roleNames = Array.from(new Set(selectedTopicRows.value.flatMap((item) => item.roles)));
+  const trainingMode = roleNames.length ? 'TEAM' : 'SINGLE';
+
   return {
     trainingName: form.name.trim(),
-    semesterId: semesterIdFromLabel(form.semester),
+    academicYearId: semester?.academicYearId,
+    semesterId: semester?.semesterId,
+    majorId,
+    coverUrl: trainingCoverUrl,
     trainingType: trainingTypeToApi(form.type),
-    trainingMode: trainingModeToApi(form.mode),
-    paperMode: selectedPaperId.value ? 'THEORY_PAPER' : 'NONE',
+    trainingMode,
+    paperMode: selectedPaperId.value ? 'MANUAL' : 'NONE',
     paperId: selectedPaperId.value || undefined,
     openStartTime: form.range[0],
     openEndTime: form.range[1],
-    teamSize: form.roles.reduce((sum, role) => sum + Number(role.capacity || 0), 0) || 1,
+    teamSize: roleNames.length || 1,
     appRequired: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
-    roles: form.roles.map((role, index) => ({
-      roleName: role.name,
-      roleCode: role.name,
-      capacity: Number(role.capacity || 1),
+    roles: roleNames.map((roleName, index) => ({
+      roleName,
+      roleCode: roleName,
+      capacity: 1,
       aiFillEnabled: true,
       sortOrder: index + 1
     })),
@@ -613,6 +625,34 @@ function buildTrainingCommand(publishStatus: string) {
 async function saveAndPublish() {
   if (!form.name.trim()) {
     ElMessage.warning('请输入实训课名称');
+    return;
+  }
+  if (form.range.length !== 2 || !form.range[0] || !form.range[1]) {
+    ElMessage.warning('请选择实训起止时间');
+    return;
+  }
+  if (!semesterOptions.value.some((item) => item.value === form.semester)) {
+    ElMessage.warning('请选择所属学年学期');
+    return;
+  }
+  if (!selectedClassIds.value.length) {
+    ElMessage.warning('请选择参训班级或学员');
+    return;
+  }
+  if (!selectedTeacherIds.value.length) {
+    ElMessage.warning('请选择监考教师');
+    return;
+  }
+  if (!selectedRoomId.value) {
+    ElMessage.warning('请选择教室');
+    return;
+  }
+  if (!selectedTopicIds.value.length) {
+    ElMessage.warning('请至少添加一道实训题');
+    return;
+  }
+  if (form.type === '考试' && !selectedPaperId.value) {
+    ElMessage.warning('考试类型请选择理论试卷');
     return;
   }
   try {
@@ -633,10 +673,6 @@ async function saveAndPublish() {
   }
 }
 
-function semesterIdFromLabel(label: string) {
-  return semesterOptions.value.find((item) => item.value === label)?.semesterId;
-}
-
 function trainingTypeToApi(type?: string) {
   if (type === '考试') return 'EXAM';
   if (type === '练习') return 'PRACTICE';
@@ -645,12 +681,6 @@ function trainingTypeToApi(type?: string) {
 
 function apiTrainingTypeToText(type?: string): '考试' | '练习' {
   return type === 'PRACTICE' ? '练习' : '考试';
-}
-
-function trainingModeToApi(mode?: string) {
-  if (mode === '单人实训') return 'SINGLE';
-  if (mode === '协同实训') return 'COLLABORATIVE';
-  return undefined;
 }
 
 function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {

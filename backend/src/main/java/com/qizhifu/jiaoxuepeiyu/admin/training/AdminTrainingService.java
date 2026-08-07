@@ -27,7 +27,7 @@ public class AdminTrainingService {
     private static final int MAX_PAGE_SIZE = 100;
     private static final Set<String> TRAINING_TYPES = new HashSet<String>(Arrays.asList("PRACTICE", "EXAM"));
     private static final Set<String> TRAINING_MODES = new HashSet<String>(Arrays.asList("SINGLE", "TEAM"));
-    private static final Set<String> PAPER_MODES = new HashSet<String>(Arrays.asList("MANUAL", "AUTO"));
+    private static final Set<String> PAPER_MODES = new HashSet<String>(Arrays.asList("NONE", "MANUAL", "AUTO"));
 
     private final AdminTrainingRepository repository;
     private final Clock clock;
@@ -177,7 +177,7 @@ public class AdminTrainingService {
                 "Training type is invalid"));
         normalized.setTrainingMode(normalizedEnum(command.getTrainingMode(), "SINGLE", TRAINING_MODES,
                 "Training mode is invalid"));
-        normalized.setPaperMode(normalizedEnum(command.getPaperMode(), "MANUAL", PAPER_MODES,
+        normalized.setPaperMode(normalizedEnum(command.getPaperMode(), "NONE", PAPER_MODES,
                 "Training paper mode is invalid"));
         normalized.setPaperId(command.getPaperId());
         normalized.setOpenStartTime(command.getOpenStartTime());

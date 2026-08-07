@@ -49,6 +49,19 @@ class AdminTrainingServiceTests {
     }
 
     @Test
+    void acceptsPracticeTrainingWithoutTheoryPaper() {
+        FakeTrainings repository = new FakeTrainings();
+        AdminTrainingService service = new AdminTrainingService(repository);
+        AdminTrainingCommand command = trainingCommand();
+        command.setPaperMode("NONE");
+        command.setPaperId(null);
+
+        service.createTraining(command, 9L);
+
+        assertEquals("NONE", repository.savedCommand.getPaperMode());
+    }
+
+    @Test
     void rejectsTeamTrainingWhenRoleCountDoesNotMatchTeamSize() {
         AdminTrainingService service = new AdminTrainingService(new FakeTrainings());
         AdminTrainingCommand command = trainingCommand();
