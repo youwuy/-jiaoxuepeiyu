@@ -8,6 +8,8 @@ export interface AdminCourseContent {
   resourceId?: number;
   assignmentId?: number;
   requiredDurationSeconds?: number;
+  learningStartTime?: string;
+  learningEndTime?: string;
   sortOrder?: number;
 }
 
@@ -24,6 +26,9 @@ export interface AdminCourseChapter {
 export interface AdminCourseRecord {
   courseId: number;
   courseName: string;
+  academicYearId?: number;
+  semesterId?: number;
+  majorId?: number;
   academicYearName?: string;
   semesterName?: string;
   academicTerm?: string;

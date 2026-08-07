@@ -102,7 +102,7 @@
                     </template>
 
                     <template v-else>
-                      <el-button class="admin-op-button light" @click="openDetail(course)">编辑</el-button>
+                      <el-button class="admin-op-button light" @click="handleEditCourse(course)">编辑</el-button>
                       <el-button class="admin-op-button danger" :loading="busyId === course.id" @click="deleteCourse(course)">
                         删除
                       </el-button>
@@ -376,6 +376,10 @@ function resetFilters() {
 
 function handleCreateCourse() {
   router.push('/admin/courses/new');
+}
+
+function handleEditCourse(course: AdminCourseView) {
+  router.push(`/admin/courses/${course.id}/edit`);
 }
 
 function setBusy(courseId: number | null) {
