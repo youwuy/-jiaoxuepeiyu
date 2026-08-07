@@ -1,11 +1,11 @@
 <template>
   <AdminShell activeKey="admin-courses">
-    <section class="admin-course-form-page">
+    <section v-loading="loading" class="admin-course-form-page">
       <header class="admin-course-form-topbar">
         <el-breadcrumb class="admin-course-form-breadcrumb" separator="/">
           <el-breadcrumb-item>教学实训</el-breadcrumb-item>
           <el-breadcrumb-item>教学课程</el-breadcrumb-item>
-          <el-breadcrumb-item>新增课程</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ pageTitle }}</el-breadcrumb-item>
         </el-breadcrumb>
 
         <el-button class="admin-course-form-back" @click="goBack">
@@ -616,7 +616,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   ArrowDown,
@@ -637,8 +637,10 @@ import {
   createAdminCourse,
   fetchAdminAcademicYears,
   fetchAdminClasses,
+  fetchAdminCourseDetail,
   fetchAdminMajors,
   fetchAdminTeachers,
+  updateAdminCourse,
   type AdminAcademicYearOption,
   type AdminClassOption,
   type AdminMajorOption,
@@ -656,7 +658,11 @@ import {
 } from '../../api/admin-training';
 import { fetchAdminResources, type AdminResource } from '../../api/admin-resource';
 
+const route = useRoute();
 const router = useRouter();
+const courseId = computed(() => Number(route.params.id));
+const isEditMode = computed(() => route.name === 'admin-course-edit');
+const pageTitle = computed(() => (isEditMode.value ? '编辑课程' : '新增课程'));
 
 const form = reactive({
   courseName: '',
@@ -671,6 +677,7 @@ const form = reactive({
 });
 
 const saving = ref(false);
+const loading = ref(false);
 const academicYears = ref<AdminAcademicYearOption[]>([]);
 const majorOptions = ref<AdminMajorOption[]>([]);
 const classOptions = ref<AdminClassOption[]>([]);
@@ -698,6 +705,7 @@ interface OutlineItem {
   desc: string;
   questions?: HomeworkQuestion[];
   resourceId?: number;
+  assignmentId?: number;
   requiredDurationSeconds?: number;
   learningStartTime?: string;
   learningEndTime?: string;
@@ -1366,7 +1374,7 @@ async function saveCourse() {
 
   saving.value = true;
   try {
-    await createAdminCourse({
+    const command = {
       courseName: form.courseName.trim(),
       academicYearId: payload.semester.academicYearId,
       semesterId: payload.semester.semesterId,
@@ -1390,14 +1398,20 @@ async function saveCourse() {
             title: item.title.slice(0, 30),
             sortOrder: itemIndex + 1,
             resourceId: item.resourceId,
+            assignmentId: item.assignmentId,
             requiredDurationSeconds: item.requiredDurationSeconds,
             learningStartTime: item.learningStartTime,
             learningEndTime: item.learningEndTime
           }))
         }))
       }))
-    });
-    ElMessage.success('课程已保存');
+    };
+    if (isEditMode.value && courseId.value) {
+      await updateAdminCourse(courseId.value, command);
+    } else {
+      await createAdminCourse(command);
+    }
+    ElMessage.success(isEditMode.value ? '课程修改已保存' : '课程已保存');
     goBack();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '课程保存失败');
@@ -1427,6 +1441,80 @@ async function loadOptions() {
   }
 }
 
+function parseDateTime(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
+  chapters.value = (detail.chapters ?? []).map((chapter) => ({
+    id: chapter.chapterId ?? nextOutlineId(),
+    title: chapter.chapterTitle || '未命名章节',
+    sections: (chapter.children ?? []).map((section) => ({
+      id: section.chapterId ?? nextOutlineId(),
+      title: section.chapterTitle || '未命名小节',
+      items: (section.contents ?? []).map((item) => ({
+        id: item.contentId ?? nextOutlineId(),
+        type: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? 'homework' : 'resource',
+        title: item.title || '未命名内容',
+        desc: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? '课程作业' : '教学资源',
+        resourceId: item.resourceId,
+        assignmentId: item.assignmentId,
+        requiredDurationSeconds: item.requiredDurationSeconds,
+        learningStartTime: item.learningStartTime,
+        learningEndTime: item.learningEndTime
+      }))
+    }))
+  }));
+  const outlineIds = chapters.value.flatMap((chapter) => [
+    chapter.id,
+    ...chapter.sections.flatMap((section) => [section.id, ...section.items.map((item) => item.id)])
+  ]);
+  outlineIdSeed = Math.max(outlineIdSeed, ...outlineIds);
+}
+
+function splitNames(value?: string) {
+  return (value ?? '')
+    .split(/[，,、\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function loadCourseDetail() {
+  if (!courseId.value) {
+    ElMessage.error('课程编号无效');
+    goBack();
+    return;
+  }
+
+  const detail = await fetchAdminCourseDetail(courseId.value);
+  form.courseName = detail.courseName || '';
+  form.startTime = parseDateTime(detail.openStartTime);
+  form.endTime = parseDateTime(detail.openEndTime);
+  form.semesterKey = detail.academicYearId && detail.semesterId
+    ? `${detail.academicYearId}:${detail.semesterId}`
+    : semesterOptions.value.find(
+        (item) => item.label === [detail.academicYearName, detail.semesterName].filter(Boolean).join(' ')
+      )?.key || '';
+  form.majorId = detail.majorId ?? majorOptions.value.find((item) => item.majorName === detail.majorName)?.majorId;
+  form.coursewareScore = String(detail.coursewareScoreCap ?? 100);
+  form.learningMode = detail.learningMode || 'SELF_PACED';
+  const teacherNames = splitNames(detail.teacherNames);
+  const classNames = splitNames(detail.classNames);
+  form.teacherIds = detail.teacherIds?.length
+    ? [...detail.teacherIds]
+    : teacherOptions.value
+        .filter((item) => teacherNames.includes(item.realName) || teacherNames.includes(item.accountNo || ''))
+        .map((item) => item.userId);
+  form.classIds = detail.classIds?.length
+    ? [...detail.classIds]
+    : classOptions.value.filter((item) => classNames.includes(item.className)).map((item) => item.classId);
+  loadCourseOutline(detail);
+}
+
 async function handleMajorChange(value?: number) {
   try {
     classOptions.value = (await fetchAdminClasses(value)).filter((item) => item.enabled !== false);
@@ -1445,7 +1533,17 @@ watch(
   }
 );
 
-onMounted(() => {
-  void loadOptions();
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await loadOptions();
+    if (isEditMode.value) {
+      await loadCourseDetail();
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '课程信息加载失败');
+  } finally {
+    loading.value = false;
+  }
 });
 </script>

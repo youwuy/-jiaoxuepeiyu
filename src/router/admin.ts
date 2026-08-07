@@ -102,6 +102,11 @@ export const adminRoutes: RouteRecordRaw[] = [
     component: AdminCourseForm
   },
   {
+    path: '/admin/courses/:id/edit',
+    name: 'admin-course-edit',
+    component: AdminCourseForm
+  },
+  {
     path: '/admin/courses/:id/statistics',
     name: 'admin-course-statistics',
     component: AdminCourseStatistics
