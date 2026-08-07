@@ -158,6 +158,15 @@
             <el-option label="调度" value="调度" />
           </el-select>
         </div>
+        <div class="admin-training-topic-overview">
+          <p>
+            共 <b>{{ filteredTopicRows.length }}</b> 条实训题，已选 <b>{{ selectedTopicIds.length }}</b> 条
+          </p>
+          <span>
+            <el-icon><InfoFilled /></el-icon>
+            灰色复选框表示实训题已绑定当前课程，不可取消
+          </span>
+        </div>
         <div class="admin-training-topic-dialog-table">
           <table class="admin-training-topic-table">
             <thead>
@@ -1658,6 +1667,42 @@ onMounted(async () => {
   gap: 14px;
 }
 
+.admin-training-topic-overview {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px;
+  border: 1px solid #edf1f7;
+  border-radius: 6px;
+  background: #fbfcfe;
+}
+
+.admin-training-topic-overview p {
+  margin: 0;
+  color: #52657d;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-training-topic-overview p b {
+  margin: 0 4px;
+  color: #3478f6;
+}
+
+.admin-training-topic-overview span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #98a4b5;
+  font-size: 12px;
+}
+
+.admin-training-topic-overview .el-icon {
+  flex: 0 0 auto;
+}
+
 .admin-training-topic-dialog-table {
   max-height: 440px;
   border: 1px solid #e5ebf3;
@@ -1685,6 +1730,14 @@ onMounted(async () => {
   .admin-training-form-footer {
     right: 12px;
     left: 12px;
+  }
+
+  .admin-training-topic-overview {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }
 </style>

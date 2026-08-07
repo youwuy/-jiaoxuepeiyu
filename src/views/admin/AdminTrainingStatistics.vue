@@ -1,11 +1,19 @@
 <template>
   <AdminShell activeKey="admin-trainings">
     <section class="admin-training-statistics-page">
-      <el-breadcrumb class="admin-training-statistics-breadcrumb" separator="/">
-        <el-breadcrumb-item>教学实训</el-breadcrumb-item>
-        <el-breadcrumb-item>实训组课</el-breadcrumb-item>
-        <el-breadcrumb-item>成绩统计</el-breadcrumb-item>
-      </el-breadcrumb>
+      <header class="admin-training-statistics-topbar">
+        <el-button
+          class="admin-training-statistics-back"
+          :icon="ArrowLeft"
+          title="返回实训组课列表"
+          @click="goBack"
+        />
+        <el-breadcrumb class="admin-training-statistics-breadcrumb" separator="/">
+          <el-breadcrumb-item>教学实训</el-breadcrumb-item>
+          <el-breadcrumb-item>实训组课</el-breadcrumb-item>
+          <el-breadcrumb-item>成绩统计</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
 
       <main v-loading="loading" class="admin-training-statistics-shell">
         <section class="admin-training-statistics-summary">
@@ -49,29 +57,23 @@
                 <strong>各班级参与人数统计</strong>
               </div>
               <div class="panel-legend">
-                <span><i class="tone-attend"></i>参与人数</span>
-                <span><i class="tone-complete"></i>完成人数</span>
+                <span><i class="tone-attend"></i>应参训</span>
+                <span><i class="tone-complete"></i>实际参训</span>
               </div>
             </header>
             <div class="class-bar-chart">
               <div class="class-bar-axis">
-                <span v-for="tick in [50, 40, 30, 20, 10, 0]" :key="tick">{{ tick }}</span>
+                <span v-for="tick in classChartTicks" :key="tick">{{ tick }}</span>
               </div>
               <div class="class-bar-plot">
                 <div v-for="item in classParticipationData" :key="item.name" class="class-bar-item">
                   <div class="class-bar-group">
-                    <div class="class-bar-stack">
-                      <i class="tone-attend" :style="{ height: `${item.joinedHeight}%` }">
-                        <b>{{ item.joined }}</b>
-                      </i>
-                      <i class="tone-complete" :style="{ height: `${item.completedHeight}%` }">
-                        <b>{{ item.completed }}</b>
-                      </i>
-                    </div>
-                    <div class="class-bar-stack offset">
-                      <i class="tone-attend soft" :style="{ height: `${item.joinedShadowHeight}%` }"></i>
-                      <i class="tone-complete soft" :style="{ height: `${item.completedShadowHeight}%` }"></i>
-                    </div>
+                    <i class="tone-attend" :style="{ height: `${item.joinedHeight}%` }">
+                      <b>{{ item.joined }}</b>
+                    </i>
+                    <i class="tone-complete" :style="{ height: `${item.completedHeight}%` }">
+                      <b>{{ item.completed }}</b>
+                    </i>
                   </div>
                   <span>{{ item.name }}</span>
                 </div>
@@ -194,19 +196,19 @@
           <article class="admin-training-statistics-panel panel-progress">
             <header class="panel-head">
               <div>
-                <el-icon><Timer /></el-icon>
-                <strong>任务进度环节</strong>
+                <el-icon class="weakness-title-icon"><Warning /></el-icon>
+                <strong>学生薄弱环节</strong>
               </div>
             </header>
             <div class="progress-list">
               <article v-for="item in progressRows" :key="item.title">
                 <div class="progress-meta">
-                  <span class="progress-index">{{ item.index }}</span>
+                  <span class="progress-index" :class="progressTone(item.percent)">{{ item.index }}</span>
                   <div>
                     <strong>{{ item.title }}</strong>
                     <p>{{ item.subtitle }}</p>
                   </div>
-                  <b :class="progressTone(item.percent)">{{ item.percent }}%</b>
+                  <b :class="progressTone(item.percent)">错误率 {{ item.percent }}%</b>
                 </div>
                 <div class="progress-track">
                   <i :class="progressTone(item.percent)" :style="{ width: `${item.percent}%` }"></i>
@@ -222,9 +224,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Calendar, Check, Document, Histogram, Medal, PieChart, Timer, TrendCharts, User, UserFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, Calendar, Check, Document, Histogram, Medal, PieChart, TrendCharts, User, UserFilled, Warning } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminTraining,
@@ -253,8 +255,6 @@ interface ChartClassItem {
   completed: number;
   joinedHeight: number;
   completedHeight: number;
-  joinedShadowHeight: number;
-  completedShadowHeight: number;
 }
 
 interface StackItem {
@@ -294,6 +294,7 @@ interface ProgressRow {
 }
 
 const route = useRoute();
+const router = useRouter();
 const trainingId = computed(() => Number(route.params.id));
 const loading = ref(false);
 const trainingTitle = ref(String(route.query.title || '成绩统计'));
@@ -391,21 +392,34 @@ const donutGradient = computed(() => {
 });
 
 const classParticipationData = computed<ChartClassItem[]>(() => {
-  const rows = classLabels.value.map((label, index) => {
-    const joined = Math.max(Math.round(participantCount.value * (0.26 + index * 0.018)), 18);
-    const completed = Math.max(joined - (index % 2 === 0 ? 4 : 2), 0);
+  const labels = classLabels.value;
+  const joinedCounts = allocateCounts(participantCount.value, classRatios(labels.length));
+  const completedCounts = allocateCounts(
+    Math.min(completedCount.value, participantCount.value),
+    classRatios(labels.length)
+  );
+  return labels.map((label, index) => {
+    const joined = joinedCounts[index] ?? 0;
+    const completed = Math.min(completedCounts[index] ?? 0, joined);
     return {
       name: label,
       joined,
       completed,
-      joinedHeight: 40 + index * 2,
-      completedHeight: 34 + index * 2,
-      joinedShadowHeight: 34 + index * 2,
-      completedShadowHeight: 28 + index * 2
+      joinedHeight: (joined / classChartMax.value) * 100,
+      completedHeight: (completed / classChartMax.value) * 100
     };
   });
-  return rows;
 });
+
+const classChartMax = computed(() => {
+  const classCount = Math.max(classLabels.value.length, 1);
+  const largestAverage = Math.ceil(participantCount.value / classCount);
+  return Math.max(50, Math.ceil(largestAverage / 10) * 10);
+});
+
+const classChartTicks = computed(() =>
+  Array.from({ length: 6 }, (_, index) => Math.round(classChartMax.value - (classChartMax.value / 5) * index))
+);
 
 const stackedDistribution = computed<StackItem[]>(() =>
   classLabels.value.map((label, index) => {
@@ -457,16 +471,20 @@ const rankingRows = computed<RankingRow[]>(() => {
 });
 
 const progressRows = computed<ProgressRow[]>(() => [
-  { index: 1, title: '任务一：车辆故障内容排查', subtitle: '步骤1：识别与定位故障点', percent: 68 },
-  { index: 2, title: '任务二：发车与出库准备', subtitle: '步骤2：按照流程执行出库', percent: 52 },
-  { index: 3, title: '任务三：客室应急处理', subtitle: '步骤1：判读事件与响应', percent: 45 },
-  { index: 4, title: '任务四：机控设备检修', subtitle: '步骤1：检修项逐项确认', percent: 38 },
-  { index: 5, title: '任务五：调度信息识别', subtitle: '步骤1：基础指令识别', percent: 31 }
+  { index: 1, title: '任务三：车辆转向架检修', subtitle: '步骤2：测量轮对踏面磨耗', percent: 68 },
+  { index: 2, title: '任务一：受电弓升降操作', subtitle: '步骤4：检查受电弓气路压力', percent: 52 },
+  { index: 3, title: '任务五：客室车门调试', subtitle: '步骤3：车门开关门时间测试', percent: 45 },
+  { index: 4, title: '任务二：机电设备巡检', subtitle: '步骤5：记录设备运行参数', percent: 38 },
+  { index: 5, title: '任务四：调度信号识别', subtitle: '步骤1：识别进路信号机显示', percent: 31 }
 ]);
 
 function numberValue(value: number | string | undefined | null) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function goBack() {
+  router.push('/admin/training');
 }
 
 function formatDateTime(value?: string) {
@@ -499,6 +517,15 @@ function allocateCounts(total: number, ratios: number[]) {
   return raw;
 }
 
+function classRatios(count: number) {
+  if (count <= 0) {
+    return [];
+  }
+  const weights = Array.from({ length: count }, (_, index) => 1 + ((index * 3) % 5) * 0.03);
+  const totalWeight = weights.reduce((sum, item) => sum + item, 0);
+  return weights.map((item) => item / totalWeight);
+}
+
 function gradeForScore(score: number) {
   if (score >= 90) return '优秀';
   if (score >= 80) return '良好';
@@ -523,10 +550,9 @@ function rankTone(rank: number) {
 }
 
 function progressTone(percent: number) {
-  if (percent >= 60) return 'excellent';
-  if (percent >= 45) return 'good';
-  if (percent >= 30) return 'normal';
-  return 'bad';
+  if (percent >= 60) return 'danger';
+  if (percent >= 45) return 'warning';
+  return 'muted';
 }
 
 async function loadStatistics() {
@@ -564,10 +590,24 @@ onMounted(() => {
   background: #f5f7fb;
 }
 
-.admin-training-statistics-breadcrumb {
-  height: 48px;
+.admin-training-statistics-topbar {
   display: flex;
   align-items: center;
+  gap: 18px;
+  min-height: 68px;
+}
+
+.admin-training-statistics-back.el-button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dce5f1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #53657f;
+  font-size: 18px;
+}
+
+.admin-training-statistics-breadcrumb {
   color: #94a3b8;
   font-size: 14px;
   font-weight: 600;
@@ -869,8 +909,33 @@ onMounted(() => {
   min-height: 220px;
 }
 
+.class-bar-plot {
+  position: relative;
+  padding: 0 8px;
+}
+
+.class-bar-plot::before {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  bottom: 30px;
+  left: 8px;
+  border-bottom: 1px solid #cbd5e1;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #edf1f6 0,
+    #edf1f6 1px,
+    transparent 1px,
+    transparent 20%
+  );
+  content: '';
+  pointer-events: none;
+}
+
 .class-bar-item,
 .stack-column {
+  position: relative;
+  z-index: 1;
   display: grid;
   align-content: end;
   gap: 9px;
@@ -878,42 +943,27 @@ onMounted(() => {
 }
 
 .class-bar-group {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
   align-items: end;
+  justify-content: center;
+  gap: 4px;
   height: 188px;
 }
 
-.class-bar-stack {
+.class-bar-group i {
   position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 4px;
-  height: 100%;
-  min-height: 188px;
-}
-
-.class-bar-stack i {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  min-height: 16px;
-  border-radius: 4px 4px 0 0;
+  width: min(34px, 42%);
+  min-height: 3px;
+  border-radius: 2px 2px 0 0;
 }
 
-.class-bar-stack i b {
-  position: absolute;
-  bottom: 6px;
+.class-bar-group i b {
   color: #ffffff;
   font-size: 11px;
-  font-weight: 800;
-}
-
-.class-bar-stack.offset {
-  margin-top: 16px;
+  font-weight: 900;
 }
 
 .class-bar-item span,
@@ -1143,59 +1193,74 @@ onMounted(() => {
 
 .progress-list {
   display: grid;
-  gap: 12px;
-  padding: 10px 22px 16px;
+  gap: 22px;
+  padding: 22px 20px 26px;
 }
 
 .progress-list article {
   display: grid;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 10px;
 }
 
 .progress-meta {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 74px;
-  align-items: start;
-  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
 }
 
 .progress-index {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.progress-index.danger {
   background: #fff1f2;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 800;
+  color: #ef4444;
+}
+
+.progress-index.warning {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.progress-index.muted {
+  background: #f1f3f6;
+  color: #6b7280;
 }
 
 .progress-meta strong {
   color: #17233d;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 900;
 }
 
 .progress-meta p {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: #94a3b8;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .progress-meta b {
   justify-self: end;
-  color: #64748b;
-  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .progress-track {
-  height: 8px;
+  height: 9px;
+  margin-left: 54px;
   border-radius: 999px;
-  background: #eef2f7;
+  background: #f0f2f5;
   overflow: hidden;
 }
 
@@ -1205,20 +1270,35 @@ onMounted(() => {
   border-radius: inherit;
 }
 
-.progress-track i.excellent {
+.progress-meta b.danger {
+  background: #fff1f2;
+  color: #ef4444;
+}
+
+.progress-meta b.warning {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.progress-meta b.muted {
+  background: #f1f3f6;
+  color: #6b7280;
+}
+
+.progress-track i.danger {
   background: #ef4444;
 }
 
-.progress-track i.good {
+.progress-track i.warning {
   background: #f59e0b;
 }
 
-.progress-track i.normal {
-  background: #3b82f6;
+.progress-track i.muted {
+  background: #6b7280;
 }
 
-.progress-track i.bad {
-  background: #94a3b8;
+.panel-progress .weakness-title-icon {
+  color: #ef4444;
 }
 
 @media (max-width: 1280px) {
@@ -1271,10 +1351,11 @@ onMounted(() => {
   }
 
   .progress-meta {
-    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 
   .progress-meta b {
+    grid-column: 2;
     justify-self: start;
   }
 
