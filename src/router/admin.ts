@@ -20,6 +20,7 @@ import AdminTheoryPapers from '../views/admin/AdminTheoryPapers.vue';
 import AdminTheoryQuestions from '../views/admin/AdminTheoryQuestions.vue';
 import AdminTrainingArchive from '../views/admin/AdminTrainingArchive.vue';
 import AdminTrainingCourses from '../views/admin/AdminTrainingCourses.vue';
+import AdminTrainingExamStart from '../views/admin/AdminTrainingExamStart.vue';
 import AdminTrainingMonitor from '../views/admin/AdminTrainingMonitor.vue';
 import AdminTrainingReviews from '../views/admin/AdminTrainingReviews.vue';
 import AdminTrainingStatistics from '../views/admin/AdminTrainingStatistics.vue';
@@ -135,6 +136,11 @@ export const adminRoutes: RouteRecordRaw[] = [
     path: '/admin/training/:id/edit',
     name: 'admin-training-edit',
     component: AdminTrainingForm
+  },
+  {
+    path: '/admin/training/:id/exam-start',
+    name: 'admin-training-exam-start',
+    component: AdminTrainingExamStart
   },
   {
     path: '/admin/training/:id/monitor',

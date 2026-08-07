@@ -90,7 +90,7 @@
                       <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else-if="course.exam">
-                      <el-button class="primary-action" link @click="openMonitor(course)">开始考试</el-button>
+                      <el-button class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
                       <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
                       <el-dropdown trigger="click">
@@ -722,6 +722,14 @@ function openMonitor(row: CourseRow) {
   });
 }
 
+function openExamStart(row: CourseRow) {
+  router.push({
+    name: 'admin-training-exam-start',
+    params: { id: row.id },
+    query: { title: row.name, time: row.time, room: row.room }
+  });
+}
+
 function openMarking(row: CourseRow) {
   router.push({
     name: 'admin-training-reviews',
@@ -1037,7 +1045,7 @@ onMounted(() => {
 
 .admin-training-table {
   width: 100%;
-  min-width: 1480px;
+  min-width: 1584px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -1075,7 +1083,7 @@ onMounted(() => {
 }
 
 .admin-training-col-operation {
-  width: 256px;
+  width: 360px;
 }
 
 .admin-training-table th {
@@ -1104,7 +1112,13 @@ onMounted(() => {
 }
 
 .admin-training-table td.admin-training-operation-cell {
-  vertical-align: top;
+  vertical-align: middle;
+}
+
+.admin-training-operation-cell .admin-row-actions {
+  flex-wrap: nowrap;
+  max-width: none;
+  padding: 0;
 }
 
 .admin-training-name-cell {
