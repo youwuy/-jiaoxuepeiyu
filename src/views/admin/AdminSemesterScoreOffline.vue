@@ -1,13 +1,22 @@
 <template>
   <AdminShell activeKey="semester-score">
     <section class="admin-semester-score-offline-page">
-      <el-breadcrumb class="admin-semester-score-breadcrumb" separator="/">
-        <el-breadcrumb-item>成绩统计</el-breadcrumb-item>
-        <el-breadcrumb-item>
-          <button type="button" @click="backToList">综合成绩</button>
-        </el-breadcrumb-item>
-        <el-breadcrumb-item>线下成绩管理</el-breadcrumb-item>
-      </el-breadcrumb>
+      <header class="admin-semester-score-offline-heading">
+        <el-button
+          class="admin-semester-score-offline-back"
+          :icon="ArrowLeft"
+          title="返回综合成绩"
+          aria-label="返回综合成绩"
+          @click="backToList"
+        />
+        <el-breadcrumb class="admin-semester-score-breadcrumb" separator="/">
+          <el-breadcrumb-item>成绩统计</el-breadcrumb-item>
+          <el-breadcrumb-item>
+            <button type="button" @click="backToList">综合成绩</button>
+          </el-breadcrumb-item>
+          <el-breadcrumb-item>线下成绩管理</el-breadcrumb-item>
+        </el-breadcrumb>
+      </header>
 
       <el-button class="admin-semester-score-upload" :loading="importing" @click="openImportDialog">
         <el-icon><UploadFilled /></el-icon>
@@ -216,7 +225,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useRouter } from 'vue-router';
 import AdminShell from '../../components/admin/AdminShell.vue';

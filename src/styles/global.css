@@ -18791,6 +18791,21 @@ a {
   font-weight: 700;
 }
 
+.admin-semester-score-offline-heading {
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+  gap: 8px;
+}
+
+.admin-semester-score-offline-back {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  color: #64748b;
+}
+
 .admin-semester-score-breadcrumb button {
   border: 0;
   background: transparent;
