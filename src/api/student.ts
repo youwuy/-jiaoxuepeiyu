@@ -89,6 +89,42 @@ export interface TrainingRoom {
   roomCode?: string;
   roomStatus?: string;
   teamSize?: number;
+  ownerStudentId?: number;
+  members?: TrainingRoomMember[];
+  roles?: TrainingRoomRole[];
+}
+
+export interface TrainingRoomMember {
+  studentId: number;
+  studentName?: string;
+  roleId?: number;
+  roleName?: string;
+  owner?: boolean;
+}
+
+export interface TrainingRoomRole {
+  roleId: number;
+  roleName: string;
+  claimed?: boolean;
+  claimedByStudentId?: number;
+}
+
+export interface StudentTrainingTask {
+  trainingId: number;
+  trainingName?: string;
+  trainingType?: string;
+  trainingMode?: string;
+  openStartTime?: string;
+  openEndTime?: string;
+  studentId?: number;
+  studentName?: string;
+  roomId?: number;
+  roomCode?: string;
+  roomStatus?: string;
+  roleId?: number;
+  roleName?: string;
+  teamSize?: number;
+  aiRoleNames?: string[];
 }
 
 interface BackendResource {
@@ -334,10 +370,12 @@ function mapTraining(item: BackendTraining): StudentTraining {
   };
 }
 
-export async function fetchStudentTrainingScoreSheet(attemptId: number) {
-  return requestJson(`/student/training-attempts/${attemptId}/score-sheet`, {
+export async function fetchStudentTrainingScoreSheet(attemptId: number): Promise<TrainingArchiveDetail> {
+  const result = await requestJson<BackendArchiveDetail>(`/student/training-attempts/${attemptId}/score-sheet`, {
     fallbackLabel: '实训成绩单'
   });
+
+  return mapArchiveDetail(result);
 }
 
 function mapResource(item: BackendResource): StudentResource {
@@ -491,6 +529,33 @@ export async function startTrainingRoom(roomId: number): Promise<TrainingRoom> {
   return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}/start`, {
     method: 'POST',
     fallbackLabel: '开始组队实训'
+  });
+}
+
+export async function fetchStudentTrainingTask(trainingId: number): Promise<StudentTrainingTask> {
+  return requestJson<StudentTrainingTask>(`/ue/trainings/${trainingId}/task`, {
+    fallbackLabel: '实训任务信息'
+  });
+}
+
+export async function joinTrainingRoom(roomId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}/join`, {
+    method: 'POST',
+    fallbackLabel: '加入组队房间'
+  });
+}
+
+export async function leaveTrainingRoom(roomId: number): Promise<void> {
+  await requestJson<void>(`/student/training-rooms/${roomId}/leave`, {
+    method: 'POST',
+    fallbackLabel: '退出组队房间'
+  });
+}
+
+export async function claimTrainingRoomRole(roomId: number, roleId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}/roles/${roleId}/claim`, {
+    method: 'POST',
+    fallbackLabel: '选择实训角色'
   });
 }
 
