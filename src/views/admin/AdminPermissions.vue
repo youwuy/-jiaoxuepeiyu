@@ -34,9 +34,30 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="row in pagedRows" :key="row.permissionId">
+                    <tr
+                      v-for="row in pagedRows"
+                      :key="row.permissionId"
+                      :class="{
+                        'is-dragging': draggingId === row.permissionId,
+                        'is-drag-over-before': dragOverId === row.permissionId && dragPosition === 'before',
+                        'is-drag-over-after': dragOverId === row.permissionId && dragPosition === 'after'
+                      }"
+                      @dragover="handlePermissionDragOver(row, $event)"
+                      @drop="dropPermission(row, $event)"
+                    >
                       <td class="admin-permission-sort-cell">
-                        <el-icon class="admin-permission-rank"><Rank /></el-icon>
+                        <button
+                          type="button"
+                          class="admin-permission-rank"
+                          draggable="true"
+                          title="拖动调整同级菜单顺序"
+                          aria-label="拖动调整同级菜单顺序"
+                          :disabled="sorting"
+                          @dragstart.stop="startPermissionDrag(row, $event)"
+                          @dragend="finishPermissionDrag"
+                        >
+                          <el-icon><Rank /></el-icon>
+                        </button>
                       </td>
                       <td>
                         <div class="admin-permission-name" :style="{ paddingLeft: `${row.level * 20}px` }">
@@ -167,6 +188,7 @@ import {
   enableAdminPermission,
   fetchAdminPermissionTree,
   updateAdminPermission,
+  updateAdminPermissionSorts,
   type AdminPermissionCommand,
   type AdminPermissionNode,
   type AdminPermissionType
@@ -185,7 +207,12 @@ type DrawerMode = 'create' | 'edit';
 const pageSize = 12;
 const loading = ref(false);
 const saving = ref(false);
+const sorting = ref(false);
 const busyId = ref<number | null>(null);
+const draggingId = ref<number | null>(null);
+const draggingParentId = ref<number | null>(null);
+const dragOverId = ref<number | null>(null);
+const dragPosition = ref<'before' | 'after'>('before');
 const currentPage = ref(1);
 const drawerVisible = ref(false);
 const drawerMode = ref<DrawerMode>('create');
@@ -268,6 +295,111 @@ function toggleExpanded(permissionId: number) {
     next.add(permissionId);
   }
   expandedIds.value = next;
+}
+
+function normalizedParentId(parentId?: number | null) {
+  return parentId ?? null;
+}
+
+function startPermissionDrag(row: AdminPermissionRow, event: DragEvent) {
+  if (sorting.value) {
+    event.preventDefault();
+    return;
+  }
+  draggingId.value = row.permissionId;
+  draggingParentId.value = normalizedParentId(row.parentId);
+  dragOverId.value = null;
+  dragPosition.value = 'before';
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(row.permissionId));
+  }
+}
+
+function handlePermissionDragOver(row: AdminPermissionRow, event: DragEvent) {
+  if (
+    draggingId.value === null ||
+    draggingId.value === row.permissionId ||
+    draggingParentId.value !== normalizedParentId(row.parentId)
+  ) {
+    return;
+  }
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+  const targetRow = event.currentTarget as HTMLElement;
+  const bounds = targetRow.getBoundingClientRect();
+  dragPosition.value = event.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
+  dragOverId.value = row.permissionId;
+}
+
+function finishPermissionDrag() {
+  draggingId.value = null;
+  draggingParentId.value = null;
+  dragOverId.value = null;
+  dragPosition.value = 'before';
+}
+
+function findSiblingNodes(parentId: number | null) {
+  if (parentId === null) {
+    return permissionTree.value;
+  }
+  return findAdminPermissionById(permissionTree.value, parentId)?.children ?? null;
+}
+
+async function dropPermission(target: AdminPermissionRow, event: DragEvent) {
+  event.preventDefault();
+  const sourceId = draggingId.value;
+  const parentId = draggingParentId.value;
+  const position = dragPosition.value;
+  const validTarget = parentId === normalizedParentId(target.parentId);
+  finishPermissionDrag();
+  if (sourceId === null || sourceId === target.permissionId || !validTarget) {
+    return;
+  }
+
+  const siblings = findSiblingNodes(parentId);
+  if (!siblings) {
+    return;
+  }
+  const sourceIndex = siblings.findIndex((item) => item.permissionId === sourceId);
+  const targetIndex = siblings.findIndex((item) => item.permissionId === target.permissionId);
+  if (sourceIndex < 0 || targetIndex < 0) {
+    return;
+  }
+
+  const [moved] = siblings.splice(sourceIndex, 1);
+  const currentTargetIndex = siblings.findIndex((item) => item.permissionId === target.permissionId);
+  const insertIndex = position === 'after' ? currentTargetIndex + 1 : currentTargetIndex;
+  siblings.splice(insertIndex, 0, moved);
+  siblings.forEach((item, index) => {
+    item.sortOrder = index + 1;
+  });
+  permissionTree.value = [...permissionTree.value];
+
+  if (usingFallbackPermissions.value) {
+    ElMessage.success('菜单排序已更新');
+    return;
+  }
+
+  sorting.value = true;
+  try {
+    await updateAdminPermissionSorts(
+      siblings.map((item) => ({
+        permissionId: item.permissionId,
+        parentId,
+        sortOrder: item.sortOrder
+      }))
+    );
+    window.dispatchEvent(new Event(adminPermissionsChangedEvent));
+    ElMessage.success('菜单排序已保存');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '菜单排序保存失败');
+    await loadPermissionTree();
+  } finally {
+    sorting.value = false;
+  }
 }
 
 function openCreateRoot() {

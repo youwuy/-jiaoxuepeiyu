@@ -1431,8 +1431,42 @@ a {
 }
 
 .admin-permission-rank {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #9aa8bb;
   font-size: 17px;
+  cursor: grab;
+}
+
+.admin-permission-rank:hover {
+  color: #4f7cff;
+  background: #f1f5ff;
+}
+
+.admin-permission-rank:active {
+  cursor: grabbing;
+}
+
+.admin-permission-rank:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.admin-permission-table tr.is-dragging {
+  opacity: 0.45;
+}
+
+.admin-permission-table tr.is-drag-over-before td {
+  box-shadow: inset 0 2px 0 #4f7cff;
+}
+
+.admin-permission-table tr.is-drag-over-after td {
+  box-shadow: inset 0 -2px 0 #4f7cff;
 }
 
 .admin-permission-name {
