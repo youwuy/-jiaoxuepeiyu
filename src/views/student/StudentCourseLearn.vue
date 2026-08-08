@@ -85,7 +85,7 @@
             <el-tag type="warning" effect="light">课程作业</el-tag>
             <h3>{{ selectedItem.title }}</h3>
             <p>截止时间 {{ selectedItem.deadline }}，完成后可在目录中查看得分和学习记录。</p>
-            <el-button type="primary" :disabled="selectedItem.status === 'locked'">进入作业</el-button>
+            <el-button type="primary" :disabled="selectedItem.status === 'locked'" @click="enterAssignment(selectedItem)">进入作业</el-button>
           </div>
         </section>
         </main>
@@ -185,6 +185,18 @@ function selectItem(item: CourseCatalogItem) {
   if (item.type === 'courseware') {
     syncCoursewareProgress(item);
   }
+}
+
+function enterAssignment(item: CourseCatalogItem) {
+  if (!item.assignmentId) {
+    ElMessage.error('当前课程作业缺少作业信息，请联系教师重新发布课程');
+    return;
+  }
+  router.push({
+    name: 'student-assignment',
+    params: { id: item.assignmentId },
+    query: { courseId: courseId.value }
+  });
 }
 
 async function syncCoursewareProgress(item: CourseCatalogItem) {

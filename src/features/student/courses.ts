@@ -14,6 +14,7 @@ export interface CourseTimeline {
 
 export interface CourseCatalogItem {
   id: string;
+  assignmentId?: number;
   type: CourseItemType;
   title: string;
   status: CourseItemStatus;

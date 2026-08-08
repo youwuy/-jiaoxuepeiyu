@@ -51,6 +51,13 @@ public class StudentAssignmentController {
         return ApiResponse.ok(service.submit(StudentContext.requireStudentId(request), assignmentId));
     }
 
+    @PostMapping("/{assignmentId}/retry")
+    @Operation(summary = "Retry assignment", description = "Clears the current answers and starts a new assignment attempt within the answer window.")
+    public ApiResponse<Void> retry(@PathVariable Long assignmentId, HttpServletRequest request) {
+        service.retry(StudentContext.requireStudentId(request), assignmentId);
+        return ApiResponse.ok(null);
+    }
+
     @GetMapping("/{assignmentId}/report")
     @Operation(summary = "Get assignment report", description = "Returns scoring report and answer details after submission.")
     public ApiResponse<StudentAssignmentReport> report(@PathVariable Long assignmentId, HttpServletRequest request) {

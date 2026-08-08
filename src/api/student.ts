@@ -270,6 +270,7 @@ function mapCourse(card: BackendCourseCard | BackendCourseDetail): StudentCourse
       const type = mapItemType(item.itemType);
       return {
         id: String(item.contentId),
+        assignmentId: item.assignmentId,
         type,
         title: item.title,
         status: mapItemStatus(item, detail.lastContentId),
@@ -451,6 +452,90 @@ export async function fetchStudentCourses(keyword = ''): Promise<StudentCourse[]
 export async function fetchStudentCourse(courseId: number): Promise<StudentCourse> {
   const result = await requestJson<BackendCourseDetail>(`/student/courses/${courseId}`);
   return mapCourse(result);
+}
+
+export interface StudentAssignmentOption {
+  optionKey: string;
+  optionText: string;
+}
+
+export interface StudentAssignmentQuestion {
+  questionId: number;
+  questionType: string;
+  title: string;
+  score: number;
+  options?: string;
+  answerContent?: string;
+}
+
+export interface StudentAssignmentDetail {
+  assignmentId: number;
+  courseId: number;
+  assignmentTitle: string;
+  assignmentType?: string;
+  deadline?: string;
+  answerStartTime?: string;
+  answerEndTime?: string;
+  completionRule?: string;
+  passScore?: number;
+  publishMode?: string;
+  totalScore: number;
+  status?: string;
+  submittedAt?: string;
+  questions: StudentAssignmentQuestion[];
+}
+
+export interface StudentAssignmentReportAnswer {
+  questionId: number;
+  questionType?: string;
+  title?: string;
+  standardAnswer?: string;
+  answerContent?: string;
+  score?: number;
+}
+
+export interface StudentAssignmentReport {
+  assignmentId: number;
+  assignmentTitle: string;
+  status?: string;
+  score?: number;
+  reviewComment?: string;
+  submittedAt?: string;
+  answers?: StudentAssignmentReportAnswer[];
+}
+
+export function fetchStudentAssignment(assignmentId: number) {
+  return requestJson<StudentAssignmentDetail>(`/student/assignments/${assignmentId}`, {
+    fallbackLabel: '课程作业'
+  });
+}
+
+export function saveStudentAssignmentAnswers(assignmentId: number, answers: Array<{ questionId: number; answerContent: string }>) {
+  return requestJson<void>(`/student/assignments/${assignmentId}/answers`, {
+    method: 'POST',
+    body: JSON.stringify({ answers }),
+    fallbackLabel: '保存作业答案'
+  });
+}
+
+export function submitStudentAssignment(assignmentId: number) {
+  return requestJson<{ attemptId: number; status: string; autoScore: number; submittedAt?: string }>(`/student/assignments/${assignmentId}/submit`, {
+    method: 'POST',
+    fallbackLabel: '提交作业'
+  });
+}
+
+export function retryStudentAssignment(assignmentId: number) {
+  return requestJson<void>(`/student/assignments/${assignmentId}/retry`, {
+    method: 'POST',
+    fallbackLabel: '重新作答'
+  });
+}
+
+export function fetchStudentAssignmentReport(assignmentId: number) {
+  return requestJson<StudentAssignmentReport>(`/student/assignments/${assignmentId}/report`, {
+    fallbackLabel: '作业成绩报告'
+  });
 }
 
 export async function updateCoursewareProgress(

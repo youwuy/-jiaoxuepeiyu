@@ -56,6 +56,11 @@ public interface StudentAssignmentMapper {
     @Delete("DELETE FROM assignment_answer WHERE attempt_id = #{attemptId}")
     void deleteAnswers(@Param("attemptId") Long attemptId);
 
+    @Update("UPDATE assignment_attempt SET status = 'SAVED', score = NULL, review_comment = NULL, "
+            + "reviewer_id = NULL, reviewed_at = NULL, submitted_at = NULL, updated_at = NOW() "
+            + "WHERE id = #{attemptId}")
+    void resetAttempt(@Param("attemptId") Long attemptId);
+
     @Insert("<script>"
             + "INSERT INTO assignment_answer "
             + "(attempt_id, question_id, answer_content, score, created_at, updated_at) VALUES "

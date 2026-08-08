@@ -2,6 +2,7 @@ import type { RouteRecordRaw } from 'vue-router';
 import StudentLogin from '../views/auth/StudentLogin.vue';
 import StudentCourseLearn from '../views/student/StudentCourseLearn.vue';
 import StudentCourses from '../views/student/StudentCourses.vue';
+import StudentAssignment from '../views/student/StudentAssignment.vue';
 import StudentProfile from '../views/student/StudentProfile.vue';
 import StudentResources from '../views/student/StudentResources.vue';
 import StudentTraining from '../views/student/StudentTraining.vue';
@@ -25,6 +26,11 @@ export const studentRoutes: RouteRecordRaw[] = [
     path: '/student/courses/:id/learn',
     name: 'student-course-learn',
     component: StudentCourseLearn
+  },
+  {
+    path: '/student/assignments/:id',
+    name: 'student-assignment',
+    component: StudentAssignment
   },
   {
     path: '/student/training',

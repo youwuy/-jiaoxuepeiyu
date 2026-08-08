@@ -94,6 +94,18 @@ class StudentAssignmentServiceTests {
         assertEquals(0, repository.scoredQuestions.get(1).getAwardedScore());
     }
 
+    @Test
+    void retriesSubmittedAssignmentWithinAnswerWindow() {
+        FakeAssignments repository = new FakeAssignments();
+        repository.assignment.setStatus("SUBMITTED");
+        StudentAssignmentService service = new StudentAssignmentService(repository, CLOCK);
+
+        service.retry(7L, 12L);
+
+        assertEquals(7L, repository.retriedStudentId.longValue());
+        assertEquals(12L, repository.retriedAssignmentId.longValue());
+    }
+
     private static class FakeAssignments implements StudentAssignmentRepository {
         private StudentAssignmentRecord assignment = assignment();
         private Long savedStudentId;
@@ -101,6 +113,8 @@ class StudentAssignmentServiceTests {
         private List<AssignmentAnswerCommand.AnswerItem> savedAnswers;
         private int submittedAutoScore;
         private List<AssignmentQuestionRecord> scoredQuestions;
+        private Long retriedStudentId;
+        private Long retriedAssignmentId;
 
         @Override
         public Optional<StudentAssignmentRecord> findVisibleAssignment(Long studentId, Long assignmentId) {
@@ -121,6 +135,12 @@ class StudentAssignmentServiceTests {
             this.savedStudentId = studentId;
             this.savedAssignmentId = assignmentId;
             this.savedAnswers = answers;
+        }
+
+        @Override
+        public void retry(Long studentId, Long assignmentId) {
+            this.retriedStudentId = studentId;
+            this.retriedAssignmentId = assignmentId;
         }
 
         @Override

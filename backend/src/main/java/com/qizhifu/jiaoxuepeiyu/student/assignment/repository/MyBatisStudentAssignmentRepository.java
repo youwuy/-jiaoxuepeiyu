@@ -41,6 +41,17 @@ public class MyBatisStudentAssignmentRepository implements StudentAssignmentRepo
     }
 
     @Override
+    public void retry(Long studentId, Long assignmentId) {
+        Long attemptId = mapper.findAttemptId(studentId, assignmentId);
+        if (attemptId == null) {
+            mapper.ensureAttempt(studentId, assignmentId, "SAVED");
+            return;
+        }
+        mapper.deleteAnswers(attemptId);
+        mapper.resetAttempt(attemptId);
+    }
+
+    @Override
     public Long submit(Long studentId,
                        Long assignmentId,
                        List<AssignmentQuestionRecord> scoredQuestions,

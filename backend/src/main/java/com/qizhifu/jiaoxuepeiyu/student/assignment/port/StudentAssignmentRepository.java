@@ -15,6 +15,8 @@ public interface StudentAssignmentRepository {
 
     void saveAnswers(Long studentId, Long assignmentId, List<AssignmentAnswerCommand.AnswerItem> answers);
 
+    void retry(Long studentId, Long assignmentId);
+
     Long submit(Long studentId,
                 Long assignmentId,
                 List<AssignmentQuestionRecord> scoredQuestions,

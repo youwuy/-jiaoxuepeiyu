@@ -86,6 +86,13 @@ public class StudentAssignmentService {
         return report;
     }
 
+    @Transactional
+    public void retry(Long studentId, Long assignmentId) {
+        StudentAssignmentRecord assignment = requireVisibleAssignment(studentId, assignmentId);
+        assertWithinAnswerWindow(assignment);
+        repository.retry(studentId, assignmentId);
+    }
+
     private StudentAssignmentRecord requireVisibleAssignment(Long studentId, Long assignmentId) {
         return repository.findVisibleAssignment(studentId, assignmentId)
                 .orElseThrow(() -> new BusinessException(404, "Assignment not found"));
@@ -95,6 +102,10 @@ public class StudentAssignmentService {
         if ("SUBMITTED".equals(assignment.getStatus()) || "REVIEWED".equals(assignment.getStatus())) {
             throw new BusinessException(400, "Assignment has already been submitted");
         }
+        assertWithinAnswerWindow(assignment);
+    }
+
+    private void assertWithinAnswerWindow(StudentAssignmentRecord assignment) {
         LocalDateTime deadline = assignment.getAnswerEndTime() == null
                 ? assignment.getDeadline()
                 : assignment.getAnswerEndTime();
@@ -138,7 +149,8 @@ public class StudentAssignmentService {
         return "SINGLE".equals(questionType)
                 || "MULTIPLE".equals(questionType)
                 || "JUDGE".equals(questionType)
-                || "FILL".equals(questionType);
+                || "FILL".equals(questionType)
+                || "FILL_BLANK".equals(questionType);
     }
 
     private String normalize(String value) {
