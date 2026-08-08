@@ -19,6 +19,11 @@ export interface AdminOrgCommand {
   sortOrder: number;
 }
 
+export interface AdminOrgSortItem {
+  orgId: number;
+  sortOrder: number;
+}
+
 export async function fetchAdminOrgTree() {
   return requestJson<AdminOrgNode[]>('/admin/org/tree', {
     fallbackLabel: '组织树'
@@ -40,6 +45,14 @@ export async function updateAdminOrg(orgId: number, command: AdminOrgCommand) {
     method: 'PUT',
     body: JSON.stringify(command),
     fallbackLabel: '编辑组织'
+  });
+}
+
+export async function updateAdminOrgSorts(items: AdminOrgSortItem[]) {
+  return requestJson<void>('/admin/org/sort', {
+    method: 'PUT',
+    body: JSON.stringify(items),
+    fallbackLabel: '保存组织排序'
   });
 }
 

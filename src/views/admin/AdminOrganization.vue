@@ -44,9 +44,31 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in visibleRows" :key="row.orgId" :class="{ disabled: !row.enabled }">
+                <tr
+                  v-for="row in visibleRows"
+                  :key="row.orgId"
+                  :class="{
+                    disabled: !row.enabled,
+                    'is-dragging': draggingId === row.orgId,
+                    'is-drag-over-before': dragOverId === row.orgId && dragPosition === 'before',
+                    'is-drag-over-after': dragOverId === row.orgId && dragPosition === 'after'
+                  }"
+                  @dragover="handleOrgDragOver(row, $event)"
+                  @drop="dropOrg(row, $event)"
+                >
                   <td>
-                    <el-icon class="admin-org-rank"><Rank /></el-icon>
+                    <button
+                      type="button"
+                      class="admin-org-rank"
+                      draggable="true"
+                      :disabled="sorting || filtering"
+                      title="拖动调整同级组织顺序"
+                      aria-label="拖动调整同级组织顺序"
+                      @dragstart.stop="startOrgDrag(row, $event)"
+                      @dragend="finishOrgDrag"
+                    >
+                      <el-icon><Rank /></el-icon>
+                    </button>
                   </td>
                   <td>
                     <button
@@ -149,6 +171,7 @@ import {
   enableAdminOrg,
   fetchAdminOrgTree,
   updateAdminOrg,
+  updateAdminOrgSorts,
   type AdminOrgCommand,
   type AdminOrgNode
 } from '../../api/admin-org';
@@ -158,7 +181,12 @@ type DialogMode = 'root' | 'child' | 'edit';
 
 const loading = ref(false);
 const saving = ref(false);
+const sorting = ref(false);
 const busyId = ref<number | null>(null);
+const draggingId = ref<number | null>(null);
+const draggingParentId = ref<number | null>(null);
+const dragOverId = ref<number | null>(null);
+const dragPosition = ref<'before' | 'after'>('before');
 const orgTree = ref<AdminOrgNode[]>([]);
 const expandedIds = ref(new Set<number>());
 const draftKeyword = ref('');
@@ -177,6 +205,7 @@ const form = reactive<AdminOrgCommand>({
 const visibleRows = computed(() => flattenAdminOrgTree(orgTree.value, expandedIds.value, draftKeyword.value || keyword.value));
 const orgTotal = computed(() => countAdminOrgs(orgTree.value));
 const dialogTitle = computed(() => (dialogMode.value === 'edit' ? '编辑组织' : '新增组织'));
+const filtering = computed(() => Boolean((draftKeyword.value || keyword.value).trim()));
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -204,6 +233,113 @@ function toggleExpanded(orgId: number) {
     next.add(orgId);
   }
   expandedIds.value = next;
+}
+
+function normalizedParentId(parentId?: number | null) {
+  return parentId ?? null;
+}
+
+function startOrgDrag(row: AdminOrgRow, event: DragEvent) {
+  if (sorting.value || filtering.value) {
+    event.preventDefault();
+    return;
+  }
+  draggingId.value = row.orgId;
+  draggingParentId.value = normalizedParentId(row.parentId);
+  dragOverId.value = null;
+  dragPosition.value = 'before';
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(row.orgId));
+  }
+}
+
+function handleOrgDragOver(row: AdminOrgRow, event: DragEvent) {
+  if (
+    filtering.value ||
+    draggingId.value === null ||
+    draggingId.value === row.orgId ||
+    draggingParentId.value !== normalizedParentId(row.parentId)
+  ) {
+    return;
+  }
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+  const targetRow = event.currentTarget as HTMLElement;
+  const bounds = targetRow.getBoundingClientRect();
+  dragPosition.value = event.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
+  dragOverId.value = row.orgId;
+}
+
+function finishOrgDrag() {
+  draggingId.value = null;
+  draggingParentId.value = null;
+  dragOverId.value = null;
+  dragPosition.value = 'before';
+}
+
+function findOrgSiblings(parentId: number | null) {
+  if (parentId === null) {
+    return orgTree.value;
+  }
+  return findOrgNode(orgTree.value, parentId)?.children ?? null;
+}
+
+function findOrgNode(items: AdminOrgNode[], orgId: number): AdminOrgNode | null {
+  for (const item of items) {
+    if (item.orgId === orgId) {
+      return item;
+    }
+    const child = findOrgNode(item.children ?? [], orgId);
+    if (child) {
+      return child;
+    }
+  }
+  return null;
+}
+
+async function dropOrg(target: AdminOrgRow, event: DragEvent) {
+  event.preventDefault();
+  const sourceId = draggingId.value;
+  const parentId = draggingParentId.value;
+  const position = dragPosition.value;
+  const validTarget = parentId === normalizedParentId(target.parentId);
+  finishOrgDrag();
+  if (sourceId === null || sourceId === target.orgId || !validTarget) {
+    return;
+  }
+
+  const siblings = findOrgSiblings(parentId);
+  if (!siblings) {
+    return;
+  }
+  const sourceIndex = siblings.findIndex((item) => item.orgId === sourceId);
+  const targetIndex = siblings.findIndex((item) => item.orgId === target.orgId);
+  if (sourceIndex < 0 || targetIndex < 0) {
+    return;
+  }
+
+  const [moved] = siblings.splice(sourceIndex, 1);
+  const currentTargetIndex = siblings.findIndex((item) => item.orgId === target.orgId);
+  const insertIndex = position === 'after' ? currentTargetIndex + 1 : currentTargetIndex;
+  siblings.splice(insertIndex, 0, moved);
+  siblings.forEach((item, index) => {
+    item.sortOrder = index + 1;
+  });
+  orgTree.value = [...orgTree.value];
+
+  sorting.value = true;
+  try {
+    await updateAdminOrgSorts(siblings.map((item) => ({ orgId: item.orgId, sortOrder: item.sortOrder })));
+    ElMessage.success('组织排序已保存');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '组织排序保存失败');
+    await loadOrgTree();
+  } finally {
+    sorting.value = false;
+  }
 }
 
 function openCreateRoot() {

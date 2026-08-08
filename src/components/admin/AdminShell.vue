@@ -134,19 +134,22 @@ const navGroups = computed(() => {
   return staticNavGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => visibleRoutes.has(item.path))
+      items: group.items
+        .filter((item) => visibleRoutes.has(item.path))
+        .sort((left, right) => (visibleRoutes.get(left.path) ?? Number.MAX_SAFE_INTEGER) - (visibleRoutes.get(right.path) ?? Number.MAX_SAFE_INTEGER))
     }))
     .filter((group) => group.items.length > 0);
 });
 
 function collectVisibleRoutes(tree: AdminPermissionNode[]) {
-  const routes = new Set<string>();
+  const routes = new Map<string, number>();
+  let order = 0;
 
   const walk = (nodes: AdminPermissionNode[], ancestorsVisible: boolean) => {
     nodes.forEach((node) => {
       const visible = ancestorsVisible && node.visible !== false;
       if (visible && node.routePath?.startsWith('/admin')) {
-        routes.add(node.routePath);
+        routes.set(node.routePath, order++);
       }
       walk(node.children ?? [], visible);
     });
