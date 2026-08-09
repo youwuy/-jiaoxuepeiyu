@@ -10592,7 +10592,7 @@ a {
   border-top: 1px solid #f1f5f9;
 }
 
-.admin-role-permission-matrix tbody tr:nth-child(even) td {
+.admin-role-permission-matrix tbody tr.module-alt td {
   background: #fafbfc;
 }
 
@@ -10743,7 +10743,7 @@ a {
   }
 
   .admin-role-form-page {
-    padding: 18px;
+    min-width: 920px;
   }
 }
 
