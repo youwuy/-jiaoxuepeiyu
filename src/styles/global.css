@@ -10542,7 +10542,7 @@ a {
 
 .admin-role-permission-matrix table {
   width: 100%;
-  min-width: 1140px;
+  min-width: 0;
   border-collapse: collapse;
   table-layout: fixed;
   color: #475569;
@@ -10561,22 +10561,22 @@ a {
 
 .admin-role-permission-matrix th:nth-child(1),
 .admin-role-permission-matrix td:nth-child(1) {
-  width: 160px;
+  width: 14.04%;
 }
 
 .admin-role-permission-matrix th:nth-child(2),
 .admin-role-permission-matrix td:nth-child(2) {
-  width: 200px;
+  width: 17.54%;
 }
 
 .admin-role-permission-matrix th:nth-child(3),
 .admin-role-permission-matrix td:nth-child(3) {
-  width: 520px;
+  width: 45.61%;
 }
 
 .admin-role-permission-matrix th:nth-child(4),
 .admin-role-permission-matrix td:nth-child(4) {
-  width: 260px;
+  width: 22.81%;
 }
 
 .admin-role-permission-matrix td {
