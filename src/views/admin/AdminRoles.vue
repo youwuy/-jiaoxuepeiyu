@@ -1,6 +1,5 @@
 <template>
-  <AdminShell activeKey="roles">
-    <section v-if="roleFormPageVisible" class="admin-role-form-page">
+  <section v-if="roleFormPageVisible" class="admin-role-form-page">
       <header class="admin-role-form-topbar">
         <el-breadcrumb class="admin-role-form-breadcrumb" separator="/">
           <el-breadcrumb-item>系统管理</el-breadcrumb-item>
@@ -40,7 +39,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in permissionRows" :key="row.rowKey">
+              <tr v-for="row in permissionRows" :key="row.rowKey" :class="{ 'module-alt': row.striped }">
                 <td class="module-cell">
                   <el-checkbox
                     v-if="row.moduleName"
@@ -65,7 +64,7 @@
                       v-for="action in row.actions"
                       :key="action.key"
                       :model-value="isActionChecked(action)"
-                      :disabled="action.virtual"
+                      :disabled="action.id === null"
                       @change="(value: string | number | boolean) => toggleAction(action, value)"
                     >
                       {{ action.label }}
@@ -89,9 +88,10 @@
         <el-button class="admin-role-form-cancel" @click="cancelRoleForm">取消</el-button>
         <el-button class="admin-role-form-confirm" type="primary" :loading="saving" @click="saveRole">确定</el-button>
       </footer>
-    </section>
+  </section>
 
-    <section v-else class="admin-roles-page">
+  <AdminShell v-else activeKey="roles">
+    <section class="admin-roles-page">
       <el-breadcrumb class="admin-roles-breadcrumb" separator="/">
         <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>
         <el-breadcrumb-item>角色管理</el-breadcrumb-item>
@@ -197,27 +197,16 @@ import {
   type AdminRoleCommand,
   type AdminRoleQuery
 } from '../../api/admin-role';
-import { dataScopeLabels, formatRoleTime, isBuiltInRole } from '../../features/admin/roles';
+import {
+  buildRolePermissionRows,
+  dataScopeLabels,
+  formatRoleTime,
+  isBuiltInRole,
+  type RolePermissionAction
+} from '../../features/admin/roles';
 
 type FormMode = 'create' | 'edit';
 
-interface PermissionMatrixAction {
-  key: string;
-  id: number;
-  label: string;
-  virtual?: boolean;
-}
-
-interface PermissionMatrixRow {
-  rowKey: string;
-  moduleName: string;
-  moduleIds: number[];
-  pageId: number;
-  pageName: string;
-  actions: PermissionMatrixAction[];
-}
-
-const defaultActions = ['列表', '新增', '删除', '修改', '启用', '禁用'];
 const loading = ref(false);
 const saving = ref(false);
 const busyId = ref<number | null>(null);
@@ -240,7 +229,7 @@ const emptyForm = (): AdminRoleCommand => ({
 });
 
 const form = reactive<AdminRoleCommand>(emptyForm());
-const permissionRows = computed(() => buildPermissionRows(permissionTree.value));
+const permissionRows = computed(() => buildRolePermissionRows(permissionTree.value));
 
 function currentQuery() {
   return { ...query, page: page.page, pageSize: page.pageSize };
@@ -273,52 +262,6 @@ async function loadRoles() {
   }
 }
 
-function buildPermissionRows(tree: AdminPermissionNode[]): PermissionMatrixRow[] {
-  return tree.flatMap((module) => {
-    const pages = module.children && module.children.length > 0 ? module.children : [module];
-    const moduleIds = collectNodeIds([module]);
-    return pages.map((pageNode, index) => ({
-      rowKey: `${module.permissionId}-${pageNode.permissionId}`,
-      moduleName: index === 0 ? module.permissionName : '',
-      moduleIds,
-      pageId: pageNode.permissionId,
-      pageName: pageNode.permissionName,
-      actions: buildActions(pageNode)
-    }));
-  });
-}
-
-function buildActions(pageNode: AdminPermissionNode): PermissionMatrixAction[] {
-  const children = pageNode.children ?? [];
-  if (children.length > 0) {
-    return [
-      { key: `page-${pageNode.permissionId}`, id: pageNode.permissionId, label: '列表' },
-      ...children.map((child) => ({
-        key: `action-${child.permissionId}`,
-        id: child.permissionId,
-        label: normalizeActionName(child.permissionName)
-      }))
-    ];
-  }
-  return [
-    { key: `page-${pageNode.permissionId}`, id: pageNode.permissionId, label: '列表' },
-    ...defaultActions.slice(1).map((label, index) => ({
-      key: `virtual-${pageNode.permissionId}-${index}`,
-      id: pageNode.permissionId,
-      label,
-      virtual: true
-    }))
-  ];
-}
-
-function normalizeActionName(value: string) {
-  return value.replace(/^新增.*$/, '新增').replace(/^删除.*$/, '删除').replace(/^修改.*$/, '修改').replace(/^编辑.*$/, '修改').replace(/^禁用.*$/, '禁用').replace(/^启用.*$/, '启用');
-}
-
-function collectNodeIds(nodes: AdminPermissionNode[]): number[] {
-  return nodes.flatMap((node) => [node.permissionId, ...collectNodeIds(node.children ?? [])]);
-}
-
 function isModuleChecked(ids: number[]) {
   return ids.length > 0 && ids.every((id) => form.permissionIds.includes(id));
 }
@@ -332,8 +275,8 @@ function isPermissionChecked(id: number) {
   return form.permissionIds.includes(id);
 }
 
-function isActionChecked(action: PermissionMatrixAction) {
-  return action.virtual ? false : isPermissionChecked(action.id);
+function isActionChecked(action: RolePermissionAction) {
+  return action.id !== null && isPermissionChecked(action.id);
 }
 
 function setPermission(id: number, value: string | number | boolean) {
@@ -350,8 +293,8 @@ function togglePermission(id: number, value: string | number | boolean = !isPerm
   setPermission(id, value);
 }
 
-function toggleAction(action: PermissionMatrixAction, value: string | number | boolean = !isActionChecked(action)) {
-  if (!action.virtual) {
+function toggleAction(action: RolePermissionAction, value: string | number | boolean = !isActionChecked(action)) {
+  if (action.id !== null) {
     setPermission(action.id, value);
   }
 }
