@@ -77,6 +77,7 @@ import {
   fetchStudentCourses,
   fetchStudentProfile,
   fetchStudentTrainingScoreSheet,
+  fetchStudentTrainingTask,
   fetchStudentResources,
   fetchStudentTrainings,
   fetchTrainingAppInstallation,
@@ -1003,6 +1004,21 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/trainings/66/rooms', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/student/training-rooms/77', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/student/training-rooms/77/start', expect.objectContaining({ method: 'POST' }));
+  });
+
+  it('uses the student session for the browser UE training task request', async () => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    globalThis.localStorage.setItem('jiaoxuepeiyu_student_token', 'student-token');
+    globalThis.localStorage.setItem('jiaoxuepeiyu_student_user', JSON.stringify({ studentId: 88 }));
+    const fetchMock = vi.fn(() => mockJsonResponse({ data: { trainingId: 66, trainingName: '多人协同实训' } }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchStudentTrainingTask(66)).resolves.toMatchObject({ trainingId: 66 });
+
+    const request = (fetchMock as unknown as { mock: { calls: Array<[RequestInfo, RequestInit]> } }).mock.calls[0][1];
+    const headers = new Headers(request.headers);
+    expect(headers.get('Authorization')).toBe('Bearer student-token');
+    expect(headers.get('X-User-Id')).toBe('88');
   });
 
   it('maps documented archive detail records for the profile archive detail view', async () => {

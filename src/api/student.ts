@@ -634,6 +634,7 @@ export async function createUeLaunchSession(trainingId: number): Promise<UeLaunc
 
 export async function fetchStudentTrainingTask(trainingId: number): Promise<StudentTrainingTask> {
   return requestJson<StudentTrainingTask>(`/ue/trainings/${trainingId}/task`, {
+    authPortal: 'student',
     fallbackLabel: '实训任务信息'
   });
 }
