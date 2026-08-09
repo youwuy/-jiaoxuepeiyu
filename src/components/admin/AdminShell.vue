@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import type { Component } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Coin,
@@ -58,6 +59,7 @@ import {
 } from '@element-plus/icons-vue';
 import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 import { fetchAdminProfile } from '../../api/admin-profile';
+import RoleShieldIcon from '../icons/RoleShieldIcon.vue';
 
 defineProps<{
   activeKey: string;
@@ -79,7 +81,7 @@ interface NavItem {
   key: string;
   label: string;
   path: string;
-  icon: typeof Operation;
+  icon: Component;
 }
 
 interface NavGroup {
@@ -94,7 +96,7 @@ const staticNavGroups: NavGroup[] = [
       { key: 'organization', label: '组织管理', path: '/admin/organization', icon: Operation },
       { key: 'users', label: '用户管理', path: '/admin/users', icon: User },
       { key: 'permissions', label: '功能管理', path: '/admin/permissions', icon: Menu },
-      { key: 'roles', label: '角色管理', path: '/admin/roles', icon: Folder },
+      { key: 'roles', label: '角色管理', path: '/admin/roles', icon: RoleShieldIcon },
       { key: 'settings', label: '配置管理', path: '/admin/settings', icon: Setting }
     ]
   },
