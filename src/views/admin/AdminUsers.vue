@@ -28,10 +28,6 @@
             <span>身份证号</span>
             <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
           </label>
-          <label v-if="formMode === 'create'">
-            <span>初始密码 <b>*</b></span>
-            <el-input v-model="form.initialPassword" maxlength="20" placeholder="请输入初始密码" show-password />
-          </label>
           <label>
             <span>岗位</span>
             <el-input v-model="form.jobTitle" maxlength="10" placeholder="请输入岗位" />
@@ -413,7 +409,7 @@
             <el-option v-for="item in classOptions" :key="item.classId" :label="`${item.majorName || ''} ${item.className}`" :value="item.classId" />
           </el-select>
         </label>
-        <label v-if="formMode === 'create'">
+        <label v-if="activeKind === 'student' && formMode === 'create'">
           <span>初始密码 <b>*</b></span>
           <el-input v-model="form.initialPassword" placeholder="请输入初始密码" show-password />
         </label>
@@ -837,7 +833,7 @@ function validateForm() {
   if (activeKind.value === 'student' && !form.classId) {
     throw new Error('请选择班级');
   }
-  if (formMode.value === 'create') {
+  if (formMode.value === 'create' && activeKind.value === 'student') {
     validateAccountPassword(form.initialPassword || '');
   }
 }
@@ -875,7 +871,10 @@ async function saveAccount() {
   saving.value = true;
   try {
     if (formMode.value === 'create') {
-      await createAdminAccount(activeKind.value, form);
+      const command = activeKind.value === 'teacher'
+        ? { ...form, initialPassword: undefined }
+        : form;
+      await createAdminAccount(activeKind.value, command);
       ElMessage.success(`新增${activeKindLabel.value}成功`);
     } else if (editingId.value) {
       await updateAdminAccount(activeKind.value, editingId.value, form);
