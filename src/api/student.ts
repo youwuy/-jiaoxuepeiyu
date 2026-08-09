@@ -73,6 +73,11 @@ interface BackendTraining {
   appInstalled?: boolean;
   activeRoomId?: number;
   latestAttemptId?: number;
+  academicTerm?: string;
+  trainingType?: string;
+  questionCount?: number;
+  bestScore?: number;
+  attemptCount?: number;
 }
 
 export interface TrainingAppInstallation {
@@ -243,6 +248,26 @@ function formatDateTime(value?: string): string {
   return value ? value.replace('T', ' ').slice(0, 16) : '';
 }
 
+function formatTrainingCountdown(startAt: string | undefined, endAt: string | undefined, status: TrainingStatus): string | undefined {
+  if (status === 'notStarted') {
+    return startAt ? `${startAt.replace('T', ' ').slice(5, 16)} 开放` : undefined;
+  }
+
+  if (status !== 'available' || !endAt) {
+    return undefined;
+  }
+
+  const remainingMilliseconds = new Date(endAt).getTime() - Date.now();
+  if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) {
+    return undefined;
+  }
+
+  const totalHours = Math.ceil(remainingMilliseconds / 3600000);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return days > 0 ? `剩${days}天${hours}小时` : `剩${hours}小时`;
+}
+
 function formatFileSize(bytes?: number): string {
   if (!bytes || bytes <= 0) {
     return '-';
@@ -358,13 +383,14 @@ function mapTraining(item: BackendTraining): StudentTraining {
     title: item.trainingName,
     mode,
     status,
-    category: 'practice',
-    term: '',
+    category: item.trainingType?.toLowerCase().includes('exam') ? 'exam' : 'practice',
+    term: item.academicTerm || '',
     startAt: formatDate(item.openStartTime),
     deadline: formatDate(item.openEndTime),
-    topicCount: Math.max(item.roleCount ?? 1, 1),
-    countdown: status === 'notStarted' ? `${formatDate(item.openEndTime)} 开放` : undefined,
-    attempts: item.appInstalled ? 1 : 0,
+    topicCount: Math.max(item.questionCount ?? item.roleCount ?? 1, 1),
+    countdown: formatTrainingCountdown(item.openStartTime, item.openEndTime, status),
+    attempts: item.attemptCount ?? (item.appInstalled ? 1 : 0),
+    bestScore: item.bestScore,
     activeRoomId: item.activeRoomId,
     latestAttemptId: item.latestAttemptId,
     roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined,
@@ -610,6 +636,14 @@ export async function createTrainingRoom(trainingId: number): Promise<TrainingRo
     method: 'POST',
     fallbackLabel: '创建实训房间'
   });
+}
+
+export async function fetchTrainingRooms(trainingId: number): Promise<TrainingRoom[]> {
+  const result = await requestJson<TrainingRoom[] | PageResult<TrainingRoom>>(`/student/trainings/${trainingId}/rooms`, {
+    fallbackLabel: '组队大厅'
+  });
+
+  return normalizeList(result);
 }
 
 export async function fetchTrainingRoom(roomId: number): Promise<TrainingRoom> {

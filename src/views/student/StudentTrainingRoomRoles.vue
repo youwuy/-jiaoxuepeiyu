@@ -1,97 +1,118 @@
 <template>
   <StudentShell eyebrow="实训中心" title="角色选择">
-    <section class="team-roles-page">
-      <button class="team-role-back" type="button" @click="router.push({ name: 'student-training-room', params: { roomId: roomId } })">
-        <el-icon><ArrowLeft /></el-icon>
-        返回组队大厅
-      </button>
+    <section class="role-select-page">
+      <nav class="role-select-breadcrumb" aria-label="面包屑导航">
+        <button type="button" @click="router.push('/student/training')">实训中心</button>
+        <el-icon><ArrowRight /></el-icon>
+        <button type="button" @click="returnLobby">组队大厅</button>
+        <el-icon><ArrowRight /></el-icon>
+        <span>角色选择</span>
+      </nav>
 
       <div v-if="loading" class="student-loading">角色信息加载中...</div>
+
       <template v-else-if="room">
-        <header class="team-roles-head">
-          <div>
-            <p>多人实训 · 进入房间</p>
-            <h1>选择实训角色</h1>
-            <span>{{ room.trainingName || '多人实训' }} · 房间号 {{ room.roomCode || room.roomId }}</span>
-          </div>
-          <div class="team-roles-head-state">
-            <span class="team-role-view-tag"><el-icon><User /></el-icon>学员视角</span>
-            <el-button plain :icon="Refresh" :loading="refreshing" @click="loadRoom">刷新</el-button>
+        <header class="role-room-summary">
+          <h1>{{ roomTitle }}</h1>
+          <div class="role-room-status">
+            <span><i></i>{{ roomStatusText }}</span>
+            <small>{{ room.roomStatus === 'WAITING' ? '等待队员加入' : '实训进行中' }}</small>
           </div>
         </header>
 
-        <section class="team-roles-layout">
-          <article class="team-roles-main-panel">
-            <header class="team-roles-panel-title">
-              <div>
-                <h2>请选择你的实训岗位</h2>
-                <p>已选择的角色将由对应成员执行，其他空缺岗位由 AI 补位</p>
+        <div class="role-select-heading">
+          <h2><el-icon><User /></el-icon>选择你的角色</h2>
+          <p>每个角色仅限一人选择，选定后不可更改</p>
+        </div>
+
+        <section class="role-card-grid">
+          <article
+            v-for="(role, index) in room.roles || []"
+            :key="role.roleId"
+            class="role-choice-card"
+            :class="[
+              `is-tone-${index % 3}`,
+              {
+                'is-occupied': isOccupiedByOther(role),
+                'is-selected': role.claimedByStudentId === currentStudentId,
+                'is-locked': Boolean(selectedRoleName && role.claimedByStudentId !== currentStudentId)
+              }
+            ]"
+          >
+            <span class="role-card-accent"></span>
+            <div class="role-card-body">
+              <span class="role-card-avatar">
+                <span><el-icon><User /></el-icon></span>
+                <i><el-icon><CircleCheckFilled /></el-icon></i>
+              </span>
+              <h3>{{ role.roleName }}</h3>
+
+              <div v-if="isOccupiedByOther(role)" class="role-card-occupied-text">
+                已被{{ roleOwnerName(role.claimedByStudentId) }}选择
               </div>
-              <span>{{ claimedRoleCount }} / {{ room.roles?.length || 0 }} 已选择</span>
-            </header>
-            <div class="team-roles-cards">
-              <button
-                v-for="role in room.roles || []"
-                :key="role.roleId"
-                type="button"
-                class="team-role-select-card"
-                :class="{ selected: role.claimedByStudentId === currentStudentId, occupied: role.claimed && role.claimedByStudentId !== currentStudentId }"
-                :disabled="room.roomStatus !== 'WAITING' || Boolean(role.claimed && role.claimedByStudentId !== currentStudentId) || !isCurrentMember"
+              <el-button
+                v-else
+                :disabled="!canSelectRole(role)"
+                :loading="claimingRoleId === role.roleId"
                 @click="selectRole(role.roleId)"
               >
-                <span class="team-role-select-icon"><el-icon><User /></el-icon></span>
-                <span class="team-role-select-text"><strong>{{ role.roleName }}</strong><small>{{ role.claimed ? (role.claimedByStudentId === currentStudentId ? '当前选择' : '队友已选择') : '空闲岗位' }}</small></span>
-                <el-icon v-if="role.claimedByStudentId === currentStudentId" class="team-role-selected-icon"><CircleCheckFilled /></el-icon>
-                <span v-else-if="role.claimed" class="team-role-occupied">已占用</span>
-                <el-icon v-else class="team-role-arrow"><ArrowRight /></el-icon>
-              </button>
-              <div v-if="!room.roles?.length" class="team-roles-empty">暂无角色配置</div>
+                {{ role.claimedByStudentId === currentStudentId ? '已选择' : '选择此角色' }}
+              </el-button>
             </div>
           </article>
 
-          <aside class="team-roles-side-panel">
-            <header class="team-roles-panel-title compact">
-              <div><h2>队伍成员</h2><p>管理员可查看当前角色分配</p></div>
-              <span>{{ members.length }} / {{ room.teamSize || members.length }}</span>
-            </header>
-            <div class="team-roles-member-list">
-              <div v-for="member in memberSlots" :key="member.key" class="team-roles-member" :class="{ empty: member.empty }">
-                <span class="team-roles-member-avatar">{{ member.empty ? '+' : member.studentName?.slice(0, 1) || '学' }}</span>
-                <div><strong>{{ member.empty ? '等待队友加入' : member.studentName || '学员' }}<em v-if="member.owner">房主</em></strong><span>{{ member.empty ? '未加入' : member.roleName || '未选择角色' }}</span></div>
-                <el-icon v-if="!member.empty && member.roleName" class="team-roles-member-ok"><CircleCheckFilled /></el-icon>
-              </div>
-            </div>
-            <div class="team-roles-ai-note"><el-icon><InfoFilled /></el-icon><span>开始实训时，未选择的岗位会自动由 AI 扮演。</span></div>
-          </aside>
+          <div v-if="!room.roles?.length" class="role-card-empty">暂无可选择的角色</div>
         </section>
 
-        <footer class="team-roles-footer">
-          <div><strong>{{ selectedRoleName || '尚未选择角色' }}</strong><span>{{ selectedRoleName ? '你将以此角色进入实训' : '请选择一个空闲岗位' }}</span></div>
-          <div class="team-roles-footer-actions">
-            <el-button plain @click="router.push({ name: 'student-training-room', params: { roomId } })">返回大厅</el-button>
-            <el-button type="primary" :disabled="!selectedRoleName || room.roomStatus !== 'WAITING'" @click="enterRoom">确认进入房间<el-icon><Right /></el-icon></el-button>
+        <footer class="role-select-footer">
+          <div class="role-select-tip" :class="{ 'is-ready': Boolean(selectedRoleName) }">
+            <span><el-icon><WarningFilled /></el-icon></span>
+            <strong>{{ selectedRoleName ? `已选择角色：${selectedRoleName}` : '请先选择一个角色' }}</strong>
+          </div>
+          <div class="role-select-actions">
+            <el-button @click="returnLobby">返回</el-button>
+            <el-button
+              v-if="isOwner"
+              type="primary"
+              :disabled="!selectedRoleName || room.roomStatus !== 'WAITING'"
+              :loading="starting"
+              @click="startRoom"
+            >
+              开始实训
+            </el-button>
+            <el-button v-else type="primary" disabled>等待房主开始</el-button>
           </div>
         </footer>
       </template>
-      <div v-else class="team-roles-error">暂时无法获取角色信息，请返回组队大厅重试</div>
+
+      <div v-else class="role-select-error">暂时无法获取角色信息，请返回组队大厅重试</div>
     </section>
   </StudentShell>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, ArrowRight, CircleCheckFilled, InfoFilled, Refresh, Right, User } from '@element-plus/icons-vue';
-import { claimTrainingRoomRole, fetchTrainingRoom, type TrainingRoom, type TrainingRoomMember } from '../../api/student';
+import { ArrowRight, CircleCheckFilled, User, WarningFilled } from '@element-plus/icons-vue';
+import { useRoute, useRouter } from 'vue-router';
+import {
+  claimTrainingRoomRole,
+  fetchTrainingRoom,
+  startTrainingRoom,
+  type TrainingRoom,
+  type TrainingRoomRole
+} from '../../api/student';
 import StudentShell from '../../components/student/StudentShell.vue';
 
 const route = useRoute();
 const router = useRouter();
 const roomId = Number(route.params.roomId);
 const room = ref<TrainingRoom>();
-const loading = ref(false);
-const refreshing = ref(false);
+const loading = ref(true);
+const claimingRoleId = ref<number>();
+const starting = ref(false);
+let pollTimer: number | undefined;
+
 const storedStudent = localStorage.getItem('jiaoxuepeiyu_student_user');
 let currentStudentId = 0;
 try {
@@ -102,92 +123,525 @@ try {
 }
 
 const members = computed(() => room.value?.members || []);
-const memberSlots = computed<(Partial<TrainingRoomMember> & { key: string; empty?: boolean })[]>(() => {
-  const size = Math.max(room.value?.teamSize || 0, members.value.length, 1);
-  return Array.from({ length: size }, (_, index) => members.value[index] ? { ...members.value[index], key: `member-${index}` } : { key: `empty-${index}`, empty: true });
-});
-const isCurrentMember = computed(() => currentStudentId > 0 && members.value.some((member) => member.studentId === currentStudentId));
+const isOwner = computed(() => room.value?.ownerStudentId === currentStudentId || members.value.some((member) => member.owner && member.studentId === currentStudentId));
 const selectedRoleName = computed(() => room.value?.roles?.find((role) => role.claimedByStudentId === currentStudentId)?.roleName);
-const claimedRoleCount = computed(() => room.value?.roles?.filter((role) => role.claimed)?.length || 0);
+const roomOwnerName = computed(() => members.value.find((member) => member.owner)?.studentName || '学员');
+const roomTitle = computed(() => `${room.value?.trainingName || '多人实训'}-${roomOwnerName.value}创建的房间`);
+const roomStatusText = computed(() => room.value?.roomStatus === 'STARTED' ? '已开始' : '未开始');
 
-async function loadRoom() {
-  if (!Number.isFinite(roomId)) return;
-  loading.value = !room.value;
-  refreshing.value = Boolean(room.value);
+function roleOwnerName(studentId?: number) {
+  return members.value.find((member) => member.studentId === studentId)?.studentName || '其他学员';
+}
+
+function isOccupiedByOther(role: TrainingRoomRole) {
+  return Boolean(role.claimed && role.claimedByStudentId !== currentStudentId);
+}
+
+function canSelectRole(role: TrainingRoomRole) {
+  if (room.value?.roomStatus !== 'WAITING' || isOccupiedByOther(role)) {
+    return false;
+  }
+
+  return !selectedRoleName.value || role.claimedByStudentId === currentStudentId;
+}
+
+async function loadRoom(showLoading = false) {
+  if (!Number.isFinite(roomId)) {
+    loading.value = false;
+    return;
+  }
+
+  if (showLoading) {
+    loading.value = true;
+  }
+
   try {
     room.value = await fetchTrainingRoom(roomId);
+    if (room.value.roomStatus === 'STARTED') {
+      await router.replace({
+        name: 'student-training-start',
+        params: { roomId: room.value.roomId },
+        query: { trainingId: room.value.trainingId }
+      });
+    }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '角色信息加载失败');
+    if (showLoading) {
+      ElMessage.error(error instanceof Error ? error.message : '角色信息加载失败');
+    }
   } finally {
     loading.value = false;
-    refreshing.value = false;
   }
 }
 
 async function selectRole(roleId: number) {
-  if (!room.value || !isCurrentMember.value) return;
+  const targetRole = room.value?.roles?.find((role) => role.roleId === roleId);
+  if (!room.value || !targetRole || !canSelectRole(targetRole)) {
+    return;
+  }
+
+  claimingRoleId.value = roleId;
   try {
     room.value = await claimTrainingRoomRole(room.value.roomId, roleId);
     ElMessage.success('角色选择成功');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '角色选择失败');
+  } finally {
+    claimingRoleId.value = undefined;
   }
 }
 
-function enterRoom() {
-  ElMessage.success(`已选择${selectedRoleName.value}，等待房主开始实训`);
-  void router.push({ name: 'student-training-room', params: { roomId } });
+async function startRoom() {
+  if (!room.value || !isOwner.value || !selectedRoleName.value) {
+    return;
+  }
+
+  starting.value = true;
+  try {
+    room.value = await startTrainingRoom(room.value.roomId);
+    await router.push({
+      name: 'student-training-start',
+      params: { roomId: room.value.roomId },
+      query: { trainingId: room.value.trainingId }
+    });
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '开始实训失败');
+  } finally {
+    starting.value = false;
+  }
 }
 
-onMounted(() => {
-  void loadRoom();
+function returnLobby() {
+  if (!room.value) {
+    void router.push('/student/training');
+    return;
+  }
+
+  void router.push({
+    name: 'student-training-lobby',
+    params: { trainingId: room.value.trainingId },
+    query: {
+      title: room.value.trainingName,
+      activeRoomId: String(room.value.roomId)
+    }
+  });
+}
+
+onMounted(async () => {
+  await loadRoom(true);
+  pollTimer = window.setInterval(() => {
+    void loadRoom();
+  }, 3000);
+});
+
+onBeforeUnmount(() => {
+  if (pollTimer !== undefined) {
+    window.clearInterval(pollTimer);
+  }
 });
 </script>
 
 <style scoped>
-.team-roles-page { min-height: calc(100vh - 120px); padding-bottom: 40px; }
-.team-role-back { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 22px; border: 0; background: transparent; color: #64748b; cursor: pointer; font-size: 14px; }
-.team-role-back:hover { color: #2563eb; }
-.team-roles-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
-.team-roles-head p { margin: 0 0 8px; color: #2563eb; font-size: 13px; font-weight: 700; }
-.team-roles-head h1 { margin: 0; color: #0f172a; font-size: 26px; line-height: 34px; }
-.team-roles-head > div:first-child > span { display: block; margin-top: 8px; color: #94a3b8; font-size: 14px; }
-.team-roles-head-state, .team-roles-footer-actions { display: flex; align-items: center; gap: 12px; }
-.team-role-view-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 11px; border-radius: 7px; background: #eff6ff; color: #2563eb; font-size: 13px; font-weight: 700; }
-.team-roles-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 18px; }
-.team-roles-main-panel, .team-roles-side-panel { min-height: 410px; border: 1px solid #edf1f5; border-radius: 10px; background: #ffffff; box-shadow: 0 2px 8px rgba(16, 28, 54, .025); }
-.team-roles-panel-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 22px 24px 18px; border-bottom: 1px solid #f1f5f9; }
-.team-roles-panel-title.compact { padding-bottom: 16px; }
-.team-roles-panel-title h2 { margin: 0; color: #1e293b; font-size: 16px; }
-.team-roles-panel-title p { margin: 7px 0 0; color: #94a3b8; font-size: 13px; }
-.team-roles-panel-title > span { flex: 0 0 auto; color: #64748b; font-size: 13px; }
-.team-roles-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 22px 24px 26px; }
-.team-role-select-card { display: flex; align-items: center; gap: 12px; min-height: 90px; padding: 14px; border: 1px solid #dbeafe; border-radius: 9px; background: #f8fbff; color: #334155; cursor: pointer; text-align: left; }
-.team-role-select-card:hover:not(:disabled), .team-role-select-card.selected { border-color: #3b82f6; background: #eff6ff; }
-.team-role-select-card.occupied { border-color: #e2e8f0; background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
-.team-role-select-icon { width: 42px; height: 42px; display: grid; flex: 0 0 42px; place-items: center; border-radius: 10px; background: #dbeafe; color: #2563eb; font-size: 20px; }
-.team-role-select-text { display: grid; min-width: 0; gap: 6px; }
-.team-role-select-text strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.team-role-select-text small { color: #94a3b8; font-size: 12px; }
-.team-role-selected-icon { margin-left: auto; color: #2563eb; font-size: 20px; }
-.team-role-occupied { margin-left: auto; color: #94a3b8; font-size: 12px; white-space: nowrap; }
-.team-role-arrow { margin-left: auto; color: #93c5fd; }
-.team-roles-empty, .team-roles-error { grid-column: 1 / -1; min-height: 180px; display: grid; place-items: center; color: #94a3b8; font-size: 14px; }
-.team-roles-member-list { display: grid; gap: 10px; padding: 18px 20px; }
-.team-roles-member { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px 10px; border: 1px solid #edf1f5; border-radius: 8px; background: #fafbfc; }
-.team-roles-member.empty { border-style: dashed; background: #ffffff; }
-.team-roles-member-avatar { width: 34px; height: 34px; display: grid; flex: 0 0 34px; place-items: center; border-radius: 8px; background: #dbeafe; color: #2563eb; font-size: 14px; font-weight: 800; }
-.team-roles-member.empty .team-roles-member-avatar { background: #f1f5f9; color: #94a3b8; }
-.team-roles-member > div { display: grid; min-width: 0; gap: 4px; }
-.team-roles-member strong { overflow: hidden; color: #334155; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.team-roles-member strong em { margin-left: 6px; color: #ea580c; font-size: 10px; font-style: normal; }
-.team-roles-member > div span { color: #94a3b8; font-size: 12px; }
-.team-roles-member-ok { margin-left: auto; color: #22c55e; }
-.team-roles-ai-note { display: flex; align-items: flex-start; gap: 8px; margin: 0 20px 20px; padding: 11px 12px; border-radius: 7px; background: #fff7ed; color: #c2410c; font-size: 12px; line-height: 18px; }
-.team-roles-footer { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; padding: 18px 24px; border: 1px solid #edf1f5; border-radius: 10px; background: #ffffff; }
-.team-roles-footer > div:first-child { display: grid; gap: 6px; }
-.team-roles-footer strong { color: #334155; font-size: 14px; }
-.team-roles-footer > div:first-child span { color: #94a3b8; font-size: 12px; }
-@media (max-width: 900px) { .team-roles-layout { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .team-roles-head, .team-roles-footer { align-items: stretch; flex-direction: column; } .team-roles-head-state, .team-roles-footer-actions { justify-content: space-between; } .team-roles-cards { grid-template-columns: 1fr; } .team-roles-head h1 { font-size: 22px; } }
+.role-select-page {
+  min-height: calc(100vh - 127px);
+  color: #1e293b;
+}
+
+.role-select-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.role-select-breadcrumb button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.role-select-breadcrumb button:hover {
+  color: #2563eb;
+}
+
+.role-select-breadcrumb .el-icon {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.role-room-summary {
+  min-height: 102px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 24px;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.role-room-summary h1 {
+  overflow: hidden;
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-room-status {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-room-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.role-room-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.role-room-status small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.role-select-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.role-select-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #1e293b;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.role-select-heading h2 .el-icon {
+  color: #2563eb;
+  font-size: 20px;
+}
+
+.role-select-heading p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.role-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  min-height: 292px;
+  margin-top: 16px;
+}
+
+.role-choice-card {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  height: 292px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.role-choice-card.is-tone-1 {
+  border: 2px solid #60a5fa;
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.15);
+}
+
+.role-card-accent {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+}
+
+.role-choice-card.is-tone-2 .role-card-accent {
+  background: linear-gradient(90deg, #10b981, #14b8a6);
+}
+
+.role-choice-card.is-occupied,
+.role-choice-card.is-locked {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.role-choice-card.is-occupied .role-card-accent,
+.role-choice-card.is-locked .role-card-accent {
+  background: #d1d5db;
+}
+
+.role-card-body {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  flex-direction: column;
+  padding: 32px 24px 24px;
+  box-sizing: border-box;
+}
+
+.role-card-avatar {
+  position: relative;
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eff6ff;
+}
+
+.role-card-avatar > span {
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #3b82f6;
+  font-size: 38px;
+}
+
+.is-tone-2 .role-card-avatar {
+  background: #ecfdf5;
+}
+
+.is-tone-2 .role-card-avatar > span {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #10b981;
+}
+
+.role-card-avatar > i {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 17px;
+}
+
+.is-tone-2 .role-card-avatar > i {
+  background: #10b981;
+}
+
+.role-choice-card.is-occupied .role-card-avatar,
+.role-choice-card.is-locked .role-card-avatar {
+  background: #e5e7eb;
+}
+
+.role-choice-card.is-occupied .role-card-avatar > span,
+.role-choice-card.is-locked .role-card-avatar > span {
+  background: #d1d5db;
+  color: #9ca3af;
+}
+
+.role-choice-card.is-occupied .role-card-avatar > i,
+.role-choice-card.is-locked .role-card-avatar > i {
+  background: #9ca3af;
+}
+
+.role-choice-card h3 {
+  margin: 16px 0 20px;
+  color: #1e293b;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.role-choice-card.is-occupied h3,
+.role-choice-card.is-locked h3 {
+  color: #94a3b8;
+}
+
+.role-card-occupied-text,
+.role-choice-card .el-button {
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.role-card-occupied-text {
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  background: #f3f4f6;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.role-choice-card .el-button {
+  border: 0;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  color: #ffffff;
+}
+
+.role-choice-card.is-tone-2 .el-button {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.role-choice-card.is-selected .el-button,
+.role-choice-card.is-locked .el-button {
+  background: #e5e7eb;
+  color: #94a3b8;
+}
+
+.role-card-empty,
+.role-select-error {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.role-select-footer {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 32px;
+  padding: 20px;
+  box-sizing: border-box;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.role-select-tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-select-tip > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #f59e0b;
+  font-size: 20px;
+}
+
+.role-select-tip.is-ready > span {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.role-select-tip strong {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.role-select-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-select-actions .el-button {
+  height: 44px;
+  margin: 0;
+  padding: 0 24px;
+  border-color: #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+}
+
+.role-select-actions .el-button--primary {
+  min-width: 112px;
+  padding: 0 32px;
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.role-select-actions .el-button--primary.is-disabled {
+  border-color: #d1d5db;
+  background: #d1d5db;
+  color: #9ca3af;
+}
+
+@media (max-width: 960px) {
+  .role-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .role-room-summary,
+  .role-select-heading,
+  .role-select-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .role-room-summary h1 {
+    white-space: normal;
+  }
+
+  .role-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-select-actions {
+    width: 100%;
+  }
+
+  .role-select-actions .el-button {
+    flex: 1;
+  }
+}
 </style>

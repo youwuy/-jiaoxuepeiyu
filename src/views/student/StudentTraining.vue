@@ -5,9 +5,9 @@
       <el-input v-model="keyword" class="training-search" :prefix-icon="Search" placeholder="搜索实训名称" clearable />
       <el-select v-model="status" class="training-status-select" placeholder="全部状态">
         <el-option label="全部状态" value="all" />
-        <el-option label="进行中" value="available" />
+        <el-option label="可进入" value="available" />
         <el-option label="未开始" value="notStarted" />
-        <el-option label="已结束" value="completed" />
+        <el-option label="已完成" value="completed" />
       </el-select>
     </section>
 
@@ -38,7 +38,7 @@
 
           <strong class="training-topic-count">{{ training.topicCount ?? training.steps?.length ?? 0 }} 题</strong>
 
-          <span class="training-term">{{ training.term }}</span>
+          <span class="training-term">{{ training.term || '-' }}</span>
 
           <span class="training-state-pill" :class="`is-${training.status}`">{{ statusText[training.status] }}</span>
 
@@ -54,6 +54,7 @@
             <el-icon><Trophy /></el-icon>
             {{ training.bestScore }}分
           </span>
+          <span v-else-if="training.latestAttemptId" class="training-countdown is-submitted">已提交</span>
           <span v-else class="training-countdown is-muted">未提交</span>
         </header>
 
@@ -76,14 +77,18 @@
               @click="handleTrainingAction(training, step)"
             >
               <el-icon>
-                <Document v-if="training.status === 'completed' || step.action === 'score'" />
-                <Right v-else />
+                <Document />
               </el-icon>
               {{ actionText(training, step) }}
             </el-button>
           </div>
         </div>
       </article>
+      <div v-if="!visibleTrainings.length" class="training-empty-state">
+        <el-icon><Document /></el-icon>
+        <strong>暂无实训内容</strong>
+        <span>请调整筛选条件后重试</span>
+      </div>
     </section>
 
   </StudentShell>
@@ -93,12 +98,11 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { ArrowDown, ArrowRight, Calendar, Clock, Document, Right, Search, Trophy, User } from '@element-plus/icons-vue';
+import { ArrowDown, ArrowRight, Calendar, Clock, Document, Search, Trophy, User } from '@element-plus/icons-vue';
 import {
-  createTrainingRoom,
   createUeLaunchSession,
   fetchStudentTrainings,
-  fetchTrainingRoom
+  fetchStudentTrainingScoreSheet
 } from '../../api/student';
 import type { UeLaunchSession } from '../../api/student';
 import { resolveApiBaseUrl } from '../../api/http';
@@ -127,9 +131,9 @@ const modeOptions = [
 ];
 
 const statusText: Record<TrainingStatus, string> = {
-  available: '进行中',
+  available: '可进入',
   notStarted: '未开始',
-  completed: '已结束'
+  completed: '已完成'
 };
 
 const visibleTrainings = computed(() =>
@@ -154,7 +158,18 @@ async function loadTrainings() {
       return;
     }
 
-    trainings.value = remoteTrainings;
+    trainings.value = await Promise.all(remoteTrainings.map(async (training) => {
+      if (training.status !== 'completed' || !training.latestAttemptId || training.bestScore !== undefined) {
+        return training;
+      }
+
+      try {
+        const scoreSheet = await fetchStudentTrainingScoreSheet(training.latestAttemptId);
+        return { ...training, bestScore: scoreSheet.score };
+      } catch {
+        return training;
+      }
+    }));
     expandedIds.value = trainings.value.map((item) => item.id);
   } catch (error) {
     if (requestId === trainingRequestId) {
@@ -181,7 +196,7 @@ function actionText(training: StudentTraining, step: StudentTrainingStep) {
   }
 
   if (step.action === 'team' || step.mode === 'team') {
-    return '组队实训';
+    return '开始实训';
   }
 
   if (step.action === 'retry') {
@@ -209,10 +224,14 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
   try {
     const roomId = training.activeRoomId;
     if (step.mode === 'team' || step.action === 'team') {
-      const room = training.activeRoomId
-        ? await fetchTrainingRoom(training.activeRoomId)
-        : await createTrainingRoom(training.id);
-      await router.push({ name: 'student-training-room', params: { roomId: room.roomId } });
+      await router.push({
+        name: 'student-training-lobby',
+        params: { trainingId: training.id },
+        query: {
+          title: step.title || training.title,
+          activeRoomId: roomId ? String(roomId) : undefined
+        }
+      });
       return;
     }
 
