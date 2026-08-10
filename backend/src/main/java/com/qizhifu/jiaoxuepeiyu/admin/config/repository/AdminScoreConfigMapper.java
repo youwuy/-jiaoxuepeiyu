@@ -15,9 +15,10 @@ import org.apache.ibatis.annotations.Select;
 public interface AdminScoreConfigMapper {
 
     @Select("<script>"
-            + "SELECT id AS weight_id, semester_id, courseware_weight, training_practice_weight, "
-            + "assignment_weight, exam_weight, effective_from, created_by, created_at "
-            + "FROM edu_score_weight WHERE 1 = 1 "
+            + "SELECT w.id AS weight_id, w.semester_id, w.courseware_weight, w.training_practice_weight, "
+            + "w.assignment_weight, w.exam_weight, w.effective_from, w.created_by, "
+            + "u.real_name AS operator_name, w.created_at "
+            + "FROM edu_score_weight w LEFT JOIN sys_user u ON u.id = w.created_by WHERE 1 = 1 "
             + "<if test='semesterId != null'>AND semester_id = #{semesterId}</if> "
             + "ORDER BY effective_from DESC, id DESC"
             + "</script>")

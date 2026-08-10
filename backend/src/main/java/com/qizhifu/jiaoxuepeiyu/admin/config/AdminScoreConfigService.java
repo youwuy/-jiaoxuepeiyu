@@ -81,7 +81,7 @@ public class AdminScoreConfigService {
         for (int i = 1; i < normalized.size(); i++) {
             AdminScoreGradeRuleCommand previous = normalized.get(i - 1);
             AdminScoreGradeRuleCommand current = normalized.get(i);
-            if (current.getMaxScore().compareTo(previous.getMinScore()) >= 0) {
+            if (current.getMaxScore().compareTo(previous.getMinScore()) > 0) {
                 throw new BusinessException(400, "Score grade rules cannot overlap");
             }
         }

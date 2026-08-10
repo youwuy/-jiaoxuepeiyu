@@ -59,7 +59,7 @@ class AdminScoreConfigServiceTests {
         AdminScoreConfigService service = new AdminScoreConfigService(repository);
 
         service.replaceGradeRules(Arrays.asList(
-                grade("B", "80", "89.9"),
+                grade("B", "80", "90"),
                 grade("A", "90", "100")));
 
         assertEquals(true, repository.replacedGrades);
