@@ -6,6 +6,7 @@ import StudentAssignment from '../views/student/StudentAssignment.vue';
 import StudentProfile from '../views/student/StudentProfile.vue';
 import StudentResources from '../views/student/StudentResources.vue';
 import StudentTraining from '../views/student/StudentTraining.vue';
+import StudentTrainingLobby from '../views/student/StudentTrainingLobby.vue';
 import StudentTrainingRoom from '../views/student/StudentTrainingRoom.vue';
 import StudentTrainingRoomRoles from '../views/student/StudentTrainingRoomRoles.vue';
 import StudentTrainingStart from '../views/student/StudentTrainingStart.vue';
@@ -40,6 +41,11 @@ export const studentRoutes: RouteRecordRaw[] = [
     path: '/student/training',
     name: 'student-training',
     component: StudentTraining
+  },
+  {
+    path: '/student/training/:trainingId/lobby',
+    name: 'student-training-lobby',
+    component: StudentTrainingLobby
   },
   {
     path: '/student/training/rooms/:roomId',

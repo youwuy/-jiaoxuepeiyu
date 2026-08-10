@@ -48,6 +48,8 @@ export interface RolePermissionRow {
   rowKey: string;
   moduleName: string;
   moduleIds: number[];
+  moduleCheckIds: number[];
+  moduleAccessIds: number[];
   pageId: number;
   pageName: string;
   actions: RolePermissionAction[];
@@ -66,24 +68,57 @@ const roleActionSlots = [
 interface PermissionGroup {
   name: string;
   nodes: AdminPermissionNode[];
-  pages: Array<{ node: AdminPermissionNode; displayName: string }>;
+  pages: Array<{ node: AdminPermissionNode; displayName: string; extraButtons?: AdminPermissionNode[] }>;
 }
 
 export function buildRolePermissionRows(tree: AdminPermissionNode[]): RolePermissionRow[] {
   const groups = tree.flatMap(buildPermissionGroups);
 
   return groups.flatMap((group, groupIndex) => {
-    const moduleIds = collectPermissionIds(group.nodes);
-    return group.pages.map(({ node, displayName }, pageIndex) => ({
-      rowKey: `${group.nodes[0]?.permissionId ?? 'group'}-${node.permissionId}`,
-      moduleName: pageIndex === 0 ? group.name : '',
-      moduleIds,
-      pageId: node.permissionId,
-      pageName: displayName,
-      actions: buildRolePermissionActions(node),
-      striped: groupIndex % 2 === 1
+    const pages = group.pages.map(({ node, displayName, extraButtons }) => ({
+      node,
+      displayName,
+      actions: buildRolePermissionActions(node, extraButtons)
     }));
+    const moduleAccessIds = [...new Set(collectPermissionIdsByType(group.nodes, 'MENU'))];
+    const moduleCheckIds = [...new Set(
+      pages.flatMap(({ node, actions }) => [
+        node.permissionId,
+        ...actions.flatMap((action) => action.id === null ? [] : [action.id])
+      ])
+    )];
+    const moduleIds = [...new Set([
+      ...moduleAccessIds,
+      ...moduleCheckIds
+    ])];
+
+    return pages.map(({ node, displayName, actions }, pageIndex) => ({
+        rowKey: `${group.nodes[0]?.permissionId ?? 'group'}-${node.permissionId}`,
+        moduleName: pageIndex === 0 ? group.name : '',
+        moduleIds,
+        moduleCheckIds,
+        moduleAccessIds,
+        pageId: node.permissionId,
+        pageName: displayName,
+        actions,
+        striped: groupIndex % 2 === 1
+      }));
   });
+}
+
+export function rolePermissionActionIds(row: RolePermissionRow): number[] {
+  return [...new Set(row.actions.flatMap((action) => action.id === null ? [] : [action.id]))];
+}
+
+export function isRolePermissionPageChecked(row: RolePermissionRow, selectedIds: number[]): boolean {
+  const actionIds = rolePermissionActionIds(row);
+  return actionIds.length > 0 && actionIds.every((id) => selectedIds.includes(id));
+}
+
+export function isRolePermissionPageIndeterminate(row: RolePermissionRow, selectedIds: number[]): boolean {
+  const actionIds = rolePermissionActionIds(row);
+  const selectedCount = actionIds.filter((id) => selectedIds.includes(id)).length;
+  return selectedCount > 0 && selectedCount < actionIds.length;
 }
 
 function buildPermissionGroups(module: AdminPermissionNode): PermissionGroup[] {
@@ -97,7 +132,8 @@ function buildPermissionGroups(module: AdminPermissionNode): PermissionGroup[] {
     ...directPages.map((node) => ({ node, displayName: node.permissionName })),
     ...collapsedMenus.map((menu) => ({
       node: descendantPages(menu)[0],
-      displayName: menu.permissionName
+      displayName: menu.permissionName,
+      extraButtons: (menu.children ?? []).filter((child) => child.permissionType === 'BUTTON')
     }))
   ];
   const groups: PermissionGroup[] = [];
@@ -133,18 +169,28 @@ function descendantPages(node: AdminPermissionNode): AdminPermissionNode[] {
   });
 }
 
-function buildRolePermissionActions(page: AdminPermissionNode): RolePermissionAction[] {
-  const buttons = (page.children ?? []).filter((child) => child.permissionType === 'BUTTON');
+function buildRolePermissionActions(page: AdminPermissionNode, extraButtons: AdminPermissionNode[] = []): RolePermissionAction[] {
+  const buttons = [
+    ...(page.children ?? []).filter((child) => child.permissionType === 'BUTTON'),
+    ...extraButtons
+  ];
   const bySuffix = new Map(buttons.map((button) => [permissionSuffix(button.permissionCode), button]));
 
   return roleActionSlots.map((slot) => {
-    const button = slot.suffix === 'list' ? page : bySuffix.get(slot.suffix);
+    const button = bySuffix.get(slot.suffix) ?? (slot.suffix === 'list' ? page : undefined);
     return {
       key: `${page.permissionId}-${slot.suffix}`,
       id: button?.permissionId ?? null,
       label: slot.label
     };
   });
+}
+
+function collectPermissionIdsByType(nodes: AdminPermissionNode[], type: AdminPermissionNode['permissionType']): number[] {
+  return nodes.flatMap((node) => [
+    ...(node.permissionType === type ? [node.permissionId] : []),
+    ...collectPermissionIdsByType(node.children ?? [], type)
+  ]);
 }
 
 function permissionSuffix(permissionCode: string) {

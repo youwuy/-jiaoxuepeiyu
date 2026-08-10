@@ -43,8 +43,8 @@
                 <td class="module-cell">
                   <el-checkbox
                     v-if="row.moduleName"
-                    :model-value="isModuleChecked(row.moduleIds)"
-                    :indeterminate="isModuleIndeterminate(row.moduleIds)"
+                    :model-value="isModuleChecked(row.moduleCheckIds)"
+                    :indeterminate="isModuleIndeterminate(row.moduleCheckIds)"
                     @change="(value: string | number | boolean) => toggleModule(row.moduleIds, value)"
                   >
                     {{ row.moduleName }}
@@ -52,8 +52,9 @@
                 </td>
                 <td>
                   <el-checkbox
-                    :model-value="isPermissionChecked(row.pageId)"
-                    @change="(value: string | number | boolean) => togglePermission(row.pageId, value)"
+                    :model-value="isPageChecked(row)"
+                    :indeterminate="isPageIndeterminate(row)"
+                    @change="(value: string | number | boolean) => togglePage(row, value)"
                   >
                     {{ row.pageName }}
                   </el-checkbox>
@@ -65,14 +66,18 @@
                       :key="action.key"
                       :model-value="isActionChecked(action)"
                       :disabled="action.id === null"
-                      @change="(value: string | number | boolean) => toggleAction(action, value)"
+                      @change="(value: string | number | boolean) => toggleAction(row, action, value)"
                     >
                       {{ action.label }}
                     </el-checkbox>
                   </div>
                 </td>
                 <td>
-                  <el-radio-group v-model="form.dataScope" class="admin-role-data-scope">
+                  <el-radio-group
+                    :model-value="pageDataScope(row.pageId)"
+                    class="admin-role-data-scope"
+                    @change="(value: string | number | boolean) => setPageDataScope(row.pageId, String(value))"
+                  >
                     <el-radio label="SELF">个人</el-radio>
                     <el-radio label="ORG_ONLY">管理组织</el-radio>
                     <el-radio label="ALL">全部</el-radio>
@@ -171,7 +176,7 @@
         <div><dt>角色名称</dt><dd>{{ detailRole.roleName }}</dd></div>
         <div><dt>角色编码</dt><dd>{{ detailRole.roleCode }}</dd></div>
         <div><dt>状态</dt><dd>{{ detailRole.enabled === false ? '禁用' : '启用' }}</dd></div>
-        <div><dt>数据权限</dt><dd>{{ dataScopeLabels[detailRole.dataScope || ''] || '-' }}</dd></div>
+        <div><dt>数据权限</dt><dd>{{ roleDataScopeSummary(detailRole) }}</dd></div>
         <div><dt>授权权限</dt><dd>{{ detailRole.permissionIds?.length || 0 }} 项</dd></div>
         <div><dt>创建时间</dt><dd>{{ formatRoleTime(detailRole.createdAt) }}</dd></div>
       </dl>
@@ -201,8 +206,12 @@ import {
   buildRolePermissionRows,
   dataScopeLabels,
   formatRoleTime,
+  isRolePermissionPageChecked,
+  isRolePermissionPageIndeterminate,
   isBuiltInRole,
-  type RolePermissionAction
+  rolePermissionActionIds,
+  type RolePermissionAction,
+  type RolePermissionRow
 } from '../../features/admin/roles';
 
 type FormMode = 'create' | 'edit';
@@ -225,7 +234,8 @@ const emptyForm = (): AdminRoleCommand => ({
   roleCode: '',
   dataScope: 'SELF',
   remark: '',
-  permissionIds: []
+  permissionIds: [],
+  pageDataScopes: []
 });
 
 const form = reactive<AdminRoleCommand>(emptyForm());
@@ -275,6 +285,18 @@ function isPermissionChecked(id: number) {
   return form.permissionIds.includes(id);
 }
 
+function rowActionIds(row: RolePermissionRow) {
+  return rolePermissionActionIds(row);
+}
+
+function isPageChecked(row: RolePermissionRow) {
+  return isRolePermissionPageChecked(row, form.permissionIds);
+}
+
+function isPageIndeterminate(row: RolePermissionRow) {
+  return isRolePermissionPageIndeterminate(row, form.permissionIds);
+}
+
 function isActionChecked(action: RolePermissionAction) {
   return action.id !== null && isPermissionChecked(action.id);
 }
@@ -289,14 +311,30 @@ function setPermission(id: number, value: string | number | boolean) {
   form.permissionIds = [...next];
 }
 
-function togglePermission(id: number, value: string | number | boolean = !isPermissionChecked(id)) {
-  setPermission(id, value);
+function togglePage(row: RolePermissionRow, value: string | number | boolean = !isPageChecked(row)) {
+  const ids = [row.pageId, ...rowActionIds(row)];
+  const next = new Set(form.permissionIds);
+  ids.forEach((id) => value ? next.add(id) : next.delete(id));
+  form.permissionIds = [...next];
+  syncModuleAccess(row);
 }
 
-function toggleAction(action: RolePermissionAction, value: string | number | boolean = !isActionChecked(action)) {
+function toggleAction(
+  row: RolePermissionRow,
+  action: RolePermissionAction,
+  value: string | number | boolean = !isActionChecked(action)
+) {
   if (action.id !== null) {
     setPermission(action.id, value);
+    const hasSelectedAction = rowActionIds(row).some(isPermissionChecked);
+    setPermission(row.pageId, hasSelectedAction);
+    syncModuleAccess(row);
   }
+}
+
+function syncModuleAccess(row: RolePermissionRow) {
+  const hasSelectedPermission = row.moduleCheckIds.some(isPermissionChecked);
+  row.moduleAccessIds.forEach((id) => setPermission(id, hasSelectedPermission));
 }
 
 function toggleModule(ids: number[], value: string | number | boolean = !isModuleChecked(ids)) {
@@ -309,6 +347,26 @@ function toggleModule(ids: number[], value: string | number | boolean = !isModul
     }
   });
   form.permissionIds = [...next];
+}
+
+function pageDataScope(pagePermissionId: number) {
+  return form.pageDataScopes.find((item) => item.pagePermissionId === pagePermissionId)?.dataScope || 'SELF';
+}
+
+function roleDataScopeSummary(role: AdminRole) {
+  if (role.pageDataScopes?.length) {
+    return `${role.pageDataScopes.length} 个页面已配置`;
+  }
+  return dataScopeLabels[role.dataScope || ''] || '-';
+}
+
+function setPageDataScope(pagePermissionId: number, dataScope: string) {
+  if (!['SELF', 'ORG_ONLY', 'ALL'].includes(dataScope)) {
+    return;
+  }
+  const next = form.pageDataScopes.filter((item) => item.pagePermissionId !== pagePermissionId);
+  next.push({ pagePermissionId, dataScope: dataScope as AdminRoleCommand['dataScope'] });
+  form.pageDataScopes = next;
 }
 
 function applyForm(next: AdminRoleCommand) {
@@ -336,7 +394,8 @@ async function openEdit(role: AdminRole) {
     roleCode: detail.roleCode,
     dataScope: detail.dataScope || 'SELF',
     remark: detail.remark || '',
-    permissionIds: detail.permissionIds || []
+    permissionIds: detail.permissionIds || [],
+    pageDataScopes: detail.pageDataScopes || []
   });
 }
 
@@ -386,11 +445,24 @@ async function saveRole() {
 
   saving.value = true;
   try {
+    const selectedPageIds = new Set(
+      permissionRows.value
+        .filter((row) => form.permissionIds.includes(row.pageId))
+        .map((row) => row.pageId)
+    );
+    const command: AdminRoleCommand = {
+      ...form,
+      permissionIds: [...form.permissionIds],
+      pageDataScopes: [...selectedPageIds].map((pagePermissionId) => ({
+        pagePermissionId,
+        dataScope: pageDataScope(pagePermissionId)
+      }))
+    };
     if (formMode.value === 'create') {
-      await createAdminRole(form);
+      await createAdminRole(command);
       ElMessage.success('新增角色成功');
     } else if (editingRole.value) {
-      await updateAdminRole(editingRole.value.roleId, form);
+      await updateAdminRole(editingRole.value.roleId, command);
       ElMessage.success('编辑角色成功');
     }
     roleFormPageVisible.value = false;
