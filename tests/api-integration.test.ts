@@ -698,12 +698,16 @@ describe('api http client', () => {
   });
 
   it('uses the documented admin role management endpoints', async () => {
+    vi.stubGlobal('localStorage', new MemoryStorage());
+    globalThis.localStorage.setItem('jiaoxuepeiyu_admin_token', 'admin-token');
+    globalThis.localStorage.setItem('jiaoxuepeiyu_admin_user', JSON.stringify({ id: 1 }));
     const command = {
       roleName: '实训教师',
       roleCode: 'training_teacher',
       dataScope: 'SELF' as const,
       remark: '负责教学业务操作',
-      permissionIds: [5, 6, 7]
+      permissionIds: [5, 6, 7],
+      pageDataScopes: [{ pagePermissionId: 6, dataScope: 'ALL' as const }]
     };
     const fetchMock = vi
       .fn()
@@ -762,7 +766,7 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       6,
       '/api/admin/roles/3/permissions',
-      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ permissionIds: [5, 6] }) })
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ permissionIds: [5, 6], pageDataScopes: [] }) })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/roles/3/delete', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/admin/roles/3/logs', expect.any(Object));

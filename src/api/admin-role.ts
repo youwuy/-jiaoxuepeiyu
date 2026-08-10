@@ -2,6 +2,11 @@ import { requestJson } from './http';
 
 export type AdminRoleDataScope = 'SELF' | 'ORG_ONLY' | 'ALL';
 
+export interface AdminRolePageDataScope {
+  pagePermissionId: number;
+  dataScope: AdminRoleDataScope;
+}
+
 export interface PageResponse<T> {
   records: T[];
   total: number;
@@ -18,6 +23,7 @@ export interface AdminRole {
   enabled?: boolean;
   userCount?: number;
   permissionIds?: number[];
+  pageDataScopes?: AdminRolePageDataScope[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -35,6 +41,7 @@ export interface AdminRoleCommand {
   dataScope: AdminRoleDataScope;
   remark?: string;
   permissionIds: number[];
+  pageDataScopes: AdminRolePageDataScope[];
 }
 
 export interface AdminRoleLog {
@@ -109,10 +116,14 @@ export async function deleteAdminRole(roleId: number) {
   });
 }
 
-export async function updateAdminRolePermissions(roleId: number, permissionIds: number[]) {
+export async function updateAdminRolePermissions(
+  roleId: number,
+  permissionIds: number[],
+  pageDataScopes: AdminRolePageDataScope[] = []
+) {
   return requestJson<void>(`/admin/roles/${roleId}/permissions`, {
     method: 'PUT',
-    body: JSON.stringify({ permissionIds }),
+    body: JSON.stringify({ permissionIds, pageDataScopes }),
     fallbackLabel: '设置角色权限'
   });
 }

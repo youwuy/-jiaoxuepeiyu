@@ -138,36 +138,6 @@
           </footer>
         </section>
 
-        <section v-else-if="activeConfig === 'jobRoles'" class="admin-settings-panel">
-          <el-button class="admin-settings-add-button" @click="openAdd('jobRole')">
-            <el-icon><Plus /></el-icon>
-            添加岗位角色
-          </el-button>
-          <table class="admin-settings-modal-table">
-            <thead>
-              <tr>
-                <th>序号</th>
-                <th>岗位角色</th>
-                <th>排序</th>
-                <th>启用状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(role, index) in displayJobRoles" :key="role.jobRoleId">
-                <td>{{ index + 1 }}</td>
-                <td>{{ role.roleName }}</td>
-                <td>{{ role.sortOrder ?? 0 }}</td>
-                <td><span class="admin-settings-status" :class="{ disabled: !role.enabled }">{{ role.enabled ? '已启用' : '已禁用' }}</span></td>
-                <td>
-                  <button class="admin-settings-link" @click="setJobRoleStatus(role.jobRoleId, true)">启用</button>
-                  <button class="admin-settings-link danger" @click="setJobRoleStatus(role.jobRoleId, false)">禁用</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
         <section v-else-if="activeConfig === 'classrooms'" class="admin-settings-panel classroom">
           <el-button class="admin-settings-add-button" @click="openAdd('room')">
             <el-icon><Plus /></el-icon>
@@ -326,18 +296,6 @@
           </label>
         </section>
 
-        <section v-else-if="addKind === 'jobRole'" class="admin-settings-add-form">
-          <label>
-            <span>岗位角色 <b>*</b></span>
-            <el-input v-model="addJobRoleName" maxlength="20" placeholder="请输入岗位角色" />
-            <small>最多输入20个字</small>
-          </label>
-          <label>
-            <span>排序</span>
-            <el-input-number v-model="addJobRoleSort" :min="0" controls-position="right" />
-          </label>
-        </section>
-
         <section v-else-if="addKind === 'room'" class="admin-settings-room-form">
           <label class="wide">
             <span>教室名称 <b>*</b></span>
@@ -418,20 +376,16 @@ import {
   createAdminAcademicYear,
   createAdminClass,
   createAdminClassroom,
-  createAdminJobRole,
   createAdminMajor,
   createAdminScoreWeight,
   deleteAdminClassroom,
   disableAdminClass,
-  disableAdminJobRole,
   disableAdminMajor,
   enableAdminClass,
-  enableAdminJobRole,
   enableAdminMajor,
   fetchAdminAcademicYears,
   fetchAdminClasses,
   fetchAdminClassrooms,
-  fetchAdminJobRoles,
   fetchAdminMajors,
   fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
@@ -444,15 +398,14 @@ import {
   type AdminClass,
   type AdminClassroomCommand,
   type AdminClassroom,
-  type AdminJobRole,
   type AdminMajor,
   type AdminScoreGradeRule,
   type AdminScoreWeight
 } from '../../api/admin-settings';
 
 type SettingTone = 'blue' | 'amber' | 'rose' | 'violet' | 'green' | 'gray';
-type ConfigKey = 'semester' | 'majors' | 'classes' | 'jobRoles' | 'classrooms' | 'grades' | 'weights';
-type AddKind = 'year' | 'major' | 'class' | 'jobRole' | 'room';
+type ConfigKey = 'semester' | 'majors' | 'classes' | 'classrooms' | 'grades' | 'weights';
+type AddKind = 'year' | 'major' | 'class' | 'room';
 
 interface SettingRow {
   key: ConfigKey;
@@ -509,15 +462,12 @@ const addYearValue = ref('2025-2026');
 const addMajorName = ref('');
 const addClassName = ref('');
 const addClassMajorId = ref<number | null>(null);
-const addJobRoleName = ref('');
-const addJobRoleSort = ref(0);
 const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
 const majors = ref<AdminMajor[]>([]);
 const classes = ref<AdminClass[]>([]);
 const classrooms = ref<AdminClassroom[]>([]);
-const jobRoles = ref<AdminJobRole[]>([]);
 const scoreWeights = ref<AdminScoreWeight[]>([]);
 const gradeRules = ref<AdminScoreGradeRule[]>([]);
 const localCameras = ref<CameraRow[]>([]);
@@ -539,7 +489,6 @@ const settingRows = computed<SettingRow[]>(() => [
   buildSemesterRow(),
   buildMajorRow(),
   buildClassRow(),
-  buildJobRoleRow(),
   buildClassroomRow(),
   buildGradeRow(),
   buildWeightRow()
@@ -555,7 +504,6 @@ const configTitle = computed(() => {
     semester: '编辑学年学期',
     majors: '专业目录配置',
     classes: '班级配置',
-    jobRoles: '岗位角色配置',
     classrooms: '教室配置',
     grades: '成绩等级配置',
     weights: '综合成绩权重配置'
@@ -568,7 +516,6 @@ const addTitle = computed(() => ({
   year: '添加学年',
   major: '添加专业',
   class: '新增班级',
-  jobRole: '添加岗位角色',
   room: '添加教室'
 })[addKind.value]);
 const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
@@ -590,8 +537,6 @@ const semesterRows = computed<SemesterDisplayRow[]>(() => {
 const displayMajors = computed(() => majors.value);
 
 const displayClasses = computed(() => classes.value);
-
-const displayJobRoles = computed(() => jobRoles.value);
 
 const displayGradeRules = computed(() => gradeRules.value);
 
@@ -638,10 +583,6 @@ function buildMajorRow(): SettingRow {
 
 function buildClassRow(): SettingRow {
   return { key: 'classes', name: '班级配置', value: summarize(enabledNames(displayClasses.value, (item) => item.className), '班级'), tone: 'rose' };
-}
-
-function buildJobRoleRow(): SettingRow {
-  return { key: 'jobRoles', name: '岗位角色配置', value: summarize(enabledNames(displayJobRoles.value, (item) => item.roleName), '岗位角色'), tone: 'violet' };
 }
 
 function buildClassroomRow(): SettingRow {
@@ -700,12 +641,11 @@ async function safeLoad<T>(loader: () => Promise<T[]>) {
 async function loadSettings() {
   loading.value = true;
   try {
-    const [yearRows, majorRows, classRows, classroomRows, jobRoleRows, weightRows, gradeRuleRows] = await Promise.all([
+    const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows] = await Promise.all([
       safeLoad(fetchAdminAcademicYears),
       safeLoad(fetchAdminMajors),
       safeLoad(fetchAdminClasses),
       safeLoad(fetchAdminClassrooms),
-      safeLoad(fetchAdminJobRoles),
       safeLoad(fetchAdminScoreWeights),
       safeLoad(fetchAdminScoreGradeRules)
     ]);
@@ -713,7 +653,6 @@ async function loadSettings() {
     majors.value = majorRows;
     classes.value = classRows;
     classrooms.value = classroomRows;
-    jobRoles.value = jobRoleRows;
     scoreWeights.value = weightRows;
     gradeRules.value = gradeRuleRows;
     const latest = weightRows[0];
@@ -741,10 +680,6 @@ function openAdd(kind: AddKind) {
   if (kind === 'class') {
     addClassName.value = '';
     addClassMajorId.value = null;
-  }
-  if (kind === 'jobRole') {
-    addJobRoleName.value = '';
-    addJobRoleSort.value = displayJobRoles.value.length + 1;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -793,20 +728,6 @@ async function setClassStatus(classId: number, enabled: boolean) {
     ElMessage.success(enabled ? '班级已启用' : '班级已禁用');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '班级状态更新失败');
-  }
-}
-
-async function setJobRoleStatus(jobRoleId: number, enabled: boolean) {
-  try {
-    if (enabled) {
-      await enableAdminJobRole(jobRoleId);
-    } else {
-      await disableAdminJobRole(jobRoleId);
-    }
-    await loadSettings();
-    ElMessage.success(enabled ? '岗位角色已启用' : '岗位角色已禁用');
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '岗位角色状态更新失败');
   }
 }
 
@@ -882,10 +803,6 @@ async function saveAdd() {
       if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
       if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
       await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
-    }
-    if (addKind.value === 'jobRole') {
-      if (!addJobRoleName.value.trim()) return ElMessage.warning('请输入岗位角色');
-      await createAdminJobRole({ roleName: addJobRoleName.value.trim(), sortOrder: addJobRoleSort.value });
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
