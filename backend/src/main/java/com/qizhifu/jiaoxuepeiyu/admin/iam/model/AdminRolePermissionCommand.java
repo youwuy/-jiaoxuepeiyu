@@ -6,6 +6,7 @@ import java.util.List;
 public class AdminRolePermissionCommand {
 
     private List<Long> permissionIds = new ArrayList<Long>();
+    private List<AdminRolePageDataScope> pageDataScopes = new ArrayList<AdminRolePageDataScope>();
 
     public List<Long> getPermissionIds() {
         return permissionIds;
@@ -13,5 +14,14 @@ public class AdminRolePermissionCommand {
 
     public void setPermissionIds(List<Long> permissionIds) {
         this.permissionIds = permissionIds == null ? new ArrayList<Long>() : permissionIds;
+    }
+
+    public List<AdminRolePageDataScope> getPageDataScopes() {
+        return pageDataScopes;
+    }
+
+    public void setPageDataScopes(List<AdminRolePageDataScope> pageDataScopes) {
+        this.pageDataScopes = pageDataScopes == null
+                ? new ArrayList<AdminRolePageDataScope>() : pageDataScopes;
     }
 }

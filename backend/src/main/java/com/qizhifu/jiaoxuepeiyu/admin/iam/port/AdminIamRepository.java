@@ -5,6 +5,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import java.util.List;
 
@@ -52,7 +53,7 @@ public interface AdminIamRepository {
 
     void deleteRole(Long roleId);
 
-    void replacePermissions(Long roleId, List<Long> permissionIds, String dataScope);
+    void replacePermissions(Long roleId, List<AdminRolePermissionBinding> bindings);
 
     void appendRoleLog(Long roleId, Long operatorId, String action, String content);
 

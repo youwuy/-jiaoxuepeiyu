@@ -4,7 +4,7 @@
 
 **Goal:** Add management-side role and permission management APIs.
 
-**Architecture:** Add `admin/iam` with Controller -> Service -> Repository port -> MyBatis mapper. Permissions are read from `sys_permission` as a tree; roles are managed in `sys_role`, role permission bindings in `sys_role_permission`, and role operation logs in `sys_role_log`. Role-level `data_scope` is stored on `sys_role` and copied into role permission bindings.
+**Architecture:** Add `admin/iam` with Controller -> Service -> Repository port -> MyBatis mapper. Permissions are read from `sys_permission` as a tree; roles are managed in `sys_role`, role permission bindings in `sys_role_permission`, and role operation logs in `sys_role_log`. Each selected page stores its own `data_scope` in `sys_role_permission`; `sys_role.data_scope` remains only as a legacy compatibility default.
 
 **Tech Stack:** Java 8, Spring Boot 2.7.18, MyBatis annotation mappers, MySQL 5.7.42.0, springdoc-openapi.
 

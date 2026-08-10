@@ -10,6 +10,7 @@ public class AdminRoleCommand {
     private String dataScope;
     private String remark;
     private List<Long> permissionIds = new ArrayList<Long>();
+    private List<AdminRolePageDataScope> pageDataScopes = new ArrayList<AdminRolePageDataScope>();
 
     public String getRoleName() {
         return roleName;
@@ -49,5 +50,14 @@ public class AdminRoleCommand {
 
     public void setPermissionIds(List<Long> permissionIds) {
         this.permissionIds = permissionIds == null ? new ArrayList<Long>() : permissionIds;
+    }
+
+    public List<AdminRolePageDataScope> getPageDataScopes() {
+        return pageDataScopes;
+    }
+
+    public void setPageDataScopes(List<AdminRolePageDataScope> pageDataScopes) {
+        this.pageDataScopes = pageDataScopes == null
+                ? new ArrayList<AdminRolePageDataScope>() : pageDataScopes;
     }
 }

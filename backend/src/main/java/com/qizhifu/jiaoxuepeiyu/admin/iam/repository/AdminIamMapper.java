@@ -4,6 +4,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePageDataScope;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import java.util.List;
 import org.apache.ibatis.annotations.Delete;
@@ -109,6 +111,14 @@ public interface AdminIamMapper {
     @Select("SELECT permission_id FROM sys_role_permission WHERE role_id = #{roleId} ORDER BY permission_id ASC")
     List<Long> findPermissionIds(@Param("roleId") Long roleId);
 
+    @Select("SELECT rp.permission_id AS page_permission_id, "
+            + "CASE rp.data_scope WHEN 'PERSONAL' THEN 'SELF' "
+            + "WHEN 'MANAGED_ORG' THEN 'ORG_ONLY' ELSE rp.data_scope END AS data_scope "
+            + "FROM sys_role_permission rp "
+            + "JOIN sys_permission p ON p.id = rp.permission_id AND p.permission_type = 'PAGE' "
+            + "WHERE rp.role_id = #{roleId} ORDER BY rp.permission_id ASC")
+    List<AdminRolePageDataScope> findPageDataScopes(@Param("roleId") Long roleId);
+
     @Insert("INSERT INTO sys_role (role_name, role_code, data_scope, remark, status, deleted_flag, created_at, updated_at) "
             + "VALUES (#{roleName}, #{roleCode}, #{dataScope}, #{remark}, 1, 0, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "roleId")
@@ -130,13 +140,12 @@ public interface AdminIamMapper {
 
     @Insert("<script>"
             + "INSERT INTO sys_role_permission (role_id, permission_id, data_scope, created_at) VALUES "
-            + "<foreach collection='permissionIds' item='permissionId' separator=','>"
-            + "(#{roleId}, #{permissionId}, #{dataScope}, NOW())"
+            + "<foreach collection='bindings' item='binding' separator=','>"
+            + "(#{roleId}, #{binding.permissionId}, #{binding.dataScope}, NOW())"
             + "</foreach>"
             + "</script>")
     void insertPermissions(@Param("roleId") Long roleId,
-                           @Param("permissionIds") List<Long> permissionIds,
-                           @Param("dataScope") String dataScope);
+                           @Param("bindings") List<AdminRolePermissionBinding> bindings);
 
     @Insert("INSERT INTO sys_role_log (role_id, operator_id, action, content, created_at) "
             + "VALUES (#{roleId}, #{operatorId}, #{action}, #{content}, NOW())")

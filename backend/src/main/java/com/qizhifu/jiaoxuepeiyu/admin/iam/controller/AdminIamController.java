@@ -91,7 +91,7 @@ public class AdminIamController {
     }
 
     @GetMapping("/api/admin/roles/{roleId}")
-    @Operation(summary = "Get role detail", description = "Returns one role with data scope and bound permission ids.")
+    @Operation(summary = "Get role detail", description = "Returns one role with bound permission ids and per-page data scopes.")
     public ApiResponse<AdminRole> getRole(@PathVariable Long roleId) {
         return ApiResponse.ok(service.getRole(roleId));
     }
@@ -103,7 +103,7 @@ public class AdminIamController {
     }
 
     @PutMapping("/api/admin/roles/{roleId}")
-    @Operation(summary = "Update role", description = "Updates role metadata, data scope, and submitted permission bindings.")
+    @Operation(summary = "Update role", description = "Updates role metadata, permission bindings, and per-page data scopes.")
     public ApiResponse<Void> updateRole(@PathVariable Long roleId,
                                         @RequestBody AdminRoleCommand body,
                                         HttpServletRequest request) {
@@ -133,7 +133,7 @@ public class AdminIamController {
     }
 
     @PutMapping("/api/admin/roles/{roleId}/permissions")
-    @Operation(summary = "Update role permissions", description = "Fully replaces permission bindings for one role using the role's current data scope.")
+    @Operation(summary = "Update role permissions", description = "Fully replaces permission bindings and per-page data scopes for one role.")
     public ApiResponse<Void> updateRolePermissions(@PathVariable Long roleId,
                                                    @RequestBody AdminRolePermissionCommand body,
                                                    HttpServletRequest request) {

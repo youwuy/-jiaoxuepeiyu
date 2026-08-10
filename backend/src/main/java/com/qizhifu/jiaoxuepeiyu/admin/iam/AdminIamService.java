@@ -7,6 +7,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortItem;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePageDataScope;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,7 +170,7 @@ public class AdminIamService {
         assertRoleNameAvailable(normalized.getRoleName(), null);
         assertRoleCodeAvailable(normalized.getRoleCode(), null);
         Long roleId = repository.createRole(normalized);
-        repository.replacePermissions(roleId, normalized.getPermissionIds(), normalized.getDataScope());
+        repository.replacePermissions(roleId, permissionBindings(normalized));
         repository.appendRoleLog(roleId, operatorId, "CREATE", "Create role");
         return roleId;
     }
@@ -182,7 +185,7 @@ public class AdminIamService {
         assertRoleNameAvailable(normalized.getRoleName(), roleId);
         assertRoleCodeAvailable(normalized.getRoleCode(), roleId);
         repository.updateRole(roleId, normalized);
-        repository.replacePermissions(roleId, normalized.getPermissionIds(), normalized.getDataScope());
+        repository.replacePermissions(roleId, permissionBindings(normalized));
         repository.appendRoleLog(roleId, operatorId, "UPDATE", "Update role");
     }
 
@@ -222,7 +225,9 @@ public class AdminIamService {
         if (permissionIds.isEmpty()) {
             throw new BusinessException(400, "Role permissions are required");
         }
-        repository.replacePermissions(roleId, permissionIds, role.getDataScope());
+        List<AdminRolePageDataScope> pageDataScopes = normalizedPageDataScopes(
+                command == null ? null : command.getPageDataScopes(), permissionIds, role.getDataScope());
+        repository.replacePermissions(roleId, permissionBindings(permissionIds, pageDataScopes, role.getDataScope()));
         repository.appendRoleLog(roleId, operatorId, "UPDATE_PERMISSIONS", "Update role permissions");
     }
 
@@ -260,7 +265,57 @@ public class AdminIamService {
         normalized.setDataScope(normalizedDataScope(dataScope));
         normalized.setRemark(trimToNull(command.getRemark()));
         normalized.setPermissionIds(permissionIds);
+        normalized.setPageDataScopes(normalizedPageDataScopes(
+                command.getPageDataScopes(), permissionIds, normalized.getDataScope()));
         return normalized;
+    }
+
+    private List<AdminRolePageDataScope> normalizedPageDataScopes(
+            List<AdminRolePageDataScope> scopes, List<Long> permissionIds, String fallbackScope) {
+        Map<Long, String> normalizedByPage = new LinkedHashMap<Long, String>();
+        if (scopes != null) {
+            for (AdminRolePageDataScope scope : scopes) {
+                if (scope == null || scope.getPagePermissionId() == null
+                        || scope.getPagePermissionId().longValue() <= 0) {
+                    continue;
+                }
+                if (!permissionIds.contains(scope.getPagePermissionId())) {
+                    throw new BusinessException(400, "Page data scope permission must be selected");
+                }
+                String dataScope = upper(trimToNull(scope.getDataScope()));
+                if (dataScope == null) {
+                    dataScope = fallbackScope;
+                }
+                if (!DATA_SCOPES.contains(dataScope)) {
+                    throw new BusinessException(400, "Page data scope is invalid");
+                }
+                normalizedByPage.put(scope.getPagePermissionId(), normalizedDataScope(dataScope));
+            }
+        }
+        List<AdminRolePageDataScope> normalized = new ArrayList<AdminRolePageDataScope>();
+        for (Map.Entry<Long, String> entry : normalizedByPage.entrySet()) {
+            normalized.add(new AdminRolePageDataScope(entry.getKey(), entry.getValue()));
+        }
+        return normalized;
+    }
+
+    private List<AdminRolePermissionBinding> permissionBindings(AdminRoleCommand command) {
+        return permissionBindings(command.getPermissionIds(), command.getPageDataScopes(), command.getDataScope());
+    }
+
+    private List<AdminRolePermissionBinding> permissionBindings(
+            List<Long> permissionIds, List<AdminRolePageDataScope> pageDataScopes, String fallbackScope) {
+        Map<Long, String> scopeByPermission = new HashMap<Long, String>();
+        for (AdminRolePageDataScope pageDataScope : pageDataScopes) {
+            scopeByPermission.put(pageDataScope.getPagePermissionId(), pageDataScope.getDataScope());
+        }
+        List<AdminRolePermissionBinding> bindings = new ArrayList<AdminRolePermissionBinding>();
+        for (Long permissionId : permissionIds) {
+            String dataScope = scopeByPermission.containsKey(permissionId)
+                    ? scopeByPermission.get(permissionId) : fallbackScope;
+            bindings.add(new AdminRolePermissionBinding(permissionId, dataScope));
+        }
+        return bindings;
     }
 
     private String normalizedDataScope(String dataScope) {

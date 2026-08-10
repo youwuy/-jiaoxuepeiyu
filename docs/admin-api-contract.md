@@ -2127,7 +2127,10 @@ Each row:
 
 ### `GET /api/admin/roles/{roleId}`
 
-Response `data`: one role row with bound `permissionIds`.
+Response `data`: one role row with bound `permissionIds` and per-page `pageDataScopes`:
+
+- `pageDataScopes[].pagePermissionId`: selected page permission id.
+- `pageDataScopes[].dataScope`: `SELF`, `ORG_ONLY`, or `ALL`.
 
 ### `POST /api/admin/roles`
 
@@ -2142,6 +2145,9 @@ Request body:
 - `dataScope` optional, defaults to `SELF`; accepts `SELF`, `ORG_ONLY`, or `ALL`. Legacy `PERSONAL` and `MANAGED_ORG` inputs are still accepted and normalized to `SELF` and `ORG_ONLY`.
 - `remark` optional.
 - `permissionIds` required non-empty list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+- `pageDataScopes` optional for legacy clients; new clients submit one row for every selected page permission.
+- `pageDataScopes[].pagePermissionId` must also exist in `permissionIds`.
+- `pageDataScopes[].dataScope` accepts `SELF`, `ORG_ONLY`, or `ALL` and controls only that page.
 
 Rules:
 
@@ -2149,6 +2155,8 @@ Rules:
 - `roleCode` is trimmed and globally unique among non-deleted roles.
 - `roleCode = super_admin` and `roleName = 超级管理员` are reserved for the built-in role and cannot be used by custom roles.
 - Built-in super admin role (`roleCode = super_admin` or `roleName = 超级管理员`) cannot be edited, disabled, or deleted.
+- Page data scopes are independent from function permissions. Selecting a page or action does not change its saved data scope.
+- When `pageDataScopes` is absent, `dataScope` is used as the compatibility default for all bindings.
 
 Response `data`: created role id.
 
@@ -2197,11 +2205,13 @@ Header:
 Request body:
 
 - `permissionIds` required list of permission ids. Duplicates, nulls, and non-positive ids are ignored.
+- `pageDataScopes` optional list using the same structure as role create/update.
 
 Rules:
 
 - `permissionIds` must contain at least one valid permission id after normalization.
 - Built-in super admin role cannot have permissions replaced through this endpoint.
+- Every submitted `pagePermissionId` must also be selected in `permissionIds`.
 
 Response `data`: `null`.
 

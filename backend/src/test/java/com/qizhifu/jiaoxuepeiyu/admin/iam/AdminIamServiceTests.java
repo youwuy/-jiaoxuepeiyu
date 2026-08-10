@@ -10,6 +10,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortItem;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePageDataScope;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
@@ -137,6 +139,35 @@ class AdminIamServiceTests {
         assertEquals(Arrays.asList(1L, 2L), repository.replacedPermissionIds);
         assertEquals("ALL", repository.replacedDataScope);
         assertEquals("UPDATE_PERMISSIONS", repository.lastLogAction);
+    }
+
+    @Test
+    void savesIndependentDataScopesForSelectedPages() {
+        FakeIam repository = new FakeIam();
+        AdminIamService service = new AdminIamService(repository);
+        AdminRoleCommand command = roleCommand();
+        command.setPermissionIds(Arrays.asList(1L, 2L, 3L));
+        command.setPageDataScopes(Arrays.asList(
+                new AdminRolePageDataScope(2L, "SELF"),
+                new AdminRolePageDataScope(3L, "ALL")));
+
+        service.createRole(command, 9L);
+
+        assertEquals("ORG_ONLY", repository.scopeFor(1L));
+        assertEquals("SELF", repository.scopeFor(2L));
+        assertEquals("ALL", repository.scopeFor(3L));
+    }
+
+    @Test
+    void rejectsPageDataScopeForUnselectedPermission() {
+        AdminIamService service = new AdminIamService(new FakeIam());
+        AdminRoleCommand command = roleCommand();
+        command.setPageDataScopes(Arrays.asList(new AdminRolePageDataScope(99L, "ALL")));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createRole(command, 9L));
+
+        assertEquals("Page data scope permission must be selected", exception.getMessage());
     }
 
     @Test
@@ -376,6 +407,7 @@ class AdminIamServiceTests {
         private AdminPermissionCommand savedPermissionCommand;
         private List<Long> replacedPermissionIds;
         private String replacedDataScope;
+        private List<AdminRolePermissionBinding> replacedBindings = new ArrayList<AdminRolePermissionBinding>();
         private String lastLogAction;
         private Long existingPermissionIdByCode;
         private Long existingPermissionIdByName;
@@ -502,9 +534,22 @@ class AdminIamServiceTests {
         }
 
         @Override
-        public void replacePermissions(Long roleId, List<Long> permissionIds, String dataScope) {
-            this.replacedPermissionIds = permissionIds;
-            this.replacedDataScope = dataScope;
+        public void replacePermissions(Long roleId, List<AdminRolePermissionBinding> bindings) {
+            this.replacedBindings = bindings;
+            this.replacedPermissionIds = new ArrayList<Long>();
+            for (AdminRolePermissionBinding binding : bindings) {
+                this.replacedPermissionIds.add(binding.getPermissionId());
+            }
+            this.replacedDataScope = bindings.isEmpty() ? null : bindings.get(0).getDataScope();
+        }
+
+        private String scopeFor(Long permissionId) {
+            for (AdminRolePermissionBinding binding : replacedBindings) {
+                if (permissionId.equals(binding.getPermissionId())) {
+                    return binding.getDataScope();
+                }
+            }
+            return null;
         }
 
         @Override

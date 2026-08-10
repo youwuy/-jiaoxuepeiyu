@@ -11,6 +11,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionSortItem;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
@@ -200,7 +201,7 @@ class AdminIamControllerTests {
         }
 
         @Override
-        public void replacePermissions(Long roleId, List<Long> permissionIds, String dataScope) {
+        public void replacePermissions(Long roleId, List<AdminRolePermissionBinding> bindings) {
         }
 
         @Override

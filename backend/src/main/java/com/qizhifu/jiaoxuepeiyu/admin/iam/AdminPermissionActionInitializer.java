@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class AdminPermissionActionInitializer implements ApplicationRunner {
 
     private static final List<ActionPatch> STANDARD_ACTIONS = Arrays.asList(
+            new ActionPatch("列表", "list", 10),
             new ActionPatch("新增", "create", 20),
             new ActionPatch("删除", "delete", 30),
             new ActionPatch("修改", "update", 40),
@@ -33,6 +34,9 @@ public class AdminPermissionActionInitializer implements ApplicationRunner {
         }
         for (ActionPatch action : STANDARD_ACTIONS) {
             insertMissingAction(action);
+        }
+        if (tableExists("sys_role_permission")) {
+            backfillListBindings();
         }
     }
 
@@ -64,6 +68,21 @@ public class AdminPermissionActionInitializer implements ApplicationRunner {
                 Integer.valueOf(action.sortOrder),
                 ":" + action.codeSuffix,
                 ":" + action.codeSuffix);
+    }
+
+    private void backfillListBindings() {
+        jdbcTemplate.update("INSERT INTO sys_role_permission "
+                + "(role_id, permission_id, data_scope, created_at) "
+                + "SELECT page_binding.role_id, list_action.id, page_binding.data_scope, NOW() "
+                + "FROM sys_role_permission page_binding "
+                + "JOIN sys_permission page ON page.id = page_binding.permission_id "
+                + "AND page.permission_type = 'PAGE' "
+                + "JOIN sys_permission list_action ON list_action.parent_id = page.id "
+                + "AND list_action.permission_type = 'BUTTON' "
+                + "AND list_action.permission_code = CONCAT(page.permission_code, ':list') "
+                + "LEFT JOIN sys_role_permission existing ON existing.role_id = page_binding.role_id "
+                + "AND existing.permission_id = list_action.id "
+                + "WHERE existing.id IS NULL");
     }
 
     private static class ActionPatch {

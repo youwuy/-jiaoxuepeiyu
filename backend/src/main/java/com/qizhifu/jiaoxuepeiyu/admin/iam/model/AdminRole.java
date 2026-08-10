@@ -14,6 +14,7 @@ public class AdminRole {
     private Boolean enabled;
     private Integer userCount;
     private List<Long> permissionIds = new ArrayList<Long>();
+    private List<AdminRolePageDataScope> pageDataScopes = new ArrayList<AdminRolePageDataScope>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -79,6 +80,15 @@ public class AdminRole {
 
     public void setPermissionIds(List<Long> permissionIds) {
         this.permissionIds = permissionIds == null ? new ArrayList<Long>() : permissionIds;
+    }
+
+    public List<AdminRolePageDataScope> getPageDataScopes() {
+        return pageDataScopes;
+    }
+
+    public void setPageDataScopes(List<AdminRolePageDataScope> pageDataScopes) {
+        this.pageDataScopes = pageDataScopes == null
+                ? new ArrayList<AdminRolePageDataScope>() : pageDataScopes;
     }
 
     public LocalDateTime getCreatedAt() {

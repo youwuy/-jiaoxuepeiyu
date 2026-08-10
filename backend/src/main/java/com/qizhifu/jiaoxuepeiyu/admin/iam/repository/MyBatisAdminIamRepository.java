@@ -5,6 +5,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
 import java.util.List;
@@ -110,6 +111,7 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
         AdminRole role = mapper.findRole(roleId);
         if (role != null) {
             role.setPermissionIds(mapper.findPermissionIds(roleId));
+            role.setPageDataScopes(mapper.findPageDataScopes(roleId));
         }
         return role;
     }
@@ -139,10 +141,10 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     }
 
     @Override
-    public void replacePermissions(Long roleId, List<Long> permissionIds, String dataScope) {
+    public void replacePermissions(Long roleId, List<AdminRolePermissionBinding> bindings) {
         mapper.deletePermissions(roleId);
-        if (permissionIds != null && !permissionIds.isEmpty()) {
-            mapper.insertPermissions(roleId, permissionIds, dataScope);
+        if (bindings != null && !bindings.isEmpty()) {
+            mapper.insertPermissions(roleId, bindings);
         }
     }
 
