@@ -107,6 +107,12 @@
             新增班级
           </el-button>
           <table class="admin-settings-modal-table classes">
+            <colgroup>
+              <col class="class-index-column" />
+              <col class="class-name-column" />
+              <col class="class-status-column" />
+              <col class="class-action-column" />
+            </colgroup>
             <thead>
               <tr>
                 <th>序号</th>
@@ -119,15 +125,17 @@
               <tr v-for="(item, index) in displayClasses" :key="item.classId">
                 <td>{{ index + 1 }}</td>
                 <td>{{ item.className }}</td>
-                <td>
+                <td class="admin-settings-class-status-cell">
                   <span class="admin-settings-pill-status" :class="{ disabled: !item.enabled }">
                     <i></i>
                     {{ item.enabled ? '已启用' : '已禁用' }}
                   </span>
                 </td>
                 <td>
-                  <el-button class="admin-settings-table-action" @click="setClassStatus(item.classId, true)">启用</el-button>
-                  <el-button class="admin-settings-table-action danger" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                  <div class="admin-settings-class-actions">
+                    <el-button class="admin-settings-table-action" :disabled="item.enabled" @click="setClassStatus(item.classId, true)">启用</el-button>
+                    <el-button class="admin-settings-table-action danger" :disabled="!item.enabled" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                  </div>
                 </td>
               </tr>
             </tbody>

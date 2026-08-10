@@ -9508,6 +9508,48 @@ a {
   text-align: center;
 }
 
+.admin-settings-modal-table.classes {
+  table-layout: fixed;
+}
+
+.admin-settings-modal-table.classes .class-index-column {
+  width: 64px;
+}
+
+.admin-settings-modal-table.classes .class-status-column {
+  width: 104px;
+}
+
+.admin-settings-modal-table.classes .class-action-column {
+  width: 128px;
+}
+
+.admin-settings-modal-table.classes th,
+.admin-settings-modal-table.classes td {
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.admin-settings-modal-table.classes td:nth-child(2) {
+  overflow-wrap: anywhere;
+  line-height: 20px;
+}
+
+.admin-settings-class-status-cell {
+  white-space: nowrap;
+}
+
+.admin-settings-class-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-settings-class-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
 .admin-settings-modal-table.classroom {
   min-width: 1030px;
 }
@@ -9563,8 +9605,10 @@ a {
 }
 
 .admin-settings-pill-status {
+  min-width: 72px;
   height: 28px;
   display: inline-flex;
+  justify-content: center;
   align-items: center;
   gap: 6px;
   padding: 0 10px;
@@ -9573,6 +9617,7 @@ a {
   color: #059669;
   font-size: 13px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .admin-settings-pill-status.disabled {
@@ -9588,12 +9633,20 @@ a {
 }
 
 .admin-settings-table-action.el-button {
+  min-width: 48px;
   height: 28px;
   border: 0;
   border-radius: 7px;
   background: #eef2ff;
   color: #4f46e5;
   font-weight: 800;
+}
+
+.admin-settings-table-action.el-button.is-disabled,
+.admin-settings-table-action.el-button.is-disabled:hover {
+  background: #f1f5f9;
+  color: #94a3b8;
+  opacity: 1;
 }
 
 .admin-settings-table-action.danger.el-button {
