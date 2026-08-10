@@ -13,6 +13,41 @@ export interface AdminAcademicYear {
   semesters: AdminSemester[];
 }
 
+const semesterNameMap: Record<string, string> = {
+  FIRST: '上学期',
+  SECOND: '下学期',
+  '第一学期': '上学期',
+  '第二学期': '下学期'
+};
+
+export function normalizeSemesterName(semesterName: string): string {
+  const normalized = semesterName.trim();
+  return semesterNameMap[normalized.toUpperCase()] ?? normalized;
+}
+
+export function normalizeAdminAcademicYears(years: AdminAcademicYear[]): AdminAcademicYear[] {
+  return years.map((year) => {
+    const semestersByName = new Map<string, AdminSemester>();
+
+    for (const semester of year.semesters ?? []) {
+      const semesterName = normalizeSemesterName(semester.semesterName);
+      const normalizedSemester = { ...semester, semesterName };
+      const existing = semestersByName.get(semesterName);
+
+      if (!existing || (!existing.current && normalizedSemester.current)) {
+        semestersByName.set(semesterName, normalizedSemester);
+      }
+    }
+
+    const semesterOrder: Record<string, number> = { '上学期': 0, '下学期': 1 };
+    const semesters = [...semestersByName.values()].sort((left, right) =>
+      (semesterOrder[left.semesterName] ?? 99) - (semesterOrder[right.semesterName] ?? 99)
+    );
+
+    return { ...year, semesters };
+  });
+}
+
 export interface AdminMajor {
   majorId: number;
   majorName: string;
@@ -119,8 +154,9 @@ export interface AdminScoreGradeRuleCommand {
   maxScore: number;
 }
 
-export function fetchAdminAcademicYears() {
-  return requestJson<AdminAcademicYear[]>('/admin/academic-years', { fallbackLabel: 'academic years' });
+export async function fetchAdminAcademicYears() {
+  const years = await requestJson<AdminAcademicYear[]>('/admin/academic-years', { fallbackLabel: 'academic years' });
+  return normalizeAdminAcademicYears(years);
 }
 
 export function fetchAdminMajors() {
