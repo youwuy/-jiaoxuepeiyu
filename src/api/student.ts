@@ -638,14 +638,6 @@ export async function createTrainingRoom(trainingId: number): Promise<TrainingRo
   });
 }
 
-export async function fetchTrainingRooms(trainingId: number): Promise<TrainingRoom[]> {
-  const result = await requestJson<TrainingRoom[] | PageResult<TrainingRoom>>(`/student/trainings/${trainingId}/rooms`, {
-    fallbackLabel: '组队大厅'
-  });
-
-  return normalizeList(result);
-}
-
 export async function fetchTrainingRoom(roomId: number): Promise<TrainingRoom> {
   return requestJson<TrainingRoom>(`/student/training-rooms/${roomId}`, {
     fallbackLabel: '实训房间'

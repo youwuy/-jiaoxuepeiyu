@@ -66,7 +66,6 @@ import {
   createTrainingRoom,
   fetchStudentTrainings,
   fetchTrainingRoom,
-  fetchTrainingRooms,
   joinTrainingRoom,
   type TrainingRoom
 } from '../../api/student';
@@ -79,7 +78,6 @@ const fallbackTitle = ref('实训任务');
 const loading = ref(true);
 const creating = ref(false);
 const joiningRoomId = ref<number>();
-const roomListSupported = ref(true);
 let pollTimer: number | undefined;
 
 const trainingId = computed(() => Number(route.params.trainingId));
@@ -135,16 +133,10 @@ async function loadRooms(showLoading = false) {
   }
 
   try {
-    if (roomListSupported.value) {
-      rooms.value = await fetchTrainingRooms(trainingId.value);
-      return;
-    }
-
     if (activeRoomId.value) {
       rooms.value = [await fetchTrainingRoom(activeRoomId.value)];
     }
   } catch {
-    roomListSupported.value = false;
     if (activeRoomId.value) {
       try {
         rooms.value = [await fetchTrainingRoom(activeRoomId.value)];
@@ -158,6 +150,11 @@ async function loadRooms(showLoading = false) {
 }
 
 async function createRoom() {
+  if (activeRoomId.value) {
+    ElMessage.warning('您已在其他实训房间中，请退出后方可创建新房间');
+    return;
+  }
+
   creating.value = true;
   try {
     const room = await createTrainingRoom(trainingId.value);
