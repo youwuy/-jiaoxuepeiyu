@@ -97,6 +97,7 @@ export interface AdminScoreWeight {
   assignmentWeight: number;
   examWeight: number;
   effectiveFrom?: string;
+  operatorName?: string;
   createdAt?: string;
 }
 
