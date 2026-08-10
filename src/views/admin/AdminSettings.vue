@@ -296,12 +296,6 @@
             <el-input v-model="addClassName" maxlength="20" placeholder="请输入班级名称" />
             <small>最多输入20个字</small>
           </label>
-          <label>
-            <span>所属专业 <b>*</b></span>
-            <el-select v-model="addClassMajorId" placeholder="请选择所属专业">
-              <el-option v-for="major in displayMajors" :key="major.majorId" :label="major.majorName" :value="major.majorId" />
-            </el-select>
-          </label>
         </section>
 
         <section v-else-if="addKind === 'room'" class="admin-settings-room-form">
@@ -469,7 +463,6 @@ const addKind = ref<AddKind>('year');
 const addYearValue = ref('2025-2026');
 const addMajorName = ref('');
 const addClassName = ref('');
-const addClassMajorId = ref<number | null>(null);
 const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
@@ -687,7 +680,6 @@ function openAdd(kind: AddKind) {
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
-    addClassMajorId.value = null;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -809,8 +801,7 @@ async function saveAdd() {
     }
     if (addKind.value === 'class') {
       if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
-      if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
-      await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
+      await createAdminClass({ className: addClassName.value.trim() });
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');

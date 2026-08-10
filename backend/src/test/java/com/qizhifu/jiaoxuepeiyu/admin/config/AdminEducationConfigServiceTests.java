@@ -55,14 +55,13 @@ class AdminEducationConfigServiceTests {
     }
 
     @Test
-    void rejectsClassWithoutMajor() {
-        AdminEducationConfigService service = new AdminEducationConfigService(new FakeEducationConfig());
+    void createsClassWithoutMajor() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            service.createClass(new AdminClassCommand(null, "Class 2026-01"));
-        });
+        Long classId = service.createClass(new AdminClassCommand(null, "Class 2026-01"));
 
-        assertEquals("Major is required", exception.getMessage());
+        assertEquals(300L, classId.longValue());
     }
 
     @Test

@@ -131,10 +131,7 @@ public class AdminEducationConfigService {
     }
 
     private AdminClassCommand normalizedClass(AdminClassCommand command) {
-        if (command == null || command.getMajorId() == null) {
-            throw new BusinessException(400, "Major is required");
-        }
-        if (isBlank(command.getClassName())) {
+        if (command == null || isBlank(command.getClassName())) {
             throw new BusinessException(400, "Class name is required");
         }
         return new AdminClassCommand(command.getMajorId(), command.getClassName().trim());

@@ -1,11 +1,9 @@
 package com.qizhifu.jiaoxuepeiyu.admin.config.model;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class AdminClassCommand {
 
-    @NotNull
     private Long majorId;
     @NotBlank
     private String className;

@@ -56,7 +56,7 @@ export interface AdminMajor {
 
 export interface AdminClass {
   classId: number;
-  majorId: number;
+  majorId?: number;
   majorName?: string;
   className: string;
   enabled: boolean;
@@ -117,7 +117,7 @@ export interface AdminMajorCommand {
 }
 
 export interface AdminClassCommand {
-  majorId: number;
+  majorId?: number;
   className: string;
 }
 
