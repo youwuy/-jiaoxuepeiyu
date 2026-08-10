@@ -344,7 +344,8 @@
             <thead>
               <tr>
                 <th>序号</th>
-                <th>操作内容</th>
+                <th>修改前内容</th>
+                <th>修改后内容</th>
                 <th>操作人</th>
                 <th>操作时间</th>
               </tr>
@@ -352,7 +353,8 @@
             <tbody>
               <tr v-for="(log, index) in visibleLogs" :key="log.time">
                 <td>{{ index + 1 }}</td>
-                <td>{{ log.content }}</td>
+                <td>{{ log.before }}</td>
+                <td>{{ log.after }}</td>
                 <td>{{ log.operator }}</td>
                 <td>{{ log.time }}</td>
               </tr>
@@ -421,7 +423,8 @@ interface SettingRow {
 interface SettingLog {
   time: string;
   operator: string;
-  content: string;
+  before: string;
+  after: string;
 }
 
 interface SemesterDisplayRow {
@@ -552,7 +555,30 @@ const classroomCameraRows = computed(() => {
   return rows.length ? rows : buildClassroomCameras();
 });
 
-const visibleLogs = computed<SettingLog[]>(() => []);
+function formatWeightContent(weight?: AdminScoreWeight) {
+  if (!weight) {
+    return '未配置';
+  }
+  return `课件学习进度得分*${weight.coursewareWeight}%+实训练习得分*${weight.trainingPracticeWeight}%+课程作业得分*${weight.assignmentWeight}%+考试得分*${weight.examWeight}%`;
+}
+
+const visibleLogs = computed<SettingLog[]>(() => {
+  if (activeSetting.value?.key !== 'weights') {
+    return [];
+  }
+  const history = [...scoreWeights.value].sort((left, right) =>
+    String(right.createdAt ?? right.effectiveFrom ?? '').localeCompare(String(left.createdAt ?? left.effectiveFrom ?? ''))
+  );
+  return history.map((current, index) => {
+    const previous = history.slice(index + 1).find((item) => item.semesterId === current.semesterId);
+    return {
+      time: current.createdAt ?? current.effectiveFrom ?? '-',
+      operator: current.operatorName || '系统管理员',
+      before: formatWeightContent(previous),
+      after: formatWeightContent(current)
+    };
+  });
+});
 
 function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: T) => string) {
   return items.filter((item) => item.enabled !== false).map(pick).filter(Boolean);
@@ -595,8 +621,7 @@ function buildGradeRow(): SettingRow {
     key: 'grades',
     name: '成绩等级配置',
     value: displayGradeRules.value.length ? displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') : '-',
-    tone: 'green',
-    loggable: true
+    tone: 'green'
   };
 }
 
@@ -689,6 +714,9 @@ function openAdd(kind: AddKind) {
 }
 
 function openLogs(item: SettingRow) {
+  if (item.key !== 'weights') {
+    return;
+  }
   activeSetting.value = item;
   logVisible.value = true;
 }
@@ -895,6 +923,12 @@ async function saveGradeRules() {
   const outOfRange = nextRules.find((rule) => rule.minScore < 0 || rule.maxScore > 100 || rule.minScore > rule.maxScore);
   if (outOfRange) {
     ElMessage.warning('分数范围需满足0-100且起始百分比不能大于结束百分比');
+    return;
+  }
+
+  const overlaps = nextRules.some((rule, index) => index > 0 && rule.maxScore > nextRules[index - 1].minScore);
+  if (overlaps) {
+    ElMessage.warning('成绩等级的分数范围不能重叠');
     return;
   }
 
