@@ -19,6 +19,9 @@ export interface CourseCatalogItem {
   title: string;
   status: CourseItemStatus;
   resourceType?: string;
+  fileName?: string;
+  fileUrl?: string;
+  previewUrl?: string;
   durationMinutes?: number;
   learnedSeconds?: number;
   minDurationMinutes?: number;

@@ -54,6 +54,10 @@ interface BackendCourseItem {
   itemType?: string;
   title: string;
   resourceId?: number;
+  resourceType?: string;
+  fileName?: string;
+  fileUrl?: string;
+  previewUrl?: string;
   assignmentId?: number;
   requiredDurationSeconds?: number;
   studiedSeconds?: number;
@@ -335,7 +339,10 @@ function mapCourse(card: BackendCourseCard | BackendCourseDetail): StudentCourse
         type,
         title: item.title,
         status: mapItemStatus(item, detail.lastContentId),
-        resourceType: type === 'courseware' ? '课件' : undefined,
+        resourceType: type === 'courseware' ? item.resourceType || '课件' : undefined,
+        fileName: item.fileName,
+        fileUrl: resolvePublicUrl(item.fileUrl),
+        previewUrl: resolvePublicUrl(item.previewUrl),
         durationMinutes: Math.ceil((item.studiedSeconds ?? 0) / 60),
         learnedSeconds: item.studiedSeconds ?? 0,
         minDurationMinutes: Math.ceil((item.requiredDurationSeconds ?? 0) / 60),

@@ -8,6 +8,10 @@ public class StudentCourseItem {
     private String itemType;
     private String title;
     private Long resourceId;
+    private String resourceType;
+    private String fileName;
+    private String fileUrl;
+    private String previewUrl;
     private Long assignmentId;
     private int requiredDurationSeconds;
     private LocalDateTime learningStartTime;
@@ -46,6 +50,38 @@ public class StudentCourseItem {
 
     public void setResourceId(Long resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
+
+    public void setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
     }
 
     public Long getAssignmentId() {
