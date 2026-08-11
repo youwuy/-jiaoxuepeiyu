@@ -12252,6 +12252,11 @@ a {
   color: #52647b;
 }
 
+.admin-public-row-actions .detail-button.el-button {
+  background: #eef5ff;
+  color: #2373f6;
+}
+
 .admin-public-row-actions .approve.el-button {
   background: #ecfdf5;
   color: #16a34a;
@@ -13382,7 +13387,10 @@ a {
   gap: 18px;
 }
 
-.admin-public-review-top button {
+.admin-public-review-top button.admin-public-review-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 0;
   background: transparent;
   color: #223148;
@@ -13390,6 +13398,10 @@ a {
   font: inherit;
   font-size: 15px;
   font-weight: 800;
+}
+
+.admin-public-review-top button.admin-public-review-back:hover {
+  color: #3478f6;
 }
 
 .admin-public-review-info-card,

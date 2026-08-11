@@ -2,7 +2,10 @@
   <AdminShell activeKey="public-application">
     <section v-if="detailPageVisible && selectedApplication" class="admin-public-review-page">
       <header class="admin-public-review-top">
-        <button type="button" @click="closeDetailPage">← 返回</button>
+        <button type="button" class="admin-public-review-back" @click="closeDetailPage">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>返回</span>
+        </button>
         <el-breadcrumb separator="/">
           <el-breadcrumb-item>资源管理</el-breadcrumb-item>
           <el-breadcrumb-item>审核列表</el-breadcrumb-item>
@@ -245,7 +248,7 @@
                     <td>
                       <div class="admin-public-row-actions">
                         <el-button v-if="row.statusTone === 'pending'" class="approve" @click.stop="openReviewDetail(row)">审核</el-button>
-                        <el-button v-else class="plain" @click.stop="openReadonlyDetail(row)">查看审核详情</el-button>
+                        <el-button v-else class="detail-button" @click.stop="openReadonlyDetail(row)">查看审核详情</el-button>
                         <el-button v-if="row.statusTone === 'rejected'" class="warn" @click.stop="openEditRestatement(row)">编辑重申</el-button>
                         <el-button class="plain" @click.stop="openPreview(row)">预览</el-button>
                       </div>
@@ -584,7 +587,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Close, Document, Refresh, Search } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, Document, Refresh, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   approveAdminPublicApplication,
