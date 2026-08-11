@@ -78,7 +78,39 @@
           </header>
 
           <div v-if="selectedItem.type === 'courseware'" class="preview-window">
-            <img :src="stationPreview" :alt="selectedItem.title" />
+            <template v-if="resourcePreviewSource(selectedItem)">
+              <img
+                v-if="resourcePreviewKind(selectedItem) === 'image'"
+                class="courseware-preview-media"
+                :src="resourcePreviewSource(selectedItem)"
+                :alt="selectedItem.title"
+              />
+              <video
+                v-else-if="resourcePreviewKind(selectedItem) === 'video'"
+                class="courseware-preview-media"
+                :src="resourcePreviewSource(selectedItem)"
+                controls
+              />
+              <audio
+                v-else-if="resourcePreviewKind(selectedItem) === 'audio'"
+                class="courseware-preview-audio"
+                :src="resourcePreviewSource(selectedItem)"
+                controls
+              />
+              <iframe
+                v-else-if="resourcePreviewKind(selectedItem) === 'frame'"
+                class="courseware-preview-frame"
+                :src="resourcePreviewSource(selectedItem)"
+                :title="selectedItem.title"
+              />
+              <div v-else class="courseware-preview-fallback">
+                <el-icon><Document /></el-icon>
+                <strong>{{ selectedItem.fileName || selectedItem.title }}</strong>
+                <p>当前文件格式不支持在线预览，请下载后查看。</p>
+                <el-button type="primary" @click="openCourseware(selectedItem)">下载课件</el-button>
+              </div>
+            </template>
+            <el-empty v-else description="该课件暂未配置文件" />
           </div>
 
           <div v-else class="assignment-panel">
@@ -112,8 +144,8 @@ import {
   Timer
 } from '@element-plus/icons-vue';
 import StudentShell from '../../components/student/StudentShell.vue';
-import stationPreview from '../../assets/course-station-preview.png';
 import { fetchStudentCourse, updateCoursewareProgress } from '../../api/student';
+import { resourcePreviewKind, resourcePreviewSource } from '../../features/resources/preview';
 import {
   calculateCourseProgress,
   type CourseCatalogItem,
@@ -197,6 +229,15 @@ function enterAssignment(item: CourseCatalogItem) {
     params: { id: item.assignmentId },
     query: { courseId: courseId.value }
   });
+}
+
+function openCourseware(item: CourseCatalogItem) {
+  const url = resourcePreviewSource(item);
+  if (!url) {
+    ElMessage.warning('该课件暂未配置文件');
+    return;
+  }
+  window.open(url, '_blank', 'noopener');
 }
 
 async function syncCoursewareProgress(item: CourseCatalogItem) {

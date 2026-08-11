@@ -12,6 +12,10 @@ public class StudentCourseContentRecord {
     private String title;
     private Long assignmentId;
     private Long resourceId;
+    private String resourceType;
+    private String fileName;
+    private String fileUrl;
+    private String previewUrl;
     private int requiredDurationSeconds;
     private LocalDateTime learningStartTime;
     private LocalDateTime learningEndTime;
@@ -81,6 +85,38 @@ public class StudentCourseContentRecord {
 
     public void setResourceId(Long resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
+
+    public void setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
     }
 
     public int getRequiredDurationSeconds() {

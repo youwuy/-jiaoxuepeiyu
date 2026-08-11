@@ -7384,16 +7384,57 @@ a {
 
 .preview-window {
   overflow: hidden;
+  display: grid;
+  min-height: 360px;
+  place-items: center;
   border-radius: 6px;
-  background: #101828;
+  background: #f4f6f9;
 }
 
-.preview-window img {
+.courseware-preview-media {
   display: block;
   width: 100%;
   height: min(582px, calc(100vh - 260px));
   min-height: 360px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #101828;
+}
+
+.courseware-preview-frame {
+  width: 100%;
+  height: min(650px, calc(100vh - 240px));
+  min-height: 520px;
+  border: 0;
+  background: #ffffff;
+}
+
+.courseware-preview-audio {
+  width: min(640px, calc(100% - 48px));
+}
+
+.courseware-preview-fallback {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: #5f6b7a;
+  text-align: center;
+}
+
+.courseware-preview-fallback > .el-icon {
+  font-size: 52px;
+  color: #3377f4;
+}
+
+.courseware-preview-fallback strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #1f2937;
+  font-size: 16px;
+}
+
+.courseware-preview-fallback p {
+  margin: 0;
 }
 
 .assignment-panel {
