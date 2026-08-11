@@ -49,7 +49,10 @@
         </article>
       </section>
 
-      <div v-else class="training-lobby-empty">暂无可加入的房间</div>
+      <div v-else class="training-lobby-empty">
+        <strong>暂无房间</strong>
+        <span>请点击上方创建房间按钮，去创建一个吧</span>
+      </div>
     </section>
   </StudentShell>
 </template>
@@ -63,7 +66,6 @@ import {
   createTrainingRoom,
   fetchStudentTrainings,
   fetchTrainingRoom,
-  fetchTrainingRooms,
   joinTrainingRoom,
   type TrainingRoom
 } from '../../api/student';
@@ -76,7 +78,6 @@ const fallbackTitle = ref('实训任务');
 const loading = ref(true);
 const creating = ref(false);
 const joiningRoomId = ref<number>();
-const roomListSupported = ref(true);
 let pollTimer: number | undefined;
 
 const trainingId = computed(() => Number(route.params.trainingId));
@@ -132,16 +133,10 @@ async function loadRooms(showLoading = false) {
   }
 
   try {
-    if (roomListSupported.value) {
-      rooms.value = await fetchTrainingRooms(trainingId.value);
-      return;
-    }
-
     if (activeRoomId.value) {
       rooms.value = [await fetchTrainingRoom(activeRoomId.value)];
     }
   } catch {
-    roomListSupported.value = false;
     if (activeRoomId.value) {
       try {
         rooms.value = [await fetchTrainingRoom(activeRoomId.value)];
@@ -155,6 +150,11 @@ async function loadRooms(showLoading = false) {
 }
 
 async function createRoom() {
+  if (activeRoomId.value) {
+    ElMessage.warning('您已在其他实训房间中，请退出后方可创建新房间');
+    return;
+  }
+
   creating.value = true;
   try {
     const room = await createTrainingRoom(trainingId.value);
@@ -395,8 +395,7 @@ onBeforeUnmount(() => {
   color: #94a3b8;
 }
 
-.training-lobby-loading,
-.training-lobby-empty {
+.training-lobby-loading {
   display: grid;
   width: 260px;
   height: 170px;
@@ -405,6 +404,31 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   color: #94a3b8;
   font-size: 13px;
+}
+
+.training-lobby-empty {
+  display: flex;
+  width: 100%;
+  height: 165px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.training-lobby-empty strong {
+  color: #64748b;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.training-lobby-empty span {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 @media (max-width: 640px) {
@@ -419,8 +443,7 @@ onBeforeUnmount(() => {
   }
 
   .training-lobby-room-card,
-  .training-lobby-loading,
-  .training-lobby-empty {
+  .training-lobby-loading {
     width: 100%;
   }
 
