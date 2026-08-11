@@ -12616,7 +12616,8 @@ a {
 }
 
 .admin-resource-date-range.el-date-editor {
-  min-width: 0;
+  width: 100% !important;
+  min-width: 0 !important;
   max-width: 100%;
 }
 
@@ -12635,6 +12636,9 @@ a {
   display: flex;
   gap: 12px;
   width: 172px;
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
 }
 
 .admin-resource-filter-actions .el-button {
