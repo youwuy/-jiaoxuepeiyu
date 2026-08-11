@@ -109,6 +109,15 @@ export interface AdminScoreGradeRule {
   sortOrder: number;
 }
 
+export interface AdminScoreGradeRuleLog {
+  logId: number;
+  beforeContent: string;
+  afterContent: string;
+  operatorId: number;
+  operatorName?: string;
+  createdAt: string;
+}
+
 export interface AdminAcademicYearCommand {
   yearName: string;
 }
@@ -182,6 +191,10 @@ export function fetchAdminScoreWeights() {
 
 export function fetchAdminScoreGradeRules() {
   return requestJson<AdminScoreGradeRule[]>('/admin/score-grade-rules', { fallbackLabel: 'score grade rules' });
+}
+
+export function fetchAdminScoreGradeRuleLogs() {
+  return requestJson<AdminScoreGradeRuleLog[]>('/admin/score-grade-rules/logs', { fallbackLabel: 'score grade rule logs' });
 }
 
 export function createAdminAcademicYear(command: AdminAcademicYearCommand) {
