@@ -180,7 +180,17 @@ public interface AdminCourseMapper {
             + "FROM course_content ct "
             + "LEFT JOIN course_assignment a ON a.id = ct.assignment_id "
             + "WHERE ct.chapter_id = #{chapterId} ORDER BY ct.sort_order ASC, ct.id ASC")
+    @Results(id = "courseContentMap", value = {
+            @Result(column = "content_id", property = "contentId", id = true),
+            @Result(column = "assignment_id", property = "assignmentId"),
+            @Result(column = "assignment_id", property = "questionIds", many = @Many(select = "findAssignmentQuestionIds"))
+    })
     List<AdminCourseContent> findContents(@Param("chapterId") Long chapterId);
+
+    @Select("SELECT source_question_id FROM assignment_question "
+            + "WHERE assignment_id = #{assignmentId} AND source_question_id IS NOT NULL "
+            + "ORDER BY sort_order ASC, id ASC")
+    List<Long> findAssignmentQuestionIds(@Param("assignmentId") Long assignmentId);
 
     @Insert("INSERT INTO course "
             + "(class_id, course_name, academic_year_id, semester_id, academic_term, major_id, cover_url, "
@@ -266,6 +276,26 @@ public interface AdminCourseMapper {
                                  @Param("courseId") Long courseId,
                                  @Param("contentId") Long contentId,
                                  @Param("content") AdminCourseContent content);
+
+    @Delete("DELETE FROM assignment_question WHERE assignment_id = #{assignmentId}")
+    void deleteAssignmentQuestions(@Param("assignmentId") Long assignmentId);
+
+    @Insert("INSERT INTO assignment_question "
+            + "(assignment_id, source_question_id, question_type, title, options_json, standard_answer, score, sort_order, created_at, updated_at) "
+            + "SELECT #{assignmentId}, q.id, q.question_type, q.title, "
+            + "(SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('optionKey', o.option_key, 'optionText', o.option_text) "
+            + "ORDER BY o.sort_order ASC, o.id ASC SEPARATOR ','), ']') "
+            + "FROM exam_question_option o WHERE o.question_id = q.id), "
+            + "q.standard_answer, q.score, #{sortOrder}, NOW(), NOW() "
+            + "FROM exam_question q WHERE q.id = #{questionId} AND q.deleted_flag = 0 AND q.enabled_flag = 1")
+    int insertAssignmentQuestionFromBank(@Param("assignmentId") Long assignmentId,
+                                         @Param("questionId") Long questionId,
+                                         @Param("sortOrder") int sortOrder);
+
+    @Update("UPDATE course_assignment SET total_score = "
+            + "(SELECT COALESCE(SUM(score), 0) FROM assignment_question WHERE assignment_id = #{assignmentId}), "
+            + "updated_at = NOW() WHERE id = #{assignmentId}")
+    void refreshAssignmentTotalScore(@Param("assignmentId") Long assignmentId);
 
     @Update("UPDATE course_assignment SET publish_status = #{publishStatus}, updated_at = NOW() "
             + "WHERE course_id = #{courseId}")

@@ -266,6 +266,8 @@ public class AdminCourseService {
                 normalizedContent.setAnswerEndTime(content.getAnswerEndTime());
                 normalizedContent.setAssignmentTotalScore(content.getAssignmentTotalScore() == null
                         ? Integer.valueOf(0) : content.getAssignmentTotalScore());
+                normalizedContent.setQuestionIds(normalizedIds(content.getQuestionIds(),
+                        "Course assignment questions are required"));
             }
             normalizedContent.setSortOrder(content.getSortOrder() == null ? Integer.valueOf(defaultSort) : content.getSortOrder());
             normalized.add(normalizedContent);

@@ -287,6 +287,8 @@ const apiMessageMap: Record<string, string> = {
   'Paper must contain questions before publishing': '试卷发布前请先添加试题',
   'Paper question score must be greater than 0': '试题分值必须大于 0',
   'Paper questions cannot repeat': '试卷中的试题不能重复',
+  'Course assignment questions are required': '请至少为课程作业选择一道理论试题',
+  'Course assignment contains disabled or missing questions': '课程作业包含已停用或已删除的试题，请重新选择',
   'Password length must be 8-20 characters': '密码长度需为 8 到 20 位',
   'Password must contain letters and digits': '密码需同时包含字母和数字',
   'Phone format is invalid': '手机号格式不正确',

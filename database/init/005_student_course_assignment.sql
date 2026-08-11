@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS `course_assignment` (
 CREATE TABLE IF NOT EXISTS `assignment_question` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `assignment_id` BIGINT NOT NULL,
+  `source_question_id` BIGINT DEFAULT NULL,
   `question_type` VARCHAR(16) NOT NULL COMMENT 'SINGLE/MULTIPLE/JUDGE/FILL/SHORT',
   `title` VARCHAR(1024) NOT NULL,
   `options_json` TEXT DEFAULT NULL,
