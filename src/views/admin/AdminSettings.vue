@@ -391,6 +391,7 @@ import {
   fetchAdminClasses,
   fetchAdminClassrooms,
   fetchAdminMajors,
+  fetchAdminScoreGradeRuleLogs,
   fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
   replaceAdminScoreGradeRules,
@@ -404,6 +405,7 @@ import {
   type AdminClassroom,
   type AdminMajor,
   type AdminScoreGradeRule,
+  type AdminScoreGradeRuleLog,
   type AdminScoreWeight
 } from '../../api/admin-settings';
 
@@ -474,6 +476,7 @@ const classes = ref<AdminClass[]>([]);
 const classrooms = ref<AdminClassroom[]>([]);
 const scoreWeights = ref<AdminScoreWeight[]>([]);
 const gradeRules = ref<AdminScoreGradeRule[]>([]);
+const gradeRuleLogs = ref<AdminScoreGradeRuleLog[]>([]);
 const localCameras = ref<CameraRow[]>([]);
 const gradeDraftRows = ref<GradeDraftRow[]>([]);
 
@@ -563,6 +566,14 @@ function formatWeightContent(weight?: AdminScoreWeight) {
 }
 
 const visibleLogs = computed<SettingLog[]>(() => {
+  if (activeSetting.value?.key === 'grades') {
+    return gradeRuleLogs.value.map((log) => ({
+      time: log.createdAt ?? '-',
+      operator: log.operatorName || '系统管理员',
+      before: log.beforeContent,
+      after: log.afterContent
+    }));
+  }
   if (activeSetting.value?.key !== 'weights') {
     return [];
   }
@@ -621,7 +632,8 @@ function buildGradeRow(): SettingRow {
     key: 'grades',
     name: '成绩等级配置',
     value: displayGradeRules.value.length ? displayGradeRules.value.map((rule) => `${rule.gradeName}（${rule.minScore}%-${rule.maxScore}%）`).join('、') : '-',
-    tone: 'green'
+    tone: 'green',
+    loggable: true
   };
 }
 
@@ -667,13 +679,14 @@ async function safeLoad<T>(loader: () => Promise<T[]>) {
 async function loadSettings() {
   loading.value = true;
   try {
-    const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows] = await Promise.all([
+    const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows, gradeLogRows] = await Promise.all([
       safeLoad(fetchAdminAcademicYears),
       safeLoad(fetchAdminMajors),
       safeLoad(fetchAdminClasses),
       safeLoad(fetchAdminClassrooms),
       safeLoad(fetchAdminScoreWeights),
-      safeLoad(fetchAdminScoreGradeRules)
+      safeLoad(fetchAdminScoreGradeRules),
+      safeLoad(fetchAdminScoreGradeRuleLogs)
     ]);
     academicYears.value = yearRows;
     majors.value = majorRows;
@@ -681,6 +694,7 @@ async function loadSettings() {
     classrooms.value = classroomRows;
     scoreWeights.value = weightRows;
     gradeRules.value = gradeRuleRows;
+    gradeRuleLogs.value = gradeLogRows;
     const latest = weightRows[0];
     if (latest) {
       Object.assign(weightForm, latest);
@@ -714,7 +728,7 @@ function openAdd(kind: AddKind) {
 }
 
 function openLogs(item: SettingRow) {
-  if (item.key !== 'weights') {
+  if (item.key !== 'weights' && item.key !== 'grades') {
     return;
   }
   activeSetting.value = item;
