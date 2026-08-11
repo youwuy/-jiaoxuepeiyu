@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.config.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRule;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeight;
 import java.util.List;
 import org.apache.ibatis.annotations.Delete;
@@ -19,8 +20,8 @@ public interface AdminScoreConfigMapper {
             + "w.assignment_weight, w.exam_weight, w.effective_from, w.created_by, "
             + "u.real_name AS operator_name, w.created_at "
             + "FROM edu_score_weight w LEFT JOIN sys_user u ON u.id = w.created_by WHERE 1 = 1 "
-            + "<if test='semesterId != null'>AND semester_id = #{semesterId}</if> "
-            + "ORDER BY effective_from DESC, id DESC"
+            + "<if test='semesterId != null'>AND w.semester_id = #{semesterId}</if> "
+            + "ORDER BY w.effective_from DESC, w.id DESC"
             + "</script>")
     List<AdminScoreWeight> findScoreWeights(@Param("semesterId") Long semesterId);
 
@@ -46,4 +47,17 @@ public interface AdminScoreConfigMapper {
             + "</foreach>"
             + "</script>")
     void insertGradeRules(@Param("rules") List<AdminScoreGradeRuleCommand> rules);
+
+    @Insert("INSERT INTO edu_score_grade_rule_log "
+            + "(before_content, after_content, operator_id, created_at) "
+            + "VALUES (#{beforeContent}, #{afterContent}, #{operatorId}, NOW())")
+    void insertGradeRuleLog(@Param("beforeContent") String beforeContent,
+                            @Param("afterContent") String afterContent,
+                            @Param("operatorId") Long operatorId);
+
+    @Select("SELECT l.id AS log_id, l.before_content, l.after_content, l.operator_id, "
+            + "u.real_name AS operator_name, l.created_at "
+            + "FROM edu_score_grade_rule_log l LEFT JOIN sys_user u ON u.id = l.operator_id "
+            + "ORDER BY l.created_at DESC, l.id DESC")
+    List<AdminScoreGradeRuleLog> findGradeRuleLogs();
 }

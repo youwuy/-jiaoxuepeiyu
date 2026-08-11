@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.config.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRule;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeightCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.port.AdminScoreConfigRepository;
@@ -44,5 +45,15 @@ public class MyBatisAdminScoreConfigRepository implements AdminScoreConfigReposi
     public void replaceGradeRules(List<AdminScoreGradeRuleCommand> rules) {
         mapper.deleteGradeRules();
         mapper.insertGradeRules(rules);
+    }
+
+    @Override
+    public void createGradeRuleLog(String beforeContent, String afterContent, Long operatorId) {
+        mapper.insertGradeRuleLog(beforeContent, afterContent, operatorId);
+    }
+
+    @Override
+    public List<AdminScoreGradeRuleLog> findGradeRuleLogs() {
+        return mapper.findGradeRuleLogs();
     }
 }

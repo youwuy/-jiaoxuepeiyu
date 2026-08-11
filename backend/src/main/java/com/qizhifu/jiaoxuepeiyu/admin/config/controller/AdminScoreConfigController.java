@@ -4,6 +4,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
 import com.qizhifu.jiaoxuepeiyu.admin.config.AdminScoreConfigService;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRule;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeightCommand;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
@@ -50,10 +51,17 @@ public class AdminScoreConfigController {
         return ApiResponse.ok(service.listGradeRules());
     }
 
+    @GetMapping("/score-grade-rules/logs")
+    @Operation(summary = "List score grade rule logs", description = "Returns score grade rule operation history sorted by newest first.")
+    public ApiResponse<List<AdminScoreGradeRuleLog>> listGradeRuleLogs() {
+        return ApiResponse.ok(service.listGradeRuleLogs());
+    }
+
     @PutMapping("/score-grade-rules")
     @Operation(summary = "Replace score grade rules", description = "Replaces all grade rules after validating that score ranges do not overlap.")
-    public ApiResponse<Void> replaceGradeRules(@RequestBody List<AdminScoreGradeRuleCommand> body) {
-        service.replaceGradeRules(body);
+    public ApiResponse<Void> replaceGradeRules(@RequestBody List<AdminScoreGradeRuleCommand> body,
+                                               HttpServletRequest request) {
+        service.replaceGradeRules(body, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 }
