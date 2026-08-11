@@ -14,8 +14,8 @@
           </label>
           <label class="admin-question-field">
             <span>添加人</span>
-            <el-select v-model="draft.creatorName" clearable filterable placeholder="全部添加人">
-              <el-option v-for="item in creatorOptions" :key="item" :label="item" :value="item" />
+            <el-select v-model="draft.creatorId" clearable filterable placeholder="全部添加人">
+              <el-option v-for="item in creatorOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </label>
           <label class="admin-question-field">
@@ -43,7 +43,7 @@
           <el-button class="admin-question-lite-button" :icon="CircleCheck" :disabled="selectedIds.length === 0" @click="batchEnable(true)">批量启用</el-button>
           <el-button class="admin-question-lite-button" :icon="CircleClose" :disabled="selectedIds.length === 0" @click="batchEnable(false)">批量禁用</el-button>
         </div>
-        <p>共 <b>{{ Math.max(totalCount, 128) }}</b> 道试题</p>
+        <p>共 <b>{{ totalCount }}</b> 道试题</p>
       </section>
 
       <section class="admin-question-board">
@@ -92,8 +92,17 @@
           </div>
 
           <footer class="admin-question-footer">
-            <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ Math.max(totalCount, 128) }}</b> 条记录</p>
-            <el-pagination v-model:current-page="page" :page-size="pageSize" :total="Math.max(totalCount, 128)" layout="prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
+            <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
+            <el-pagination
+              v-model:current-page="page"
+              v-model:page-size="pageSize"
+              :total="totalCount"
+              layout="prev, pager, next, sizes"
+              :page-sizes="[10, 20, 50]"
+              background
+              @current-change="loadQuestions"
+              @size-change="handlePageSizeChange"
+            />
           </footer>
         </template>
       </section>
@@ -338,7 +347,7 @@ const typeLabels: Record<QuestionType, string> = {
   SHORT_ANSWER: '简答'
 };
 
-const pageSize = 10;
+const pageSize = ref(10);
 const page = ref(1);
 const totalCount = ref(0);
 const loading = ref(false);
@@ -350,6 +359,7 @@ const logsVisible = ref(false);
 const editingId = ref<number | null>(null);
 const selectedIds = ref<number[]>([]);
 const questions = ref<QuestionRow[]>([]);
+const creatorOptions = ref<Array<{ label: string; value: number }>>([]);
 const logs = ref<AdminQuestionLog[]>([]);
 const importCourseName = ref('');
 const importFile = ref<File | null>(null);
@@ -360,7 +370,7 @@ const importing = ref(false);
 
 const draft = reactive({
   keyword: '',
-  creatorName: '',
+  creatorId: undefined as number | undefined,
   enabled: undefined as boolean | undefined,
   questionType: ''
 });
@@ -374,12 +384,11 @@ const previewGroups = reactive<
   }>
 >([]);
 
-const pagedQuestions = computed(() => questions.value.slice((page.value - 1) * pageSize, page.value * pageSize));
-const pageStart = computed(() => (questions.value.length === 0 ? 0 : (page.value - 1) * pageSize + 1));
-const pageEnd = computed(() => Math.min(page.value * pageSize, questions.value.length));
+const pagedQuestions = computed(() => questions.value);
+const pageStart = computed(() => (totalCount.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
+const pageEnd = computed(() => (totalCount.value === 0 ? 0 : pageStart.value + questions.value.length - 1));
 const allSelected = computed(() => pagedQuestions.value.length > 0 && pagedQuestions.value.every((item) => selectedIds.value.includes(item.questionId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allSelected.value);
-const creatorOptions = computed(() => Array.from(new Set(questions.value.map((item) => item.creatorName).filter(Boolean))) as string[]);
 const isChoiceForm = computed(() => form.questionType === 'SINGLE' || form.questionType === 'MULTIPLE');
 const questionDialogTitle = computed(() => `${editingId.value ? '修改' : '新增'}${questionTypeOptions.find((item) => item.value === form.questionType)?.label || '试题'}`);
 
@@ -433,8 +442,13 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  Object.assign(draft, { keyword: '', creatorName: '', enabled: undefined, questionType: '' });
+  Object.assign(draft, { keyword: '', creatorId: undefined, enabled: undefined, questionType: '' });
   applyFilters();
+}
+
+function handlePageSizeChange() {
+  page.value = 1;
+  void loadQuestions();
 }
 
 function toggleOne(id: number) {
@@ -537,6 +551,7 @@ async function saveQuestion() {
     }
     questionDialogVisible.value = false;
     await loadQuestions();
+    await loadCreatorOptions();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : (editingId.value ? '试题修改失败' : '试题新增失败'));
   } finally {
@@ -648,6 +663,7 @@ async function submitImport() {
     previewVisible.value = false;
     ElMessage.success(`成功导入 ${count} 道试题`);
     await loadQuestions();
+    await loadCreatorOptions();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '试题导入失败');
   } finally {
@@ -812,12 +828,12 @@ async function loadQuestions() {
       keyword: applied.value.keyword,
       questionType: applied.value.questionType || undefined,
       enabled: applied.value.enabled,
-      page: 1,
-      pageSize: 999
+      creatorId: applied.value.creatorId,
+      page: page.value,
+      pageSize: pageSize.value
     });
-    const rows = result.records.map(mapRow).filter((item) => !applied.value.creatorName || item.creatorName === applied.value.creatorName);
-    questions.value = rows;
-    totalCount.value = result.total || rows.length;
+    questions.value = result.records.map(mapRow);
+    totalCount.value = result.total;
   } catch (error) {
     questions.value = [];
     totalCount.value = 0;
@@ -828,7 +844,23 @@ async function loadQuestions() {
   }
 }
 
+async function loadCreatorOptions() {
+  try {
+    const result = await fetchAdminQuestions({ page: 1, pageSize: 200 });
+    const options = new Map<number, string>();
+    result.records.forEach((item) => {
+      if (item.creatorId && item.creatorName) {
+        options.set(item.creatorId, item.creatorName);
+      }
+    });
+    creatorOptions.value = Array.from(options, ([value, label]) => ({ value, label }));
+  } catch {
+    creatorOptions.value = [];
+  }
+}
+
 onMounted(() => {
   void loadQuestions();
+  void loadCreatorOptions();
 });
 </script>
