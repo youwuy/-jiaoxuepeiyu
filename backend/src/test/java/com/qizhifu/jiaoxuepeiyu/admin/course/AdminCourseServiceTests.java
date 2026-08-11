@@ -270,6 +270,7 @@ class AdminCourseServiceTests {
         content.setAnswerStartTime("ASSIGNMENT".equals(itemType) ? LocalDateTime.of(2026, 9, 1, 0, 0) : null);
         content.setAnswerEndTime("ASSIGNMENT".equals(itemType) ? LocalDateTime.of(2026, 12, 31, 23, 59) : null);
         content.setAssignmentTotalScore("ASSIGNMENT".equals(itemType) ? 100 : null);
+        content.setQuestionIds("ASSIGNMENT".equals(itemType) ? Arrays.asList(101L) : null);
         content.setSortOrder("COURSEWARE".equals(itemType) ? 1 : 2);
         return content;
     }

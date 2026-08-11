@@ -1,6 +1,8 @@
 package com.qizhifu.jiaoxuepeiyu.admin.course.model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AdminCourseContent {
 
@@ -19,6 +21,7 @@ public class AdminCourseContent {
     private LocalDateTime answerStartTime;
     private LocalDateTime answerEndTime;
     private Integer assignmentTotalScore;
+    private List<Long> questionIds = new ArrayList<Long>();
     private Integer sortOrder;
 
     public Long getContentId() {
@@ -139,6 +142,14 @@ public class AdminCourseContent {
 
     public void setAssignmentTotalScore(Integer assignmentTotalScore) {
         this.assignmentTotalScore = assignmentTotalScore;
+    }
+
+    public List<Long> getQuestionIds() {
+        return questionIds;
+    }
+
+    public void setQuestionIds(List<Long> questionIds) {
+        this.questionIds = questionIds == null ? new ArrayList<Long>() : questionIds;
     }
 
     public Integer getSortOrder() {

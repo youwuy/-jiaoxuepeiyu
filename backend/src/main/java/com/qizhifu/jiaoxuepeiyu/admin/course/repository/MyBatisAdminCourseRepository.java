@@ -12,6 +12,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
+import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -145,11 +146,23 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
                 } else {
                     mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId(), content);
                 }
+                replaceAssignmentQuestions(content.getAssignmentId(), contentCommand.getQuestionIds());
             }
         }
         for (AdminCourseChapterCommand childCommand : chapterCommand.getChildren()) {
             insertChapterTree(courseId, chapter.getChapterId(), childCommand);
         }
+    }
+
+    private void replaceAssignmentQuestions(Long assignmentId, List<Long> questionIds) {
+        mapper.deleteAssignmentQuestions(assignmentId);
+        int sortOrder = 1;
+        for (Long questionId : questionIds) {
+            if (mapper.insertAssignmentQuestionFromBank(assignmentId, questionId, sortOrder++) != 1) {
+                throw new BusinessException(400, "Course assignment contains disabled or missing questions");
+            }
+        }
+        mapper.refreshAssignmentTotalScore(assignmentId);
     }
 
     private AdminCourse toCourse(Long courseId, AdminCourseCommand command, Long creatorId) {
@@ -212,6 +225,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         content.setAnswerStartTime(command.getAnswerStartTime());
         content.setAnswerEndTime(command.getAnswerEndTime());
         content.setAssignmentTotalScore(command.getAssignmentTotalScore());
+        content.setQuestionIds(command.getQuestionIds());
         content.setSortOrder(command.getSortOrder());
         return content;
     }
@@ -286,6 +300,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             command.setAnswerStartTime(content.getAnswerStartTime());
             command.setAnswerEndTime(content.getAnswerEndTime());
             command.setAssignmentTotalScore(content.getAssignmentTotalScore());
+            command.setQuestionIds(content.getQuestionIds());
             command.setSortOrder(content.getSortOrder());
             commands.add(command);
         }

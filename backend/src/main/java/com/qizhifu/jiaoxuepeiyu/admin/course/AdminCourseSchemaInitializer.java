@@ -15,6 +15,7 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
 
     private static final String COURSE_CONTENT = "course_content";
     private static final String COURSE_ASSIGNMENT = "course_assignment";
+    private static final String ASSIGNMENT_QUESTION = "assignment_question";
     private static final List<ColumnPatch> CONTENT_COLUMNS = Arrays.asList(
             new ColumnPatch(COURSE_CONTENT, "learning_start_time",
                     "ALTER TABLE `course_content` ADD COLUMN `learning_start_time` DATETIME NULL AFTER `required_duration_seconds`"),
@@ -31,6 +32,9 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
                     "ALTER TABLE `course_assignment` ADD COLUMN `pass_score` INT NULL AFTER `completion_rule`"),
             new ColumnPatch(COURSE_ASSIGNMENT, "publish_mode",
                     "ALTER TABLE `course_assignment` ADD COLUMN `publish_mode` VARCHAR(32) NOT NULL DEFAULT 'PRACTICE' AFTER `pass_score`"));
+    private static final List<ColumnPatch> ASSIGNMENT_QUESTION_COLUMNS = Arrays.asList(
+            new ColumnPatch(ASSIGNMENT_QUESTION, "source_question_id",
+                    "ALTER TABLE `assignment_question` ADD COLUMN `source_question_id` BIGINT NULL AFTER `assignment_id`"));
     private static final List<IndexPatch> CONTENT_INDEXES = Arrays.asList(
             new IndexPatch(COURSE_CONTENT, "idx_course_content_learning_window", "learning_start_time",
                     "CREATE INDEX `idx_course_content_learning_window` ON `course_content` (`learning_start_time`, `learning_end_time`)"));
@@ -52,6 +56,7 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
     void ensureCourseCompatibility() {
         applyColumns(CONTENT_COLUMNS);
         applyColumns(ASSIGNMENT_COLUMNS);
+        applyColumns(ASSIGNMENT_QUESTION_COLUMNS);
         applyIndexes(CONTENT_INDEXES);
         applyIndexes(ASSIGNMENT_INDEXES);
     }

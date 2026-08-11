@@ -1399,6 +1399,10 @@ async function saveCourse() {
             sortOrder: itemIndex + 1,
             resourceId: item.resourceId,
             assignmentId: item.assignmentId,
+            questionIds: item.questions?.filter((question) => question.kind === 'theory').map((question) => question.id),
+            assignmentTotalScore: item.questions
+              ?.filter((question) => question.kind === 'theory')
+              .reduce((total, question) => total + Number(question.score || 0), 0),
             requiredDurationSeconds: item.requiredDurationSeconds,
             learningStartTime: item.learningStartTime,
             learningEndTime: item.learningEndTime
@@ -1449,7 +1453,7 @@ function parseDateTime(value?: string) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
+async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
   chapters.value = (detail.chapters ?? []).map((chapter) => ({
     id: chapter.chapterId ?? nextOutlineId(),
     title: chapter.chapterTitle || '未命名章节',
@@ -1465,7 +1469,8 @@ function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDet
         assignmentId: item.assignmentId,
         requiredDurationSeconds: item.requiredDurationSeconds,
         learningStartTime: item.learningStartTime,
-        learningEndTime: item.learningEndTime
+        learningEndTime: item.learningEndTime,
+        questions: []
       }))
     }))
   }));
@@ -1474,6 +1479,23 @@ function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDet
     ...chapter.sections.flatMap((section) => [section.id, ...section.items.map((item) => item.id)])
   ]);
   outlineIdSeed = Math.max(outlineIdSeed, ...outlineIds);
+
+  const homeworkItems = chapters.value
+    .flatMap((chapter) => chapter.sections)
+    .flatMap((section) => section.items)
+    .filter((item) => item.type === 'homework');
+  await Promise.all(homeworkItems.map(async (item) => {
+    const source = detail.chapters
+      ?.flatMap((chapter) => chapter.children ?? [])
+      .flatMap((section) => section.contents ?? [])
+      .find((content) => content.contentId === item.id);
+    const questions = await Promise.allSettled(
+      (source?.questionIds ?? []).map((questionId) => fetchAdminQuestion(questionId))
+    );
+    item.questions = questions
+      .filter((result): result is PromiseFulfilledResult<AdminQuestion> => result.status === 'fulfilled')
+      .map((result) => mapTheoryQuestion(result.value));
+  }));
 }
 
 function splitNames(value?: string) {
@@ -1512,7 +1534,7 @@ async function loadCourseDetail() {
   form.classIds = detail.classIds?.length
     ? [...detail.classIds]
     : classOptions.value.filter((item) => classNames.includes(item.className)).map((item) => item.classId);
-  loadCourseOutline(detail);
+  await loadCourseOutline(detail);
 }
 
 async function handleMajorChange(value?: number) {

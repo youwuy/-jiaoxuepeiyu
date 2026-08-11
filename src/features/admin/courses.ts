@@ -7,6 +7,7 @@ export interface AdminCourseContent {
   title?: string;
   resourceId?: number;
   assignmentId?: number;
+  questionIds?: number[];
   requiredDurationSeconds?: number;
   learningStartTime?: string;
   learningEndTime?: string;

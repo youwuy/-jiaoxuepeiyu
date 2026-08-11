@@ -92,6 +92,7 @@ export interface AdminCourseCommand {
       title?: string;
       resourceId?: number;
       assignmentId?: number;
+      questionIds?: number[];
       requiredDurationSeconds?: number;
       learningStartTime?: string;
       learningEndTime?: string;
