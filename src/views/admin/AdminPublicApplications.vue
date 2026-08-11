@@ -154,29 +154,13 @@
             v-model="draft.keyword"
             class="admin-public-search"
             :prefix-icon="Search"
-            placeholder="搜索资源名称、申请人或课程"
+            placeholder="搜索资源名称"
             clearable
             @keyup.enter="applyFilters"
           />
-          <el-select v-model="draft.resourceType" class="admin-public-select" placeholder="资源类型" clearable>
-            <el-option v-for="item in resourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.majorId" class="admin-public-select" placeholder="所属专业" clearable filterable>
-            <el-option v-for="item in majorOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-          <el-select v-model="draft.publicStatus" class="admin-public-select" placeholder="审核状态" clearable>
+          <el-select v-model="draft.publicStatus" class="admin-public-select" placeholder="审核状态：全部" clearable>
             <el-option v-for="item in publicStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
-          <el-date-picker
-            v-model="draft.appliedRange"
-            class="admin-public-range"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="申请开始"
-            end-placeholder="申请结束"
-            value-format="YYYY-MM-DD"
-            unlink-panels
-          />
           <el-button class="admin-public-query-button" @click="applyFilters">查询</el-button>
           <el-button class="admin-public-reset-button" @click="resetFilters">重置</el-button>
         </div>
@@ -707,28 +691,16 @@ const reviewTimeline = computed(() => {
 
 const draft = reactive({
   keyword: '',
-  resourceType: '',
-  majorId: null as number | null,
-  publicStatus: '' as '' | ApplicationStatus,
-  appliedRange: [] as string[]
+  publicStatus: '' as '' | ApplicationStatus
 });
 
-const appliedFilters = ref({ ...draft, appliedRange: [] as string[] });
+const appliedFilters = ref({ ...draft });
 
 const majorOptions: MajorOption[] = [
   { label: '城市轨道交通运营管理', value: 1 },
   { label: '城市轨道交通车辆技术', value: 2 },
   { label: '城市轨道交通机电技术', value: 3 },
   { label: '城市轨道交通通信信号技术', value: 4 }
-];
-
-const resourceTypeOptions: ResourceOption[] = [
-  { label: '文本文档', value: '文本文档' },
-  { label: '演示文稿', value: '演示文稿' },
-  { label: '图片', value: '图片' },
-  { label: '音频', value: '音频' },
-  { label: '视频', value: '视频' },
-  { label: '实训试题', value: '实训试题' }
 ];
 
 const publicStatusOptions: ResourceOption[] = [
@@ -740,18 +712,9 @@ const publicStatusOptions: ResourceOption[] = [
 const filteredApplications = computed(() =>
   applications.value.filter((item) => {
     const keyword = appliedFilters.value.keyword.trim().toLowerCase();
-    const matchesKeyword =
-      !keyword ||
-      [item.resourceName, item.courseName, item.applicantName, item.reviewerName, item.fileName, item.majorLabel].some((text) =>
-        String(text || '').toLowerCase().includes(keyword)
-      );
-    const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
-    const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
+    const matchesKeyword = !keyword || item.resourceName.toLowerCase().includes(keyword);
     const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    const [startDate, endDate] = appliedFilters.value.appliedRange;
-    const applyDate = item.appliedAtLabel.slice(0, 10);
-    const matchesDate = (!startDate || applyDate >= startDate) && (!endDate || applyDate <= endDate);
-    return matchesKeyword && matchesType && matchesMajor && matchesStatus && matchesDate;
+    return matchesKeyword && matchesStatus;
   })
 );
 
@@ -889,10 +852,7 @@ function mergeSelectedIds(ids: number[]) {
 function createEmptyFilters() {
   return {
     keyword: '',
-    resourceType: '',
-    majorId: null as number | null,
-    publicStatus: '' as '' | ApplicationStatus,
-    appliedRange: [] as string[]
+    publicStatus: '' as '' | ApplicationStatus
   };
 }
 
@@ -965,10 +925,7 @@ function toggleAllCurrent(value: string | number | boolean) {
 function applyFilters() {
   appliedFilters.value = {
     keyword: draft.keyword,
-    resourceType: draft.resourceType,
-    majorId: draft.majorId,
-    publicStatus: draft.publicStatus,
-    appliedRange: [...draft.appliedRange]
+    publicStatus: draft.publicStatus
   };
   page.value = 1;
   void loadApplications();
@@ -984,11 +941,7 @@ function resetFilters() {
 function buildQuery(): AdminResourceQuery {
   return {
     keyword: appliedFilters.value.keyword.trim() || undefined,
-    resourceType: appliedFilters.value.resourceType || undefined,
-    majorId: appliedFilters.value.majorId ?? undefined,
     publicStatus: appliedFilters.value.publicStatus || undefined,
-    uploadStartDate: appliedFilters.value.appliedRange[0],
-    uploadEndDate: appliedFilters.value.appliedRange[1],
     page: 1,
     pageSize: 999
   };
