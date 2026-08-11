@@ -17,6 +17,10 @@ public interface AdminEducationConfigRepository {
 
     List<AdminSemester> findSemesters();
 
+    boolean academicYearExists(String yearName);
+
+    boolean semesterExists(Long semesterId);
+
     Long createAcademicYear(AdminAcademicYearCommand command);
 
     void createSemester(Long academicYearId, String semesterName);

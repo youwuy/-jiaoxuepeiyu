@@ -14,11 +14,15 @@ import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AdminEducationConfigService {
+
+    private static final Pattern ACADEMIC_YEAR_PATTERN = Pattern.compile("^(\\d{4})-(\\d{4})$");
 
     private final AdminEducationConfigRepository repository;
 
@@ -44,6 +48,9 @@ public class AdminEducationConfigService {
     @Transactional
     public Long createAcademicYear(AdminAcademicYearCommand command) {
         AdminAcademicYearCommand normalized = normalizedYear(command);
+        if (repository.academicYearExists(normalized.getYearName())) {
+            throw new BusinessException(400, "Academic year already exists");
+        }
         Long academicYearId = repository.createAcademicYear(normalized);
         repository.createSemester(academicYearId, "FIRST");
         repository.createSemester(academicYearId, "SECOND");
@@ -54,6 +61,9 @@ public class AdminEducationConfigService {
     public void setCurrentSemester(Long semesterId) {
         if (semesterId == null) {
             throw new BusinessException(400, "Semester is required");
+        }
+        if (!repository.semesterExists(semesterId)) {
+            throw new BusinessException(404, "Semester not found");
         }
         repository.clearCurrentSemesters();
         repository.markCurrentSemester(semesterId);
@@ -120,7 +130,15 @@ public class AdminEducationConfigService {
         if (command == null || isBlank(command.getYearName())) {
             throw new BusinessException(400, "Academic year name is required");
         }
-        return new AdminAcademicYearCommand(command.getYearName().trim());
+        String yearName = command.getYearName().trim();
+        if (yearName.endsWith("学年")) {
+            yearName = yearName.substring(0, yearName.length() - 2).trim();
+        }
+        Matcher matcher = ACADEMIC_YEAR_PATTERN.matcher(yearName);
+        if (!matcher.matches() || Integer.parseInt(matcher.group(2)) != Integer.parseInt(matcher.group(1)) + 1) {
+            throw new BusinessException(400, "Academic year format must be YYYY-YYYY");
+        }
+        return new AdminAcademicYearCommand(yearName);
     }
 
     private AdminMajorCommand normalizedMajor(AdminMajorCommand command) {
