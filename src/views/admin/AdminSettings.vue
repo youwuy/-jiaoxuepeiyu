@@ -38,11 +38,11 @@
         </section>
       </section>
 
-      <el-dialog v-model="configVisible" class="admin-settings-config-dialog" :width="configWidth" :show-close="false" append-to-body>
+      <el-dialog v-model="configVisible" class="admin-settings-config-dialog" :width="configWidth" :show-close="false" :close-on-click-modal="false" append-to-body>
         <template #header>
           <div class="admin-settings-dialog-head">
             <strong>{{ configTitle }}</strong>
-            <el-button text circle :icon="Close" @click="configVisible = false" />
+            <el-button text circle :icon="Close" @click="closeConfig" />
           </div>
         </template>
 
@@ -66,7 +66,7 @@
                 <td>{{ row.yearName }}</td>
                 <td>{{ row.semesterName }}</td>
                 <td>
-                  <button type="button" class="admin-settings-radio" :class="{ active: row.current }" @click="setCurrentSemester(row.semesterId)"></button>
+                  <button type="button" class="admin-settings-radio" :class="{ active: row.semesterId === selectedSemesterId }" @click="selectCurrentSemester(row.semesterId)"></button>
                 </td>
               </tr>
             </tbody>
@@ -257,7 +257,7 @@
           </div>
         </section>
 
-        <template v-if="activeConfig === 'grades' || activeConfig === 'weights'" #footer>
+        <template v-if="activeConfig === 'semester' || activeConfig === 'grades' || activeConfig === 'weights'" #footer>
           <div class="admin-settings-dialog-footer">
             <el-button @click="closeConfig">取消</el-button>
             <el-button type="primary" @click="saveActiveConfig">确定</el-button>
@@ -265,7 +265,7 @@
         </template>
       </el-dialog>
 
-      <el-dialog v-model="addVisible" class="admin-settings-add-dialog" :width="addKind === 'room' ? '720px' : '480px'" :show-close="false" append-to-body>
+      <el-dialog v-model="addVisible" class="admin-settings-add-dialog" :width="addKind === 'room' ? '720px' : '480px'" :show-close="false" :close-on-click-modal="false" append-to-body>
         <template #header>
           <div class="admin-settings-dialog-head">
             <strong>{{ addTitle }}</strong>
@@ -465,7 +465,8 @@ const logVisible = ref(false);
 const activeConfig = ref<ConfigKey>('semester');
 const activeSetting = ref<SettingRow | null>(null);
 const addKind = ref<AddKind>('year');
-const addYearValue = ref('2025-2026');
+const addYearValue = ref('');
+const selectedSemesterId = ref<number | null>(null);
 const addMajorName = ref('');
 const addClassName = ref('');
 const editingClassroomId = ref<number | null>(null);
@@ -505,6 +506,7 @@ const yearOptions = computed(() => {
   const currentYear = new Date().getFullYear();
   return Array.from({ length: 6 }, (_, index) => `${currentYear - index}-${currentYear - index + 1}`);
 });
+const defaultAcademicYear = computed(() => yearOptions.value[0] ?? '');
 
 const configTitle = computed(() => {
   const titles: Record<ConfigKey, string> = {
@@ -706,6 +708,9 @@ async function loadSettings() {
 
 function openConfig(key: ConfigKey) {
   activeConfig.value = key;
+  if (key === 'semester') {
+    selectedSemesterId.value = semesterRows.value.find((row) => row.current)?.semesterId ?? null;
+  }
   if (key === 'grades') {
     resetGradeDraftRows();
   }
@@ -715,7 +720,7 @@ function openConfig(key: ConfigKey) {
 function openAdd(kind: AddKind) {
   addKind.value = kind;
   editingClassroomId.value = null;
-  if (kind === 'year') addYearValue.value = '2025-2026';
+  if (kind === 'year') addYearValue.value = defaultAcademicYear.value;
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
@@ -735,14 +740,8 @@ function openLogs(item: SettingRow) {
   logVisible.value = true;
 }
 
-async function setCurrentSemester(semesterId: number) {
-  try {
-    await setAdminCurrentSemester(semesterId);
-    await loadSettings();
-    ElMessage.success('当前学期已更新');
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '设置当前学期失败');
-  }
+function selectCurrentSemester(semesterId: number) {
+  selectedSemesterId.value = semesterId;
 }
 
 async function setMajorStatus(majorId: number, enabled: boolean) {
@@ -835,7 +834,8 @@ function removeRoomCamera(id: number) {
 async function saveAdd() {
   try {
     if (addKind.value === 'year') {
-      await createAdminAcademicYear({ yearName: `${addYearValue.value}学年` });
+      if (!addYearValue.value) return ElMessage.warning('请选择学年');
+      await createAdminAcademicYear({ yearName: addYearValue.value });
     }
     if (addKind.value === 'major') {
       if (!addMajorName.value.trim()) return ElMessage.warning('请输入专业名称');
@@ -900,17 +900,44 @@ function removeGradeDraft(id: number) {
 
 function closeConfig() {
   configVisible.value = false;
+  if (activeConfig.value === 'semester') {
+    selectedSemesterId.value = semesterRows.value.find((row) => row.current)?.semesterId ?? null;
+  }
   if (activeConfig.value === 'grades') {
     resetGradeDraftRows();
   }
 }
 
 async function saveActiveConfig() {
+  if (activeConfig.value === 'semester') {
+    await saveSemesterConfig();
+    return;
+  }
   if (activeConfig.value === 'grades') {
     await saveGradeRules();
     return;
   }
   await saveWeight();
+}
+
+async function saveSemesterConfig() {
+  if (!selectedSemesterId.value) {
+    ElMessage.warning('请选择当前学期');
+    return;
+  }
+  const currentSemester = semesterRows.value.find((row) => row.current)?.semesterId;
+  if (selectedSemesterId.value === currentSemester) {
+    configVisible.value = false;
+    return;
+  }
+  try {
+    await setAdminCurrentSemester(selectedSemesterId.value);
+    await loadSettings();
+    configVisible.value = false;
+    ElMessage.success('当前学期已更新');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '设置当前学期失败');
+  }
 }
 
 /** 保存整张成绩等级配置表。 */

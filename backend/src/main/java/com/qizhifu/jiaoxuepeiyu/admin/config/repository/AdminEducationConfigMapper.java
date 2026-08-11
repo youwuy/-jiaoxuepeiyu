@@ -24,6 +24,13 @@ public interface AdminEducationConfigMapper {
             + "FROM edu_semester ORDER BY academic_year_id DESC, id ASC")
     List<AdminSemester> findSemesters();
 
+    @Select("SELECT COUNT(*) FROM edu_academic_year "
+            + "WHERE REPLACE(year_name, '学年', '') = #{yearName}")
+    int countAcademicYears(@Param("yearName") String yearName);
+
+    @Select("SELECT COUNT(*) FROM edu_semester WHERE id = #{semesterId}")
+    int countSemesters(@Param("semesterId") Long semesterId);
+
     @Insert("INSERT INTO edu_academic_year (year_name, created_at) VALUES (#{yearName}, NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "academicYearId")
     void insertAcademicYear(AdminAcademicYear year);

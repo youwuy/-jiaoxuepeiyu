@@ -33,6 +33,16 @@ public class MyBatisAdminEducationConfigRepository implements AdminEducationConf
     }
 
     @Override
+    public boolean academicYearExists(String yearName) {
+        return mapper.countAcademicYears(yearName) > 0;
+    }
+
+    @Override
+    public boolean semesterExists(Long semesterId) {
+        return mapper.countSemesters(semesterId) > 0;
+    }
+
+    @Override
     public Long createAcademicYear(AdminAcademicYearCommand command) {
         AdminAcademicYear year = new AdminAcademicYear();
         year.setYearName(command.getYearName());

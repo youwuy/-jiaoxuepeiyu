@@ -33,6 +33,40 @@ class AdminEducationConfigServiceTests {
     }
 
     @Test
+    void normalizesLegacyAcademicYearSuffix() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        service.createAcademicYear(new AdminAcademicYearCommand("2026-2027学年"));
+
+        assertEquals("2026-2027", repository.savedAcademicYear.getYearName());
+    }
+
+    @Test
+    void rejectsInvalidAcademicYearRange() {
+        AdminEducationConfigService service = new AdminEducationConfigService(new FakeEducationConfig());
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createAcademicYear(new AdminAcademicYearCommand("2026-2028"));
+        });
+
+        assertEquals("Academic year format must be YYYY-YYYY", exception.getMessage());
+    }
+
+    @Test
+    void rejectsDuplicateAcademicYear() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        repository.duplicateAcademicYear = true;
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createAcademicYear(new AdminAcademicYearCommand("2026-2027"));
+        });
+
+        assertEquals("Academic year already exists", exception.getMessage());
+    }
+
+    @Test
     void marksOnlyOneSemesterAsCurrent() {
         FakeEducationConfig repository = new FakeEducationConfig();
         AdminEducationConfigService service = new AdminEducationConfigService(repository);
@@ -41,6 +75,18 @@ class AdminEducationConfigServiceTests {
 
         assertEquals(true, repository.clearedCurrent);
         assertEquals(2L, repository.currentSemesterId.longValue());
+    }
+
+    @Test
+    void rejectsMissingSemesterWithoutClearingCurrentSemester() {
+        FakeEducationConfig repository = new FakeEducationConfig();
+        repository.existingSemester = false;
+        AdminEducationConfigService service = new AdminEducationConfigService(repository);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.setCurrentSemester(99L));
+
+        assertEquals("Semester not found", exception.getMessage());
+        assertEquals(false, repository.clearedCurrent);
     }
 
     @Test
@@ -139,6 +185,9 @@ class AdminEducationConfigServiceTests {
         private Long updatedJobRoleId;
         private Long statusJobRoleId;
         private boolean jobRoleEnabled;
+        private boolean duplicateAcademicYear;
+        private boolean existingSemester = true;
+        private AdminAcademicYearCommand savedAcademicYear;
 
         @Override
         public List<AdminAcademicYear> findAcademicYears() {
@@ -158,7 +207,18 @@ class AdminEducationConfigServiceTests {
         }
 
         @Override
+        public boolean academicYearExists(String yearName) {
+            return duplicateAcademicYear;
+        }
+
+        @Override
+        public boolean semesterExists(Long semesterId) {
+            return existingSemester;
+        }
+
+        @Override
         public Long createAcademicYear(AdminAcademicYearCommand command) {
+            savedAcademicYear = command;
             return 100L;
         }
 
