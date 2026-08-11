@@ -48,7 +48,7 @@
             />
           </label>
           <div class="admin-resource-filter-actions">
-            <el-button class="admin-resource-query-button" @click="applyFilters">查询</el-button>
+            <el-button class="admin-resource-query-button" type="primary" :icon="Search" @click="applyFilters">查询</el-button>
             <el-button class="admin-resource-reset-button" @click="resetFilters">重置</el-button>
           </div>
         </div>

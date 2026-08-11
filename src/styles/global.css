@@ -12627,6 +12627,12 @@ a {
   gap: 12px;
 }
 
+.admin-resource-filter-actions .el-button {
+  width: 80px;
+  margin-left: 0;
+  padding: 0;
+}
+
 .admin-resource-query-button.el-button,
 .admin-resource-reset-button.el-button,
 .admin-resource-primary-button.el-button,
