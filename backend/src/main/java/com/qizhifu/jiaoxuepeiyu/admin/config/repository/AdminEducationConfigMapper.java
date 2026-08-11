@@ -54,7 +54,7 @@ public interface AdminEducationConfigMapper {
     @Select("<script>"
             + "SELECT c.id AS class_id, c.major_id, m.major_name, c.class_name, "
             + "CASE WHEN c.status = 1 THEN TRUE ELSE FALSE END AS enabled "
-            + "FROM edu_class c JOIN edu_major m ON m.id = c.major_id "
+            + "FROM edu_class c LEFT JOIN edu_major m ON m.id = c.major_id "
             + "WHERE 1 = 1 "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
             + "ORDER BY m.major_name ASC, c.class_name ASC, c.id ASC "

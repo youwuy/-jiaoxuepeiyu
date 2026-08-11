@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRule;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeightCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.port.AdminScoreConfigRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
@@ -47,7 +48,7 @@ class AdminScoreConfigServiceTests {
         BusinessException exception = assertThrows(BusinessException.class, () -> {
             service.replaceGradeRules(Arrays.asList(
                     grade("A", "90", "100"),
-                    grade("B", "80", "95")));
+                    grade("B", "80", "95")), 9L);
         });
 
         assertEquals("Score grade rules cannot overlap", exception.getMessage());
@@ -59,11 +60,14 @@ class AdminScoreConfigServiceTests {
         AdminScoreConfigService service = new AdminScoreConfigService(repository);
 
         service.replaceGradeRules(Arrays.asList(
-                grade("B", "80", "89.9"),
-                grade("A", "90", "100")));
+                grade("B", "80", "90"),
+                grade("A", "90", "100")), 9L);
 
         assertEquals(true, repository.replacedGrades);
         assertEquals("A", repository.gradeRules.get(0).getGradeName());
+        assertEquals("未配置", repository.beforeContent);
+        assertEquals("A（90%-100%）、B（80%-90%）", repository.afterContent);
+        assertEquals(9L, repository.logOperatorId.longValue());
     }
 
     private AdminScoreWeightCommand weight() {
@@ -88,6 +92,9 @@ class AdminScoreConfigServiceTests {
         private Long createdBy;
         private boolean replacedGrades;
         private List<AdminScoreGradeRuleCommand> gradeRules;
+        private String beforeContent;
+        private String afterContent;
+        private Long logOperatorId;
 
         @Override
         public List<com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeight> findScoreWeights(Long semesterId) {
@@ -109,6 +116,18 @@ class AdminScoreConfigServiceTests {
         public void replaceGradeRules(List<AdminScoreGradeRuleCommand> rules) {
             this.replacedGrades = true;
             this.gradeRules = rules;
+        }
+
+        @Override
+        public void createGradeRuleLog(String beforeContent, String afterContent, Long operatorId) {
+            this.beforeContent = beforeContent;
+            this.afterContent = afterContent;
+            this.logOperatorId = operatorId;
+        }
+
+        @Override
+        public List<AdminScoreGradeRuleLog> findGradeRuleLogs() {
+            return new ArrayList<AdminScoreGradeRuleLog>();
         }
     }
 }

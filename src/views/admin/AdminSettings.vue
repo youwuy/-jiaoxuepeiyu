@@ -107,6 +107,12 @@
             新增班级
           </el-button>
           <table class="admin-settings-modal-table classes">
+            <colgroup>
+              <col class="class-index-column" />
+              <col class="class-name-column" />
+              <col class="class-status-column" />
+              <col class="class-action-column" />
+            </colgroup>
             <thead>
               <tr>
                 <th>序号</th>
@@ -119,15 +125,17 @@
               <tr v-for="(item, index) in displayClasses" :key="item.classId">
                 <td>{{ index + 1 }}</td>
                 <td>{{ item.className }}</td>
-                <td>
+                <td class="admin-settings-class-status-cell">
                   <span class="admin-settings-pill-status" :class="{ disabled: !item.enabled }">
                     <i></i>
                     {{ item.enabled ? '已启用' : '已禁用' }}
                   </span>
                 </td>
                 <td>
-                  <el-button class="admin-settings-table-action" @click="setClassStatus(item.classId, true)">启用</el-button>
-                  <el-button class="admin-settings-table-action danger" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                  <div class="admin-settings-class-actions">
+                    <el-button class="admin-settings-table-action" :disabled="item.enabled" @click="setClassStatus(item.classId, true)">启用</el-button>
+                    <el-button class="admin-settings-table-action danger" :disabled="!item.enabled" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -288,12 +296,6 @@
             <el-input v-model="addClassName" maxlength="20" placeholder="请输入班级名称" />
             <small>最多输入20个字</small>
           </label>
-          <label>
-            <span>所属专业 <b>*</b></span>
-            <el-select v-model="addClassMajorId" placeholder="请选择所属专业">
-              <el-option v-for="major in displayMajors" :key="major.majorId" :label="major.majorName" :value="major.majorId" />
-            </el-select>
-          </label>
         </section>
 
         <section v-else-if="addKind === 'room'" class="admin-settings-room-form">
@@ -342,7 +344,8 @@
             <thead>
               <tr>
                 <th>序号</th>
-                <th>操作内容</th>
+                <th>修改前内容</th>
+                <th>修改后内容</th>
                 <th>操作人</th>
                 <th>操作时间</th>
               </tr>
@@ -350,7 +353,8 @@
             <tbody>
               <tr v-for="(log, index) in visibleLogs" :key="log.time">
                 <td>{{ index + 1 }}</td>
-                <td>{{ log.content }}</td>
+                <td>{{ log.before }}</td>
+                <td>{{ log.after }}</td>
                 <td>{{ log.operator }}</td>
                 <td>{{ log.time }}</td>
               </tr>
@@ -387,6 +391,7 @@ import {
   fetchAdminClasses,
   fetchAdminClassrooms,
   fetchAdminMajors,
+  fetchAdminScoreGradeRuleLogs,
   fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
   replaceAdminScoreGradeRules,
@@ -400,6 +405,7 @@ import {
   type AdminClassroom,
   type AdminMajor,
   type AdminScoreGradeRule,
+  type AdminScoreGradeRuleLog,
   type AdminScoreWeight
 } from '../../api/admin-settings';
 
@@ -419,7 +425,8 @@ interface SettingRow {
 interface SettingLog {
   time: string;
   operator: string;
-  content: string;
+  before: string;
+  after: string;
 }
 
 interface SemesterDisplayRow {
@@ -461,7 +468,6 @@ const addKind = ref<AddKind>('year');
 const addYearValue = ref('2025-2026');
 const addMajorName = ref('');
 const addClassName = ref('');
-const addClassMajorId = ref<number | null>(null);
 const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
@@ -470,6 +476,7 @@ const classes = ref<AdminClass[]>([]);
 const classrooms = ref<AdminClassroom[]>([]);
 const scoreWeights = ref<AdminScoreWeight[]>([]);
 const gradeRules = ref<AdminScoreGradeRule[]>([]);
+const gradeRuleLogs = ref<AdminScoreGradeRuleLog[]>([]);
 const localCameras = ref<CameraRow[]>([]);
 const gradeDraftRows = ref<GradeDraftRow[]>([]);
 
@@ -551,7 +558,38 @@ const classroomCameraRows = computed(() => {
   return rows.length ? rows : buildClassroomCameras();
 });
 
-const visibleLogs = computed<SettingLog[]>(() => []);
+function formatWeightContent(weight?: AdminScoreWeight) {
+  if (!weight) {
+    return '未配置';
+  }
+  return `课件学习进度得分*${weight.coursewareWeight}%+实训练习得分*${weight.trainingPracticeWeight}%+课程作业得分*${weight.assignmentWeight}%+考试得分*${weight.examWeight}%`;
+}
+
+const visibleLogs = computed<SettingLog[]>(() => {
+  if (activeSetting.value?.key === 'grades') {
+    return gradeRuleLogs.value.map((log) => ({
+      time: log.createdAt ?? '-',
+      operator: log.operatorName || '系统管理员',
+      before: log.beforeContent,
+      after: log.afterContent
+    }));
+  }
+  if (activeSetting.value?.key !== 'weights') {
+    return [];
+  }
+  const history = [...scoreWeights.value].sort((left, right) =>
+    String(right.createdAt ?? right.effectiveFrom ?? '').localeCompare(String(left.createdAt ?? left.effectiveFrom ?? ''))
+  );
+  return history.map((current, index) => {
+    const previous = history.slice(index + 1).find((item) => item.semesterId === current.semesterId);
+    return {
+      time: current.createdAt ?? current.effectiveFrom ?? '-',
+      operator: current.operatorName || '系统管理员',
+      before: formatWeightContent(previous),
+      after: formatWeightContent(current)
+    };
+  });
+});
 
 function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: T) => string) {
   return items.filter((item) => item.enabled !== false).map(pick).filter(Boolean);
@@ -641,13 +679,14 @@ async function safeLoad<T>(loader: () => Promise<T[]>) {
 async function loadSettings() {
   loading.value = true;
   try {
-    const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows] = await Promise.all([
+    const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows, gradeLogRows] = await Promise.all([
       safeLoad(fetchAdminAcademicYears),
       safeLoad(fetchAdminMajors),
       safeLoad(fetchAdminClasses),
       safeLoad(fetchAdminClassrooms),
       safeLoad(fetchAdminScoreWeights),
-      safeLoad(fetchAdminScoreGradeRules)
+      safeLoad(fetchAdminScoreGradeRules),
+      safeLoad(fetchAdminScoreGradeRuleLogs)
     ]);
     academicYears.value = yearRows;
     majors.value = majorRows;
@@ -655,6 +694,7 @@ async function loadSettings() {
     classrooms.value = classroomRows;
     scoreWeights.value = weightRows;
     gradeRules.value = gradeRuleRows;
+    gradeRuleLogs.value = gradeLogRows;
     const latest = weightRows[0];
     if (latest) {
       Object.assign(weightForm, latest);
@@ -679,7 +719,6 @@ function openAdd(kind: AddKind) {
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
-    addClassMajorId.value = null;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -689,6 +728,9 @@ function openAdd(kind: AddKind) {
 }
 
 function openLogs(item: SettingRow) {
+  if (item.key !== 'weights' && item.key !== 'grades') {
+    return;
+  }
   activeSetting.value = item;
   logVisible.value = true;
 }
@@ -801,8 +843,7 @@ async function saveAdd() {
     }
     if (addKind.value === 'class') {
       if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
-      if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
-      await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
+      await createAdminClass({ className: addClassName.value.trim() });
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
@@ -896,6 +937,12 @@ async function saveGradeRules() {
   const outOfRange = nextRules.find((rule) => rule.minScore < 0 || rule.maxScore > 100 || rule.minScore > rule.maxScore);
   if (outOfRange) {
     ElMessage.warning('分数范围需满足0-100且起始百分比不能大于结束百分比');
+    return;
+  }
+
+  const overlaps = nextRules.some((rule, index) => index > 0 && rule.maxScore > nextRules[index - 1].minScore);
+  if (overlaps) {
+    ElMessage.warning('成绩等级的分数范围不能重叠');
     return;
   }
 

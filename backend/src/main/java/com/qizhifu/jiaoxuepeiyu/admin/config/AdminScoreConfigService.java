@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.config;
 
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRule;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreGradeRuleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeight;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminScoreWeightCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.port.AdminScoreConfigRepository;
@@ -43,10 +44,55 @@ public class AdminScoreConfigService {
         return repository.findGradeRules();
     }
 
+    public List<AdminScoreGradeRuleLog> listGradeRuleLogs() {
+        return repository.findGradeRuleLogs();
+    }
+
     @Transactional
-    public void replaceGradeRules(List<AdminScoreGradeRuleCommand> rules) {
+    public void replaceGradeRules(List<AdminScoreGradeRuleCommand> rules, Long operatorId) {
+        if (operatorId == null) {
+            throw new BusinessException(401, "Missing admin identity");
+        }
         List<AdminScoreGradeRuleCommand> normalized = normalizedRules(rules);
+        String beforeContent = formatExistingRules(repository.findGradeRules());
+        String afterContent = formatRuleCommands(normalized);
         repository.replaceGradeRules(normalized);
+        repository.createGradeRuleLog(beforeContent, afterContent, operatorId);
+    }
+
+    private String formatExistingRules(List<AdminScoreGradeRule> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return "未配置";
+        }
+        List<String> values = new ArrayList<String>();
+        for (AdminScoreGradeRule rule : rules) {
+            values.add(formatRule(rule.getGradeName(), rule.getMinScore(), rule.getMaxScore()));
+        }
+        return join(values);
+    }
+
+    private String formatRuleCommands(List<AdminScoreGradeRuleCommand> rules) {
+        List<String> values = new ArrayList<String>();
+        for (AdminScoreGradeRuleCommand rule : rules) {
+            values.add(formatRule(rule.getGradeName(), rule.getMinScore(), rule.getMaxScore()));
+        }
+        return join(values);
+    }
+
+    private String formatRule(String name, BigDecimal minScore, BigDecimal maxScore) {
+        return name + "（" + minScore.stripTrailingZeros().toPlainString() + "%-"
+                + maxScore.stripTrailingZeros().toPlainString() + "%）";
+    }
+
+    private String join(List<String> values) {
+        StringBuilder result = new StringBuilder();
+        for (String value : values) {
+            if (result.length() > 0) {
+                result.append("、");
+            }
+            result.append(value);
+        }
+        return result.toString();
     }
 
     private AdminScoreWeightCommand normalizedWeight(AdminScoreWeightCommand command) {
@@ -81,7 +127,7 @@ public class AdminScoreConfigService {
         for (int i = 1; i < normalized.size(); i++) {
             AdminScoreGradeRuleCommand previous = normalized.get(i - 1);
             AdminScoreGradeRuleCommand current = normalized.get(i);
-            if (current.getMaxScore().compareTo(previous.getMinScore()) >= 0) {
+            if (current.getMaxScore().compareTo(previous.getMinScore()) > 0) {
                 throw new BusinessException(400, "Score grade rules cannot overlap");
             }
         }

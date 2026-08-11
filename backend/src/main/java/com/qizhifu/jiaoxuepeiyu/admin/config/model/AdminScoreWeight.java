@@ -12,6 +12,7 @@ public class AdminScoreWeight {
     private int examWeight;
     private LocalDateTime effectiveFrom;
     private Long createdBy;
+    private String operatorName;
     private LocalDateTime createdAt;
 
     public Long getWeightId() {
@@ -76,6 +77,14 @@ public class AdminScoreWeight {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public String getOperatorName() {
+        return operatorName;
+    }
+
+    public void setOperatorName(String operatorName) {
+        this.operatorName = operatorName;
     }
 
     public LocalDateTime getCreatedAt() {

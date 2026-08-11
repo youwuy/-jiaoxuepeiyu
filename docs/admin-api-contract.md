@@ -741,10 +741,11 @@ Request body:
 
 ```json
 {
-  "majorId": 1,
   "className": "Class 2026-01"
 }
 ```
+
+`majorId` is optional. New classes created from the configuration dialog only need a class name; existing class-major associations are preserved.
 
 ### `POST /api/admin/classes/{classId}/enable`
 
