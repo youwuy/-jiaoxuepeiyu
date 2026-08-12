@@ -316,7 +316,7 @@ class AdminIamServiceTests {
     }
 
     @Test
-    void enablesPermissionWithDescendants() {
+    void enablesOnlySelectedPermission() {
         FakeIam repository = new FakeIam();
         repository.permission = permission(1L, null, "MENU");
         repository.permissions = Arrays.asList(
@@ -328,8 +328,8 @@ class AdminIamServiceTests {
 
         service.enablePermission(1L, 9L);
 
-        assertEquals(Arrays.asList(1L, 2L, 3L), repository.statusPermissionIds);
-        assertEquals(Arrays.asList(Boolean.TRUE, Boolean.TRUE, Boolean.TRUE), repository.statusValues);
+        assertEquals(Arrays.asList(1L), repository.statusPermissionIds);
+        assertEquals(Arrays.asList(Boolean.TRUE), repository.statusValues);
     }
 
     @Test
@@ -424,6 +424,26 @@ class AdminIamServiceTests {
         @Override
         public List<AdminPermission> findPermissions() {
             return permissions;
+        }
+
+        @Override
+        public boolean isUnrestrictedAdmin(Long userId) {
+            return false;
+        }
+
+        @Override
+        public List<String> findUserPermissionCodes(Long userId) {
+            return new ArrayList<String>();
+        }
+
+        @Override
+        public String findUserDataScope(Long userId, String permissionCode) {
+            return "SELF";
+        }
+
+        @Override
+        public List<Long> findManagedOrgIds(Long userId) {
+            return new ArrayList<Long>();
         }
 
         @Override

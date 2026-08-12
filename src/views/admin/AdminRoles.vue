@@ -142,6 +142,9 @@
                         <el-button class="warn" :loading="busyId === role.roleId" @click="toggleRole(role)">
                           {{ role.enabled === false ? '启用' : '禁用' }}
                         </el-button>
+                        <el-button class="danger" :disabled="Boolean(role.userCount)" :loading="busyId === role.roleId" @click="removeRole(role)">
+                          删除
+                        </el-button>
                       </template>
                     </div>
                   </td>
@@ -177,7 +180,7 @@
         <div><dt>角色编码</dt><dd>{{ detailRole.roleCode }}</dd></div>
         <div><dt>状态</dt><dd>{{ detailRole.enabled === false ? '禁用' : '启用' }}</dd></div>
         <div><dt>数据权限</dt><dd>{{ roleDataScopeSummary(detailRole) }}</dd></div>
-        <div><dt>授权权限</dt><dd>{{ detailRole.permissionIds?.length || 0 }} 项</dd></div>
+        <div class="permissions"><dt>授权权限</dt><dd>{{ rolePermissionNames(detailRole) }}</dd></div>
         <div><dt>创建时间</dt><dd>{{ formatRoleTime(detailRole.createdAt) }}</dd></div>
       </dl>
       <p v-if="detailRole" class="admin-roles-detail-remark">{{ detailRole.remark || '暂无描述' }}</p>
@@ -194,6 +197,7 @@ import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/ad
 import {
   createAdminRole,
   disableAdminRole,
+  deleteAdminRole,
   enableAdminRole,
   fetchAdminRoleDetail,
   fetchAdminRoles,
@@ -360,6 +364,14 @@ function roleDataScopeSummary(role: AdminRole) {
   return dataScopeLabels[role.dataScope || ''] || '-';
 }
 
+function rolePermissionNames(role: AdminRole) {
+  const selected = new Set(role.permissionIds ?? []);
+  const names = permissionRows.value
+    .filter((row) => selected.has(row.pageId))
+    .map((row) => row.pageName);
+  return names.length ? names.join('、') : '未分配';
+}
+
 function setPageDataScope(pagePermissionId: number, dataScope: string) {
   if (!['SELF', 'ORG_ONLY', 'ALL'].includes(dataScope)) {
     return;
@@ -490,6 +502,32 @@ async function toggleRole(role: AdminRole) {
     if (error instanceof Error) {
       ElMessage.error(error.message);
     }
+  } finally {
+    busyId.value = null;
+  }
+}
+
+async function removeRole(role: AdminRole) {
+  if (role.userCount) {
+    ElMessage.warning('该角色仍有用户使用，不能删除');
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认删除角色「${role.roleName}」？`, '删除角色', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
+  busyId.value = role.roleId;
+  try {
+    await deleteAdminRole(role.roleId);
+    ElMessage.success('角色已删除');
+    await loadRoles();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '角色删除失败');
   } finally {
     busyId.value = null;
   }

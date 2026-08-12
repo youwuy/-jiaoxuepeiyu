@@ -26,7 +26,10 @@ public interface AdminAccountMapper {
             + "LEFT JOIN sys_org o ON o.id = u.org_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
             + "WHERE u.user_type = #{userType} "
-            + "<if test='orgId != null'>AND u.org_id = #{orgId}</if> "
+            + "<if test=\"dataScope == 'SELF'\">AND u.id = #{currentUserId}</if> "
+            + "<if test=\"dataScope == 'ORG_ONLY' and (orgIds == null or orgIds.isEmpty())\">AND 1 = 0</if> "
+            + "<if test='orgIds != null and !orgIds.isEmpty()'>AND u.org_id IN "
+            + "<foreach collection='orgIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='enabled != null'>AND u.status = <choose><when test='enabled'>1</when><otherwise>0</otherwise></choose></if> "
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
@@ -48,7 +51,10 @@ public interface AdminAccountMapper {
             + "LEFT JOIN sys_org o ON o.id = u.org_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
             + "WHERE u.user_type = #{userType} "
-            + "<if test='orgId != null'>AND u.org_id = #{orgId}</if> "
+            + "<if test=\"dataScope == 'SELF'\">AND u.id = #{currentUserId}</if> "
+            + "<if test=\"dataScope == 'ORG_ONLY' and (orgIds == null or orgIds.isEmpty())\">AND 1 = 0</if> "
+            + "<if test='orgIds != null and !orgIds.isEmpty()'>AND u.org_id IN "
+            + "<foreach collection='orgIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='enabled != null'>AND u.status = <choose><when test='enabled'>1</when><otherwise>0</otherwise></choose></if> "
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
@@ -61,7 +67,10 @@ public interface AdminAccountMapper {
 
     @Select("<script>"
             + "SELECT COUNT(*) FROM sys_user u WHERE u.user_type = #{userType} "
-            + "<if test='orgId != null'>AND u.org_id = #{orgId}</if> "
+            + "<if test=\"dataScope == 'SELF'\">AND u.id = #{currentUserId}</if> "
+            + "<if test=\"dataScope == 'ORG_ONLY' and (orgIds == null or orgIds.isEmpty())\">AND 1 = 0</if> "
+            + "<if test='orgIds != null and !orgIds.isEmpty()'>AND u.org_id IN "
+            + "<foreach collection='orgIds' item='id' open='(' separator=',' close=')'>#{id}</foreach></if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='enabled != null'>AND u.status = <choose><when test='enabled'>1</when><otherwise>0</otherwise></choose></if> "
             + "<if test='realName != null'>AND u.real_name LIKE #{realName}</if> "
@@ -70,6 +79,9 @@ public interface AdminAccountMapper {
             + "<if test='jobTitle != null'>AND u.job_title LIKE #{jobTitle}</if> "
             + "</script>")
     long countAccounts(AdminAccountQuery query);
+
+    @Select("SELECT id FROM sys_org WHERE parent_id = #{parentId} ORDER BY sort_order ASC, id ASC")
+    List<Long> findChildOrgIds(@Param("parentId") Long parentId);
 
     @Select("SELECT u.id AS user_id, u.username AS account_no, u.real_name, u.phone, "
             + "u.id_card AS id_card, u.id_card AS masked_id_card, u.job_title, u.user_type, u.org_id, o.org_name, "

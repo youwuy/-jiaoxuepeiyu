@@ -45,7 +45,7 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="row in visibleRows"
+                  v-for="row in pagedVisibleRows"
                   :key="row.orgId"
                   :class="{
                     disabled: !row.enabled,
@@ -114,7 +114,13 @@
 
           <footer class="admin-org-footer">
             <p>共 {{ orgTotal }} 条记录</p>
-            <el-pagination :current-page="1" :page-size="10" :total="orgTotal" layout="prev, pager, next" background />
+            <el-pagination
+              v-model:current-page="currentPage"
+              :page-size="pageSize"
+              :total="visibleRows.length"
+              layout="prev, pager, next"
+              background
+            />
           </footer>
         </template>
       </section>
@@ -189,6 +195,8 @@ const dragOverId = ref<number | null>(null);
 const dragPosition = ref<'before' | 'after'>('before');
 const orgTree = ref<AdminOrgNode[]>([]);
 const expandedIds = ref(new Set<number>());
+const currentPage = ref(1);
+const pageSize = 10;
 const draftKeyword = ref('');
 const keyword = ref('');
 const dialogVisible = ref(false);
@@ -203,6 +211,7 @@ const form = reactive<AdminOrgCommand>({
 });
 
 const visibleRows = computed(() => flattenAdminOrgTree(orgTree.value, expandedIds.value, draftKeyword.value || keyword.value));
+const pagedVisibleRows = computed(() => visibleRows.value.slice((currentPage.value - 1) * pageSize, currentPage.value * pageSize));
 const orgTotal = computed(() => countAdminOrgs(orgTree.value));
 const dialogTitle = computed(() => (dialogMode.value === 'edit' ? '编辑组织' : '新增组织'));
 const filtering = computed(() => Boolean((draftKeyword.value || keyword.value).trim()));
@@ -218,11 +227,13 @@ function formatDateTime(value?: string) {
 
 function applySearch() {
   keyword.value = draftKeyword.value.trim();
+  currentPage.value = 1;
 }
 
 function resetSearch() {
   draftKeyword.value = '';
   keyword.value = '';
+  currentPage.value = 1;
 }
 
 function toggleExpanded(orgId: number) {
@@ -474,6 +485,7 @@ async function loadOrgTree() {
     const result = await fetchAdminOrgTree();
     orgTree.value = result;
     expandedIds.value = new Set(collectAdminOrgIds(orgTree.value));
+    currentPage.value = 1;
   } catch (error) {
     orgTree.value = [];
     expandedIds.value = new Set();

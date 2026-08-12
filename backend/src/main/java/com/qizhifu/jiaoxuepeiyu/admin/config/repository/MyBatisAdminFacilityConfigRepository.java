@@ -57,6 +57,11 @@ public class MyBatisAdminFacilityConfigRepository implements AdminFacilityConfig
         mapper.deleteClassroom(classroomId);
     }
 
+    @Override
+    public boolean isClassroomReferenced(Long classroomId) {
+        return mapper.countClassroomReferences(classroomId) > 0;
+    }
+
     private AdminClassroom toClassroom(Long classroomId, AdminClassroomCommand command) {
         AdminClassroom classroom = new AdminClassroom();
         classroom.setClassroomId(classroomId);

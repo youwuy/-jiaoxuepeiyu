@@ -40,6 +40,11 @@ public class MyBatisAdminAccountRepository implements AdminAccountRepository {
     }
 
     @Override
+    public List<Long> findChildOrgIds(Long parentId) {
+        return mapper.findChildOrgIds(parentId);
+    }
+
+    @Override
     public AdminAccount findById(Long userId) {
         AdminAccount account = mapper.findById(userId);
         if (account != null) {

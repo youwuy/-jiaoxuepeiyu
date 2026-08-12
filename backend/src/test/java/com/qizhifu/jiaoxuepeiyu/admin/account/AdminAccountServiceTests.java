@@ -119,6 +119,18 @@ class AdminAccountServiceTests {
     }
 
     @Test
+    void rejectsAccountDetailOutsidePersonalDataScope() {
+        FakeAccounts repository = new FakeAccounts();
+        repository.detailAccount = account(10L, "teacher001", "Teacher One", "13812345678", "110101199001011234");
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.get(10L, 9L, "SELF", new ArrayList<Long>()));
+
+        assertEquals("Account is outside your data scope", exception.getMessage());
+    }
+
+    @Test
     void batchResetPasswordUsesSubmittedPassword() {
         FakeAccounts repository = new FakeAccounts();
         AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
@@ -302,6 +314,7 @@ class AdminAccountServiceTests {
         private AdminAccountQuery lastFindQuery;
         private AdminAccountQuery lastCountQuery;
         private boolean duplicateOnCreate;
+        private AdminAccount detailAccount;
 
         @Override
         public List<AdminAccount> findAccounts(AdminAccountQuery query) {
@@ -321,8 +334,13 @@ class AdminAccountServiceTests {
         }
 
         @Override
+        public List<Long> findChildOrgIds(Long parentId) {
+            return new ArrayList<Long>();
+        }
+
+        @Override
         public AdminAccount findById(Long userId) {
-            return null;
+            return detailAccount;
         }
 
         @Override

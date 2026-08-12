@@ -41,6 +41,12 @@ public interface AdminFacilityConfigMapper {
     @Delete("DELETE FROM training_room WHERE id = #{classroomId}")
     void deleteClassroom(@Param("classroomId") Long classroomId);
 
+    @Select("SELECT ("
+            + "(SELECT COUNT(*) FROM training_monitor_snapshot WHERE classroom_id = #{classroomId}) + "
+            + "(SELECT COUNT(*) FROM device WHERE classroom_id = #{classroomId} AND deleted_flag = 0)"
+            + ")")
+    int countClassroomReferences(@Param("classroomId") Long classroomId);
+
     @Delete("DELETE FROM room_camera WHERE room_id = #{classroomId}")
     void deleteCameras(@Param("classroomId") Long classroomId);
 

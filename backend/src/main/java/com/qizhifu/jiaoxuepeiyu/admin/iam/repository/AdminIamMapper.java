@@ -1,6 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.iam.repository;
 
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermission;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminDataScopeAccess;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminPermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRole;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
@@ -23,6 +24,29 @@ public interface AdminIamMapper {
             + "route_path, CASE WHEN visible = 1 THEN TRUE ELSE FALSE END AS visible, sort_order "
             + "FROM sys_permission ORDER BY sort_order ASC, id ASC")
     List<AdminPermission> findPermissions();
+
+    @Select("SELECT COUNT(*) FROM sys_user WHERE id = #{userId} AND user_type = 'admin' AND status = 1")
+    int countUnrestrictedAdmins(@Param("userId") Long userId);
+
+    @Select("SELECT DISTINCT p.permission_code FROM sys_user_role ur "
+            + "JOIN sys_role r ON r.id = ur.role_id AND r.status = 1 AND r.deleted_flag = 0 "
+            + "JOIN sys_role_permission rp ON rp.role_id = r.id "
+            + "JOIN sys_permission p ON p.id = rp.permission_id "
+            + "WHERE ur.user_id = #{userId} AND p.visible = 1 ORDER BY p.permission_code")
+    List<String> findUserPermissionCodes(@Param("userId") Long userId);
+
+    @Select("SELECT CASE "
+            + "WHEN SUM(CASE WHEN rp.data_scope = 'ALL' THEN 1 ELSE 0 END) > 0 THEN 'ALL' "
+            + "WHEN SUM(CASE WHEN rp.data_scope IN ('ORG_ONLY', 'MANAGED_ORG') THEN 1 ELSE 0 END) > 0 THEN 'ORG_ONLY' "
+            + "ELSE 'SELF' END AS data_scope "
+            + "FROM sys_user_role ur JOIN sys_role r ON r.id = ur.role_id AND r.status = 1 AND r.deleted_flag = 0 "
+            + "JOIN sys_role_permission rp ON rp.role_id = r.id "
+            + "JOIN sys_permission p ON p.id = rp.permission_id "
+            + "WHERE ur.user_id = #{userId} AND p.permission_code = #{permissionCode}")
+    String findUserDataScope(@Param("userId") Long userId, @Param("permissionCode") String permissionCode);
+
+    @Select("SELECT org_id FROM sys_user_org_scope WHERE user_id = #{userId} AND scope_type = 'MANAGED' ORDER BY org_id")
+    List<Long> findManagedOrgIds(@Param("userId") Long userId);
 
     @Select("SELECT id AS permission_id, parent_id, permission_name, permission_code, permission_type, "
             + "route_path, CASE WHEN visible = 1 THEN TRUE ELSE FALSE END AS visible, sort_order "

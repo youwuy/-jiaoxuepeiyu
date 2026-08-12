@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.AdminPermissionInterceptor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -13,11 +15,19 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final Path uploadRoot;
     private final String publicPrefix;
+    private final AdminPermissionInterceptor adminPermissionInterceptor;
 
     public WebConfig(@Value("${app.file.upload-root:uploads}") String uploadRoot,
-                     @Value("${app.file.public-prefix:/uploads}") String publicPrefix) {
+                     @Value("${app.file.public-prefix:/uploads}") String publicPrefix,
+                     AdminPermissionInterceptor adminPermissionInterceptor) {
         this.uploadRoot = Paths.get(uploadRoot).toAbsolutePath().normalize();
         this.publicPrefix = normalizePublicPrefix(publicPrefix);
+        this.adminPermissionInterceptor = adminPermissionInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(adminPermissionInterceptor).addPathPatterns("/api/admin/**");
     }
 
     @Override

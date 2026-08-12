@@ -71,6 +71,11 @@ public class MyBatisAdminEducationConfigRepository implements AdminEducationConf
     }
 
     @Override
+    public boolean majorExists(String majorName) {
+        return mapper.countMajorsByName(majorName) > 0;
+    }
+
+    @Override
     public Long createMajor(AdminMajorCommand command) {
         AdminMajor major = new AdminMajor();
         major.setMajorName(command.getMajorName());
@@ -86,6 +91,11 @@ public class MyBatisAdminEducationConfigRepository implements AdminEducationConf
     @Override
     public List<AdminClass> findClasses(Long majorId) {
         return mapper.findClasses(majorId);
+    }
+
+    @Override
+    public boolean classExists(String className) {
+        return mapper.countClassesByName(className) > 0;
     }
 
     @Override

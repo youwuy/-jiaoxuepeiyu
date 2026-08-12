@@ -13,6 +13,8 @@ public interface AdminAccountRepository {
 
     long countAccounts(AdminAccountQuery query);
 
+    List<Long> findChildOrgIds(Long parentId);
+
     AdminAccount findById(Long userId);
 
     List<String> findExistingAccountNos(List<String> accountNos);

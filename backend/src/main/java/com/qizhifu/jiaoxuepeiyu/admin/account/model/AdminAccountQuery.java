@@ -1,9 +1,15 @@
 package com.qizhifu.jiaoxuepeiyu.admin.account.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AdminAccountQuery {
 
     private String userType;
     private Long orgId;
+    private List<Long> orgIds = new ArrayList<Long>();
+    private Long currentUserId;
+    private String dataScope = "ALL";
     private Long classId;
     private String realName;
     private String accountNo;
@@ -27,6 +33,30 @@ public class AdminAccountQuery {
 
     public void setOrgId(Long orgId) {
         this.orgId = orgId;
+    }
+
+    public List<Long> getOrgIds() {
+        return orgIds;
+    }
+
+    public void setOrgIds(List<Long> orgIds) {
+        this.orgIds = orgIds == null ? new ArrayList<Long>() : orgIds;
+    }
+
+    public Long getCurrentUserId() {
+        return currentUserId;
+    }
+
+    public void setCurrentUserId(Long currentUserId) {
+        this.currentUserId = currentUserId;
+    }
+
+    public String getDataScope() {
+        return dataScope;
+    }
+
+    public void setDataScope(String dataScope) {
+        this.dataScope = dataScope;
     }
 
     public Long getClassId() {

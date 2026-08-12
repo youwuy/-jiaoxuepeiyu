@@ -99,6 +99,26 @@ class AdminIamControllerTests {
         }
 
         @Override
+        public boolean isUnrestrictedAdmin(Long userId) {
+            return false;
+        }
+
+        @Override
+        public List<String> findUserPermissionCodes(Long userId) {
+            return new ArrayList<String>();
+        }
+
+        @Override
+        public String findUserDataScope(Long userId, String permissionCode) {
+            return "SELF";
+        }
+
+        @Override
+        public List<Long> findManagedOrgIds(Long userId) {
+            return new ArrayList<Long>();
+        }
+
+        @Override
         public AdminPermission findPermission(Long permissionId) {
             AdminPermission permission = new AdminPermission();
             permission.setPermissionId(permissionId);

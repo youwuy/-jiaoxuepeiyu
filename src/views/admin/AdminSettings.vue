@@ -670,10 +670,11 @@ function toCameraRow(classroom: AdminClassroom, camera: AdminCamera): CameraRow 
   };
 }
 
-async function safeLoad<T>(loader: () => Promise<T[]>) {
+async function safeLoad<T>(label: string, loader: () => Promise<T[]>) {
   try {
     return await loader();
-  } catch {
+  } catch (error) {
+    ElMessage.error(`${label}加载失败：${error instanceof Error ? error.message : '接口请求失败'}`);
     return [];
   }
 }
@@ -682,13 +683,13 @@ async function loadSettings() {
   loading.value = true;
   try {
     const [yearRows, majorRows, classRows, classroomRows, weightRows, gradeRuleRows, gradeLogRows] = await Promise.all([
-      safeLoad(fetchAdminAcademicYears),
-      safeLoad(fetchAdminMajors),
-      safeLoad(fetchAdminClasses),
-      safeLoad(fetchAdminClassrooms),
-      safeLoad(fetchAdminScoreWeights),
-      safeLoad(fetchAdminScoreGradeRules),
-      safeLoad(fetchAdminScoreGradeRuleLogs)
+      safeLoad('学年学期', fetchAdminAcademicYears),
+      safeLoad('专业目录', fetchAdminMajors),
+      safeLoad('班级配置', fetchAdminClasses),
+      safeLoad('教室配置', fetchAdminClassrooms),
+      safeLoad('成绩权重', fetchAdminScoreWeights),
+      safeLoad('成绩等级', fetchAdminScoreGradeRules),
+      safeLoad('成绩等级日志', fetchAdminScoreGradeRuleLogs)
     ]);
     academicYears.value = yearRows;
     majors.value = majorRows;
@@ -967,9 +968,29 @@ async function saveGradeRules() {
     return;
   }
 
+  if (nextRules.some((rule) => !Number.isInteger(rule.minScore) || !Number.isInteger(rule.maxScore))) {
+    ElMessage.warning('成绩等级的分数范围必须使用整数');
+    return;
+  }
+
+  if (new Set(nextRules.map((rule) => rule.gradeName)).size !== nextRules.length) {
+    ElMessage.warning('成绩等级名称不能重复');
+    return;
+  }
+
   const overlaps = nextRules.some((rule, index) => index > 0 && rule.maxScore > nextRules[index - 1].minScore);
   if (overlaps) {
     ElMessage.warning('成绩等级的分数范围不能重叠');
+    return;
+  }
+
+  const hasGap = nextRules[0].maxScore !== 100
+    || nextRules[nextRules.length - 1].minScore !== 0
+    || nextRules.some((rule, index) => index > 0
+      && rule.maxScore !== nextRules[index - 1].minScore
+      && rule.maxScore + 1 !== nextRules[index - 1].minScore);
+  if (hasGap) {
+    ElMessage.warning('成绩等级必须无空白地完整覆盖0-100分');
     return;
   }
 

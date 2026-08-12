@@ -15,4 +15,6 @@ public interface AdminFacilityConfigRepository {
     void updateClassroom(Long classroomId, AdminClassroomCommand command);
 
     void deleteClassroom(Long classroomId);
+
+    boolean isClassroomReferenced(Long classroomId);
 }

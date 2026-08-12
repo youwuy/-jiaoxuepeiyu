@@ -243,6 +243,11 @@ class AdminEducationConfigServiceTests {
         }
 
         @Override
+        public boolean majorExists(String majorName) {
+            return false;
+        }
+
+        @Override
         public Long createMajor(AdminMajorCommand command) {
             return 200L;
         }
@@ -256,6 +261,11 @@ class AdminEducationConfigServiceTests {
         @Override
         public List<AdminClass> findClasses(Long majorId) {
             return new ArrayList<AdminClass>();
+        }
+
+        @Override
+        public boolean classExists(String className) {
+            return false;
         }
 
         @Override

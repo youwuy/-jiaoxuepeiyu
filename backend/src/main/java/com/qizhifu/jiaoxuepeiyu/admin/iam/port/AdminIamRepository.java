@@ -13,6 +13,14 @@ public interface AdminIamRepository {
 
     List<AdminPermission> findPermissions();
 
+    boolean isUnrestrictedAdmin(Long userId);
+
+    List<String> findUserPermissionCodes(Long userId);
+
+    String findUserDataScope(Long userId, String permissionCode);
+
+    List<Long> findManagedOrgIds(Long userId);
+
     AdminPermission findPermission(Long permissionId);
 
     Long findPermissionIdByCode(String permissionCode);

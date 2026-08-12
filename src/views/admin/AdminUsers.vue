@@ -1193,13 +1193,9 @@ async function previewImportRows() {
   }
   try {
     importPreview.value = await previewAdminAccountImport(activeKind.value, rows);
-  } catch {
-    importPreview.value = {
-      totalCount: rows.length,
-      validCount: rows.filter((row) => row.accountNo && row.realName).length,
-      errorCount: rows.filter((row) => !row.accountNo || !row.realName).length,
-      rows: rows.map((row) => ({ ...row, valid: Boolean(row.accountNo && row.realName), errors: row.accountNo && row.realName ? [] : ['账号和姓名不能为空'] }))
-    };
+  } catch (error) {
+    importPreview.value = null;
+    ElMessage.error(error instanceof Error ? error.message : '导入预览失败，请检查接口后重试');
   }
 }
 

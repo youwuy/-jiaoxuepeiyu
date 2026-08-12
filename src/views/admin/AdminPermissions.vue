@@ -587,23 +587,11 @@ async function removePermission(row: AdminPermissionRow) {
 
 function buildDefaultExpandedIds(tree: AdminPermissionNode[]) {
   const ids = new Set<number>();
-  const root = tree.find((item) => item.permissionCode === 'system') ?? tree[0];
-  if (root) {
-    ids.add(root.permissionId);
-    const firstChild = root.children?.[0];
-    if (firstChild) {
-      ids.add(firstChild.permissionId);
-    }
-  }
-
-  const teachingRoot = tree.find((item) => item.permissionCode === 'teaching');
-  if (teachingRoot) {
-    ids.add(teachingRoot.permissionId);
-    const firstTeachingChild = teachingRoot.children?.[0];
-    if (firstTeachingChild) {
-      ids.add(firstTeachingChild.permissionId);
-    }
-  }
+  const collect = (nodes: AdminPermissionNode[]) => nodes.forEach((node) => {
+    if (node.children?.length) ids.add(node.permissionId);
+    collect(node.children ?? []);
+  });
+  collect(tree);
 
   return ids;
 }

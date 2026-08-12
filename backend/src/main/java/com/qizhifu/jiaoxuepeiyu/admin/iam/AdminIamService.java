@@ -11,6 +11,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePageDataScope;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionBinding;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminUserAccess;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminDataScopeAccess;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.port.AdminIamRepository;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
@@ -60,6 +62,50 @@ public class AdminIamService {
         return roots;
     }
 
+    public AdminUserAccess getUserAccess(Long userId) {
+        requireOperator(userId);
+        AdminUserAccess access = new AdminUserAccess();
+        access.setUnrestricted(repository.isUnrestrictedAdmin(userId));
+        if (!access.isUnrestricted()) {
+            access.setPermissionCodes(repository.findUserPermissionCodes(userId));
+        }
+        return access;
+    }
+
+    public AdminDataScopeAccess getUserDataScope(Long userId, String permissionCode) {
+        AdminDataScopeAccess access = new AdminDataScopeAccess();
+        if (repository.isUnrestrictedAdmin(userId)) {
+            access.setDataScope("ALL");
+            return access;
+        }
+        String dataScope = repository.findUserDataScope(userId, permissionCode);
+        access.setDataScope(dataScope == null ? "SELF" : normalizedDataScope(dataScope));
+        if ("ORG_ONLY".equals(access.getDataScope())) {
+            access.setManagedOrgIds(repository.findManagedOrgIds(userId));
+        }
+        return access;
+    }
+
+    public List<AdminPermission> listUserPermissionTree(Long userId) {
+        if (repository.isUnrestrictedAdmin(userId)) {
+            return listPermissionTree();
+        }
+        Set<String> granted = new HashSet<String>(repository.findUserPermissionCodes(userId));
+        return filterPermissionTree(listPermissionTree(), granted);
+    }
+
+    private List<AdminPermission> filterPermissionTree(List<AdminPermission> nodes, Set<String> granted) {
+        List<AdminPermission> result = new ArrayList<AdminPermission>();
+        for (AdminPermission node : nodes) {
+            List<AdminPermission> children = filterPermissionTree(node.getChildren(), granted);
+            if (granted.contains(node.getPermissionCode()) || !children.isEmpty()) {
+                node.setChildren(children);
+                result.add(node);
+            }
+        }
+        return result;
+    }
+
     @Transactional
     public Long createPermission(AdminPermissionCommand command, Long operatorId) {
         requireOperator(operatorId);
@@ -87,9 +133,7 @@ public class AdminIamService {
     public void enablePermission(Long permissionId, Long operatorId) {
         requireOperator(operatorId);
         getPermission(permissionId);
-        for (Long id : collectPermissionSubtreeIds(permissionId)) {
-            repository.updatePermissionStatus(id, true);
-        }
+        repository.updatePermissionStatus(permissionId, true);
     }
 
     @Transactional
@@ -212,6 +256,9 @@ public class AdminIamService {
         requireOperator(operatorId);
         AdminRole role = getRole(roleId);
         assertMutableRole(role);
+        if (role.getUserCount() != null && role.getUserCount().intValue() > 0) {
+            throw new BusinessException(400, "Role is assigned to users");
+        }
         repository.deleteRole(roleId);
         repository.appendRoleLog(roleId, operatorId, "DELETE", "Delete role");
     }

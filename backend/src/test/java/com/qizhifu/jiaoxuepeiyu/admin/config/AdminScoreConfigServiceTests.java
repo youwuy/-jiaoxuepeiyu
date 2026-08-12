@@ -60,13 +60,13 @@ class AdminScoreConfigServiceTests {
         AdminScoreConfigService service = new AdminScoreConfigService(repository);
 
         service.replaceGradeRules(Arrays.asList(
-                grade("B", "80", "90"),
+                grade("B", "0", "89"),
                 grade("A", "90", "100")), 9L);
 
         assertEquals(true, repository.replacedGrades);
         assertEquals("A", repository.gradeRules.get(0).getGradeName());
         assertEquals("未配置", repository.beforeContent);
-        assertEquals("A（90%-100%）、B（80%-90%）", repository.afterContent);
+        assertEquals("A（90%-100%）、B（0%-89%）", repository.afterContent);
         assertEquals(9L, repository.logOperatorId.longValue());
     }
 

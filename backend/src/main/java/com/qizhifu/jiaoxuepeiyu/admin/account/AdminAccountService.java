@@ -44,6 +44,18 @@ public class AdminAccountService {
         return list("teacher", query);
     }
 
+    public void applyDataScope(AdminAccountQuery query, Long currentUserId, String dataScope, List<Long> managedOrgIds) {
+        query.setCurrentUserId(currentUserId);
+        query.setDataScope(dataScope == null ? "SELF" : dataScope);
+        if ("ORG_ONLY".equals(query.getDataScope())) {
+            List<Long> allowedOrgIds = expandOrgIds(managedOrgIds);
+            if (query.getOrgId() != null) {
+                allowedOrgIds.retainAll(descendantOrgIds(query.getOrgId()));
+            }
+            query.setOrgIds(allowedOrgIds);
+        }
+    }
+
     public PageResponse<AdminAccount> listStudents(AdminAccountQuery query) {
         return list("student", query);
     }
@@ -55,6 +67,21 @@ public class AdminAccountService {
         }
         attachMasks(account);
         return account;
+    }
+
+    public AdminAccount get(Long userId, Long currentUserId, String dataScope, List<Long> managedOrgIds) {
+        AdminAccount account = get(userId);
+        if ("ALL".equals(dataScope)) {
+            return account;
+        }
+        if ("SELF".equals(dataScope) && userId.equals(currentUserId)) {
+            return account;
+        }
+        if ("ORG_ONLY".equals(dataScope) && account.getOrgId() != null
+                && expandOrgIds(managedOrgIds).contains(account.getOrgId())) {
+            return account;
+        }
+        throw new BusinessException(403, "Account is outside your data scope");
     }
 
     @Transactional
@@ -187,6 +214,9 @@ public class AdminAccountService {
         normalized.setAccountNo(like(normalized.getAccountNo()));
         normalized.setPhone(like(normalized.getPhone()));
         normalized.setJobTitle(like(normalized.getJobTitle()));
+        if (!"ORG_ONLY".equals(normalized.getDataScope())) {
+            normalized.setOrgIds(descendantOrgIds(normalized.getOrgId()));
+        }
         if (normalized.getPage() < 1) {
             normalized.setPage(1);
         }
@@ -194,6 +224,33 @@ public class AdminAccountService {
             normalized.setPageSize(20);
         }
         return normalized;
+    }
+
+    private List<Long> descendantOrgIds(Long rootOrgId) {
+        List<Long> result = new ArrayList<Long>();
+        if (rootOrgId == null) {
+            return result;
+        }
+        Set<Long> visited = new HashSet<Long>();
+        List<Long> pending = new ArrayList<Long>();
+        pending.add(rootOrgId);
+        while (!pending.isEmpty()) {
+            Long orgId = pending.remove(0);
+            if (orgId == null || !visited.add(orgId)) {
+                continue;
+            }
+            result.add(orgId);
+            pending.addAll(repository.findChildOrgIds(orgId));
+        }
+        return result;
+    }
+
+    private List<Long> expandOrgIds(List<Long> roots) {
+        Set<Long> ids = new LinkedHashSet<Long>();
+        if (roots != null) {
+            for (Long root : roots) ids.addAll(descendantOrgIds(root));
+        }
+        return new ArrayList<Long>(ids);
     }
 
     private AdminAccountCommand normalized(AdminAccountCommand command, String userType, boolean requireAccountNo) {

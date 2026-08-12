@@ -12,7 +12,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -124,12 +126,26 @@ public class AdminScoreConfigService {
             normalized.add(normalizedRule(rule));
         }
         Collections.sort(normalized, new GradeRuleComparator());
+        Set<String> gradeNames = new HashSet<String>();
+        for (AdminScoreGradeRuleCommand rule : normalized) {
+            if (!gradeNames.add(rule.getGradeName())) {
+                throw new BusinessException(400, "Score grade names must be unique");
+            }
+        }
         for (int i = 1; i < normalized.size(); i++) {
             AdminScoreGradeRuleCommand previous = normalized.get(i - 1);
             AdminScoreGradeRuleCommand current = normalized.get(i);
             if (current.getMaxScore().compareTo(previous.getMinScore()) > 0) {
                 throw new BusinessException(400, "Score grade rules cannot overlap");
             }
+            if (current.getMaxScore().compareTo(previous.getMinScore()) != 0
+                    && current.getMaxScore().add(BigDecimal.ONE).compareTo(previous.getMinScore()) != 0) {
+                throw new BusinessException(400, "Score grade rules cannot contain gaps");
+            }
+        }
+        if (normalized.get(0).getMaxScore().compareTo(ONE_HUNDRED) != 0
+                || normalized.get(normalized.size() - 1).getMinScore().compareTo(ZERO) != 0) {
+            throw new BusinessException(400, "Score grade rules must cover 0 to 100");
         }
         return normalized;
     }
@@ -140,6 +156,10 @@ public class AdminScoreConfigService {
         }
         if (rule.getMinScore() == null || rule.getMaxScore() == null) {
             throw new BusinessException(400, "Grade score range is required");
+        }
+        if (rule.getMinScore().stripTrailingZeros().scale() > 0
+                || rule.getMaxScore().stripTrailingZeros().scale() > 0) {
+            throw new BusinessException(400, "Score grade ranges must use integers");
         }
         if (rule.getMinScore().compareTo(ZERO) < 0 || rule.getMaxScore().compareTo(ONE_HUNDRED) > 0) {
             throw new BusinessException(400, "Grade score range must be between 0 and 100");

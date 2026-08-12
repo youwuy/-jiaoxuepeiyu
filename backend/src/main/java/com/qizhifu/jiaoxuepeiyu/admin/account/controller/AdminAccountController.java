@@ -14,6 +14,10 @@ import com.qizhifu.jiaoxuepeiyu.admin.account.model.RoleBindingCommand;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
+import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.AdminDataScopeContext;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminDataScopeAccess;
+import javax.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
@@ -42,13 +46,15 @@ public class AdminAccountController {
 
     @GetMapping("/teachers")
     @Operation(summary = "List teacher accounts", description = "Returns paged teacher accounts with masked sensitive fields.")
-    public ApiResponse<PageResponse<AdminAccount>> listTeachers(@ModelAttribute AdminAccountQuery query) {
+    public ApiResponse<PageResponse<AdminAccount>> listTeachers(@ModelAttribute AdminAccountQuery query, HttpServletRequest request) {
+        applyDataScope(query, request);
         return ApiResponse.ok(service.listTeachers(query));
     }
 
     @GetMapping("/students")
     @Operation(summary = "List student accounts", description = "Returns paged student accounts with class, organization, and masked sensitive fields.")
-    public ApiResponse<PageResponse<AdminAccount>> listStudents(@ModelAttribute AdminAccountQuery query) {
+    public ApiResponse<PageResponse<AdminAccount>> listStudents(@ModelAttribute AdminAccountQuery query, HttpServletRequest request) {
+        applyDataScope(query, request);
         return ApiResponse.ok(service.listStudents(query));
     }
 
@@ -66,7 +72,8 @@ public class AdminAccountController {
 
     @GetMapping("/teachers/export")
     @Operation(summary = "Export teacher accounts", description = "Returns export-ready teacher account rows with masked sensitive fields.")
-    public ApiResponse<List<AdminAccountExportRow>> exportTeachers(@ModelAttribute AdminAccountQuery query) {
+    public ApiResponse<List<AdminAccountExportRow>> exportTeachers(@ModelAttribute AdminAccountQuery query, HttpServletRequest request) {
+        applyDataScope(query, request);
         return ApiResponse.ok(service.exportAccounts("teacher", query));
     }
 
@@ -90,7 +97,8 @@ public class AdminAccountController {
 
     @GetMapping("/students/export")
     @Operation(summary = "Export student accounts", description = "Returns export-ready student account rows with masked sensitive fields.")
-    public ApiResponse<List<AdminAccountExportRow>> exportStudents(@ModelAttribute AdminAccountQuery query) {
+    public ApiResponse<List<AdminAccountExportRow>> exportStudents(@ModelAttribute AdminAccountQuery query, HttpServletRequest request) {
+        applyDataScope(query, request);
         return ApiResponse.ok(service.exportAccounts("student", query));
     }
 
@@ -102,8 +110,13 @@ public class AdminAccountController {
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get account detail", description = "Returns one account detail with phone and ID card masked.")
-    public ApiResponse<AdminAccount> get(@PathVariable Long userId) {
-        return ApiResponse.ok(service.get(userId));
+    public ApiResponse<AdminAccount> get(@PathVariable Long userId, HttpServletRequest request) {
+        AdminDataScopeAccess access = AdminDataScopeContext.get(request);
+        if (access == null) {
+            return ApiResponse.ok(service.get(userId));
+        }
+        return ApiResponse.ok(service.get(userId, AdminContext.requireAdminId(request),
+                access.getDataScope(), access.getManagedOrgIds()));
     }
 
     @PostMapping("/teachers")
@@ -199,5 +212,12 @@ public class AdminAccountController {
 
     private String value(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private void applyDataScope(AdminAccountQuery query, HttpServletRequest request) {
+        AdminDataScopeAccess access = AdminDataScopeContext.get(request);
+        if (access != null) {
+            service.applyDataScope(query, AdminContext.requireAdminId(request), access.getDataScope(), access.getManagedOrgIds());
+        }
     }
 }

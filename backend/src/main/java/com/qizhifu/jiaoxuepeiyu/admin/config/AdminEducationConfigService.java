@@ -75,6 +75,9 @@ public class AdminEducationConfigService {
 
     public Long createMajor(AdminMajorCommand command) {
         AdminMajorCommand normalized = normalizedMajor(command);
+        if (repository.majorExists(normalized.getMajorName())) {
+            throw new BusinessException(400, "Major name already exists");
+        }
         return repository.createMajor(normalized);
     }
 
@@ -92,6 +95,9 @@ public class AdminEducationConfigService {
 
     public Long createClass(AdminClassCommand command) {
         AdminClassCommand normalized = normalizedClass(command);
+        if (repository.classExists(normalized.getClassName())) {
+            throw new BusinessException(400, "Class name already exists");
+        }
         return repository.createClass(normalized);
     }
 

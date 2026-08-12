@@ -26,6 +26,26 @@ public class MyBatisAdminIamRepository implements AdminIamRepository {
     }
 
     @Override
+    public boolean isUnrestrictedAdmin(Long userId) {
+        return mapper.countUnrestrictedAdmins(userId) > 0;
+    }
+
+    @Override
+    public List<String> findUserPermissionCodes(Long userId) {
+        return mapper.findUserPermissionCodes(userId);
+    }
+
+    @Override
+    public String findUserDataScope(Long userId, String permissionCode) {
+        return mapper.findUserDataScope(userId, permissionCode);
+    }
+
+    @Override
+    public List<Long> findManagedOrgIds(Long userId) {
+        return mapper.findManagedOrgIds(userId);
+    }
+
+    @Override
     public AdminPermission findPermission(Long permissionId) {
         return mapper.findPermission(permissionId);
     }

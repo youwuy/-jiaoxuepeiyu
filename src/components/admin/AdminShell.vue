@@ -57,7 +57,7 @@ import {
   SwitchButton,
   User
 } from '@element-plus/icons-vue';
-import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
+import { fetchMyAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 import { fetchAdminProfile } from '../../api/admin-profile';
 import RoleShieldIcon from '../icons/RoleShieldIcon.vue';
 
@@ -163,7 +163,7 @@ function collectVisibleRoutes(tree: AdminPermissionNode[]) {
 
 async function loadPermissionTree() {
   try {
-    permissionTree.value = await fetchAdminPermissionTree();
+    permissionTree.value = await fetchMyAdminPermissionTree();
   } catch {
     permissionTree.value = [];
   } finally {

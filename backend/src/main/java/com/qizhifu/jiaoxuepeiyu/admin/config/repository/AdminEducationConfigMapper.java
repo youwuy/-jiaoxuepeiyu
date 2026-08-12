@@ -50,6 +50,9 @@ public interface AdminEducationConfigMapper {
             + "FROM edu_major ORDER BY major_name ASC, id ASC")
     List<AdminMajor> findMajors();
 
+    @Select("SELECT COUNT(*) FROM edu_major WHERE major_name = #{majorName}")
+    int countMajorsByName(@Param("majorName") String majorName);
+
     @Insert("INSERT INTO edu_major (major_name, status, created_at, updated_at) "
             + "VALUES (#{majorName}, 1, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "majorId")
@@ -67,6 +70,9 @@ public interface AdminEducationConfigMapper {
             + "ORDER BY m.major_name ASC, c.class_name ASC, c.id ASC "
             + "</script>")
     List<AdminClass> findClasses(@Param("majorId") Long majorId);
+
+    @Select("SELECT COUNT(*) FROM edu_class WHERE class_name = #{className}")
+    int countClassesByName(@Param("className") String className);
 
     @Insert("INSERT INTO edu_class (major_id, class_name, status, created_at, updated_at) "
             + "VALUES (#{majorId}, #{className}, 1, NOW(), NOW())")

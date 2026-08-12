@@ -10,6 +10,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleLog;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRolePermissionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminRoleQuery;
+import com.qizhifu.jiaoxuepeiyu.admin.iam.model.AdminUserAccess;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,18 @@ public class AdminIamController {
     @Operation(summary = "List permission tree", description = "Returns menu, page, and button permissions assembled from the parent-child permission table.")
     public ApiResponse<List<AdminPermission>> listPermissionTree() {
         return ApiResponse.ok(service.listPermissionTree());
+    }
+
+    @GetMapping("/api/admin/permissions/mine/tree")
+    @Operation(summary = "List current admin permission tree")
+    public ApiResponse<List<AdminPermission>> listMyPermissionTree(HttpServletRequest request) {
+        return ApiResponse.ok(service.listUserPermissionTree(AdminContext.requireAdminId(request)));
+    }
+
+    @GetMapping("/api/admin/permissions/mine")
+    @Operation(summary = "Get current admin permission codes")
+    public ApiResponse<AdminUserAccess> getMyAccess(HttpServletRequest request) {
+        return ApiResponse.ok(service.getUserAccess(AdminContext.requireAdminId(request)));
     }
 
     @PostMapping("/api/admin/permissions")

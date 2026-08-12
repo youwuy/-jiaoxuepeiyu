@@ -36,6 +36,12 @@ export async function fetchAdminPermissionTree() {
   });
 }
 
+export async function fetchMyAdminPermissionTree() {
+  return requestJson<AdminPermissionNode[]>('/admin/permissions/mine/tree', {
+    fallbackLabel: '当前账号菜单权限'
+  });
+}
+
 export async function createAdminPermission(command: AdminPermissionCommand) {
   const result = await requestJson<number | { permissionId: number }>('/admin/permissions', {
     method: 'POST',

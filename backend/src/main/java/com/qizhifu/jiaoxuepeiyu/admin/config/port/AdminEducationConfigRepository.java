@@ -31,11 +31,15 @@ public interface AdminEducationConfigRepository {
 
     List<AdminMajor> findMajors();
 
+    boolean majorExists(String majorName);
+
     Long createMajor(AdminMajorCommand command);
 
     void updateMajorStatus(Long majorId, boolean enabled);
 
     List<AdminClass> findClasses(Long majorId);
+
+    boolean classExists(String className);
 
     Long createClass(AdminClassCommand command);
 

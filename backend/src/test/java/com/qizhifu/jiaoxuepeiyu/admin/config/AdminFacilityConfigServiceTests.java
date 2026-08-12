@@ -104,5 +104,10 @@ class AdminFacilityConfigServiceTests {
         @Override
         public void deleteClassroom(Long classroomId) {
         }
+
+        @Override
+        public boolean isClassroomReferenced(Long classroomId) {
+            return false;
+        }
     }
 }

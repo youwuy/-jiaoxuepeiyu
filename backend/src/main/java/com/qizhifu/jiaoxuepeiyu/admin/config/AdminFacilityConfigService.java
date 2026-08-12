@@ -46,6 +46,10 @@ public class AdminFacilityConfigService {
 
     @Transactional
     public void deleteClassroom(Long classroomId) {
+        getClassroom(classroomId);
+        if (repository.isClassroomReferenced(classroomId)) {
+            throw new BusinessException(400, "Classroom is referenced by training or device records");
+        }
         repository.deleteClassroom(classroomId);
     }
 

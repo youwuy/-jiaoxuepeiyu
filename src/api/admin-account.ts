@@ -1,4 +1,5 @@
-import { requestBlob, requestJson } from './http';
+import { requestJson } from './http';
+import * as XLSX from 'xlsx';
 
 export type AdminAccountKind = 'teacher' | 'student';
 
@@ -78,6 +79,18 @@ export interface AdminAccountImportPreview {
 export interface AdminAccountImportResult {
   importedCount: number;
   userIds: number[];
+}
+
+interface AdminAccountExportRow {
+  accountNo: string;
+  realName: string;
+  maskedPhone?: string;
+  maskedIdCard?: string;
+  orgName?: string;
+  className?: string;
+  jobTitle?: string;
+  enabled?: boolean;
+  createdAt?: string;
 }
 
 export interface AdminClassOption {
@@ -196,25 +209,21 @@ export async function importAdminAccounts(kind: AdminAccountKind, rows: AdminAcc
 }
 
 export async function exportAdminAccounts(kind: AdminAccountKind, query: AdminAccountQuery = {}) {
-  const result = await requestBlob(`${accountPath(kind)}/export/file${queryString(query)}`, {
+  const rows = await requestJson<AdminAccountExportRow[]>(`${accountPath(kind)}/export${queryString(query)}`, {
     fallbackLabel: '导出用户'
   });
-  downloadBlob(result.blob, result.filename || `${kind}-accounts.csv`);
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  if (!globalThis.document || !globalThis.URL) {
-    return;
-  }
-
-  const url = globalThis.URL.createObjectURL(blob);
-  const link = globalThis.document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  globalThis.document.body.appendChild(link);
-  link.click();
-  globalThis.document.body.removeChild(link);
-  globalThis.URL.revokeObjectURL(url);
+  const table = rows.map((row) => ({
+    [kind === 'teacher' ? '工号' : '学号']: row.accountNo,
+    姓名: row.realName,
+    手机号: row.maskedPhone || '',
+    身份证号: row.maskedIdCard || '',
+    ...(kind === 'teacher' ? { 岗位: row.jobTitle || '', 所属组织: row.orgName || '' } : { 班级: row.className || '' }),
+    状态: row.enabled === false ? '禁用' : '启用',
+    创建时间: row.createdAt || ''
+  }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(table), kind === 'teacher' ? '教师' : '学员');
+  XLSX.writeFile(workbook, `${kind === 'teacher' ? '教师' : '学员'}账号.xlsx`);
 }
 
 export async function fetchAdminClasses() {
