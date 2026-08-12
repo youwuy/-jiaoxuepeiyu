@@ -79,6 +79,14 @@ public class AdminQuestionService {
         updateStatus(questionId, false, operatorId, "DISABLE", "Disable question");
     }
 
+    @Transactional
+    public void deleteQuestion(Long questionId, Long operatorId) {
+        requireOperator(operatorId);
+        getQuestion(questionId);
+        repository.deleteQuestion(questionId);
+        repository.appendQuestionLog(questionId, operatorId, "DELETE", "Delete question");
+    }
+
     public List<AdminQuestionLog> listQuestionLogs(Long questionId) {
         getQuestion(questionId);
         return repository.findQuestionLogs(questionId);
@@ -93,7 +101,7 @@ public class AdminQuestionService {
         List<AdminQuestionImportError> errors = new ArrayList<AdminQuestionImportError>();
         for (AdminQuestionImportRow row : normalized.getRows()) {
             try {
-                normalizedQuestion(commandFromRow(row));
+                normalizedQuestion(commandFromRow(row, normalized.getCourseName()));
                 validRows.add(row);
             } catch (BusinessException exception) {
                 errors.add(new AdminQuestionImportError(row == null ? null : row.getRowNumber(), exception.getMessage()));
@@ -119,7 +127,7 @@ public class AdminQuestionService {
         List<AdminQuestionImportError> errors = new ArrayList<AdminQuestionImportError>();
         for (AdminQuestionImportRow row : normalized.getRows()) {
             try {
-                questions.add(normalizedQuestion(commandFromRow(row)));
+                questions.add(normalizedQuestion(commandFromRow(row, normalized.getCourseName())));
             } catch (BusinessException exception) {
                 errors.add(new AdminQuestionImportError(row == null ? null : row.getRowNumber(), exception.getMessage()));
             }
@@ -158,11 +166,23 @@ public class AdminQuestionService {
         if (command.getScore() == null || command.getScore().intValue() <= 0) {
             throw new BusinessException(400, "Question score must be greater than 0");
         }
+        String courseName = trimToNull(command.getCourseName());
+        if (courseName == null) {
+            throw new BusinessException(400, "Course name is required");
+        }
+        if (courseName.length() > 30) {
+            throw new BusinessException(400, "Course name cannot exceed 30 characters");
+        }
+        String explanation = trimToNull(command.getExplanation());
+        if (explanation == null) {
+            throw new BusinessException(400, "Question explanation is required");
+        }
         AdminQuestionCommand normalized = new AdminQuestionCommand();
         normalized.setQuestionType(questionType);
+        normalized.setCourseName(courseName);
         normalized.setTitle(title);
         normalized.setScore(command.getScore());
-        normalized.setExplanation(trimToNull(command.getExplanation()));
+        normalized.setExplanation(explanation);
         if ("SINGLE".equals(questionType) || "MULTIPLE".equals(questionType)) {
             List<AdminQuestionOption> options = normalizedOptions(command.getOptions());
             normalized.setOptions(options);
@@ -181,8 +201,35 @@ public class AdminQuestionService {
         if (answer == null) {
             throw new BusinessException(400, "Standard answer is required");
         }
+        if ("FILL_BLANK".equals(questionType)) {
+            validateFillBlank(title, answer);
+        }
         normalized.setStandardAnswer(answer);
         return normalized;
+    }
+
+    private void validateFillBlank(String title, String answer) {
+        int blankCount = 0;
+        boolean inBlank = false;
+        for (int i = 0; i < title.length(); i++) {
+            boolean underscore = title.charAt(i) == '_' || title.charAt(i) == '＿';
+            if (underscore && !inBlank) {
+                blankCount++;
+            }
+            inBlank = underscore;
+        }
+        if (blankCount == 0) {
+            throw new BusinessException(400, "Fill blank title must contain underscore markers");
+        }
+        String[] answers = answer.split("[,，;；|]", -1);
+        if (answers.length != blankCount) {
+            throw new BusinessException(400, "Fill blank answer count must match blank markers");
+        }
+        for (String item : answers) {
+            if (!InputValidator.hasText(item)) {
+                throw new BusinessException(400, "Fill blank answers cannot be empty");
+            }
+        }
     }
 
     private List<AdminQuestionOption> normalizedOptions(List<AdminQuestionOption> options) {
@@ -239,18 +286,30 @@ public class AdminQuestionService {
         if (command.getFileSize() == null || command.getFileSize().longValue() <= 0) {
             throw new BusinessException(400, "Import file size is required");
         }
+        if (command.getFileSize().longValue() > 200L * 1024L * 1024L) {
+            throw new BusinessException(400, "Import file cannot exceed 200MB");
+        }
         if (command.getRows() == null || command.getRows().isEmpty()) {
             throw new BusinessException(400, "Import rows are required");
         }
         AdminQuestionImportCommand normalized = new AdminQuestionImportCommand();
         normalized.setFileName(fileName);
         normalized.setFileSize(command.getFileSize());
+        String courseName = trimToNull(command.getCourseName());
+        if (courseName == null) {
+            throw new BusinessException(400, "Course name is required");
+        }
+        if (courseName.length() > 30) {
+            throw new BusinessException(400, "Course name cannot exceed 30 characters");
+        }
+        normalized.setCourseName(courseName);
         normalized.setRows(command.getRows());
         return normalized;
     }
 
-    private AdminQuestionCommand commandFromRow(AdminQuestionImportRow row) {
+    private AdminQuestionCommand commandFromRow(AdminQuestionImportRow row, String courseName) {
         AdminQuestionCommand command = new AdminQuestionCommand();
+        command.setCourseName(courseName);
         command.setQuestionType(row == null ? null : row.getQuestionType());
         command.setTitle(row == null ? null : row.getTitle());
         command.setScore(row == null ? null : row.getScore());

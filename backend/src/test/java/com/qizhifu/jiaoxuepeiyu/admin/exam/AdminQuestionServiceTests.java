@@ -51,6 +51,7 @@ class AdminQuestionServiceTests {
         AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
         AdminQuestionCommand command = new AdminQuestionCommand();
         command.setQuestionType("JUDGE");
+        command.setCourseName("Operations");
         command.setTitle("Is this valid?");
         command.setScore(5);
         command.setStandardAnswer("MAYBE");
@@ -69,6 +70,7 @@ class AdminQuestionServiceTests {
         AdminQuestionImportCommand command = new AdminQuestionImportCommand();
         command.setFileName("questions.xlsx");
         command.setFileSize(1024L);
+        command.setCourseName("Operations");
         command.setRows(Arrays.asList(importRow(2, "SINGLE", "Valid title", "A"), importRow(3, "BAD", "", "")));
 
         AdminQuestionImportPreview preview = service.previewImport(command);
@@ -85,6 +87,7 @@ class AdminQuestionServiceTests {
         AdminQuestionImportCommand command = new AdminQuestionImportCommand();
         command.setFileName("questions.xlsx");
         command.setFileSize(1024L);
+        command.setCourseName("Operations");
         command.setRows(Arrays.asList(importRow(2, "SINGLE", "First", "A"),
                 importRow(3, "SINGLE", "Second", "A")));
 
@@ -102,6 +105,7 @@ class AdminQuestionServiceTests {
         AdminQuestionImportCommand command = new AdminQuestionImportCommand();
         command.setFileName("questions.xlsx");
         command.setFileSize(1024L);
+        command.setCourseName("Operations");
         command.setRows(Arrays.asList(importRow(2, "SINGLE", "Valid", "A"),
                 importRow(3, "BAD", "Invalid", "A")));
 
@@ -121,9 +125,39 @@ class AdminQuestionServiceTests {
         assertEquals("DISABLE", repository.lastLogAction);
     }
 
+    @Test
+    void persistsCourseAndSoftDeletesQuestion() {
+        FakeQuestions repository = new FakeQuestions();
+        AdminQuestionService service = new AdminQuestionService(repository);
+
+        service.createQuestion(singleChoice(), 9L);
+        service.deleteQuestion(11L, 9L);
+
+        assertEquals("Operations", repository.savedCommand.getCourseName());
+        assertEquals(11L, repository.deletedQuestionId.longValue());
+        assertEquals("DELETE", repository.lastLogAction);
+    }
+
+    @Test
+    void validatesFillBlankMarkersAndAnswerCount() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionCommand command = new AdminQuestionCommand();
+        command.setQuestionType("FILL_BLANK");
+        command.setCourseName("Operations");
+        command.setTitle("Signal ____ and route ____");
+        command.setScore(5);
+        command.setStandardAnswer("red");
+        command.setExplanation("Explanation");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.createQuestion(command, 9L));
+
+        assertEquals("Fill blank answer count must match blank markers", exception.getMessage());
+    }
+
     private AdminQuestionCommand singleChoice() {
         AdminQuestionCommand command = new AdminQuestionCommand();
         command.setQuestionType("SINGLE");
+        command.setCourseName("Operations");
         command.setTitle("Pick one");
         command.setScore(10);
         command.setExplanation("Explanation");
@@ -156,6 +190,7 @@ class AdminQuestionServiceTests {
         private Long statusQuestionId;
         private Boolean statusEnabled;
         private String lastLogAction;
+        private Long deletedQuestionId;
         private int createdCount;
 
         @Override
@@ -191,6 +226,11 @@ class AdminQuestionServiceTests {
         public void updateQuestionStatus(Long questionId, boolean enabled) {
             this.statusQuestionId = questionId;
             this.statusEnabled = enabled;
+        }
+
+        @Override
+        public void deleteQuestion(Long questionId) {
+            this.deletedQuestionId = questionId;
         }
 
         @Override

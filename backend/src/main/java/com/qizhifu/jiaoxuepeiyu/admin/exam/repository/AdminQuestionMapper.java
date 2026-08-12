@@ -20,7 +20,7 @@ import org.apache.ibatis.annotations.Update;
 public interface AdminQuestionMapper {
 
     @Select("<script>"
-            + "SELECT q.id AS question_id, q.question_type, q.title, q.standard_answer, q.explanation, q.score, "
+            + "SELECT q.id AS question_id, q.question_type, q.course_name, q.title, q.standard_answer, q.explanation, q.score, "
             + "q.enabled_flag AS enabled, q.creator_id, u.real_name AS creator_name, q.created_at, q.updated_at "
             + "FROM exam_question q "
             + "LEFT JOIN sys_user u ON u.id = q.creator_id "
@@ -34,6 +34,7 @@ public interface AdminQuestionMapper {
     @Results(id = "questionMap", value = {
             @Result(column = "question_id", property = "questionId", id = true),
             @Result(column = "question_type", property = "questionType"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "title", property = "title"),
             @Result(column = "standard_answer", property = "standardAnswer"),
             @Result(column = "explanation", property = "explanation"),
@@ -56,7 +57,7 @@ public interface AdminQuestionMapper {
             + "</script>")
     long countQuestions(AdminQuestionQuery query);
 
-    @Select("SELECT q.id AS question_id, q.question_type, q.title, q.standard_answer, q.explanation, q.score, "
+    @Select("SELECT q.id AS question_id, q.question_type, q.course_name, q.title, q.standard_answer, q.explanation, q.score, "
             + "q.enabled_flag AS enabled, q.creator_id, u.real_name AS creator_name, q.created_at, q.updated_at "
             + "FROM exam_question q "
             + "LEFT JOIN sys_user u ON u.id = q.creator_id "
@@ -64,6 +65,7 @@ public interface AdminQuestionMapper {
     @Results(id = "questionDetailMap", value = {
             @Result(column = "question_id", property = "questionId", id = true),
             @Result(column = "question_type", property = "questionType"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "title", property = "title"),
             @Result(column = "standard_answer", property = "standardAnswer"),
             @Result(column = "explanation", property = "explanation"),
@@ -78,7 +80,7 @@ public interface AdminQuestionMapper {
     AdminQuestion findQuestion(@Param("questionId") Long questionId);
 
     @Select("<script>"
-            + "SELECT q.id AS question_id, q.question_type, q.title, q.standard_answer, q.explanation, q.score, "
+            + "SELECT q.id AS question_id, q.question_type, q.course_name, q.title, q.standard_answer, q.explanation, q.score, "
             + "q.enabled_flag AS enabled, q.creator_id, q.created_at, q.updated_at "
             + "FROM exam_question q "
             + "WHERE q.deleted_flag = 0 AND q.id IN "
@@ -87,6 +89,7 @@ public interface AdminQuestionMapper {
     @Results(id = "questionByIdsMap", value = {
             @Result(column = "question_id", property = "questionId", id = true),
             @Result(column = "question_type", property = "questionType"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "title", property = "title"),
             @Result(column = "standard_answer", property = "standardAnswer"),
             @Result(column = "explanation", property = "explanation"),
@@ -99,7 +102,7 @@ public interface AdminQuestionMapper {
     })
     List<AdminQuestion> findQuestionsByIds(@Param("questionIds") List<Long> questionIds);
 
-    @Select("SELECT q.id AS question_id, q.question_type, q.title, q.standard_answer, q.explanation, q.score, "
+    @Select("SELECT q.id AS question_id, q.question_type, q.course_name, q.title, q.standard_answer, q.explanation, q.score, "
             + "q.enabled_flag AS enabled, q.creator_id, q.created_at, q.updated_at "
             + "FROM exam_question q "
             + "WHERE q.deleted_flag = 0 AND q.enabled_flag = 1 AND q.question_type = #{questionType} "
@@ -107,6 +110,7 @@ public interface AdminQuestionMapper {
     @Results(id = "enabledQuestionMap", value = {
             @Result(column = "question_id", property = "questionId", id = true),
             @Result(column = "question_type", property = "questionType"),
+            @Result(column = "course_name", property = "courseName"),
             @Result(column = "title", property = "title"),
             @Result(column = "standard_answer", property = "standardAnswer"),
             @Result(column = "explanation", property = "explanation"),
@@ -120,12 +124,12 @@ public interface AdminQuestionMapper {
     List<AdminQuestionOption> findQuestionOptions(@Param("questionId") Long questionId);
 
     @Insert("INSERT INTO exam_question "
-            + "(question_type, title, standard_answer, explanation, score, enabled_flag, creator_id, deleted_flag, created_at, updated_at) "
-            + "VALUES (#{questionType}, #{title}, #{standardAnswer}, #{explanation}, #{score}, #{enabled}, #{creatorId}, 0, NOW(), NOW())")
+            + "(question_type, course_name, title, standard_answer, explanation, score, enabled_flag, creator_id, deleted_flag, created_at, updated_at) "
+            + "VALUES (#{questionType}, #{courseName}, #{title}, #{standardAnswer}, #{explanation}, #{score}, #{enabled}, #{creatorId}, 0, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "questionId")
     void insertQuestion(AdminQuestion question);
 
-    @Update("UPDATE exam_question SET question_type = #{questionType}, title = #{title}, "
+    @Update("UPDATE exam_question SET question_type = #{questionType}, course_name = #{courseName}, title = #{title}, "
             + "standard_answer = #{standardAnswer}, explanation = #{explanation}, score = #{score}, updated_at = NOW() "
             + "WHERE id = #{questionId} AND deleted_flag = 0")
     void updateQuestion(AdminQuestion question);
@@ -142,6 +146,10 @@ public interface AdminQuestionMapper {
     @Update("UPDATE exam_question SET enabled_flag = #{enabled}, updated_at = NOW() "
             + "WHERE id = #{questionId} AND deleted_flag = 0")
     void updateQuestionStatus(@Param("questionId") Long questionId, @Param("enabled") boolean enabled);
+
+    @Update("UPDATE exam_question SET deleted_flag = 1, enabled_flag = 0, updated_at = NOW() "
+            + "WHERE id = #{questionId} AND deleted_flag = 0")
+    void softDeleteQuestion(@Param("questionId") Long questionId);
 
     @Insert("INSERT INTO exam_question_log (question_id, operator_id, action, content, created_at) "
             + "VALUES (#{questionId}, #{operatorId}, #{action}, #{content}, NOW())")

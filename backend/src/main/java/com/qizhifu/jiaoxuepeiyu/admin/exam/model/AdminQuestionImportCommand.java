@@ -6,6 +6,7 @@ public class AdminQuestionImportCommand {
 
     private String fileName;
     private Long fileSize;
+    private String courseName;
     private List<AdminQuestionImportRow> rows;
 
     public String getFileName() {
@@ -22,6 +23,14 @@ public class AdminQuestionImportCommand {
 
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
     }
 
     public List<AdminQuestionImportRow> getRows() {

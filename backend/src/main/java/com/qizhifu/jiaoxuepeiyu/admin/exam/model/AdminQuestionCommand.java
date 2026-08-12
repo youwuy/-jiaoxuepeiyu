@@ -5,6 +5,7 @@ import java.util.List;
 public class AdminQuestionCommand {
 
     private String questionType;
+    private String courseName;
     private String title;
     private String standardAnswer;
     private String explanation;
@@ -17,6 +18,14 @@ public class AdminQuestionCommand {
 
     public void setQuestionType(String questionType) {
         this.questionType = questionType;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
     }
 
     public String getTitle() {

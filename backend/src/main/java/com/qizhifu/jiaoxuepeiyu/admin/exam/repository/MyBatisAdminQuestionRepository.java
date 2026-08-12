@@ -57,6 +57,11 @@ public class MyBatisAdminQuestionRepository implements AdminQuestionRepository {
     }
 
     @Override
+    public void deleteQuestion(Long questionId) {
+        mapper.softDeleteQuestion(questionId);
+    }
+
+    @Override
     public void appendQuestionLog(Long questionId, Long operatorId, String action, String content) {
         mapper.insertQuestionLog(questionId, operatorId, action, content);
     }
@@ -78,6 +83,7 @@ public class MyBatisAdminQuestionRepository implements AdminQuestionRepository {
         AdminQuestion question = new AdminQuestion();
         question.setQuestionId(questionId);
         question.setQuestionType(command.getQuestionType());
+        question.setCourseName(command.getCourseName());
         question.setTitle(command.getTitle());
         question.setStandardAnswer(command.getStandardAnswer());
         question.setExplanation(command.getExplanation());

@@ -34,6 +34,7 @@ public class AdminPaperQuestionImportService {
         AdminQuestionImportCommand questionImport = new AdminQuestionImportCommand();
         questionImport.setFileName(command.getFileName());
         questionImport.setFileSize(command.getFileSize());
+        questionImport.setCourseName(command.getCourseName());
         questionImport.setRows(command.getRows());
         List<Long> questionIds = questionService.importQuestionIds(questionImport, operatorId);
 

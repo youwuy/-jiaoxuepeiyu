@@ -3,6 +3,7 @@ USE `jiaoxuepeiyu`;
 CREATE TABLE IF NOT EXISTS `exam_question` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `question_type` VARCHAR(32) NOT NULL COMMENT 'SINGLE/MULTIPLE/JUDGE/FILL_BLANK/SHORT_ANSWER',
+  `course_name` VARCHAR(128) NULL,
   `title` VARCHAR(1000) NOT NULL,
   `standard_answer` TEXT NOT NULL,
   `explanation` TEXT NULL,
