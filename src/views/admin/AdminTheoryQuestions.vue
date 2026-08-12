@@ -84,6 +84,7 @@
                       <el-button text @click="openQuestionDialog(row.questionTypeNormalized, row)">修改</el-button>
                       <el-button text :class="row.enabled ? 'warn' : 'success'" @click="toggleEnabled(row)">{{ row.enabled ? '禁用' : '启用' }}</el-button>
                       <el-button text @click="openLogs(row)">操作日志</el-button>
+                      <el-button text class="warn" @click="removeQuestion(row)">删除</el-button>
                     </div>
                   </td>
                 </tr>
@@ -151,7 +152,7 @@
           <el-button class="admin-question-add-option" text :icon="Plus" @click="addOption">新增选项</el-button>
           <label class="admin-question-field">
             <span>答案 <b>*</b></span>
-            <el-input v-model="form.standardAnswer" :placeholder="form.questionType === 'SINGLE' ? '点击选项前的单选按钮设置正确答案' : '勾选选项前的复选框设置正确答案（可多选）'" />
+            <el-input v-model="form.standardAnswer" readonly :placeholder="form.questionType === 'SINGLE' ? '点击选项前的单选按钮设置正确答案' : '勾选选项前的复选框设置正确答案（可多选）'" />
           </label>
         </section>
 
@@ -220,6 +221,8 @@
             <div class="el-upload__text">点击或拖拽上传资源文件</div>
             <template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template>
           </el-upload>
+          <el-progress v-if="importProgress > 0" :percentage="importProgress" :status="importProgress === 100 ? 'success' : undefined" />
+          <el-button v-if="importErrors.length" text type="danger" @click="downloadImportErrors">下载错误明细</el-button>
         </label>
         <label>
           <span>所属课程 <b>*</b></span>
@@ -292,13 +295,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, UploadFiles, UploadUserFile } from 'element-plus';
 import { CircleCheck, CircleClose, Close, Delete, Document, Plus, Refresh, Search, Upload, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminQuestion,
+  deleteAdminQuestion,
   disableAdminQuestion,
   enableAdminQuestion,
   fetchAdminQuestion,
@@ -367,6 +371,8 @@ const importFileList = ref<UploadUserFile[]>([]);
 const importRows = ref<AdminQuestionImportRow[]>([]);
 const importParsing = ref(false);
 const importing = ref(false);
+const importProgress = ref(0);
+const importErrors = ref<Array<{ rowNumber?: number; message?: string }>>([]);
 
 const draft = reactive({
   keyword: '',
@@ -428,7 +434,7 @@ function mapRow(item: AdminQuestion): QuestionRow {
     ...item,
     questionTypeNormalized: type,
     typeLabel: typeLabels[type],
-    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-',
+    courseName: item.courseName || '',
     createdAtLabel: formatDateTime(item.createdAt || item.updatedAt),
     enabled: item.enabled ?? true
   };
@@ -504,8 +510,15 @@ function addOption() {
   form.options.push({ optionKey: next, optionText: '' });
 }
 
-function removeOption(index: number) {
+async function removeOption(index: number) {
   if (form.options.length <= 2) return;
+  try {
+    await ElMessageBox.confirm('删除后该选项内容和答案设置将一并清除，是否继续？', '删除选项', {
+      confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning'
+    });
+  } catch {
+    return;
+  }
   const removed = form.options.splice(index, 1)[0];
   form.standardAnswer = form.standardAnswer.split(removed.optionKey).join('');
 }
@@ -521,9 +534,17 @@ function validateForm(): AdminQuestionCommand {
   if (!form.courseName.trim()) throw new Error('请输入所属课程名称');
   if (!form.standardAnswer.trim()) throw new Error('请输入答案');
   if (!form.explanation.trim()) throw new Error('请输入答案解析');
+  if (!Number.isInteger(Number(form.score)) || Number(form.score) <= 0) throw new Error('分值必须为正整数');
   if (isChoiceForm.value && form.options.some((item) => !item.optionText.trim())) throw new Error('请完善所有选项');
+  if (form.questionType === 'FILL_BLANK') {
+    const blankCount = form.title.match(/[_＿]+/g)?.length ?? 0;
+    if (blankCount === 0) throw new Error('填空题题干必须使用下划线标记填空位置');
+    const answerCount = form.standardAnswer.split(/[,，;；|]/).filter((item) => item.trim()).length;
+    if (answerCount !== blankCount) throw new Error(`题干有 ${blankCount} 个填空，答案也应填写 ${blankCount} 项`);
+  }
   return {
     questionType: form.questionType,
+    courseName: form.courseName.trim(),
     title: form.title.trim(),
     standardAnswer: form.standardAnswer.trim(),
     explanation: form.explanation.trim(),
@@ -561,17 +582,24 @@ async function saveQuestion() {
 
 async function toggleEnabled(row: QuestionRow) {
   try {
+    await ElMessageBox.confirm(`确定要${row.enabled ? '禁用' : '启用'}该试题吗？`, `${row.enabled ? '禁用' : '启用'}试题`, {
+      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+    });
     if (row.enabled) await disableAdminQuestion(row.questionId);
     else await enableAdminQuestion(row.questionId);
     row.enabled = !row.enabled;
     ElMessage.success(row.enabled ? '试题已启用' : '试题已停用');
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
     ElMessage.error(error instanceof Error ? error.message : '试题状态更新失败');
   }
 }
 
 async function batchEnable(enabled: boolean) {
   try {
+    await ElMessageBox.confirm(`确定要${enabled ? '启用' : '禁用'}已选择的 ${selectedIds.value.length} 道试题吗？`, `批量${enabled ? '启用' : '禁用'}`, {
+      confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+    });
     await Promise.all(selectedIds.value.map((id) => (enabled ? enableAdminQuestion(id) : disableAdminQuestion(id))));
     questions.value.forEach((item) => {
       if (selectedIds.value.includes(item.questionId)) item.enabled = enabled;
@@ -579,7 +607,23 @@ async function batchEnable(enabled: boolean) {
     selectedIds.value = [];
     ElMessage.success(enabled ? '已批量启用' : '已批量禁用');
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
     ElMessage.error(error instanceof Error ? error.message : '批量更新失败');
+  }
+}
+
+async function removeQuestion(row: QuestionRow) {
+  try {
+    await ElMessageBox.confirm('删除后试题将不再出现在题库中，已生成试卷中的历史内容不会受影响。', '删除试题', {
+      confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning'
+    });
+    await deleteAdminQuestion(row.questionId);
+    ElMessage.success('试题已删除');
+    if (questions.value.length === 1 && page.value > 1) page.value--;
+    await loadQuestions();
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error(error instanceof Error ? error.message : '试题删除失败');
   }
 }
 
@@ -588,6 +632,8 @@ function openImport() {
   importFile.value = null;
   importFileList.value = [];
   importRows.value = [];
+  importProgress.value = 0;
+  importErrors.value = [];
   previewGroups.splice(0);
   importVisible.value = true;
 }
@@ -601,6 +647,8 @@ function handleImportFileRemove(_file: UploadFile, files: UploadFiles) {
   importFileList.value = files;
   importFile.value = null;
   importRows.value = [];
+  importProgress.value = 0;
+  importErrors.value = [];
 }
 
 async function openPreview() {
@@ -623,16 +671,21 @@ async function openPreview() {
   }
 
   importParsing.value = true;
+  importProgress.value = 20;
+  importErrors.value = [];
   try {
     const rows = await parseQuestionWorkbook(file);
+    importProgress.value = 60;
     if (rows.length === 0) {
       throw new Error('文件中没有可解析的试题，请使用下载的模板填写');
     }
-    const preview = await previewAdminQuestionImport({ fileName: file.name, fileSize: file.size, rows });
+    const preview = await previewAdminQuestionImport({ fileName: file.name, fileSize: file.size, courseName: importCourseName.value.trim(), rows });
     if ((preview.errorCount ?? 0) > 0) {
+      importErrors.value = preview.errors ?? [];
       const first = preview.errors?.[0];
-      throw new Error(`第 ${first?.rowNumber ?? '-'} 行：${translateImportError(first?.message)}`);
+      throw new Error(`发现 ${preview.errorCount} 条错误，第 ${first?.rowNumber ?? '-'} 行：${translateImportError(first?.message)}`);
     }
+    importProgress.value = 100;
     importRows.value = preview.validRows ?? rows;
     buildPreviewGroups(importRows.value);
     importVisible.value = false;
@@ -658,6 +711,7 @@ async function submitImport() {
     const count = await importAdminQuestions({
       fileName: importFile.value.name,
       fileSize: importFile.value.size,
+      courseName: importCourseName.value.trim(),
       rows: rowsForSubmission()
     });
     previewVisible.value = false;
@@ -669,6 +723,16 @@ async function submitImport() {
   } finally {
     importing.value = false;
   }
+}
+
+function downloadImportErrors() {
+  const worksheet = XLSX.utils.json_to_sheet(importErrors.value.map((item) => ({
+    行号: item.rowNumber ?? '-',
+    错误原因: translateImportError(item.message)
+  })));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '错误明细');
+  XLSX.writeFile(workbook, '理论试题导入错误明细.xlsx');
 }
 
 function downloadTemplate() {
@@ -806,6 +870,10 @@ function translateImportError(message?: string) {
     'Multiple choice must have at least two correct options': '多选题至少需要两个正确答案',
     'Judgment answer must be TRUE or FALSE': '判断题答案必须填写“正确”或“错误”',
     'Standard answer is required': '标准答案不能为空'
+    ,'Course name is required': '所属课程不能为空'
+    ,'Question explanation is required': '题目解析不能为空'
+    ,'Fill blank title must contain underscore markers': '填空题题干必须包含下划线填空标记'
+    ,'Fill blank answer count must match blank markers': '填空题答案数量必须与填空位置数量一致'
   };
   return messages[message ?? ''] ?? message ?? '试题格式不正确';
 }

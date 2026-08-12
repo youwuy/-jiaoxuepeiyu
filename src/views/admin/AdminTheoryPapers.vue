@@ -925,7 +925,12 @@ async function prepareUploadPreview() {
   try {
     const rows = await parsePaperWorkbook(file);
     if (!rows.length) throw new Error('文件中没有可解析的试题，请使用试卷导入模板');
-    const result = await previewAdminQuestionImport({ fileName: file.name, fileSize: file.size, rows });
+    const result = await previewAdminQuestionImport({
+      fileName: file.name,
+      fileSize: file.size,
+      courseName: previewPaper.courseName.trim(),
+      rows
+    });
     if ((result.errorCount ?? 0) > 0) {
       const first = result.errors?.[0];
       throw new Error(`第 ${first?.rowNumber ?? '-'} 行：${first?.message || '试题格式不正确'}`);

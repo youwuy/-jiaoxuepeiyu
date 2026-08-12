@@ -9,6 +9,7 @@ export interface AdminQuestionOption {
 export interface AdminQuestion {
   questionId: number;
   questionType?: string;
+  courseName?: string;
   title: string;
   standardAnswer?: string;
   explanation?: string;
@@ -32,6 +33,7 @@ export interface AdminQuestionQuery {
 
 export interface AdminQuestionCommand {
   questionType: string;
+  courseName: string;
   title: string;
   standardAnswer: string;
   explanation?: string;
@@ -68,6 +70,7 @@ export interface AdminQuestionImportPreview {
 export interface AdminQuestionImportCommand {
   fileName: string;
   fileSize: number;
+  courseName: string;
   rows: AdminQuestionImportRow[];
 }
 
@@ -142,6 +145,10 @@ export function enableAdminQuestion(questionId: number) {
 
 export function disableAdminQuestion(questionId: number) {
   return requestJson<void>(`/admin/questions/${questionId}/disable`, { method: 'POST', fallbackLabel: '停用试题' });
+}
+
+export function deleteAdminQuestion(questionId: number) {
+  return requestJson<void>(`/admin/questions/${questionId}`, { method: 'DELETE', fallbackLabel: '删除试题' });
 }
 
 export function fetchAdminQuestionLogs(questionId: number) {
