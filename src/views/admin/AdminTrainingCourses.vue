@@ -365,14 +365,15 @@
             <el-icon><UploadFilled /></el-icon>
             <strong>上传实训组课模板</strong>
             <span>支持 .xlsx，导入前会先进入预览校验</span>
-            <el-button type="primary" plain @click="importChecked = true">选择文件</el-button>
+            <input ref="importInput" class="admin-training-file-input" type="file" accept=".xlsx" @change="handleImportChange" />
+            <el-button type="primary" plain :loading="importLoading" @click="importInput?.click()">选择文件</el-button>
           </div>
           <div class="admin-training-import-result" :class="{ active: importChecked }">
-            <strong>{{ importChecked ? '校验通过 6 条，需确认 1 条' : '等待上传文件' }}</strong>
-            <p>{{ importChecked ? '第 3 行监考教师重名，请在导入后进入编辑页确认。' : '上传后会展示数据行、错误原因和可导入数量。' }}</p>
+            <strong>{{ importChecked ? `校验完成：${importValidCount} 条可导入，${importErrorCount} 条有错误` : '等待上传文件' }}</strong>
+            <p>{{ importChecked ? importErrorSummary : '上传后会展示数据行、错误原因和可导入数量。' }}</p>
           </div>
         </div>
-        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :disabled="!importChecked" @click="confirmImport">确认导入</el-button></div></template>
+        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :loading="importLoading" :disabled="!importValidCount" @click="confirmImport">确认导入</el-button></div></template>
       </el-dialog>
 
       <el-drawer v-model="logVisible" class="admin-training-log-drawer" direction="rtl" size="520px" :with-header="false">
@@ -397,6 +398,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, Close, Document, FolderOpened, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
+import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { fetchAdminPapers } from '../../api/admin-paper';
 import { fetchAdminResources } from '../../api/admin-resource';
@@ -415,6 +417,7 @@ import {
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses, fetchAdminMajors } from '../../api/admin-settings';
 import { fetchAdminTeachers } from '../../api/admin-course';
+import trainingCoverUrl from '../../assets/course-station-preview.png';
 
 const router = useRouter();
 
@@ -444,6 +447,8 @@ interface SelectableItem {
   id: number;
   name: string;
   meta: string;
+  majorId?: number;
+  capacity?: number;
   category?: string;
   duration?: number;
   score?: number;
@@ -486,6 +491,12 @@ const publishTarget = ref<CourseRow>();
 const publishNotify = ref(true);
 const importVisible = ref(false);
 const importChecked = ref(false);
+const importInput = ref<HTMLInputElement>();
+const importLoading = ref(false);
+const importRows = ref<Array<{ rowNo: number; errors: string[]; command?: Record<string, unknown> }>>([]);
+const importValidCount = computed(() => importRows.value.filter((row) => !row.errors.length && row.command).length);
+const importErrorCount = computed(() => importRows.value.filter((row) => row.errors.length > 0).length);
+const importErrorSummary = computed(() => importRows.value.filter((row) => row.errors.length).slice(0, 3).map((row) => `第 ${row.rowNo} 行：${row.errors.join('、')}`).join('；') || '所有数据均通过校验');
 
 const form = reactive({
   id: 0,
@@ -728,12 +739,99 @@ async function confirmPublish() {
 
 function openImport() {
   importChecked.value = false;
+  importRows.value = [];
+  if (importInput.value) importInput.value.value = '';
   importVisible.value = true;
 }
 
-function confirmImport() {
-  importVisible.value = false;
-  ElMessage.warning('实训课导入接口暂未提供，当前不能生成真实草稿');
+function importCell(row: Record<string, unknown>, names: string[]) {
+  const key = Object.keys(row).find((item) => names.includes(item.trim()));
+  return key ? String(row[key] ?? '').trim() : '';
+}
+
+function findSelectable(items: SelectableItem[], value: string) {
+  return items.find((item) => item.name === value || item.name.includes(value) || value.includes(item.name));
+}
+
+function parseTrainingImportRow(row: Record<string, unknown>, rowNo: number) {
+  const name = importCell(row, ['实训课名称', '实训课程名', '课程名称']);
+  const semesterName = importCell(row, ['学年学期', '所属学年学期']);
+  const semester = semesterOptions.value.find((item) => item.label.replace(/\s+/g, '') === semesterName.replace(/\s+/g, ''));
+  const classes = importCell(row, ['参训班级', '班级']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(classOptions.value, item));
+  const teachers = importCell(row, ['监考教师', '教师']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(teacherOptions.value, item));
+  const topics = importCell(row, ['实训题', '实训题目', '题目']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(topicOptions.value, item));
+  const room = findSelectable(roomOptions.value, importCell(row, ['教室', '实训教室']));
+  const type = importCell(row, ['类型', '实训类型']);
+  const mode = importCell(row, ['模式', '实训模式']);
+  const errors: string[] = [];
+  if (!name) errors.push('实训课名称不能为空');
+  if (!semester) errors.push('学年学期不存在');
+  if (!classes.length || classes.some((item) => !item)) errors.push('参训班级不存在');
+  if (!teachers.length || teachers.some((item) => !item)) errors.push('监考教师不存在');
+  if (!room) errors.push('实训教室不存在');
+  if (!topics.length || topics.some((item) => !item)) errors.push('实训题不存在');
+  if (type !== '考试' && type !== '练习') errors.push('类型只能填写考试或练习');
+  if (mode !== '单人实训' && mode !== '协同实训' && mode !== '多人实训') errors.push('模式填写不正确');
+  const command = errors.length ? undefined : {
+    trainingName: name,
+    academicYearId: semester?.academicYearId,
+    semesterId: semester?.semesterId,
+    majorId: classes[0]?.majorId,
+    coverUrl: trainingCoverUrl,
+    trainingType: type === '考试' ? 'EXAM' : 'PRACTICE',
+    trainingMode: mode === '单人实训' ? 'SINGLE' : 'TEAM',
+    paperMode: 'NONE',
+    openStartTime: importCell(row, ['开始时间', '实训开始时间']),
+    openEndTime: importCell(row, ['结束时间', '实训结束时间']),
+    teamSize: mode === '单人实训' ? 1 : topics.length,
+    appRequired: importCell(row, ['自动录屏']) === '是',
+    classroomId: room?.id,
+    teacherIds: teachers.filter(Boolean).map((item) => item!.id),
+    scoreBasis: importCell(row, ['最终成绩取值依据']) === '最后一次提交的成绩' ? 'LAST_SUBMIT' : 'HIGHEST',
+    topicIds: topics.filter(Boolean).map((item) => item!.id),
+    classIds: classes.filter(Boolean).map((item) => item!.id),
+    roles: [],
+    publishStatus: 'DRAFT'
+  };
+  return { rowNo, errors, command };
+}
+
+async function handleImportChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (!/\.xlsx$/i.test(file.name)) {
+    ElMessage.error('仅支持 .xlsx 格式');
+    return;
+  }
+  try {
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+    importRows.value = rows.map((row, index) => parseTrainingImportRow(row, index + 2));
+    importChecked.value = rows.length > 0;
+    if (!rows.length) ElMessage.warning('导入文件没有可识别的数据行');
+  } catch {
+    ElMessage.error('文件解析失败，请使用系统导出的 .xlsx 模板');
+  }
+}
+
+async function confirmImport() {
+  const validRows = importRows.value.filter((row) => row.command && !row.errors.length);
+  if (!validRows.length) {
+    ElMessage.warning('没有可导入的数据，请先修正错误行');
+    return;
+  }
+  importLoading.value = true;
+  try {
+    for (const row of validRows) await createAdminTraining(row.command as never);
+    importVisible.value = false;
+    ElMessage.success(`已导入 ${validRows.length} 条实训课草稿`);
+    await loadCourses();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '实训课导入失败');
+  } finally {
+    importLoading.value = false;
+  }
 }
 
 function openMonitor(row: CourseRow) {
@@ -950,9 +1048,14 @@ function isTrainingOpen(course: CourseRow) {
 }
 
 function buildTrainingCommand(publishStatus: string) {
+  const semester = semesterOptions.value.find((item) => item.value === form.semester);
+  const majorId = form.majorId || classOptions.value.find((item) => selectedClassIds.value.includes(item.id))?.majorId;
   return {
     trainingName: form.name.trim(),
-    semesterId: semesterIdFromLabel(form.semester),
+    academicYearId: semester?.academicYearId,
+    semesterId: semester?.semesterId,
+    majorId,
+    coverUrl: trainingCoverUrl,
     trainingType: trainingTypeToApi(form.type),
     trainingMode: trainingModeToApi(form.mode),
     paperMode: selectedPaperId.value ? 'THEORY_PAPER' : 'NONE',
@@ -961,6 +1064,10 @@ function buildTrainingCommand(publishStatus: string) {
     openEndTime: form.range[1],
     teamSize: form.roles.reduce((sum, role) => sum + Number(role.capacity || 0), 0) || 1,
     appRequired: true,
+    classroomId: selectedRoomId.value || undefined,
+    teacherIds: [...selectedTeacherIds.value],
+    scoreBasis: 'HIGHEST' as const,
+    topicIds: [...selectedTopicIds.value],
     classIds: [...selectedClassIds.value],
     roles: form.roles.map((role, index) => ({
       roleName: role.name,
@@ -1004,16 +1111,12 @@ function apiTrainingTypeToText(type?: string): '考试' | '练习' {
 
 function trainingModeToApi(mode?: string) {
   if (mode === '单人实训') return 'SINGLE';
-  if (mode === '协同实训') return 'COLLABORATIVE';
+  if (mode === '协同实训') return 'TEAM';
   return undefined;
 }
 
 function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {
   return mode === 'SINGLE' ? '单人实训' : '协同实训';
-}
-
-function semesterIdFromLabel(label: string) {
-  return semesterOptions.value.find((item) => item.value === label)?.semesterId;
 }
 
 function formatDateTime(value?: string) {

@@ -305,9 +305,17 @@ const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
 const reviewRows = ref<Array<{ studentId: number; studentName?: string; studentNo?: string; className?: string; attemptId?: number; submittedAt?: string; systemScore?: number; manualScore?: number }>>([]);
 
-const participantCount = computed(() => numberValue(statistics.value.participantCount));
-const completedCount = computed(() => numberValue(statistics.value.submittedAttemptCount));
-const averageScore = computed(() => numberValue(statistics.value.averageScore));
+const participantCount = computed(() => activeClass.value === '全部班级'
+  ? numberValue(statistics.value.participantCount)
+  : new Set(filteredReviewRows.value.map((item) => item.studentId)).size);
+const completedCount = computed(() => activeClass.value === '全部班级'
+  ? numberValue(statistics.value.submittedAttemptCount)
+  : new Set(filteredReviewRows.value.filter((item) => item.attemptId).map((item) => item.studentId)).size);
+const averageScore = computed(() => {
+  if (activeClass.value === '全部班级') return numberValue(statistics.value.averageScore);
+  const scores = submittedScores.value;
+  return scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+});
 const notCompletedCount = computed(() => Math.max(participantCount.value - completedCount.value, 0));
 const classLabels = computed(() => {
   const parsed = [...new Set(reviewRows.value.map((item) => item.className).filter(Boolean) as string[])];
@@ -317,6 +325,13 @@ const classLabels = computed(() => {
   return [];
 });
 const classChips = computed(() => ['全部班级', ...classLabels.value]);
+const filteredReviewRows = computed(() => activeClass.value === '全部班级'
+  ? reviewRows.value
+  : reviewRows.value.filter((item) => item.className === activeClass.value));
+const submittedScores = computed(() => filteredReviewRows.value
+  .filter((item) => item.attemptId)
+  .map((item) => Number(item.manualScore ?? item.systemScore ?? 0))
+  .filter((score) => Number.isFinite(score)));
 
 const summaryCards = computed<SummaryCard[]>(() => [
   {
@@ -365,19 +380,22 @@ const summaryCards = computed<SummaryCard[]>(() => [
 
 const scoreDistribution = computed<ScoreBucket[]>(() => {
   const base = [
-    { name: '优秀 (90-100)', ratio: 0.25, color: '#ef4444' },
-    { name: '良好 (80-89)', ratio: 0.29, color: '#f59e0b' },
-    { name: '中等 (70-79)', ratio: 0.22, color: '#3b82f6' },
-    { name: '及格 (60-69)', ratio: 0.15, color: '#f97316' },
-    { name: '不及格 (0-59)', ratio: 0.09, color: '#8b5cf6' }
+    { name: '优秀 (90-100)', color: '#ef4444', match: (score: number) => score >= 90 },
+    { name: '良好 (80-89)', color: '#f59e0b', match: (score: number) => score >= 80 && score < 90 },
+    { name: '中等 (70-79)', color: '#3b82f6', match: (score: number) => score >= 70 && score < 80 },
+    { name: '及格 (60-69)', color: '#f97316', match: (score: number) => score >= 60 && score < 70 },
+    { name: '不及格 (0-59)', color: '#8b5cf6', match: (score: number) => score < 60 }
   ];
-  const counts = allocateCounts(participantCount.value, base.map((item) => item.ratio));
-  return base.map((item, index) => ({
+  const total = submittedScores.value.length;
+  return base.map((item) => {
+    const count = submittedScores.value.filter(item.match).length;
+    return {
     name: item.name,
-    count: counts[index],
-    percent: participantCount.value ? Number(((counts[index] / participantCount.value) * 100).toFixed(1)) : 0,
+    count,
+    percent: total ? Number(((count / total) * 100).toFixed(1)) : 0,
     color: item.color
-  }));
+    };
+  });
 });
 
 const donutGradient = computed(() => {
@@ -394,9 +412,9 @@ const donutGradient = computed(() => {
 });
 
 const classParticipationData = computed<ChartClassItem[]>(() => {
-  const labels = classLabels.value;
-  const joinedCounts = labels.map((label) => new Set(reviewRows.value.filter((item) => item.className === label).map((item) => item.studentId)).size);
-  const completedCounts = labels.map((label) => new Set(reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => item.studentId)).size);
+  const labels = activeClass.value === '全部班级' ? classLabels.value : [activeClass.value];
+  const joinedCounts = labels.map((label) => new Set(filteredReviewRows.value.filter((item) => item.className === label).map((item) => item.studentId)).size);
+  const completedCounts = labels.map((label) => new Set(filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => item.studentId)).size);
   return labels.map((label, index) => {
     const joined = joinedCounts[index] ?? 0;
     const completed = Math.min(completedCounts[index] ?? 0, joined);
@@ -421,8 +439,8 @@ const classChartTicks = computed(() =>
 );
 
 const stackedDistribution = computed<StackItem[]>(() =>
-  classLabels.value.map((label) => {
-    const scores = reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
+  (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label) => {
+    const scores = filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
     const excellent = scores.filter((score) => score >= 90).length;
     const good = scores.filter((score) => score >= 80 && score < 90).length;
     const normal = scores.filter((score) => score >= 70 && score < 80).length;
@@ -442,20 +460,20 @@ const stackedDistribution = computed<StackItem[]>(() =>
 );
 
 const classAverageCompare = computed<CompareItem[]>(() =>
-  classLabels.value.map((label, index) => {
+  (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label, index) => {
     const colors = ['#6d5efc', '#3b82f6', '#37c793', '#f59e0b', '#ef4444'];
-    const values = reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
+    const values = filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
     const score = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     return {
       name: label,
       score: score.toFixed(1),
-      percent: Math.max(55, Math.min(100, (score / 100) * 100)),
+      percent: Math.max(0, Math.min(100, score)),
       color: colors[index % colors.length]
     };
   })
 );
 
-const rankingRows = computed<RankingRow[]>(() => reviewRows.value.filter((item) => item.attemptId).sort((a, b) => Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0)).slice(0, 10).map((item, index) => {
+const rankingRows = computed<RankingRow[]>(() => filteredReviewRows.value.filter((item) => item.attemptId).sort((a, b) => Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0)).slice(0, 10).map((item, index) => {
   const score = Number(item.manualScore ?? item.systemScore ?? 0);
   return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 60 ? '及格' : '不及格', duration: '-' };
 }));
@@ -483,15 +501,6 @@ function formatTimeRange(value: string) {
     return '';
   }
   return value.replace(/\s*至\s*/, ' 至 ');
-}
-
-function allocateCounts(total: number, ratios: number[]) {
-  const raw = ratios.map((ratio) => Math.round(total * ratio));
-  const diff = total - raw.reduce((sum, item) => sum + item, 0);
-  if (raw.length > 0) {
-    raw[0] += diff;
-  }
-  return raw;
 }
 
 function gradeTone(score: number) {
