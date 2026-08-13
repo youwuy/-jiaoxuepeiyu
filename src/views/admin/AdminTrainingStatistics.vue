@@ -226,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Calendar, Check, Document, Histogram, Medal, PieChart, TrendCharts, User, UserFilled, Warning } from '@element-plus/icons-vue';
@@ -321,7 +321,6 @@ const completedCount = computed(() => activeClass.value === '全部班级'
   ? numberValue(statistics.value.submittedAttemptCount)
   : new Set(filteredReviewRows.value.filter((item) => item.attemptId).map((item) => item.studentId)).size);
 const averageScore = computed(() => {
-  if (activeClass.value === '全部班级') return numberValue(statistics.value.averageScore);
   const scores = submittedScores.value;
   return scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 });
@@ -338,19 +337,23 @@ const filteredReviewRows = computed(() => activeClass.value === '全部班级'
   ? reviewRows.value
   : reviewRows.value.filter((item) => item.className === activeClass.value));
 const submittedStudentRows = computed(() => {
-  const rows = new Map<number, AdminTrainingReviewRow>();
+  const rows = new Map<number, AdminTrainingReviewRow & { totalScore: number; totalDuration: number }>();
   filteredReviewRows.value.filter((item) => item.attemptId).forEach((item) => {
+    const score = Number(item.manualScore ?? item.systemScore ?? 0);
     const current = rows.get(item.studentId);
-    const currentScore = Number(current?.manualScore ?? current?.systemScore ?? -1);
-    const nextScore = Number(item.manualScore ?? item.systemScore ?? 0);
-    if (!current || nextScore > currentScore || (nextScore === currentScore && Number(item.durationSeconds ?? Number.MAX_SAFE_INTEGER) < Number(current.durationSeconds ?? Number.MAX_SAFE_INTEGER))) {
-      rows.set(item.studentId, item);
+    if (!current) {
+      rows.set(item.studentId, { ...item, totalScore: score, totalDuration: Number(item.durationSeconds || 0) });
+      return;
     }
+    current.totalScore += score;
+    current.totalDuration += Number(item.durationSeconds || 0);
   });
   return [...rows.values()];
 });
+const courseMaxScore = computed(() => [...new Map(reviewRows.value.map((item) => [item.topicId, Number(item.maxScore || 0)])).values()]
+  .reduce((sum, score) => sum + score, 0) || 100);
 const submittedScores = computed(() => submittedStudentRows.value
-  .map((item) => Number(item.manualScore ?? item.systemScore ?? 0))
+  .map((item) => Number(item.totalScore))
   .filter((score) => Number.isFinite(score)));
 
 const summaryCards = computed<SummaryCard[]>(() => [
@@ -391,7 +394,7 @@ const summaryCards = computed<SummaryCard[]>(() => [
   },
   {
     label: '平均分',
-    value: `${averageScore.value.toFixed(1)} /100`,
+    value: `${averageScore.value.toFixed(1)} /${courseMaxScore.value}`,
     desc: '成绩均值',
     icon: Histogram,
     tone: 'pink'
@@ -400,11 +403,11 @@ const summaryCards = computed<SummaryCard[]>(() => [
 
 const scoreDistribution = computed<ScoreBucket[]>(() => {
   const base = [
-    { name: '优秀 (90-100)', color: '#ef4444', match: (score: number) => score >= 90 },
-    { name: '良好 (80-89)', color: '#f59e0b', match: (score: number) => score >= 80 && score < 90 },
-    { name: '中等 (70-79)', color: '#3b82f6', match: (score: number) => score >= 70 && score < 80 },
-    { name: '及格 (60-69)', color: '#f97316', match: (score: number) => score >= 60 && score < 70 },
-    { name: '不及格 (0-59)', color: '#8b5cf6', match: (score: number) => score < 60 }
+    { name: `优秀 (${formatScore(courseMaxScore.value * 0.9)}-${courseMaxScore.value})`, color: '#ef4444', match: (score: number) => score / courseMaxScore.value >= 0.9 },
+    { name: `良好 (${formatScore(courseMaxScore.value * 0.8)}-${formatScore(courseMaxScore.value * 0.9)})`, color: '#f59e0b', match: (score: number) => score / courseMaxScore.value >= 0.8 && score / courseMaxScore.value < 0.9 },
+    { name: `中等 (${formatScore(courseMaxScore.value * 0.7)}-${formatScore(courseMaxScore.value * 0.8)})`, color: '#3b82f6', match: (score: number) => score / courseMaxScore.value >= 0.7 && score / courseMaxScore.value < 0.8 },
+    { name: `及格 (${formatScore(courseMaxScore.value * 0.6)}-${formatScore(courseMaxScore.value * 0.7)})`, color: '#f97316', match: (score: number) => score / courseMaxScore.value >= 0.6 && score / courseMaxScore.value < 0.7 },
+    { name: `不及格 (0-${formatScore(courseMaxScore.value * 0.6)})`, color: '#8b5cf6', match: (score: number) => score / courseMaxScore.value < 0.6 }
   ];
   const total = submittedScores.value.length;
   return base.map((item) => {
@@ -460,12 +463,12 @@ const classChartTicks = computed(() =>
 
 const stackedDistribution = computed<StackItem[]>(() =>
   (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label) => {
-    const scores = filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
-    const excellent = scores.filter((score) => score >= 90).length;
-    const good = scores.filter((score) => score >= 80 && score < 90).length;
-    const normal = scores.filter((score) => score >= 70 && score < 80).length;
-    const pass = scores.filter((score) => score >= 60 && score < 70).length;
-    const bad = scores.filter((score) => score < 60).length;
+    const scores = submittedStudentRows.value.filter((item) => item.className === label).map((item) => Number(item.totalScore));
+    const excellent = scores.filter((score) => score / courseMaxScore.value >= 0.9).length;
+    const good = scores.filter((score) => score / courseMaxScore.value >= 0.8 && score / courseMaxScore.value < 0.9).length;
+    const normal = scores.filter((score) => score / courseMaxScore.value >= 0.7 && score / courseMaxScore.value < 0.8).length;
+    const pass = scores.filter((score) => score / courseMaxScore.value >= 0.6 && score / courseMaxScore.value < 0.7).length;
+    const bad = scores.filter((score) => score / courseMaxScore.value < 0.6).length;
     const maxCount = Math.max(excellent, good, normal, pass, bad, 1);
     return {
       name: label,
@@ -486,23 +489,24 @@ const stackedDistribution = computed<StackItem[]>(() =>
 const classAverageCompare = computed<CompareItem[]>(() =>
   (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label, index) => {
     const colors = ['#6d5efc', '#3b82f6', '#37c793', '#f59e0b', '#ef4444'];
-    const values = filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
+    const values = submittedStudentRows.value.filter((item) => item.className === label).map((item) => Number(item.totalScore));
     const score = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     return {
       name: label,
       score: score.toFixed(1),
-      percent: Math.max(0, Math.min(100, score)),
+      percent: Math.max(0, Math.min(100, score / courseMaxScore.value * 100)),
       color: colors[index % colors.length]
     };
   })
 );
 
 const rankingRows = computed<RankingRow[]>(() => [...submittedStudentRows.value].sort((a, b) => {
-  const scoreDiff = Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0);
-  return scoreDiff || Number(a.durationSeconds ?? Number.MAX_SAFE_INTEGER) - Number(b.durationSeconds ?? Number.MAX_SAFE_INTEGER);
+  const scoreDiff = Number(b.totalScore) - Number(a.totalScore);
+  return scoreDiff || Number(a.totalDuration ?? Number.MAX_SAFE_INTEGER) - Number(b.totalDuration ?? Number.MAX_SAFE_INTEGER);
 }).slice(0, 10).map((item, index) => {
-  const score = Number(item.manualScore ?? item.systemScore ?? 0);
-  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 70 ? '中等' : score >= 60 ? '及格' : '不及格', duration: formatDuration(item.durationSeconds) };
+  const score = Number(item.totalScore);
+  const ratio = score / courseMaxScore.value;
+  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: ratio >= 0.9 ? '优秀' : ratio >= 0.8 ? '良好' : ratio >= 0.7 ? '中等' : ratio >= 0.6 ? '及格' : '不及格', duration: formatDuration(item.totalDuration) };
 }));
 
 const progressRows = computed<ProgressRow[]>(() => weakSteps.value.map((item, index) => ({
@@ -515,6 +519,10 @@ const progressRows = computed<ProgressRow[]>(() => weakSteps.value.map((item, in
 function numberValue(value: number | string | undefined | null) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatScore(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function goBack() {
@@ -544,10 +552,11 @@ function formatDuration(seconds?: number) {
 }
 
 function gradeTone(score: number) {
-  if (score >= 90) return 'excellent';
-  if (score >= 80) return 'good';
-  if (score >= 70) return 'normal';
-  if (score >= 60) return 'pass';
+  const ratio = score / courseMaxScore.value;
+  if (ratio >= 0.9) return 'excellent';
+  if (ratio >= 0.8) return 'good';
+  if (ratio >= 0.7) return 'normal';
+  if (ratio >= 0.6) return 'pass';
   return 'bad';
 }
 
@@ -594,6 +603,15 @@ async function loadStatistics() {
 
 onMounted(() => {
   void loadStatistics();
+});
+
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  refreshTimer = setInterval(() => void loadStatistics(), 60_000);
+});
+
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 watch(activeClass, async (value) => {

@@ -178,6 +178,7 @@ export interface AdminTrainingReviewRow {
   className?: string;
   topicId: number;
   topicName?: string;
+  maxScore?: number;
   trainingMode?: string;
   attemptId?: number;
   submittedAt?: string;
@@ -202,6 +203,7 @@ export interface AdminTrainingReviewAttempt {
   reviewedAt?: string;
   roleName?: string;
   durationSeconds?: number;
+  maxScore?: number;
 }
 
 function buildQuery(query: object = {}) {

@@ -364,7 +364,7 @@ public interface AdminTrainingMapper {
 
     @Select("SELECT tp.student_id AS studentId, u.real_name AS studentName, u.username AS studentNo, "
             + "u.class_id AS classId, c.class_name AS className, tt.id AS topicId, tt.topic_name AS topicName, "
-            + "tt.training_mode AS trainingMode, ta.id AS attemptId, ta.submitted_at AS submittedAt, "
+            + "tt.training_mode AS trainingMode, tt.score AS maxScore, ta.id AS attemptId, ta.submitted_at AS submittedAt, "
             + "ta.personal_score AS systemScore, ta.team_score AS teamScore, ta.manual_score AS manualScore, "
             + "ta.review_comment AS reviewComment, ta.reviewed_at AS reviewedAt, ta.role_name AS roleName, "
             + "ta.duration_seconds AS durationSeconds, "
@@ -375,31 +375,50 @@ public interface AdminTrainingMapper {
             + "ORDER BY u2.real_name SEPARATOR '、') FROM training_team_room_member rm1 "
             + "JOIN training_team_room_member rm2 ON rm2.room_id = rm1.room_id AND rm2.member_status = 'ACTIVE' "
             + "JOIN sys_user u2 ON u2.id = rm2.student_id "
-            + "LEFT JOIN training_attempt a2 ON a2.student_id = rm2.student_id AND a2.training_id = tp.training_id "
-            + "WHERE rm1.student_id = tp.student_id AND rm1.member_status = 'ACTIVE') AS teammateScores "
+            + "LEFT JOIN training_attempt a2 ON a2.id = (SELECT ax.id FROM training_attempt ax "
+            + "WHERE ax.student_id = rm2.student_id AND ax.training_id = tp.training_id "
+            + "AND (ax.topic_id = tt.id OR (ax.topic_id IS NULL AND "
+            + "(SELECT COUNT(*) FROM training_topic_binding team_tb WHERE team_tb.training_id = tp.training_id) = 1)) "
+            + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ax.manual_score, ax.personal_score) END DESC, "
+            + "ax.submitted_at DESC, ax.id DESC LIMIT 1) "
+            + "WHERE rm1.student_id = tp.student_id AND rm1.member_status = 'ACTIVE' "
+            + "AND rm2.student_id &lt;&gt; tp.student_id) AS teammateScores "
             + "FROM training_participant tp JOIN sys_user u ON u.id = tp.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
             + "JOIN training_topic_binding tb ON tb.training_id = tp.training_id "
             + "JOIN training_topic tt ON tt.id = tb.topic_id "
+            + "JOIN training_course tc ON tc.id = tp.training_id "
             + "LEFT JOIN training_attempt ta ON ta.id = (SELECT tx.id FROM training_attempt tx "
             + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id "
             + "AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1)) "
-            + "ORDER BY tx.submitted_at DESC, tx.id DESC LIMIT 1) "
+            + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(tx.manual_score, tx.personal_score) END DESC, "
+            + "tx.submitted_at DESC, tx.id DESC LIMIT 1) "
             + "WHERE tp.training_id = #{trainingId} "
             + "ORDER BY tb.sort_order ASC, c.class_name ASC, u.username ASC, u.id ASC")
     List<Map<String, Object>> findReviewRows(@Param("trainingId") Long trainingId);
 
     @Select("SELECT ta.id AS attemptId, ta.submitted_at AS submittedAt, ta.personal_score AS systemScore, "
             + "ta.manual_score AS manualScore, ta.team_score AS teamScore, ta.review_comment AS reviewComment, "
-            + "ta.reviewed_at AS reviewedAt, ta.role_name AS roleName, ta.duration_seconds AS durationSeconds "
-            + "FROM training_attempt ta WHERE ta.training_id = #{trainingId} AND ta.student_id = #{studentId} "
+            + "ta.reviewed_at AS reviewedAt, ta.role_name AS roleName, ta.duration_seconds AS durationSeconds, tt.score AS maxScore "
+            + "FROM training_attempt ta "
+            + "JOIN training_topic_binding tb ON tb.training_id = ta.training_id AND (tb.topic_id = ta.topic_id OR "
+            + "(ta.topic_id IS NULL AND (SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = ta.training_id) = 1)) "
+            + "JOIN training_topic tt ON tt.id = tb.topic_id "
+            + "WHERE ta.training_id = #{trainingId} AND ta.student_id = #{studentId} "
             + "AND (ta.topic_id = #{topicId} OR (ta.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding tb WHERE tb.training_id = #{trainingId}) = 1)) "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC")
     List<Map<String, Object>> findReviewAttempts(@Param("trainingId") Long trainingId,
                                                   @Param("studentId") Long studentId,
                                                   @Param("topicId") Long topicId);
+
+    @Select("SELECT tt.score FROM training_attempt ta "
+            + "JOIN training_topic_binding tb ON tb.training_id = ta.training_id AND (tb.topic_id = ta.topic_id OR "
+            + "(ta.topic_id IS NULL AND (SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = ta.training_id) = 1)) "
+            + "JOIN training_topic tt ON tt.id = tb.topic_id "
+            + "WHERE ta.id = #{attemptId} AND ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL")
+    Double findAttemptMaxScore(@Param("trainingId") Long trainingId, @Param("attemptId") Long attemptId);
 
     @Update("UPDATE training_attempt SET manual_score = #{manualScore}, review_comment = #{comment}, "
             + "reviewer_id = #{reviewerId}, reviewed_at = NOW(), updated_at = NOW() "

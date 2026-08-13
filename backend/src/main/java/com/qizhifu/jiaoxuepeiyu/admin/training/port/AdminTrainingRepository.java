@@ -48,6 +48,8 @@ public interface AdminTrainingRepository {
 
     List<Map<String, Object>> findReviewAttempts(Long trainingId, Long studentId, Long topicId);
 
+    Double findAttemptMaxScore(Long trainingId, Long attemptId);
+
     boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId);
 
     void appendTrainingLog(Long trainingId, Long operatorId, String action, String content);

@@ -354,6 +354,11 @@ class AdminTrainingServiceTests {
         }
 
         @Override
+        public Double findAttemptMaxScore(Long trainingId, Long attemptId) {
+            return 100D;
+        }
+
+        @Override
         public boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
             return false;
         }

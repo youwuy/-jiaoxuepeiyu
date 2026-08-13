@@ -142,6 +142,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     }
 
     @Override
+    public Double findAttemptMaxScore(Long trainingId, Long attemptId) {
+        return mapper.findAttemptMaxScore(trainingId, attemptId);
+    }
+
+    @Override
     public boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
         return mapper.reviewAttempt(trainingId, attemptId, manualScore, comment, reviewerId) > 0;
     }

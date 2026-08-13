@@ -190,8 +190,12 @@ public class AdminTrainingService {
     public void reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
         requireOperator(reviewerId);
         getTraining(trainingId);
-        if (manualScore == null || manualScore.doubleValue() < 0 || manualScore.doubleValue() > 100) {
-            throw new BusinessException(400, "Review score must be between 0 and 100");
+        Double maxScore = repository.findAttemptMaxScore(trainingId, attemptId);
+        if (maxScore == null) {
+            throw new BusinessException(404, "Training attempt not found");
+        }
+        if (manualScore == null || manualScore.doubleValue() < 0 || manualScore.doubleValue() > maxScore.doubleValue()) {
+            throw new BusinessException(400, "Review score must be between 0 and the topic maximum score");
         }
         String normalizedComment = trimToNull(comment);
         if (normalizedComment != null && normalizedComment.length() > 500) {

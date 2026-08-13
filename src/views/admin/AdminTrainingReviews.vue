@@ -188,8 +188,8 @@
                   <td>{{ step.score ?? 0 }}</td><td>{{ step.durationSeconds ?? 0 }}</td>
                 </tr></tbody>
               </table>
-              <div class="review-score-row"><span>系统核算个人得分：{{ selectedAttempt?.systemScore ?? 0 }} / 100</span>
-                <label>人工修正总分 <el-input-number v-model="manualScore" :min="0" :max="100" :controls="false" :disabled="reviewReadonly" /></label>
+              <div class="review-score-row"><span>系统核算个人得分：{{ selectedAttempt?.systemScore ?? 0 }} / {{ attemptMaxScore }}</span>
+                <label>人工修正总分 <el-input-number v-model="manualScore" :min="0" :max="attemptMaxScore" :controls="false" /></label>
               </div>
             </section>
             <section class="review-video-panel">
@@ -241,6 +241,7 @@ interface TrainingReviewRow {
   studentNo: string;
   className: string;
   taskName: string;
+  maxScore: number;
   submitted: boolean;
   submittedAt?: string;
   reviewed: boolean;
@@ -277,6 +278,7 @@ const reviewComment = ref('');
 const reviewReadonly = ref(false);
 const reviewVideo = ref<HTMLVideoElement>();
 const classOptions = computed(() => [...new Set(rows.value.map((item) => item.className).filter((name) => name && name !== '-'))]);
+const attemptMaxScore = computed(() => Number(selectedAttempt.value?.maxScore || reviewTarget.value?.maxScore || 100));
 
 const matchedRows = computed(() =>
   rows.value.filter((item) => {
@@ -374,7 +376,7 @@ function selectTopic(topicId: number) {
 
 async function openReview(row: TrainingReviewRow) {
   reviewTarget.value = row;
-  reviewReadonly.value = row.reviewed;
+  reviewReadonly.value = false;
   try {
     attempts.value = await fetchAdminTrainingReviewAttempts(trainingId.value, row.studentId, row.topicId);
     reviewVisible.value = true;
@@ -386,7 +388,7 @@ async function openReview(row: TrainingReviewRow) {
 
 async function selectAttempt(attempt: AdminTrainingReviewAttempt) {
   selectedAttempt.value = attempt;
-  reviewReadonly.value = Boolean(attempt.reviewedAt);
+  reviewReadonly.value = false;
   manualScore.value = Number(attempt.manualScore ?? attempt.systemScore ?? 0);
   reviewComment.value = attempt.reviewComment || '';
   attemptDetail.value = await fetchAdminTrainingArchiveDetail(attempt.attemptId);
@@ -399,7 +401,7 @@ function seekVideo(second = 0) {
 }
 
 async function saveReview() {
-  if (!selectedAttempt.value || manualScore.value < 0 || manualScore.value > 100) {
+  if (!selectedAttempt.value || manualScore.value < 0 || manualScore.value > attemptMaxScore.value) {
     ElMessage.warning('请输入合适的分数');
     return;
   }
@@ -454,6 +456,7 @@ function mapReviewRow(item: AdminTrainingReviewRow): TrainingReviewRow {
     submitted: Boolean(item.attemptId),
     submittedAt: item.submittedAt ? formatDateTime(item.submittedAt) : undefined,
     reviewed: Boolean(item.reviewedAt),
+    maxScore: Number(item.maxScore || 100),
     score: item.attemptId ? Number(item.manualScore ?? item.systemScore ?? 0) : undefined,
     submitCount: Number(item.submitCount || 0),
     teammateScores: item.trainingMode === 'TEAM' ? (item.teammateScores || '-') : '-'
