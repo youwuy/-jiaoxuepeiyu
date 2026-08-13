@@ -8,6 +8,7 @@ import java.util.List;
 public class TrainingAttemptCommand {
 
     private String clientAttemptId;
+    private Long topicId;
     private String submitType;
     private Integer durationSeconds;
     private BigDecimal personalScore;
@@ -23,6 +24,9 @@ public class TrainingAttemptCommand {
     public void setClientAttemptId(String clientAttemptId) {
         this.clientAttemptId = clientAttemptId;
     }
+
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
 
     public String getSubmitType() {
         return submitType;

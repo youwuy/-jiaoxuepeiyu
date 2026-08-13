@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -137,6 +138,13 @@ public class AdminTrainingController {
         return ApiResponse.ok(null);
     }
 
+    @PostMapping("/{trainingId}/start-exam")
+    @Operation(summary = "Start team training exam", description = "Persists the start state for a published team exam.")
+    public ApiResponse<Void> startExam(@PathVariable Long trainingId, HttpServletRequest request) {
+        service.startExam(trainingId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
     @PostMapping("/{trainingId}/delete")
     @Operation(summary = "Delete training", description = "Soft deletes a training course and takes it offline.")
     public ApiResponse<Void> deleteTraining(@PathVariable Long trainingId, HttpServletRequest request) {
@@ -154,6 +162,48 @@ public class AdminTrainingController {
     @Operation(summary = "Get training monitor snapshot", description = "Returns camera states, student desk/progress states, room role states, and statistics for the management monitor page.")
     public ApiResponse<AdminTrainingMonitorSnapshot> getMonitorSnapshot(@PathVariable Long trainingId) {
         return ApiResponse.ok(service.getMonitorSnapshot(trainingId));
+    }
+
+    @PostMapping("/{trainingId}/rooms/{roomId}/dissolve")
+    @Operation(summary = "Dissolve training room", description = "Dissolves an active team room and removes all active members from it.")
+    public ApiResponse<Void> dissolveRoom(@PathVariable Long trainingId,
+                                          @PathVariable Long roomId,
+                                          HttpServletRequest request) {
+        service.dissolveRoom(trainingId, roomId, AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    @GetMapping("/{trainingId}/reviews")
+    @Operation(summary = "List training review rows", description = "Lists every participant with latest attempt and review state.")
+    public ApiResponse<List<Map<String, Object>>> listReviews(@PathVariable Long trainingId) {
+        return ApiResponse.ok(service.listReviewRows(trainingId));
+    }
+
+    @GetMapping("/{trainingId}/reviews/{studentId}/{topicId}/attempts")
+    @Operation(summary = "List review attempts", description = "Lists one student's submissions for a training topic in reverse chronological order.")
+    public ApiResponse<List<Map<String, Object>>> listReviewAttempts(@PathVariable Long trainingId,
+                                                                     @PathVariable Long studentId,
+                                                                     @PathVariable Long topicId) {
+        return ApiResponse.ok(service.listReviewAttempts(trainingId, studentId, topicId));
+    }
+
+    @PostMapping("/{trainingId}/attempts/{attemptId}/review")
+    @Operation(summary = "Review training attempt", description = "Stores a manual score and optional teacher comment without overwriting the UE system score.")
+    public ApiResponse<Void> reviewAttempt(@PathVariable Long trainingId,
+                                           @PathVariable Long attemptId,
+                                           @RequestBody ReviewAttemptRequest body,
+                                           HttpServletRequest request) {
+        service.reviewAttempt(trainingId, attemptId, body.getManualScore(), body.getComment(), AdminContext.requireAdminId(request));
+        return ApiResponse.ok(null);
+    }
+
+    public static class ReviewAttemptRequest {
+        private Double manualScore;
+        private String comment;
+        public Double getManualScore() { return manualScore; }
+        public void setManualScore(Double manualScore) { this.manualScore = manualScore; }
+        public String getComment() { return comment; }
+        public void setComment(String comment) { this.comment = comment; }
     }
 
     @GetMapping("/{trainingId}/logs")

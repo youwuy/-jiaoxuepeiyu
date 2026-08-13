@@ -22,8 +22,16 @@ public class AdminTraining {
     private String publishStatus;
     private LocalDateTime openStartTime;
     private LocalDateTime openEndTime;
+    private LocalDateTime examStartedAt;
     private Integer teamSize;
     private Boolean appRequired;
+    private Long classroomId;
+    private List<Long> teacherIds;
+    private String scoreBasis;
+    private List<Long> topicIds;
+    private String teacherNames;
+    private String classroomName;
+    private Integer topicCount;
     private String classNames;
     private List<Long> classIds;
     private List<AdminTrainingRole> roles;
@@ -172,6 +180,9 @@ public class AdminTraining {
         this.openEndTime = openEndTime;
     }
 
+    public LocalDateTime getExamStartedAt() { return examStartedAt; }
+    public void setExamStartedAt(LocalDateTime examStartedAt) { this.examStartedAt = examStartedAt; }
+
     public Integer getTeamSize() {
         return teamSize;
     }
@@ -187,6 +198,21 @@ public class AdminTraining {
     public void setAppRequired(Boolean appRequired) {
         this.appRequired = appRequired;
     }
+
+    public Long getClassroomId() { return classroomId; }
+    public void setClassroomId(Long classroomId) { this.classroomId = classroomId; }
+    public List<Long> getTeacherIds() { return teacherIds; }
+    public void setTeacherIds(List<Long> teacherIds) { this.teacherIds = teacherIds; }
+    public String getScoreBasis() { return scoreBasis; }
+    public void setScoreBasis(String scoreBasis) { this.scoreBasis = scoreBasis; }
+    public List<Long> getTopicIds() { return topicIds; }
+    public void setTopicIds(List<Long> topicIds) { this.topicIds = topicIds; }
+    public String getTeacherNames() { return teacherNames; }
+    public void setTeacherNames(String teacherNames) { this.teacherNames = teacherNames; }
+    public String getClassroomName() { return classroomName; }
+    public void setClassroomName(String classroomName) { this.classroomName = classroomName; }
+    public Integer getTopicCount() { return topicCount; }
+    public void setTopicCount(Integer topicCount) { this.topicCount = topicCount; }
 
     public String getClassNames() {
         return classNames;

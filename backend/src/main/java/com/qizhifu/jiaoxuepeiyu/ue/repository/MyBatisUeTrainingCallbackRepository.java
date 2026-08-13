@@ -34,6 +34,11 @@ public class MyBatisUeTrainingCallbackRepository implements UeTrainingCallbackRe
     }
 
     @Override
+    public boolean topicBelongsToTraining(Long trainingId, Long topicId) {
+        return mapper.countTrainingTopic(trainingId, topicId) > 0;
+    }
+
+    @Override
     public void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command) {
         mapper.upsertMonitorSnapshot(command);
     }

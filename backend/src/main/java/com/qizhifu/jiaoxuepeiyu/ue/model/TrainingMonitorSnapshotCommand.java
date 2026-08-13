@@ -10,6 +10,9 @@ public class TrainingMonitorSnapshotCommand {
     private Long classroomId;
     private String deskStatus;
     private String progressStatus;
+    private String currentTopicName;
+    private Integer submittedTopicCount;
+    private String desktopStreamUrl;
     private BigDecimal score;
     private BigDecimal teamScore;
     private LocalDateTime lastEventAt;
@@ -53,6 +56,13 @@ public class TrainingMonitorSnapshotCommand {
     public void setProgressStatus(String progressStatus) {
         this.progressStatus = progressStatus;
     }
+
+    public String getCurrentTopicName() { return currentTopicName; }
+    public void setCurrentTopicName(String currentTopicName) { this.currentTopicName = currentTopicName; }
+    public Integer getSubmittedTopicCount() { return submittedTopicCount; }
+    public void setSubmittedTopicCount(Integer submittedTopicCount) { this.submittedTopicCount = submittedTopicCount; }
+    public String getDesktopStreamUrl() { return desktopStreamUrl; }
+    public void setDesktopStreamUrl(String desktopStreamUrl) { this.desktopStreamUrl = desktopStreamUrl; }
 
     public BigDecimal getScore() {
         return score;

@@ -230,6 +230,7 @@ import { ArrowLeft, Calendar, Check, Document, Histogram, Medal, PieChart, Trend
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminTraining,
+  fetchAdminTrainingReviews,
   fetchAdminTrainingStatistics,
   type AdminTrainingStatistics as TrainingStatistics
 } from '../../api/admin-training';
@@ -302,31 +303,32 @@ const classText = ref(String(route.query.target || ''));
 const timeText = ref(String(route.query.time || ''));
 const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
+const reviewRows = ref<Array<{ studentId: number; studentName?: string; studentNo?: string; className?: string; attemptId?: number; submittedAt?: string; systemScore?: number; manualScore?: number }>>([]);
 
-const participantCount = computed(() => numberValue(statistics.value.participantCount) || 186);
-const completedCount = computed(() => numberValue(statistics.value.submittedAttemptCount) || 182);
-const averageScore = computed(() => numberValue(statistics.value.averageScore) || 78.5);
+const participantCount = computed(() => numberValue(statistics.value.participantCount));
+const completedCount = computed(() => numberValue(statistics.value.submittedAttemptCount));
+const averageScore = computed(() => numberValue(statistics.value.averageScore));
 const notCompletedCount = computed(() => Math.max(participantCount.value - completedCount.value, 0));
 const classLabels = computed(() => {
-  const parsed = splitLabels(classText.value || trainingTitle.value);
+  const parsed = [...new Set(reviewRows.value.map((item) => item.className).filter(Boolean) as string[])];
   if (parsed.length > 0) {
     return parsed.slice(0, 5);
   }
-  return ['城轨运营2501班', '城轨机电2502班', '城轨车辆2503班', '城轨信号2501班', '城轨供电2501班'];
+  return [];
 });
 const classChips = computed(() => ['全部班级', ...classLabels.value]);
 
 const summaryCards = computed<SummaryCard[]>(() => [
   {
     label: '实训课程名',
-    value: trainingTitle.value || '2025年春季城轨综合实训期末考',
+    value: trainingTitle.value || '-',
     desc: '课程考试',
     icon: Document,
     tone: 'calendar'
   },
   {
     label: '实训课程起止时间',
-    value: formatTimeRange(timeText.value) || '2025-06-20 09:00 - 11:30',
+    value: formatTimeRange(timeText.value) || '-',
     desc: '考试时段',
     icon: Calendar,
     tone: 'green'
@@ -393,11 +395,8 @@ const donutGradient = computed(() => {
 
 const classParticipationData = computed<ChartClassItem[]>(() => {
   const labels = classLabels.value;
-  const joinedCounts = allocateCounts(participantCount.value, classRatios(labels.length));
-  const completedCounts = allocateCounts(
-    Math.min(completedCount.value, participantCount.value),
-    classRatios(labels.length)
-  );
+  const joinedCounts = labels.map((label) => new Set(reviewRows.value.filter((item) => item.className === label).map((item) => item.studentId)).size);
+  const completedCounts = labels.map((label) => new Set(reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => item.studentId)).size);
   return labels.map((label, index) => {
     const joined = joinedCounts[index] ?? 0;
     const completed = Math.min(completedCounts[index] ?? 0, joined);
@@ -422,11 +421,12 @@ const classChartTicks = computed(() =>
 );
 
 const stackedDistribution = computed<StackItem[]>(() =>
-  classLabels.value.map((label, index) => {
-    const excellent = Math.max(6 - index, 3);
-    const good = 7 + (index % 2);
-    const normal = 5 + (index % 3);
-    const pass = 4 + (index % 2);
+  classLabels.value.map((label) => {
+    const scores = reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
+    const excellent = scores.filter((score) => score >= 90).length;
+    const good = scores.filter((score) => score >= 80 && score < 90).length;
+    const normal = scores.filter((score) => score >= 70 && score < 80).length;
+    const pass = scores.filter((score) => score < 70).length;
     return {
       name: label,
       excellent,
@@ -444,7 +444,8 @@ const stackedDistribution = computed<StackItem[]>(() =>
 const classAverageCompare = computed<CompareItem[]>(() =>
   classLabels.value.map((label, index) => {
     const colors = ['#6d5efc', '#3b82f6', '#37c793', '#f59e0b', '#ef4444'];
-    const score = Math.max(72, Math.min(95, averageScore.value - index * 1.7 + (index % 2 === 0 ? 1.2 : -0.5)));
+    const values = reviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => Number(item.manualScore ?? item.systemScore ?? 0));
+    const score = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
     return {
       name: label,
       score: score.toFixed(1),
@@ -454,29 +455,12 @@ const classAverageCompare = computed<CompareItem[]>(() =>
   })
 );
 
-const rankingRows = computed<RankingRow[]>(() => {
-  const names = ['王晨曦', '李浩然', '赵雨桐', '陈思远', '刘子昂', '张若彤', '周子墨', '孙雨欣', '黄嘉怡', '林志远'];
-  const scores = [98, 96, 95, 93, 91, 89, 88, 87, 85, 84];
-  const durations = ['12min', '15min', '10min', '18min', '24min', '20min', '21min', '19min', '28min', '25min'];
+const rankingRows = computed<RankingRow[]>(() => reviewRows.value.filter((item) => item.attemptId).sort((a, b) => Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0)).slice(0, 10).map((item, index) => {
+  const score = Number(item.manualScore ?? item.systemScore ?? 0);
+  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 60 ? '及格' : '不及格', duration: '-' };
+}));
 
-  return names.map((name, index) => ({
-    rank: index + 1,
-    studentNo: `20210${String(index + 101).padStart(3, '0')}`,
-    name,
-    className: classLabels.value[index % classLabels.value.length],
-    score: scores[index],
-    grade: gradeForScore(scores[index]),
-    duration: durations[index]
-  }));
-});
-
-const progressRows = computed<ProgressRow[]>(() => [
-  { index: 1, title: '任务三：车辆转向架检修', subtitle: '步骤2：测量轮对踏面磨耗', percent: 68 },
-  { index: 2, title: '任务一：受电弓升降操作', subtitle: '步骤4：检查受电弓气路压力', percent: 52 },
-  { index: 3, title: '任务五：客室车门调试', subtitle: '步骤3：车门开关门时间测试', percent: 45 },
-  { index: 4, title: '任务二：机电设备巡检', subtitle: '步骤5：记录设备运行参数', percent: 38 },
-  { index: 5, title: '任务四：调度信号识别', subtitle: '步骤1：识别进路信号机显示', percent: 31 }
-]);
+const progressRows = computed<ProgressRow[]>(() => []);
 
 function numberValue(value: number | string | undefined | null) {
   const parsed = Number(value ?? 0);
@@ -496,16 +480,9 @@ function formatDateTime(value?: string) {
 
 function formatTimeRange(value: string) {
   if (!value) {
-    return '2025-06-20 09:00 - 11:30';
+    return '';
   }
   return value.replace(/\s*至\s*/, ' 至 ');
-}
-
-function splitLabels(value: string) {
-  return value
-    .split(/[、,，\/|;]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function allocateCounts(total: number, ratios: number[]) {
@@ -515,23 +492,6 @@ function allocateCounts(total: number, ratios: number[]) {
     raw[0] += diff;
   }
   return raw;
-}
-
-function classRatios(count: number) {
-  if (count <= 0) {
-    return [];
-  }
-  const weights = Array.from({ length: count }, (_, index) => 1 + ((index * 3) % 5) * 0.03);
-  const totalWeight = weights.reduce((sum, item) => sum + item, 0);
-  return weights.map((item) => item / totalWeight);
-}
-
-function gradeForScore(score: number) {
-  if (score >= 90) return '优秀';
-  if (score >= 80) return '良好';
-  if (score >= 70) return '中等';
-  if (score >= 60) return '及格';
-  return '不及格';
 }
 
 function gradeTone(score: number) {
@@ -570,6 +530,7 @@ async function loadStatistics() {
     classText.value = detail.classNames || classText.value;
     timeText.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`.trim();
     statistics.value = result;
+    reviewRows.value = await fetchAdminTrainingReviews(trainingId.value);
   } catch (error) {
     statistics.value = {};
     ElMessage.error(error instanceof Error ? error.message : '成绩统计加载失败');

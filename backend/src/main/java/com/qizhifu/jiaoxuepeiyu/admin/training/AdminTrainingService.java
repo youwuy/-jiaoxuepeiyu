@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -109,6 +110,23 @@ public class AdminTrainingService {
     }
 
     @Transactional
+    public void startExam(Long trainingId, Long operatorId) {
+        requireOperator(operatorId);
+        AdminTraining training = getTraining(trainingId);
+        if (!"PUBLISHED".equals(training.getPublishStatus()) || !"EXAM".equals(training.getTrainingType())) {
+            throw new BusinessException(400, "Only published exams can be started");
+        }
+        if (!"TEAM".equals(training.getTrainingMode())) {
+            throw new BusinessException(400, "Single training exams start automatically");
+        }
+        if (training.getExamStartedAt() != null) {
+            throw new BusinessException(400, "Training exam has already started");
+        }
+        repository.markExamStarted(trainingId);
+        repository.appendTrainingLog(trainingId, operatorId, "START_EXAM", "Start training exam");
+    }
+
+    @Transactional
     public void deleteTraining(Long trainingId, Long operatorId) {
         requireOperator(operatorId);
         getTraining(trainingId);
@@ -139,6 +157,44 @@ public class AdminTrainingService {
         return snapshot;
     }
 
+    @Transactional
+    public void dissolveRoom(Long trainingId, Long roomId, Long operatorId) {
+        requireOperator(operatorId);
+        getTraining(trainingId);
+        if (roomId == null || !repository.dissolveRoom(trainingId, roomId)) {
+            throw new BusinessException(404, "Active training room not found");
+        }
+    }
+
+    public List<Map<String, Object>> listReviewRows(Long trainingId) {
+        getTraining(trainingId);
+        return repository.findReviewRows(trainingId);
+    }
+
+    public List<Map<String, Object>> listReviewAttempts(Long trainingId, Long studentId, Long topicId) {
+        getTraining(trainingId);
+        if (studentId == null || topicId == null) {
+            throw new BusinessException(400, "Student and training topic are required");
+        }
+        return repository.findReviewAttempts(trainingId, studentId, topicId);
+    }
+
+    @Transactional
+    public void reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
+        requireOperator(reviewerId);
+        getTraining(trainingId);
+        if (manualScore == null || manualScore.doubleValue() < 0 || manualScore.doubleValue() > 100) {
+            throw new BusinessException(400, "Review score must be between 0 and 100");
+        }
+        String normalizedComment = trimToNull(comment);
+        if (normalizedComment != null && normalizedComment.length() > 500) {
+            throw new BusinessException(400, "Review comment cannot exceed 500 characters");
+        }
+        if (!repository.reviewAttempt(trainingId, attemptId, manualScore, normalizedComment, reviewerId)) {
+            throw new BusinessException(404, "Training attempt not found");
+        }
+    }
+
     public List<AdminTrainingLog> listTrainingLogs(Long trainingId) {
         getTraining(trainingId);
         return repository.findTrainingLogs(trainingId);
@@ -152,8 +208,8 @@ public class AdminTrainingService {
         if (trainingName == null) {
             throw new BusinessException(400, "Training name is required");
         }
-        if (trainingName.length() > 128) {
-            throw new BusinessException(400, "Training name cannot exceed 128 characters");
+        if (trainingName.length() > 20) {
+            throw new BusinessException(400, "Training name cannot exceed 20 characters");
         }
         if (command.getAcademicYearId() == null || command.getSemesterId() == null) {
             throw new BusinessException(400, "Training academic year and semester are required");
@@ -183,6 +239,13 @@ public class AdminTrainingService {
         normalized.setOpenStartTime(command.getOpenStartTime());
         normalized.setOpenEndTime(command.getOpenEndTime());
         normalized.setAppRequired(command.getAppRequired() == null ? Boolean.TRUE : command.getAppRequired());
+        if (command.getClassroomId() == null || command.getClassroomId().longValue() <= 0) {
+            throw new BusinessException(400, "Training classroom is required");
+        }
+        normalized.setClassroomId(command.getClassroomId());
+        normalized.setTeacherIds(normalizedIds(command.getTeacherIds(), "Training invigilators are required"));
+        normalized.setScoreBasis("LAST_SUBMIT".equals(command.getScoreBasis()) ? "LAST_SUBMIT" : "HIGHEST");
+        normalized.setTopicIds(normalizedIds(command.getTopicIds(), "Training topics are required"));
         normalized.setClassIds(normalizedIds(command.getClassIds(), "Training classes are required"));
         normalized.setRoles(normalizedRoles(command.getRoles()));
         normalized.setTeamSize(normalizedTeamSize(normalized.getTrainingMode(), command.getTeamSize()));
@@ -196,9 +259,6 @@ public class AdminTrainingService {
         if ("MANUAL".equals(training.getPaperMode()) && training.getPaperId() == null) {
             throw new BusinessException(400, "Manual training paper is required");
         }
-        if ("EXAM".equals(training.getTrainingType()) && training.getPaperId() == null) {
-            throw new BusinessException(400, "Training exam paper is required");
-        }
         if ("TEAM".equals(training.getTrainingMode())) {
             int roleCount = training.getRoles() == null ? 0 : training.getRoles().size();
             int teamSize = training.getTeamSize() == null ? 0 : training.getTeamSize().intValue();
@@ -209,9 +269,6 @@ public class AdminTrainingService {
     }
 
     private void validatePaper(AdminTrainingCommand command) {
-        if ("EXAM".equals(command.getTrainingType()) && command.getPaperId() == null) {
-            throw new BusinessException(400, "Training exam paper is required");
-        }
         if ("MANUAL".equals(command.getPaperMode()) && command.getPaperId() == null) {
             throw new BusinessException(400, "Manual training paper is required");
         }
@@ -275,6 +332,8 @@ public class AdminTrainingService {
             normalized.setTrainingType(upper(trimToNull(query.getTrainingType())));
             normalized.setTrainingMode(upper(trimToNull(query.getTrainingMode())));
             normalized.setPublishStatus(upper(trimToNull(query.getPublishStatus())));
+            normalized.setRangeStart(query.getRangeStart());
+            normalized.setRangeEnd(query.getRangeEnd());
             normalized.setPage(query.getPage());
             normalized.setPageSize(query.getPageSize());
         }

@@ -9,6 +9,7 @@ public class TrainingAttemptSubmission {
     private String clientAttemptId;
     private Long studentId;
     private Long trainingId;
+    private Long topicId;
     private String trainingName;
     private String trainingMode;
     private String roleName;
@@ -50,6 +51,9 @@ public class TrainingAttemptSubmission {
     public void setTrainingId(Long trainingId) {
         this.trainingId = trainingId;
     }
+
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
 
     public String getTrainingName() {
         return trainingName;

@@ -3,6 +3,7 @@ package com.qizhifu.jiaoxuepeiyu.student.training.repository;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingRecord;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingAppInstallation;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingRoom;
+import com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic;
 import com.qizhifu.jiaoxuepeiyu.student.training.port.StudentTrainingRepository;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,19 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     @Override
     public Optional<Long> findActiveRoomId(Long studentId) {
         return Optional.ofNullable(mapper.findActiveRoomId(studentId));
+    }
+
+    @Override
+    public List<StudentTrainingTopic> findTopics(Long trainingId) { return mapper.findTopics(trainingId); }
+
+    @Override
+    public List<TrainingRoom> findWaitingRooms(Long trainingId) {
+        List<TrainingRoom> rooms = mapper.findWaitingRooms(trainingId);
+        for (TrainingRoom room : rooms) {
+            room.setMembers(mapper.findMembers(room.getRoomId()));
+            room.setRoles(mapper.findRoles(room.getRoomId()));
+        }
+        return rooms;
     }
 
     @Override

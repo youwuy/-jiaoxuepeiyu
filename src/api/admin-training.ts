@@ -38,6 +38,14 @@ export interface AdminTraining {
   openEndTime?: string;
   teamSize?: number;
   appRequired?: boolean;
+  classroomId?: number;
+  teacherIds?: number[];
+  scoreBasis?: 'HIGHEST' | 'LAST_SUBMIT';
+  topicIds?: number[];
+  teacherNames?: string;
+  classroomName?: string;
+  topicCount?: number;
+  examStartedAt?: string;
   classNames?: string;
   classIds?: number[];
   roles?: AdminTrainingRoleCommand[];
@@ -63,6 +71,10 @@ export interface AdminTrainingCommand {
   openEndTime?: string;
   teamSize?: number;
   appRequired?: boolean;
+  classroomId?: number;
+  teacherIds?: number[];
+  scoreBasis?: 'HIGHEST' | 'LAST_SUBMIT';
+  topicIds?: number[];
   classIds?: number[];
   roles?: AdminTrainingRoleCommand[];
   publishStatus?: string;
@@ -73,6 +85,8 @@ export interface AdminTrainingQuery {
   trainingType?: string;
   trainingMode?: string;
   publishStatus?: string;
+  rangeStart?: string;
+  rangeEnd?: string;
   page?: number;
   pageSize?: number;
 }
@@ -102,6 +116,7 @@ export interface AdminTrainingCameraState {
   cameraId?: number;
   classroomName?: string;
   cameraName?: string;
+  nvrChannel?: string;
   streamUrl?: string;
   cameraStatus?: string;
 }
@@ -114,10 +129,18 @@ export interface AdminTrainingStudentState {
   clientIp?: string;
   deskStatus?: string;
   progressStatus?: string;
+  currentTopicName?: string;
+  trainingMode?: string;
+  submittedTopicCount?: number;
+  totalTopicCount?: number;
   score?: number;
+  teamScore?: number;
   roomId?: number;
+  roomCode?: string;
   roomStatus?: string;
   roleName?: string;
+  teammateNames?: string;
+  desktopStreamUrl?: string;
 }
 
 export interface AdminTrainingMonitorSnapshot {
@@ -126,6 +149,49 @@ export interface AdminTrainingMonitorSnapshot {
   cameras?: AdminTrainingCameraState[];
   students?: AdminTrainingStudentState[];
   statistics?: AdminTrainingStatistics;
+}
+
+export interface AdminTrainingTopic {
+  topicId: number;
+  topicName: string;
+  category?: string;
+  trainingMode?: 'SINGLE' | 'TEAM';
+  durationMinutes?: number;
+  score?: number;
+  roleNames?: string;
+}
+
+export interface AdminTrainingReviewRow {
+  studentId: number;
+  studentName?: string;
+  studentNo?: string;
+  classId?: number;
+  className?: string;
+  topicId: number;
+  topicName?: string;
+  trainingMode?: string;
+  attemptId?: number;
+  submittedAt?: string;
+  systemScore?: number;
+  manualScore?: number;
+  teamScore?: number;
+  reviewComment?: string;
+  reviewedAt?: string;
+  roleName?: string;
+  submitCount?: number;
+  teammateScores?: string;
+}
+
+export interface AdminTrainingReviewAttempt {
+  attemptId: number;
+  submittedAt?: string;
+  systemScore?: number;
+  manualScore?: number;
+  teamScore?: number;
+  reviewComment?: string;
+  reviewedAt?: string;
+  roleName?: string;
+  durationSeconds?: number;
 }
 
 function buildQuery(query: object = {}) {
@@ -188,6 +254,13 @@ export function cancelPublishAdminTraining(trainingId: number) {
   return requestJson<void>(`/admin/trainings/${trainingId}/cancel-publish`, { method: 'POST', fallbackLabel: '撤回实训课' });
 }
 
+export function startAdminTrainingExam(trainingId: number) {
+  return requestJson<void>(`/admin/trainings/${trainingId}/start-exam`, {
+    method: 'POST',
+    fallbackLabel: '开始实训考试'
+  });
+}
+
 export function deleteAdminTraining(trainingId: number) {
   return requestJson<void>(`/admin/trainings/${trainingId}/delete`, { method: 'POST', fallbackLabel: '删除实训课' });
 }
@@ -196,10 +269,39 @@ export function fetchAdminTrainingMonitor(trainingId: number) {
   return requestJson<AdminTrainingMonitorSnapshot>(`/admin/trainings/${trainingId}/monitor`, { fallbackLabel: '实训监控' });
 }
 
+export function dissolveAdminTrainingRoom(trainingId: number, roomId: number) {
+  return requestJson<void>(`/admin/trainings/${trainingId}/rooms/${roomId}/dissolve`, {
+    method: 'POST',
+    fallbackLabel: '解散实训房间'
+  });
+}
+
 export function fetchAdminTrainingStatistics(trainingId: number) {
   return requestJson<AdminTrainingStatistics>(`/admin/trainings/${trainingId}/statistics`, { fallbackLabel: '实训成绩统计' });
 }
 
 export function fetchAdminTrainingLogs(trainingId: number) {
   return requestJson<AdminTrainingLog[]>(`/admin/trainings/${trainingId}/logs`, { fallbackLabel: '实训操作日志' });
+}
+
+export function fetchAdminTrainingTopics() {
+  return requestJson<AdminTrainingTopic[]>('/admin/training-topics', { fallbackLabel: '实训题库' });
+}
+
+export function fetchAdminTrainingReviews(trainingId: number) {
+  return requestJson<AdminTrainingReviewRow[]>(`/admin/trainings/${trainingId}/reviews`, { fallbackLabel: '实训阅卷列表' });
+}
+
+export function fetchAdminTrainingReviewAttempts(trainingId: number, studentId: number, topicId: number) {
+  return requestJson<AdminTrainingReviewAttempt[]>(`/admin/trainings/${trainingId}/reviews/${studentId}/${topicId}/attempts`, {
+    fallbackLabel: '实训提交记录'
+  });
+}
+
+export function reviewAdminTrainingAttempt(trainingId: number, attemptId: number, command: { manualScore: number; comment?: string }) {
+  return requestJson<void>(`/admin/trainings/${trainingId}/attempts/${attemptId}/review`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '保存实训批阅'
+  });
 }

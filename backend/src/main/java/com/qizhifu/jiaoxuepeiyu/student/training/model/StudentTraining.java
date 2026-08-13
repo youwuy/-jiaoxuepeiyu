@@ -1,6 +1,8 @@
 package com.qizhifu.jiaoxuepeiyu.student.training.model;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class StudentTraining {
 
@@ -16,6 +18,7 @@ public class StudentTraining {
     private boolean appInstalled;
     private Long activeRoomId;
     private Long latestAttemptId;
+    private List<StudentTrainingTopic> topics = new ArrayList<StudentTrainingTopic>();
 
     public Long getTrainingId() {
         return trainingId;
@@ -111,5 +114,10 @@ public class StudentTraining {
 
     public void setLatestAttemptId(Long latestAttemptId) {
         this.latestAttemptId = latestAttemptId;
+    }
+
+    public List<StudentTrainingTopic> getTopics() { return topics; }
+    public void setTopics(List<StudentTrainingTopic> topics) {
+        this.topics = topics == null ? new ArrayList<StudentTrainingTopic>() : topics;
     }
 }

@@ -13,11 +13,15 @@
             <el-option label="考试" value="考试" />
             <el-option label="练习" value="练习" />
           </el-select>
-          <el-select v-model="filters.time" class="admin-training-select" placeholder="实训时间" clearable>
-            <el-option label="本周" value="week" />
-            <el-option label="本月" value="month" />
-            <el-option label="本学期" value="term" />
-          </el-select>
+          <el-date-picker
+            v-model="filters.time"
+            class="admin-training-time-filter"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="实训开始时间"
+            end-placeholder="实训结束时间"
+            clearable
+          />
           <el-select v-model="filters.status" class="admin-training-select" placeholder="发布状态" clearable>
             <el-option label="已发布" value="已发布" />
             <el-option label="未发布" value="未发布" />
@@ -90,7 +94,10 @@
                       <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else-if="course.exam">
-                      <el-button class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
+                      <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
+                      <el-button v-else class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
+                      <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
+                      <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
                       <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
                       <el-dropdown trigger="click">
@@ -105,7 +112,7 @@
                       </el-dropdown>
                     </template>
                     <template v-else>
-                      <el-button class="primary-action" link @click="openMonitor(course)">监考</el-button>
+                      <el-button class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
                       <el-button class="primary-action" link @click="openMarking(course)">阅卷</el-button>
                       <el-button class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
@@ -401,6 +408,7 @@ import {
   fetchAdminTrainingLogs,
   fetchAdminTrainings,
   publishAdminTraining,
+  startAdminTrainingExam,
   updateAdminTraining,
   type AdminTraining,
   type AdminTrainingLog
@@ -426,7 +434,10 @@ interface CourseRow {
   status: CourseStatus;
   createdAt: string;
   topicCount: number;
+  openStartTime?: string;
+  openEndTime?: string;
   exam?: boolean;
+  examStarted?: boolean;
 }
 
 interface SelectableItem {
@@ -452,7 +463,7 @@ interface TrainingFlowNode {
   score: number;
 }
 
-const filters = reactive({ keyword: '', type: '', time: '', status: '' });
+const filters = reactive({ keyword: '', type: '', time: [] as Date[], status: '' });
 const loading = ref(false);
 const page = ref(1);
 const pageSize = 8;
@@ -570,7 +581,7 @@ const selectorItems = computed(() => {
 function resetFilters() {
   filters.keyword = '';
   filters.type = '';
-  filters.time = '';
+  filters.time = [];
   filters.status = '';
   page.value = 1;
   void loadCourses();
@@ -585,7 +596,18 @@ function openCreate() {
   router.push({ name: 'admin-training-new' });
 }
 
-function openEdit(course: CourseRow) {
+async function openEdit(course: CourseRow) {
+  if (course.status === '已发布') {
+    try {
+      await ElMessageBox.confirm('该实训课已发布，修改内容可能影响参训学员，确认继续编辑？', '编辑已发布实训课', {
+        type: 'warning',
+        confirmButtonText: '继续编辑',
+        cancelButtonText: '取消'
+      });
+    } catch {
+      return;
+    }
+  }
   router.push({ name: 'admin-training-edit', params: { id: course.id } });
 }
 
@@ -722,12 +744,21 @@ function openMonitor(row: CourseRow) {
   });
 }
 
-function openExamStart(row: CourseRow) {
-  router.push({
-    name: 'admin-training-exam-start',
-    params: { id: row.id },
-    query: { title: row.name, time: row.time, room: row.room }
-  });
+async function openExamStart(row: CourseRow) {
+  try {
+    await ElMessageBox.confirm(`确认开始实训考试「${row.name}」？开始后参训学员可进入考试。`, '开始考试', {
+      type: 'warning',
+      confirmButtonText: '开始考试',
+      cancelButtonText: '取消'
+    });
+    await startAdminTrainingExam(row.id);
+    ElMessage.success('考试已开始');
+    await loadCourses();
+    openMonitor({ ...row, examStarted: true });
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error(error instanceof Error ? error.message : '开始考试失败');
+  }
 }
 
 function openMarking(row: CourseRow) {
@@ -785,6 +816,10 @@ async function copyCourse(course: CourseRow) {
       openEndTime: detail.openEndTime,
       teamSize: detail.teamSize,
       appRequired: detail.appRequired,
+      classroomId: detail.classroomId,
+      teacherIds: detail.teacherIds || [],
+      scoreBasis: detail.scoreBasis,
+      topicIds: detail.topicIds || [],
       classIds: detail.classIds || [],
       roles: detail.roles || [],
       publishStatus: 'DRAFT'
@@ -813,6 +848,8 @@ async function loadCourses() {
       keyword: filters.keyword.trim() || undefined,
       trainingType: trainingTypeToApi(filters.type),
       publishStatus: statusToApi(filters.status),
+      rangeStart: filters.time[0] ? formatLocalDateTime(filters.time[0]) : undefined,
+      rangeEnd: filters.time[1] ? formatLocalDateTime(filters.time[1]) : undefined,
       page: page.value,
       pageSize
     });
@@ -894,13 +931,22 @@ function mapCourse(item: AdminTraining): CourseRow {
     mode: apiTrainingModeToText(item.trainingMode),
     time: `${formatDateTime(item.openStartTime)}\n至 ${formatDateTime(item.openEndTime)}`,
     target: item.classNames || '-',
-    teacher: item.creatorName || '-',
-    room: `${item.roomCount || 0} 间`,
+    teacher: item.teacherNames || '-',
+    room: item.classroomName || '-',
     status: apiStatusToText(item.publishStatus),
     createdAt: formatDateTime(item.createdAt),
-    topicCount: item.roles?.length || 0,
-    exam: type === '考试'
+    topicCount: item.topicCount || 0,
+    openStartTime: item.openStartTime,
+    openEndTime: item.openEndTime,
+    exam: type === '考试',
+    examStarted: Boolean(item.examStartedAt)
   };
+}
+
+function isTrainingOpen(course: CourseRow) {
+  if (!course.openStartTime || !course.openEndTime) return false;
+  const now = Date.now();
+  return now >= new Date(course.openStartTime).getTime() && now <= new Date(course.openEndTime).getTime();
 }
 
 function buildTrainingCommand(publishStatus: string) {
@@ -973,6 +1019,11 @@ function semesterIdFromLabel(label: string) {
 function formatDateTime(value?: string) {
   if (!value) return '-';
   return value.replace('T', ' ').slice(0, 16);
+}
+
+function formatLocalDateTime(value: Date) {
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
 }
 
 onMounted(() => {

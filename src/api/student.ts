@@ -82,6 +82,7 @@ interface BackendTraining {
   questionCount?: number;
   bestScore?: number;
   attemptCount?: number;
+  topics?: Array<{ topicId: number; topicName: string; trainingMode?: string }>;
 }
 
 export interface TrainingAppInstallation {
@@ -142,6 +143,7 @@ export interface UeLaunchSession {
   trainingId: number;
   roomId?: number;
   expiresAt: string;
+  topicId?: number;
 }
 
 interface BackendResource {
@@ -394,22 +396,24 @@ function mapTraining(item: BackendTraining): StudentTraining {
     term: item.academicTerm || '',
     startAt: formatDate(item.openStartTime),
     deadline: formatDate(item.openEndTime),
-    topicCount: Math.max(item.questionCount ?? item.roleCount ?? 1, 1),
+    topicCount: Math.max(item.topics?.length ?? item.questionCount ?? item.roleCount ?? 0, 0),
     countdown: formatTrainingCountdown(item.openStartTime, item.openEndTime, status),
     attempts: item.attemptCount ?? (item.appInstalled ? 1 : 0),
     bestScore: item.bestScore,
     activeRoomId: item.activeRoomId,
     latestAttemptId: item.latestAttemptId,
     roles: mode === 'team' ? [`${item.roleCount ?? 0} 个角色`, `${item.teamSize ?? 0} 人协作`] : undefined,
-    steps: [
-      {
-        id: item.trainingId,
-        title: item.trainingName,
-        mode,
-        action: status === 'completed' ? 'score' : mode === 'team' ? 'team' : 'start'
-      }
-    ]
+    steps: (item.topics?.length ? item.topics : [{ topicId: item.trainingId, topicName: item.trainingName, trainingMode: mode === 'team' ? 'TEAM' : 'SINGLE' }]).map((topic) => ({
+      id: topic.topicId,
+      title: topic.topicName,
+      mode: topic.trainingMode?.toLowerCase().includes('team') ? 'team' : 'single',
+      action: status === 'completed' ? 'score' : topic.trainingMode?.toLowerCase().includes('team') ? 'team' : 'start'
+    }))
   };
+}
+
+export async function fetchTrainingRooms(trainingId: number): Promise<TrainingRoom[]> {
+  return requestJson<TrainingRoom[]>(`/student/trainings/${trainingId}/rooms`, { fallbackLabel: '组队房间列表' });
 }
 
 export async function fetchStudentTrainingScoreSheet(attemptId: number): Promise<TrainingArchiveDetail> {

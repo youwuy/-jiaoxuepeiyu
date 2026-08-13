@@ -36,6 +36,9 @@ public interface UeTrainingCallbackMapper {
                        @Param("trainingId") Long trainingId,
                        @Param("clientAttemptId") String clientAttemptId);
 
+    @Select("SELECT COUNT(*) FROM training_topic_binding WHERE training_id = #{trainingId} AND topic_id = #{topicId}")
+    int countTrainingTopic(@Param("trainingId") Long trainingId, @Param("topicId") Long topicId);
+
     @Select("SELECT rr.role_name FROM training_team_room_role rr "
             + "LEFT JOIN training_team_room_member m "
             + "ON m.room_id = rr.room_id AND m.role_id = rr.role_id AND m.member_status = 'ACTIVE' "
@@ -44,19 +47,20 @@ public interface UeTrainingCallbackMapper {
     List<String> findUnclaimedRoleNames(@Param("roomId") Long roomId);
 
     @Insert("INSERT INTO training_monitor_snapshot "
-            + "(training_id, student_id, classroom_id, desk_status, progress_status, score, team_score, last_event_at, updated_at) "
-            + "VALUES (#{trainingId}, #{studentId}, #{classroomId}, #{deskStatus}, #{progressStatus}, "
+            + "(training_id, student_id, classroom_id, desk_status, progress_status, current_topic_name, submitted_topic_count, desktop_stream_url, score, team_score, last_event_at, updated_at) "
+            + "VALUES (#{trainingId}, #{studentId}, #{classroomId}, #{deskStatus}, #{progressStatus}, #{currentTopicName}, #{submittedTopicCount}, #{desktopStreamUrl}, "
             + "#{score}, #{teamScore}, #{lastEventAt}, NOW()) "
             + "ON DUPLICATE KEY UPDATE classroom_id = COALESCE(VALUES(classroom_id), classroom_id), "
-            + "desk_status = VALUES(desk_status), progress_status = VALUES(progress_status), "
+            + "desk_status = VALUES(desk_status), progress_status = VALUES(progress_status), current_topic_name = VALUES(current_topic_name), "
+            + "submitted_topic_count = COALESCE(VALUES(submitted_topic_count), submitted_topic_count), desktop_stream_url = VALUES(desktop_stream_url), "
             + "score = VALUES(score), team_score = VALUES(team_score), "
             + "last_event_at = VALUES(last_event_at), updated_at = NOW()")
     void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command);
 
     @Insert("INSERT INTO training_attempt "
-            + "(student_id, training_id, client_attempt_id, training_name, training_mode, role_name, submitted_at, submit_type, "
+            + "(student_id, training_id, topic_id, client_attempt_id, training_name, training_mode, role_name, submitted_at, submit_type, "
             + "duration_seconds, personal_score, team_score, recording_url, created_at, updated_at) "
-            + "VALUES (#{studentId}, #{trainingId}, #{clientAttemptId}, #{trainingName}, #{trainingMode}, #{roleName}, #{submittedAt}, "
+            + "VALUES (#{studentId}, #{trainingId}, #{topicId}, #{clientAttemptId}, #{trainingName}, #{trainingMode}, #{roleName}, #{submittedAt}, "
             + "#{submitType}, #{durationSeconds}, #{personalScore}, #{teamScore}, #{recordingUrl}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "attemptId")
     void insertAttempt(TrainingAttemptSubmission submission);

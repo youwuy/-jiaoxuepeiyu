@@ -10,10 +10,18 @@ public class AdminTrainingStudentState {
     private String clientIp;
     private String deskStatus;
     private String progressStatus;
+    private String currentTopicName;
+    private String trainingMode;
+    private Integer submittedTopicCount;
+    private Integer totalTopicCount;
     private Double score;
+    private Double teamScore;
     private Long roomId;
+    private String roomCode;
     private String roomStatus;
     private String roleName;
+    private String teammateNames;
+    private String desktopStreamUrl;
 
     public Long getStudentId() {
         return studentId;
@@ -79,6 +87,15 @@ public class AdminTrainingStudentState {
         this.progressStatus = progressStatus;
     }
 
+    public String getCurrentTopicName() { return currentTopicName; }
+    public void setCurrentTopicName(String currentTopicName) { this.currentTopicName = currentTopicName; }
+    public String getTrainingMode() { return trainingMode; }
+    public void setTrainingMode(String trainingMode) { this.trainingMode = trainingMode; }
+    public Integer getSubmittedTopicCount() { return submittedTopicCount; }
+    public void setSubmittedTopicCount(Integer submittedTopicCount) { this.submittedTopicCount = submittedTopicCount; }
+    public Integer getTotalTopicCount() { return totalTopicCount; }
+    public void setTotalTopicCount(Integer totalTopicCount) { this.totalTopicCount = totalTopicCount; }
+
     public Double getScore() {
         return score;
     }
@@ -87,6 +104,9 @@ public class AdminTrainingStudentState {
         this.score = score;
     }
 
+    public Double getTeamScore() { return teamScore; }
+    public void setTeamScore(Double teamScore) { this.teamScore = teamScore; }
+
     public Long getRoomId() {
         return roomId;
     }
@@ -94,6 +114,9 @@ public class AdminTrainingStudentState {
     public void setRoomId(Long roomId) {
         this.roomId = roomId;
     }
+
+    public String getRoomCode() { return roomCode; }
+    public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
 
     public String getRoomStatus() {
         return roomStatus;
@@ -110,4 +133,9 @@ public class AdminTrainingStudentState {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
+
+    public String getTeammateNames() { return teammateNames; }
+    public void setTeammateNames(String teammateNames) { this.teammateNames = teammateNames; }
+    public String getDesktopStreamUrl() { return desktopStreamUrl; }
+    public void setDesktopStreamUrl(String desktopStreamUrl) { this.desktopStreamUrl = desktopStreamUrl; }
 }

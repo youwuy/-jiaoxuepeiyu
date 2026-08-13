@@ -10,7 +10,7 @@
             <el-breadcrumb-item>监考</el-breadcrumb-item>
           </el-breadcrumb>
         </div>
-        <h1>实时监考</h1>
+        <h1>{{ trainingTitle }} - 监考详情</h1>
         <span></span>
       </header>
 
@@ -18,23 +18,23 @@
         <header class="admin-training-monitor-heading">
           <div>
             <h2>{{ trainingTitle }}</h2>
-            <p>{{ monitorRange }} / {{ monitorClass }} / {{ monitorRoom }} / {{ cameras.length }} 间</p>
+            <p>{{ monitorRange }} / {{ monitorRoom }} / {{ monitorClass }}</p>
           </div>
-          <el-button class="admin-training-monitor-back-list" @click="goBack">返回实训组课</el-button>
+          <el-tag type="success" effect="dark">实训中</el-tag>
         </header>
 
+        <div class="panel-heading camera-heading"><h3>教室全景监控 <small>LIVE 实时直播</small></h3></div>
         <div v-if="!loading && cameras.length" class="monitor-grid">
-          <article v-for="camera in cameras" :key="camera.id" class="camera-card">
+          <article v-for="camera in cameras" :key="camera.id" class="camera-card" @click="openCamera(camera)">
             <div class="camera-screen">
-              <span class="live-dot">直播</span>
+              <span class="live-dot">{{ camera.online ? '在线' : '离线' }}</span>
+              <span class="camera-channel">NVR {{ camera.channel }}</span>
               <strong>{{ camera.name }}</strong>
-              <p>RTSP 可配置接入</p>
+              <p>{{ camera.online ? '实时视频流已接入' : '设备离线，暂无实时视频流' }}</p>
             </div>
             <footer>
               <span>{{ camera.location }}</span>
-              <el-tag size="small" :type="camera.online ? 'success' : 'info'">
-                {{ camera.online ? '在线' : '离线' }}
-              </el-tag>
+              <time>{{ snapshotTime }}</time>
             </footer>
           </article>
         </div>
@@ -44,8 +44,7 @@
 
         <section class="monitor-student-panel">
           <div class="panel-heading">
-            <h3>学员监控</h3>
-            <el-button :icon="Monitor" type="primary" plain @click="openStudentMonitor">查看学员桌面</el-button>
+            <h3>学员实训实况</h3>
           </div>
           <div v-if="students.length" class="admin-training-monitor-table-scroll">
             <table class="admin-training-monitor-table">
@@ -54,9 +53,6 @@
                 <col class="admin-training-monitor-col-student-no" />
                 <col class="admin-training-monitor-col-topic" />
                 <col class="admin-training-monitor-col-mode" />
-                <col class="admin-training-monitor-col-room" />
-                <col class="admin-training-monitor-col-ip" />
-                <col class="admin-training-monitor-col-status" />
               </colgroup>
               <thead>
                 <tr>
@@ -64,9 +60,13 @@
                   <th>学号</th>
                   <th>当前实训题</th>
                   <th>模式</th>
+                  <th>个人成绩</th>
+                  <th>实训进度</th>
+                  <th>当前角色</th>
                   <th>所在房间</th>
-                  <th>IP</th>
-                  <th>在线状态</th>
+                  <th>队员姓名</th>
+                  <th>整队成绩</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -75,12 +75,17 @@
                   <td>{{ student.studentNo }}</td>
                   <td>{{ student.topic }}</td>
                   <td>{{ student.mode }}</td>
+                  <td>{{ student.score }}</td>
+                  <td>{{ student.progress }}</td>
+                  <td>{{ student.role }}</td>
                   <td>{{ student.room }}</td>
-                  <td>{{ student.ip }}</td>
                   <td>
-                    <span class="admin-training-monitor-status" :class="{ offline: !student.online }">
-                      {{ student.online ? '在线' : '离线' }}
-                    </span>
+                    <span class="student-teammates">{{ student.teammates }}</span>
+                  </td>
+                  <td>{{ student.teamScore }}</td>
+                  <td class="student-actions">
+                    <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
+                    <el-button v-if="student.roomId" link type="danger" @click="dissolveRoom(student)">解散房间</el-button>
                   </td>
                 </tr>
               </tbody>
@@ -108,23 +113,6 @@
         </template>
 
         <div v-if="students.length" class="admin-training-student-monitor-body">
-          <aside class="admin-training-student-monitor-list">
-            <strong>学员列表</strong>
-            <button
-              v-for="student in students"
-              :key="student.id"
-              type="button"
-              :class="{ active: studentMonitorTarget?.id === student.id }"
-              @click="selectStudent(student)"
-            >
-              <span>
-                <b>{{ student.name }}</b>
-                <small>{{ student.studentNo }}</small>
-              </span>
-              <i :class="{ online: student.online }">{{ student.online ? '在线' : '离线' }}</i>
-            </button>
-          </aside>
-
           <section v-if="studentMonitorTarget" class="admin-training-student-desktop">
             <header>
               <div>
@@ -136,13 +124,18 @@
               </el-tag>
             </header>
             <div class="admin-training-student-desktop-screen">
-              <el-icon><Monitor /></el-icon>
-              <strong>{{ studentMonitorTarget.name }} 的桌面画面</strong>
-              <span>{{ studentMonitorTarget.online ? '等待桌面流接入' : '学员当前不在线' }}</span>
+              <img v-if="studentMonitorTarget.desktopStreamUrl" :src="studentMonitorTarget.desktopStreamUrl" :alt="`${studentMonitorTarget.name}桌面监控`" />
+              <template v-else>
+                <el-icon><Monitor /></el-icon>
+                <strong>{{ studentMonitorTarget.name }} 的桌面画面</strong>
+                <span>学员桌面未上线，暂无监控画面</span>
+              </template>
             </div>
-            <footer>
-              <span>当前实训题：{{ studentMonitorTarget.topic }}</span>
-              <span>IP：{{ studentMonitorTarget.ip }}</span>
+            <footer class="student-monitor-info">
+              <span><small>学员姓名</small>{{ studentMonitorTarget.name }}</span>
+              <span><small>学号</small>{{ studentMonitorTarget.studentNo }}</span>
+              <span><small>所在班级</small>{{ studentMonitorTarget.className }}</span>
+              <span><small>当前进度</small>{{ studentMonitorTarget.progress }}</span>
             </footer>
           </section>
         </div>
@@ -150,21 +143,34 @@
 
         <template #footer>
           <div class="admin-training-student-monitor-footer">
+            <el-button v-if="hasPreviousStudent" @click="switchStudent(-1)">上一个</el-button>
+            <el-button v-if="hasNextStudent" @click="switchStudent(1)">下一个</el-button>
             <el-button @click="studentMonitorVisible = false">关闭</el-button>
           </div>
         </template>
+      </el-dialog>
+
+      <el-dialog v-model="cameraVisible" width="900px" title="摄像头实时画面" append-to-body>
+        <div v-if="cameraTarget" class="camera-preview">
+          <video v-if="cameraPlayable" :src="cameraTarget.streamUrl" controls autoplay muted playsinline />
+          <div v-else class="camera-preview-empty">
+            <Monitor />
+            <strong>{{ cameraTarget.online ? '当前 RTSP 地址需经流媒体网关转换后才能在浏览器播放' : '设备离线，暂无实时视频流' }}</strong>
+          </div>
+        </div>
       </el-dialog>
     </section>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Close, Monitor } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
+  dissolveAdminTrainingRoom,
   fetchAdminTraining,
   fetchAdminTrainingMonitor,
   type AdminTrainingCameraState,
@@ -177,6 +183,7 @@ interface MonitorCamera {
   location: string;
   online: boolean;
   streamUrl?: string;
+  channel: string;
 }
 
 interface MonitorStudent {
@@ -185,9 +192,17 @@ interface MonitorStudent {
   studentNo: string;
   topic: string;
   mode: string;
+  score: string;
+  progress: string;
+  role: string;
   room: string;
+  roomId?: number;
+  teammates: string;
+  teamScore: string;
+  className: string;
   ip: string;
   online: boolean;
+  desktopStreamUrl?: string;
 }
 
 const route = useRoute();
@@ -202,6 +217,14 @@ const cameras = ref<MonitorCamera[]>([]);
 const students = ref<MonitorStudent[]>([]);
 const studentMonitorVisible = ref(false);
 const studentMonitorTarget = ref<MonitorStudent>();
+const cameraVisible = ref(false);
+const cameraTarget = ref<MonitorCamera>();
+const snapshotTime = ref('-');
+const currentStudentIndex = computed(() => students.value.findIndex((student) => student.id === studentMonitorTarget.value?.id));
+const hasPreviousStudent = computed(() => currentStudentIndex.value > 0);
+const hasNextStudent = computed(() => currentStudentIndex.value >= 0 && currentStudentIndex.value < students.value.length - 1);
+const cameraPlayable = computed(() => Boolean(cameraTarget.value?.streamUrl && !cameraTarget.value.streamUrl.toLowerCase().startsWith('rtsp://')));
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 function goBack() {
   router.push('/admin/training');
@@ -213,7 +236,8 @@ function mapCamera(item: AdminTrainingCameraState, index: number): MonitorCamera
     name: item.cameraName || `摄像头${item.cameraId || index + 1}`,
     location: item.classroomName || '-',
     online: item.cameraStatus !== 'OFFLINE',
-    streamUrl: item.streamUrl
+    streamUrl: item.streamUrl,
+    channel: item.nvrChannel || String(index + 1)
   };
 }
 
@@ -222,50 +246,85 @@ function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStud
     id: item.studentId || index + 1,
     name: item.studentName || '-',
     studentNo: item.studentNo || '-',
-    topic: item.roleName || '-',
-    mode: item.roomStatus === 'SINGLE' ? '单人实训' : '协同实训',
-    room: item.roomId ? `房间 ${item.roomId}` : '-',
+    topic: item.currentTopicName || '-',
+    mode: item.trainingMode === 'SINGLE' ? '单人实训' : '协同实训',
+    score: item.score == null ? '-' : String(item.score),
+    progress: `${item.submittedTopicCount || 0} / ${item.totalTopicCount || 0}`,
+    role: item.roleName || '-',
+    room: item.roomCode || (item.roomId ? `房间 ${item.roomId}` : '-'),
+    roomId: item.roomId,
+    teammates: item.roomId ? (item.teammateNames || '-') : '-',
+    teamScore: item.roomId && item.teamScore != null ? String(item.teamScore) : '-',
+    className: item.className || '-',
     ip: item.clientIp || '-',
-    online: item.deskStatus !== 'OFFLINE'
+    online: item.deskStatus !== 'OFFLINE',
+    desktopStreamUrl: item.desktopStreamUrl
   };
 }
 
-function selectStudent(student: MonitorStudent) {
+function openStudentMonitor(student: MonitorStudent) {
   studentMonitorTarget.value = student;
-}
-
-function openStudentMonitor() {
-  studentMonitorTarget.value = students.value.find((student) => student.online) || students.value[0];
   studentMonitorVisible.value = true;
 }
 
-async function loadMonitor() {
+function switchStudent(offset: number) {
+  const target = students.value[currentStudentIndex.value + offset];
+  if (target) studentMonitorTarget.value = target;
+}
+
+function openCamera(camera: MonitorCamera) {
+  cameraTarget.value = camera;
+  cameraVisible.value = true;
+}
+
+async function dissolveRoom(student: MonitorStudent) {
+  if (!student.roomId) return;
+  try {
+    await ElMessageBox.confirm('解散后，学员将退出实训，需要重新组队才能实训', '解散房间', {
+      type: 'warning',
+      confirmButtonText: '确认解散',
+      cancelButtonText: '取消'
+    });
+    await dissolveAdminTrainingRoom(trainingId.value, student.roomId);
+    ElMessage.success('房间已解散');
+    await loadMonitor(false);
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error(error instanceof Error ? error.message : '解散房间失败');
+  }
+}
+
+async function loadMonitor(showLoading = true) {
   if (!trainingId.value) {
     return;
   }
 
-  loading.value = true;
+  if (showLoading) loading.value = true;
   try {
     const detail = await fetchAdminTraining(trainingId.value);
     trainingTitle.value = detail.trainingName || trainingTitle.value;
     monitorRange.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`;
     monitorClass.value = detail.classNames || monitorClass.value;
-    monitorRoom.value = detail.roomCount ? `${detail.roomCount} 间实训教室` : monitorRoom.value;
+    monitorRoom.value = detail.classroomName || monitorRoom.value;
   } catch {
     trainingTitle.value = trainingTitle.value || '实时监考';
   }
 
   try {
     const snapshot = await fetchAdminTrainingMonitor(trainingId.value);
-    cameras.value = (snapshot.cameras || []).map(mapCamera);
+    cameras.value = (snapshot.cameras || []).slice(0, 4).map(mapCamera);
     students.value = (snapshot.students || []).map(mapStudent);
+    snapshotTime.value = formatDateTime(snapshot.generatedAt);
+    if (studentMonitorTarget.value) {
+      studentMonitorTarget.value = students.value.find((student) => student.id === studentMonitorTarget.value?.id);
+    }
     monitorRoom.value = monitorRoom.value || '未配置教室';
   } catch (error) {
     cameras.value = [];
     students.value = [];
     ElMessage.error(error instanceof Error ? error.message : '实训监控加载失败');
   } finally {
-    loading.value = false;
+    if (showLoading) loading.value = false;
   }
 }
 
@@ -278,6 +337,11 @@ function formatDateTime(value?: string) {
 
 onMounted(() => {
   void loadMonitor();
+  refreshTimer = setInterval(() => void loadMonitor(false), 5000);
+});
+
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 </script>
 
@@ -372,7 +436,31 @@ onMounted(() => {
 }
 
 .admin-training-monitor-page .monitor-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
+}
+
+.camera-heading {
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+.camera-heading small {
+  margin-left: 8px;
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.camera-card {
+  cursor: pointer;
+}
+
+.camera-channel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #fff;
+  font-size: 12px;
 }
 
 .admin-training-monitor-page .camera-screen {
@@ -434,7 +522,7 @@ onMounted(() => {
 
 .admin-training-monitor-table {
   width: 100%;
-  min-width: 900px;
+  min-width: 1680px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -552,9 +640,6 @@ onMounted(() => {
 }
 
 .admin-training-student-monitor-body {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 16px;
   min-height: 440px;
 }
 
@@ -692,6 +777,67 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.admin-training-student-desktop-screen img {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  object-fit: contain;
+}
+
+.student-monitor-info {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.student-monitor-info span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  overflow: hidden;
+  color: #334155;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-monitor-info small {
+  color: #94a3b8;
+}
+
+.student-actions {
+  width: 180px;
+}
+
+.student-teammates {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 170px;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.camera-preview video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  background: #0f172a;
+}
+
+.camera-preview-empty {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  gap: 12px;
+  padding: 40px;
+  background: #0f172a;
+  color: #fff;
+  text-align: center;
+}
+
+.camera-preview-empty svg {
+  width: 52px;
+  height: 52px;
+}
+
 .admin-training-student-monitor-footer {
   display: flex;
   justify-content: flex-end;
@@ -721,17 +867,7 @@ onMounted(() => {
     padding: 22px;
   }
 
-  .admin-training-student-monitor-body {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-training-student-monitor-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-training-student-monitor-list > strong {
-    grid-column: 1 / -1;
-  }
+  .student-monitor-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {

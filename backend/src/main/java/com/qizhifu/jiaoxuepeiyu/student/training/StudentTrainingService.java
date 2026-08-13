@@ -49,6 +49,7 @@ public class StudentTrainingService {
             training.setAppInstalled(record.isAppInstalled());
             training.setActiveRoomId(activeRoomId);
             training.setLatestAttemptId(record.getLatestAttemptId());
+            training.setTopics(repository.findTopics(record.getTrainingId()));
             training.setStatus(status(record, now));
             trainings.add(training);
         }
@@ -57,6 +58,11 @@ public class StudentTrainingService {
 
     public TrainingAppInstallation getAppInstallation(Long studentId) {
         return repository.findAppInstallation(studentId);
+    }
+
+    public List<TrainingRoom> listWaitingRooms(Long studentId, Long trainingId) {
+        requireTraining(studentId, trainingId);
+        return repository.findWaitingRooms(trainingId);
     }
 
     @Transactional

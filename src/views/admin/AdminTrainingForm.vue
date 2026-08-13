@@ -29,7 +29,7 @@
           <div class="admin-training-base-grid">
             <label class="admin-training-form-item">
               <span><b>*</b> 实训课程名</span>
-              <el-input v-model="form.name" maxlength="30" placeholder="请输入实训课程名称" />
+              <el-input v-model="form.name" maxlength="20" show-word-limit placeholder="请输入实训课程名称" />
             </label>
             <label class="admin-training-form-item">
               <span><b>*</b> 类型</span>
@@ -137,7 +137,7 @@
 
         <footer class="admin-training-form-footer">
           <el-button @click="goBack">取消</el-button>
-          <el-button type="primary" :icon="Check" @click="saveAndPublish">保存</el-button>
+          <el-button type="primary" :icon="Check" @click="saveDraft">保存草稿</el-button>
         </footer>
       </main>
     </section>
@@ -256,7 +256,7 @@
           <article><span>总分</span><strong>{{ totalScore }} 分</strong></article>
         </section>
       </div>
-      <template #footer><div class="admin-training-dialog-footer"><el-button @click="previewVisible = false">关闭</el-button><el-button type="primary" @click="saveAndPublish">发布</el-button></div></template>
+      <template #footer><div class="admin-training-dialog-footer"><el-button @click="previewVisible = false">关闭</el-button></div></template>
     </el-dialog>
   </AdminShell>
 </template>
@@ -272,7 +272,7 @@ import { fetchAdminResources } from '../../api/admin-resource';
 import {
   createAdminTraining,
   fetchAdminTraining,
-  publishAdminTraining,
+  fetchAdminTrainingTopics,
   updateAdminTraining,
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses } from '../../api/admin-settings';
@@ -291,11 +291,11 @@ interface TopicItem {
   duration: number;
   score: number;
   meta: string;
+  mode: '单人实训' | '多人实训';
+  roles: string[];
 }
 
 interface TopicRow extends TopicItem {
-  mode: string;
-  roles: string[];
 }
 
 interface SelectableItem {
@@ -343,13 +343,7 @@ const teacherOptions = ref<SelectableItem[]>([]);
 const resourceOptions = ref<SelectableItem[]>([]);
 const paperOptions = ref<SelectableItem[]>([]);
 const roomOptions = ref<SelectableItem[]>([]);
-const topicOptions = ref<TopicItem[]>([
-  { id: 1, name: '列车故障识别', category: '信号', duration: 40, score: 20, meta: '面向列车运行安全的基础识别题' },
-  { id: 2, name: '站台门联动处置', category: '站务', duration: 35, score: 20, meta: '站台门故障联动处置流程' },
-  { id: 3, name: '调度指令响应', category: '调度', duration: 30, score: 15, meta: '调度命令解析与执行' },
-  { id: 4, name: '应急广播处理', category: '站务', duration: 25, score: 15, meta: '应急广播发布与回执' },
-  { id: 5, name: '信号机状态确认', category: '信号', duration: 20, score: 10, meta: '基础状态识别与判读' }
-]);
+const topicOptions = ref<TopicItem[]>([]);
 
 const selectedTopicIds = ref<number[]>([]);
 const selectedResourceIds = ref<number[]>([]);
@@ -468,7 +462,11 @@ async function loadDetail() {
     form.semester = `${detail.academicYearName || ''} ${detail.semesterName || ''}`.trim();
     form.range = [detail.openStartTime || '', detail.openEndTime || ''].filter(Boolean);
     selectedClassIds.value = detail.classIds || [];
-    selectedTeacherIds.value = detail.creatorName ? [1] : [];
+    selectedTeacherIds.value = detail.teacherIds || [];
+    selectedRoomId.value = detail.classroomId || 0;
+    form.recordingEnabled = detail.appRequired === true;
+    form.scoreBasis = detail.scoreBasis === 'LAST_SUBMIT' ? '最后一次提交的成绩' : '最高成绩';
+    selectedTopicIds.value = detail.topicIds || [];
     selectedPaperId.value = detail.paperId || 0;
     form.roles = (detail.roles || []).map((role) => ({
       name: role.roleName || role.roleCode || '角色',
@@ -482,13 +480,14 @@ async function loadDetail() {
 
 async function loadOptions() {
   try {
-    const [years, classes, teachers, papers, resources, classrooms] = await Promise.all([
+    const [years, classes, teachers, papers, resources, classrooms, questions] = await Promise.all([
       fetchAdminAcademicYears(),
       fetchAdminSettingsClasses(),
       fetchAdminTeachers(),
       fetchAdminPapers({ page: 1, pageSize: 200 }),
       fetchAdminResources({ page: 1, pageSize: 200 }),
-      fetchAdminClassrooms()
+      fetchAdminClassrooms(),
+      fetchAdminTrainingTopics()
     ]);
     academicYears.value = years;
     classOptions.value = (classes as AdminClass[]).filter((item) => item.enabled !== false).map((item) => ({
@@ -523,6 +522,16 @@ async function loadOptions() {
       name: item.roomName,
       meta: `${item.cameraCount} 路摄像头`,
       category: 'room'
+    }));
+    topicOptions.value = questions.map((item) => ({
+      id: item.topicId,
+      name: item.topicName,
+      category: item.category || '实训题',
+      duration: item.durationMinutes || 0,
+      score: item.score || 0,
+      meta: `${item.trainingMode === 'TEAM' ? '多人实训' : '单人实训'} / ${item.score || 0} 分`,
+      mode: item.trainingMode === 'TEAM' ? '多人实训' : '单人实训',
+      roles: item.roleNames ? item.roleNames.split(',').map((role) => role.trim()).filter(Boolean) : []
     }));
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : '基础数据加载失败');
@@ -602,8 +611,16 @@ function addRole() {
 function buildTrainingCommand(publishStatus: string) {
   const semester = semesterOptions.value.find((item) => item.value === form.semester);
   const majorId = classOptions.value.find((item) => selectedClassIds.value.includes(item.id))?.majorId;
-  const roleNames = Array.from(new Set(selectedTopicRows.value.flatMap((item) => item.roles)));
-  const trainingMode = roleNames.length ? 'TEAM' : 'SINGLE';
+  const hasTeamTopic = selectedTopics.value.some((item) => item.mode === '多人实训');
+  const topicRoleNames = Array.from(new Set(selectedTopics.value.flatMap((item) => item.roles)));
+  const trainingMode = hasTeamTopic ? 'TEAM' : 'SINGLE';
+  const roles = topicRoleNames.map((roleName, index) => ({
+    roleName,
+    roleCode: roleName,
+    capacity: 1,
+    aiFillEnabled: true,
+    sortOrder: index + 1
+  }));
 
   return {
     trainingName: form.name.trim(),
@@ -617,21 +634,19 @@ function buildTrainingCommand(publishStatus: string) {
     paperId: selectedPaperId.value || undefined,
     openStartTime: form.range[0],
     openEndTime: form.range[1],
-    teamSize: roleNames.length || 1,
+    teamSize: hasTeamTopic ? roles.length : 1,
     appRequired: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
-    roles: roleNames.map((roleName, index) => ({
-      roleName,
-      roleCode: roleName,
-      capacity: 1,
-      aiFillEnabled: true,
-      sortOrder: index + 1
-    })),
+    teacherIds: [...selectedTeacherIds.value],
+    classroomId: selectedRoomId.value,
+    scoreBasis: (form.scoreBasis === '最后一次提交的成绩' ? 'LAST_SUBMIT' : 'HIGHEST') as 'HIGHEST' | 'LAST_SUBMIT',
+    topicIds: [...selectedTopicIds.value],
+    roles,
     publishStatus
   };
 }
 
-async function saveAndPublish() {
+async function saveDraft() {
   if (!form.name.trim()) {
     ElMessage.warning('请输入实训课名称');
     return;
@@ -660,22 +675,28 @@ async function saveAndPublish() {
     ElMessage.warning('请至少添加一道实训题');
     return;
   }
-  if (form.type === '考试' && !selectedPaperId.value) {
-    ElMessage.warning('考试类型请选择理论试卷');
+  const teamTopics = selectedTopics.value.filter((item) => item.mode === '多人实训');
+  const singleTopics = selectedTopics.value.filter((item) => item.mode === '单人实训');
+  if (form.type === '考试' && teamTopics.length > 1) {
+    ElMessage.warning('考试类型最多只能添加一道多人实训题');
+    return;
+  }
+  if (form.type === '考试' && teamTopics.length && singleTopics.length) {
+    ElMessage.warning('考试类型不能混合添加单人和多人实训题');
+    return;
+  }
+  if (teamTopics.some((item) => item.roles.length < 2)) {
+    ElMessage.warning('多人实训题至少需要配置两个角色');
     return;
   }
   try {
-    const command = buildTrainingCommand('PUBLISHED');
-    let trainingKey = form.id;
+    const command = buildTrainingCommand('DRAFT');
     if (formMode.value === 'edit' && form.id) {
       await updateAdminTraining(form.id, command);
-      trainingKey = form.id;
     } else {
-      const result = await createAdminTraining(command);
-      trainingKey = result.trainingId;
+      await createAdminTraining(command);
     }
-    await publishAdminTraining(trainingKey);
-    ElMessage.success('已保存并发布');
+    ElMessage.success('草稿已保存');
     goBack();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '发布失败');
@@ -697,11 +718,10 @@ function apiTrainingModeToText(mode?: string): '单人实训' | '协同实训' {
 }
 
 function mapTopicRow(item: TopicItem): TopicRow {
-  const multi = item.id % 2 === 0;
   return {
     ...item,
-    mode: multi ? '多人实训' : '单人实训',
-    roles: multi ? (item.id === 2 ? ['司机', '调度员', '信号员'] : ['站台员', '维修员']) : []
+    mode: item.mode,
+    roles: item.roles
   };
 }
 

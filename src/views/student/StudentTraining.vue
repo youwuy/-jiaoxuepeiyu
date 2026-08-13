@@ -236,7 +236,7 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
     }
 
     const session = await createUeLaunchSession(training.id);
-    launchUeApplication({ ...session, roomId: session.roomId || roomId });
+    launchUeApplication({ ...session, roomId: session.roomId || roomId, topicId: step.id });
     ElMessage.success(`正在启动三维实训：${step.title}`);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '实训接口调用失败');
@@ -255,6 +255,9 @@ function launchUeApplication(session: UeLaunchSession) {
   });
   if (session.roomId) {
     query.set('roomId', String(session.roomId));
+  }
+  if (session.topicId) {
+    query.set('topicId', String(session.topicId));
   }
 
   const scheme = String(import.meta.env.VITE_UE_PROTOCOL || 'jiaoyu-ue').replace(/[^a-z0-9+.-]/gi, '');

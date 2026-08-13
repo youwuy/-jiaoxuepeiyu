@@ -1,5 +1,7 @@
 package com.qizhifu.jiaoxuepeiyu.admin.training.model;
 
+import java.time.LocalDateTime;
+
 public class AdminTrainingQuery {
 
     private String keyword;
@@ -10,6 +12,8 @@ public class AdminTrainingQuery {
     private String trainingType;
     private String trainingMode;
     private String publishStatus;
+    private LocalDateTime rangeStart;
+    private LocalDateTime rangeEnd;
     private int page = 1;
     private int pageSize = 20;
 
@@ -76,6 +80,11 @@ public class AdminTrainingQuery {
     public void setPublishStatus(String publishStatus) {
         this.publishStatus = publishStatus;
     }
+
+    public LocalDateTime getRangeStart() { return rangeStart; }
+    public void setRangeStart(LocalDateTime rangeStart) { this.rangeStart = rangeStart; }
+    public LocalDateTime getRangeEnd() { return rangeEnd; }
+    public void setRangeEnd(LocalDateTime rangeEnd) { this.rangeEnd = rangeEnd; }
 
     public int getPage() {
         return page;

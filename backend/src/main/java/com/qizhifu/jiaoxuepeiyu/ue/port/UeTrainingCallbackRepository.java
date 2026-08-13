@@ -16,6 +16,8 @@ public interface UeTrainingCallbackRepository {
         return Optional.empty();
     }
 
+    default boolean topicBelongsToTraining(Long trainingId, Long topicId) { return false; }
+
     void upsertMonitorSnapshot(TrainingMonitorSnapshotCommand command);
 
     Long insertAttempt(TrainingAttemptSubmission submission);

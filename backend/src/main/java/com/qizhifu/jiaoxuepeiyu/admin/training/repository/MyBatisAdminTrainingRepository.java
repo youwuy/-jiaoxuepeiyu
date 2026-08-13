@@ -13,6 +13,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStudentState;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -72,6 +73,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     }
 
     @Override
+    public void markExamStarted(Long trainingId) {
+        mapper.markExamStarted(trainingId);
+    }
+
+    @Override
     public void deleteTraining(Long trainingId) {
         mapper.deleteTraining(trainingId);
     }
@@ -105,6 +111,31 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     }
 
     @Override
+    public boolean dissolveRoom(Long trainingId, Long roomId) {
+        int changed = mapper.dissolveRoom(trainingId, roomId);
+        if (changed > 0) {
+            mapper.removeActiveRoomMembers(roomId);
+            mapper.clearRoomMonitorState(trainingId, roomId);
+        }
+        return changed > 0;
+    }
+
+    @Override
+    public List<Map<String, Object>> findReviewRows(Long trainingId) {
+        return mapper.findReviewRows(trainingId);
+    }
+
+    @Override
+    public List<Map<String, Object>> findReviewAttempts(Long trainingId, Long studentId, Long topicId) {
+        return mapper.findReviewAttempts(trainingId, studentId, topicId);
+    }
+
+    @Override
+    public boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
+        return mapper.reviewAttempt(trainingId, attemptId, manualScore, comment, reviewerId) > 0;
+    }
+
+    @Override
     public void appendTrainingLog(Long trainingId, Long operatorId, String action, String content) {
         mapper.insertTrainingLog(trainingId, operatorId, action, content);
     }
@@ -123,6 +154,16 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         mapper.deleteRoles(trainingId);
         for (AdminTrainingRoleCommand roleCommand : command.getRoles()) {
             mapper.insertRole(trainingId, toRole(roleCommand));
+        }
+        mapper.deleteTeachers(trainingId);
+        int teacherSort = 1;
+        for (Long teacherId : command.getTeacherIds()) {
+            mapper.insertTeacher(trainingId, teacherId, teacherSort++);
+        }
+        mapper.deleteTopics(trainingId);
+        int topicSort = 1;
+        for (Long topicId : command.getTopicIds()) {
+            mapper.insertTopic(trainingId, topicId, topicSort++);
         }
     }
 
@@ -143,6 +184,10 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         training.setOpenEndTime(command.getOpenEndTime());
         training.setTeamSize(command.getTeamSize());
         training.setAppRequired(command.getAppRequired());
+        training.setClassroomId(command.getClassroomId());
+        training.setTeacherIds(command.getTeacherIds());
+        training.setScoreBasis(command.getScoreBasis());
+        training.setTopicIds(command.getTopicIds());
         training.setClassNames(mapper.findClassNamesByIds(command.getClassIds()));
         training.setCreatedBy(creatorId);
         return training;
@@ -165,6 +210,8 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         query.setTrainingType(source.getTrainingType());
         query.setTrainingMode(source.getTrainingMode());
         query.setPublishStatus(source.getPublishStatus());
+        query.setRangeStart(source.getRangeStart());
+        query.setRangeEnd(source.getRangeEnd());
         query.setPage(source.getPage());
         query.setPageSize(source.getPageSize());
         return query;

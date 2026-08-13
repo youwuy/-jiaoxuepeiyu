@@ -18,6 +18,10 @@ public class AdminTrainingCommand {
     private LocalDateTime openEndTime;
     private Integer teamSize;
     private Boolean appRequired;
+    private Long classroomId;
+    private List<Long> teacherIds;
+    private String scoreBasis;
+    private List<Long> topicIds;
     private List<Long> classIds;
     private List<AdminTrainingRoleCommand> roles;
     private String publishStatus;
@@ -125,6 +129,15 @@ public class AdminTrainingCommand {
     public void setAppRequired(Boolean appRequired) {
         this.appRequired = appRequired;
     }
+
+    public Long getClassroomId() { return classroomId; }
+    public void setClassroomId(Long classroomId) { this.classroomId = classroomId; }
+    public List<Long> getTeacherIds() { return teacherIds; }
+    public void setTeacherIds(List<Long> teacherIds) { this.teacherIds = teacherIds; }
+    public String getScoreBasis() { return scoreBasis; }
+    public void setScoreBasis(String scoreBasis) { this.scoreBasis = scoreBasis; }
+    public List<Long> getTopicIds() { return topicIds; }
+    public void setTopicIds(List<Long> topicIds) { this.topicIds = topicIds; }
 
     public List<Long> getClassIds() {
         return classIds;

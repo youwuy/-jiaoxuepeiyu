@@ -5,6 +5,7 @@ import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingAppInstallation;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingRoom;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingRoomMember;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingRoomRole;
+import com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -65,6 +66,17 @@ public interface StudentTrainingMapper {
             + "AND r.room_status IN ('WAITING', 'STARTED') "
             + "ORDER BY r.created_at DESC, r.id DESC LIMIT 1")
     Long findActiveRoomId(@Param("studentId") Long studentId);
+
+    @Select("SELECT tt.id AS topic_id, tt.topic_name, tt.training_mode FROM training_topic_binding tb "
+            + "JOIN training_topic tt ON tt.id = tb.topic_id WHERE tb.training_id = #{trainingId} "
+            + "AND tt.enabled_flag = 1 AND tt.deleted_flag = 0 ORDER BY tb.sort_order ASC, tb.id ASC")
+    List<StudentTrainingTopic> findTopics(@Param("trainingId") Long trainingId);
+
+    @Select("SELECT r.id AS room_id, r.training_id, t.training_name, r.room_code, r.room_status, "
+            + "r.owner_student_id, t.team_size FROM training_team_room r "
+            + "JOIN training_course t ON t.id = r.training_id WHERE r.training_id = #{trainingId} "
+            + "AND r.room_status = 'WAITING' ORDER BY r.created_at ASC, r.id ASC")
+    List<TrainingRoom> findWaitingRooms(@Param("trainingId") Long trainingId);
 
     @Insert("INSERT INTO training_team_room "
             + "(training_id, owner_student_id, room_code, room_status, created_at, updated_at) "

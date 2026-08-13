@@ -6,6 +6,7 @@ public class AdminTrainingCameraState {
     private Long classroomId;
     private String classroomName;
     private String cameraName;
+    private String nvrChannel;
     private String streamUrl;
     private String cameraStatus;
 
@@ -40,6 +41,10 @@ public class AdminTrainingCameraState {
     public void setCameraName(String cameraName) {
         this.cameraName = cameraName;
     }
+
+    public String getNvrChannel() { return nvrChannel; }
+
+    public void setNvrChannel(String nvrChannel) { this.nvrChannel = nvrChannel; }
 
     public String getStreamUrl() {
         return streamUrl;

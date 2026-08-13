@@ -65,6 +65,7 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   createTrainingRoom,
   fetchStudentTrainings,
+  fetchTrainingRooms,
   fetchTrainingRoom,
   joinTrainingRoom,
   type TrainingRoom
@@ -133,8 +134,9 @@ async function loadRooms(showLoading = false) {
   }
 
   try {
-    if (activeRoomId.value) {
-      rooms.value = [await fetchTrainingRoom(activeRoomId.value)];
+    rooms.value = await fetchTrainingRooms(trainingId.value);
+    if (activeRoomId.value && !rooms.value.some((room) => room.roomId === activeRoomId.value)) {
+      rooms.value.unshift(await fetchTrainingRoom(activeRoomId.value));
     }
   } catch {
     if (activeRoomId.value) {

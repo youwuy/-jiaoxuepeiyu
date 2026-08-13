@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AdminTrainingServiceTests {
@@ -75,17 +76,17 @@ class AdminTrainingServiceTests {
     }
 
     @Test
-    void rejectsExamTrainingWithoutPaper() {
-        AdminTrainingService service = new AdminTrainingService(new FakeTrainings());
+    void acceptsExamTrainingWithoutTheoryPaperWhenTopicsAreBound() {
+        FakeTrainings repository = new FakeTrainings();
+        AdminTrainingService service = new AdminTrainingService(repository);
         AdminTrainingCommand command = trainingCommand();
         command.setTrainingType("EXAM");
+        command.setPaperMode("NONE");
         command.setPaperId(null);
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            service.createTraining(command, 9L);
-        });
+        service.createTraining(command, 9L);
 
-        assertEquals("Training exam paper is required", exception.getMessage());
+        assertEquals(Arrays.asList(21L), repository.savedCommand.getTopicIds());
     }
 
     @Test
@@ -115,6 +116,52 @@ class AdminTrainingServiceTests {
         });
 
         assertEquals("Training must have enabled students before publishing", exception.getMessage());
+    }
+
+    @Test
+    void startsPublishedTeamExamOnce() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        repository.training.setTrainingType("EXAM");
+        repository.training.setTrainingMode("TEAM");
+        repository.training.setPublishStatus("PUBLISHED");
+        AdminTrainingService service = new AdminTrainingService(repository);
+
+        service.startExam(71L, 9L);
+
+        assertEquals(71L, repository.startedTrainingId.longValue());
+        assertEquals("START_EXAM", repository.lastLogAction);
+    }
+
+    @Test
+    void rejectsStartingExamTwice() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        repository.training.setTrainingType("EXAM");
+        repository.training.setTrainingMode("TEAM");
+        repository.training.setPublishStatus("PUBLISHED");
+        repository.training.setExamStartedAt(LocalDateTime.of(2026, 9, 1, 8, 0));
+        AdminTrainingService service = new AdminTrainingService(repository);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.startExam(71L, 9L));
+
+        assertEquals("Training exam has already started", exception.getMessage());
+    }
+
+    @Test
+    void preservesTrainingOverlapRangeInListQuery() {
+        FakeTrainings repository = new FakeTrainings();
+        AdminTrainingService service = new AdminTrainingService(repository);
+        AdminTrainingQuery query = new AdminTrainingQuery();
+        LocalDateTime rangeStart = LocalDateTime.of(2026, 9, 1, 0, 0);
+        LocalDateTime rangeEnd = LocalDateTime.of(2026, 9, 30, 23, 59);
+        query.setRangeStart(rangeStart);
+        query.setRangeEnd(rangeEnd);
+
+        service.listTrainings(query);
+
+        assertEquals(rangeStart, repository.lastQuery.getRangeStart());
+        assertEquals(rangeEnd, repository.lastQuery.getRangeEnd());
     }
 
     @Test
@@ -165,6 +212,10 @@ class AdminTrainingServiceTests {
         command.setOpenEndTime(LocalDateTime.of(2026, 12, 31, 23, 59));
         command.setTeamSize(2);
         command.setAppRequired(Boolean.TRUE);
+        command.setClassroomId(8L);
+        command.setTeacherIds(Arrays.asList(9L));
+        command.setScoreBasis("HIGHEST");
+        command.setTopicIds(Arrays.asList(21L));
         command.setClassIds(Arrays.asList(10L, 11L));
         command.setRoles(Arrays.asList(role("Driver", 1), role("Dispatcher", 2)));
         return command;
@@ -197,6 +248,7 @@ class AdminTrainingServiceTests {
         private Long syncedTrainingId;
         private String publishStatus;
         private Long notificationTrainingId;
+        private Long startedTrainingId;
         private String lastLogAction;
         private List<AdminTraining> trainings = new ArrayList<AdminTraining>();
         private AdminTrainingQuery lastQuery;
@@ -249,6 +301,11 @@ class AdminTrainingServiceTests {
         }
 
         @Override
+        public void markExamStarted(Long trainingId) {
+            this.startedTrainingId = trainingId;
+        }
+
+        @Override
         public void deleteTraining(Long trainingId) {
         }
 
@@ -265,6 +322,26 @@ class AdminTrainingServiceTests {
         @Override
         public AdminTrainingMonitorSnapshot getMonitorSnapshot(Long trainingId) {
             return new AdminTrainingMonitorSnapshot();
+        }
+
+        @Override
+        public boolean dissolveRoom(Long trainingId, Long roomId) {
+            return false;
+        }
+
+        @Override
+        public List<Map<String, Object>> findReviewRows(Long trainingId) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        @Override
+        public List<Map<String, Object>> findReviewAttempts(Long trainingId, Long studentId, Long topicId) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        @Override
+        public boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
+            return false;
         }
 
         @Override

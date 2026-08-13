@@ -7,6 +7,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapsho
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import java.util.List;
+import java.util.Map;
 
 public interface AdminTrainingRepository {
 
@@ -26,6 +27,8 @@ public interface AdminTrainingRepository {
 
     void updatePublishStatus(Long trainingId, String publishStatus);
 
+    void markExamStarted(Long trainingId);
+
     void deleteTraining(Long trainingId);
 
     void notifyParticipants(Long trainingId, String title, String content);
@@ -33,6 +36,14 @@ public interface AdminTrainingRepository {
     AdminTrainingStatistics calculateStatistics(Long trainingId);
 
     AdminTrainingMonitorSnapshot getMonitorSnapshot(Long trainingId);
+
+    boolean dissolveRoom(Long trainingId, Long roomId);
+
+    List<Map<String, Object>> findReviewRows(Long trainingId);
+
+    List<Map<String, Object>> findReviewAttempts(Long trainingId, Long studentId, Long topicId);
+
+    boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId);
 
     void appendTrainingLog(Long trainingId, Long operatorId, String action, String content);
 

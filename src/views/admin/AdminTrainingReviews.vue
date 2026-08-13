@@ -14,6 +14,14 @@
         <span></span>
       </header>
 
+      <div class="training-review-workbench">
+      <aside class="training-review-topics">
+        <strong>实训任务</strong>
+        <button v-for="topic in topics" :key="topic.id" :class="{ active: activeTopicId === topic.id }" @click="selectTopic(topic.id)">
+          <span>{{ topic.name }}</span><small>{{ topic.mode }}</small>
+        </button>
+      </aside>
+      <div class="training-review-main">
       <section class="admin-course-reviews-filter-card">
         <div class="admin-course-reviews-filter-row">
           <label class="admin-course-reviews-field">
@@ -26,11 +34,9 @@
           </label>
           <label class="admin-course-reviews-field">
             <span>所属班级</span>
-            <el-input v-model="filters.className" placeholder="请输入所属班级" clearable />
-          </label>
-          <label class="admin-course-reviews-field assignment">
-            <span>实训任务</span>
-            <el-input v-model="filters.taskName" placeholder="请输入实训任务名称" clearable />
+            <el-select v-model="filters.classNames" multiple collapse-tags placeholder="请选择所属班级" clearable>
+              <el-option v-for="name in classOptions" :key="name" :label="name" :value="name" />
+            </el-select>
           </label>
           <div class="admin-course-reviews-buttons">
             <el-button type="primary" class="admin-course-reviews-query" @click="applyFilters">
@@ -51,6 +57,7 @@
             <el-icon><Tickets /></el-icon>
             <strong>实训课批阅</strong>
           </div>
+          <el-button @click="exportRows">导出数据</el-button>
         </header>
 
         <div class="admin-course-reviews-tabs">
@@ -80,9 +87,11 @@
                 <th>所属班级</th>
                 <th>实训任务</th>
                 <th>是否提交</th>
+                <th>提交次数</th>
                 <th>最后一次提交时间</th>
                 <th>是否批阅</th>
-                <th>实训得分</th>
+                <th>个人得分</th>
+                <th>同组队员成绩</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -98,6 +107,7 @@
                     {{ item.submitted ? '已提交' : '未提交' }}
                   </span>
                 </td>
+                <td>{{ item.submitCount }}</td>
                 <td>{{ item.submittedAt || '-' }}</td>
                 <td>
                   <span v-if="item.submitted" class="admin-course-reviews-tag" :class="item.reviewed ? 'reviewed' : 'pending'">
@@ -106,6 +116,7 @@
                   <span v-else>-</span>
                 </td>
                 <td>{{ item.score ?? '-' }}</td>
+                <td>{{ item.teammateScores }}</td>
                 <td>
                   <span v-if="!item.submitted" class="admin-course-reviews-none">-</span>
                   <el-button
@@ -150,6 +161,46 @@
           </div>
         </footer>
       </section>
+      </div></div>
+
+      <el-dialog v-model="reviewVisible" width="1100px" :title="reviewReadonly ? '查看批阅' : '批阅实训'" append-to-body>
+        <div v-if="reviewTarget" class="training-review-dialog">
+          <div class="review-student-meta">
+            <span>学员姓名<strong>{{ reviewTarget.studentName }}</strong></span>
+            <span>学号<strong>{{ reviewTarget.studentNo }}</strong></span>
+            <span>所属班级<strong>{{ reviewTarget.className }}</strong></span>
+            <span>实训任务<strong>{{ reviewTarget.taskName }}</strong></span>
+          </div>
+          <div class="review-attempt-list">
+            <button v-for="attempt in attempts" :key="attempt.attemptId" :class="{ active: selectedAttempt?.attemptId === attempt.attemptId }" @click="selectAttempt(attempt)">
+              <span>{{ formatDateTime(attempt.submittedAt) }}</span>
+              <strong>{{ attempt.manualScore ?? attempt.systemScore ?? 0 }} 分</strong>
+              <small>{{ attempt.reviewedAt ? '已批阅' : '待批阅' }}</small>
+            </button>
+          </div>
+          <div v-if="attemptDetail" class="review-detail-grid">
+            <section>
+              <table class="review-step-table">
+                <thead><tr><th>序号</th><th>步骤名称</th><th>正确结果</th><th>实际操作</th><th>得分</th><th>用时(秒)</th></tr></thead>
+                <tbody><tr v-for="(step, index) in attemptDetail.steps || []" :key="step.stepId" @click="seekVideo(step.videoStartSecond)">
+                  <td>{{ index + 1 }}</td><td class="step-link">{{ step.stepName }}</td><td>{{ step.standardOperation || '-' }}</td>
+                  <td :class="{ error: step.actualOperation !== step.standardOperation }">{{ step.actualOperation || '-' }}</td>
+                  <td>{{ step.score ?? 0 }}</td><td>{{ step.durationSeconds ?? 0 }}</td>
+                </tr></tbody>
+              </table>
+              <div class="review-score-row"><span>系统核算个人得分：{{ selectedAttempt?.systemScore ?? 0 }} / 100</span>
+                <label>人工修正总分 <el-input-number v-model="manualScore" :min="0" :max="100" :controls="false" :disabled="reviewReadonly" /></label>
+              </div>
+            </section>
+            <section class="review-video-panel">
+              <video v-if="attemptDetail.recordingUrl" ref="reviewVideo" :src="attemptDetail.recordingUrl" controls />
+              <div v-else>本实训未开启操作视频录制，无法播放回放</div>
+            </section>
+          </div>
+          <label class="review-comment"><span>实训评语</span><el-input v-model="reviewComment" type="textarea" :rows="4" maxlength="500" show-word-limit :disabled="reviewReadonly" placeholder="请输入本次实训作业整体评语（选填，最多500字）" /></label>
+        </div>
+        <template #footer><el-button @click="reviewVisible = false">关闭</el-button><el-button v-if="!reviewReadonly" type="primary" @click="saveReview">保存批阅结果</el-button></template>
+      </el-dialog>
     </section>
   </AdminShell>
 </template>
@@ -170,12 +221,22 @@ import {
   View
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
-import { fetchAdminTraining } from '../../api/admin-training';
+import { fetchAdminTrainingArchiveDetail, type AdminTrainingArchiveDetail } from '../../api/admin-archive';
+import {
+  fetchAdminTraining,
+  fetchAdminTrainingReviewAttempts,
+  fetchAdminTrainingReviews,
+  reviewAdminTrainingAttempt,
+  type AdminTrainingReviewAttempt,
+  type AdminTrainingReviewRow
+} from '../../api/admin-training';
 
 type ReviewTabKey = 'all' | 'pending' | 'reviewed' | 'notSubmitted';
 
 interface TrainingReviewRow {
   id: number;
+  studentId: number;
+  topicId: number;
   studentName: string;
   studentNo: string;
   className: string;
@@ -184,7 +245,11 @@ interface TrainingReviewRow {
   submittedAt?: string;
   reviewed: boolean;
   score?: number;
+  submitCount: number;
+  teammateScores: string;
 }
+
+interface ReviewTopic { id: number; name: string; mode: string }
 
 const route = useRoute();
 const router = useRouter();
@@ -197,18 +262,29 @@ const loading = ref(false);
 const filters = reactive({
   studentName: '',
   studentNo: '',
-  className: '',
-  taskName: ''
+  classNames: [] as string[]
 });
 const rows = ref<TrainingReviewRow[]>([]);
+const topics = ref<ReviewTopic[]>([]);
+const activeTopicId = ref(0);
+const reviewVisible = ref(false);
+const reviewTarget = ref<TrainingReviewRow>();
+const attempts = ref<AdminTrainingReviewAttempt[]>([]);
+const selectedAttempt = ref<AdminTrainingReviewAttempt>();
+const attemptDetail = ref<AdminTrainingArchiveDetail>();
+const manualScore = ref(0);
+const reviewComment = ref('');
+const reviewReadonly = ref(false);
+const reviewVideo = ref<HTMLVideoElement>();
+const classOptions = computed(() => [...new Set(rows.value.map((item) => item.className).filter((name) => name && name !== '-'))]);
 
 const matchedRows = computed(() =>
   rows.value.filter((item) => {
     const keywordMatched =
       (!filters.studentName || item.studentName.includes(filters.studentName.trim())) &&
       (!filters.studentNo || item.studentNo.includes(filters.studentNo.trim())) &&
-      (!filters.className || item.className.includes(filters.className.trim())) &&
-      (!filters.taskName || item.taskName.includes(filters.taskName.trim()));
+      (!filters.classNames.length || filters.classNames.includes(item.className)) &&
+      (!activeTopicId.value || item.topicId === activeTopicId.value);
     if (!keywordMatched) {
       return false;
     }
@@ -230,8 +306,8 @@ const filterBaseRows = computed(() =>
     return (
       (!filters.studentName || item.studentName.includes(filters.studentName.trim())) &&
       (!filters.studentNo || item.studentNo.includes(filters.studentNo.trim())) &&
-      (!filters.className || item.className.includes(filters.className.trim())) &&
-      (!filters.taskName || item.taskName.includes(filters.taskName.trim()))
+      (!filters.classNames.length || filters.classNames.includes(item.className)) &&
+      (!activeTopicId.value || item.topicId === activeTopicId.value)
     );
   })
 );
@@ -283,8 +359,7 @@ function applyFilters() {
 function resetFilters() {
   filters.studentName = '';
   filters.studentNo = '';
-  filters.className = '';
-  filters.taskName = '';
+  filters.classNames = [];
   page.value = 1;
 }
 
@@ -292,8 +367,67 @@ function goToPage(nextPage: number) {
   page.value = Math.min(Math.max(1, nextPage), pageCount.value);
 }
 
-function openReview(row: TrainingReviewRow) {
-  ElMessage.info(`正在打开${row.studentName}的实训批阅记录`);
+function selectTopic(topicId: number) {
+  activeTopicId.value = topicId;
+  page.value = 1;
+}
+
+async function openReview(row: TrainingReviewRow) {
+  reviewTarget.value = row;
+  reviewReadonly.value = row.reviewed;
+  try {
+    attempts.value = await fetchAdminTrainingReviewAttempts(trainingId.value, row.studentId, row.topicId);
+    reviewVisible.value = true;
+    if (attempts.value[0]) await selectAttempt(attempts.value[0]);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '提交记录加载失败');
+  }
+}
+
+async function selectAttempt(attempt: AdminTrainingReviewAttempt) {
+  selectedAttempt.value = attempt;
+  reviewReadonly.value = Boolean(attempt.reviewedAt);
+  manualScore.value = Number(attempt.manualScore ?? attempt.systemScore ?? 0);
+  reviewComment.value = attempt.reviewComment || '';
+  attemptDetail.value = await fetchAdminTrainingArchiveDetail(attempt.attemptId);
+}
+
+function seekVideo(second = 0) {
+  if (!reviewVideo.value) return;
+  reviewVideo.value.currentTime = second;
+  void reviewVideo.value.play();
+}
+
+async function saveReview() {
+  if (!selectedAttempt.value || manualScore.value < 0 || manualScore.value > 100) {
+    ElMessage.warning('请输入合适的分数');
+    return;
+  }
+  try {
+    await reviewAdminTrainingAttempt(trainingId.value, selectedAttempt.value.attemptId, {
+      manualScore: manualScore.value,
+      comment: reviewComment.value.trim() || undefined
+    });
+    ElMessage.success('批阅结果已保存');
+    reviewVisible.value = false;
+    await loadReviews();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '批阅保存失败');
+  }
+}
+
+function exportRows() {
+  const lines = [['学员姓名', '学号', '所属班级', '实训任务', '提交次数', '提交时间', '批阅状态', '个人得分']];
+  matchedRows.value.forEach((row) => lines.push([
+    row.studentName, row.studentNo, row.className, row.taskName, String(row.submitCount), row.submittedAt || '',
+    row.submitted ? (row.reviewed ? '已批阅' : '待批阅') : '未提交', String(row.score ?? '')
+  ]));
+  const csv = '\ufeff' + lines.map((line) => line.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  link.download = `${trainingTitle.value}-阅卷数据.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 async function loadTrainingTitle() {
@@ -308,9 +442,53 @@ async function loadTrainingTitle() {
   }
 }
 
+function mapReviewRow(item: AdminTrainingReviewRow): TrainingReviewRow {
+  return {
+    id: item.attemptId || Number(`${item.studentId}${item.topicId}`),
+    studentId: item.studentId,
+    topicId: item.topicId,
+    studentName: item.studentName || '-',
+    studentNo: item.studentNo || '-',
+    className: item.className || '-',
+    taskName: item.topicName || '-',
+    submitted: Boolean(item.attemptId),
+    submittedAt: item.submittedAt ? formatDateTime(item.submittedAt) : undefined,
+    reviewed: Boolean(item.reviewedAt),
+    score: item.attemptId ? Number(item.manualScore ?? item.systemScore ?? 0) : undefined,
+    submitCount: Number(item.submitCount || 0),
+    teammateScores: item.trainingMode === 'TEAM' ? (item.teammateScores || '-') : '-'
+  };
+}
+
+async function loadReviews() {
+  if (!trainingId.value) return;
+  loading.value = true;
+  try {
+    const data = await fetchAdminTrainingReviews(trainingId.value);
+    rows.value = data.map(mapReviewRow);
+    const unique = new Map<number, ReviewTopic>();
+    data.forEach((item) => unique.set(item.topicId, {
+      id: item.topicId,
+      name: item.topicName || `实训任务${item.topicId}`,
+      mode: item.trainingMode === 'TEAM' ? '多人实训' : '单人实训'
+    }));
+    topics.value = [...unique.values()];
+    if (!activeTopicId.value && topics.value[0]) activeTopicId.value = topics.value[0].id;
+  } catch (error) {
+    rows.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '阅卷列表加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+function formatDateTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '-';
+}
+
 onMounted(() => {
-  loading.value = false;
   void loadTrainingTitle();
+  void loadReviews();
 });
 </script>
 
@@ -319,11 +497,73 @@ onMounted(() => {
   min-width: 0;
 }
 
+.training-review-workbench {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.training-review-topics {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.training-review-topics > strong { margin-bottom: 6px; color: #0f172a; }
+.training-review-topics button {
+  display: grid;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 12px;
+  background: #f8fafc;
+  color: #475569;
+  text-align: left;
+  cursor: pointer;
+}
+.training-review-topics button.active { border-color: #93c5fd; background: #eff6ff; color: #2563eb; }
+.training-review-topics small { color: #94a3b8; }
+.training-review-main { min-width: 0; }
+.admin-course-reviews-table { min-width: 1320px; }
+
+.review-student-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.review-student-meta span { display: grid; gap: 5px; border: 1px solid #e5e7eb; padding: 12px; color: #94a3b8; }
+.review-student-meta strong { overflow: hidden; color: #334155; text-overflow: ellipsis; white-space: nowrap; }
+.review-attempt-list { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; }
+.review-attempt-list button { display: grid; flex: 0 0 190px; gap: 4px; border: 1px solid #e2e8f0; padding: 10px; background: #fff; text-align: left; cursor: pointer; }
+.review-attempt-list button.active { border-color: #3b82f6; background: #eff6ff; }
+.review-attempt-list small { color: #64748b; }
+.review-detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 16px; }
+.review-step-table { width: 100%; border-collapse: collapse; }
+.review-step-table th, .review-step-table td { border: 1px solid #e5e7eb; padding: 9px; text-align: left; }
+.review-step-table th { background: #f8fafc; color: #64748b; }
+.review-step-table .step-link { color: #2563eb; cursor: pointer; }
+.review-step-table .error { color: #dc2626; }
+.review-score-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; }
+.review-score-row label { display: flex; align-items: center; gap: 8px; }
+.review-video-panel { display: grid; min-height: 320px; place-items: center; background: #0f172a; color: #cbd5e1; text-align: center; }
+.review-video-panel video { width: 100%; max-height: 420px; }
+.review-comment { display: grid; gap: 8px; margin-top: 16px; }
+
 .admin-training-reviews-page .admin-course-reviews-table-card {
   overflow: hidden;
 }
 
 @media (max-width: 980px) {
+  .training-review-workbench { grid-template-columns: 1fr; }
+  .training-review-topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .training-review-topics > strong { grid-column: 1 / -1; }
+  .review-detail-grid { grid-template-columns: 1fr; }
+  .review-student-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-training-reviews-page .admin-course-reviews-topbar {
     grid-template-columns: 1fr;
     align-items: flex-start;

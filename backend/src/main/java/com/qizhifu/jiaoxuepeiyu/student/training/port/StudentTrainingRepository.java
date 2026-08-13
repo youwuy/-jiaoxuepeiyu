@@ -3,6 +3,7 @@ package com.qizhifu.jiaoxuepeiyu.student.training.port;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingRecord;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingAppInstallation;
 import com.qizhifu.jiaoxuepeiyu.student.training.model.TrainingRoom;
+import com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,10 @@ public interface StudentTrainingRepository {
     TrainingAppInstallation findAppInstallation(Long studentId);
 
     Optional<Long> findActiveRoomId(Long studentId);
+
+    default List<StudentTrainingTopic> findTopics(Long trainingId) { return java.util.Collections.emptyList(); }
+
+    default List<TrainingRoom> findWaitingRooms(Long trainingId) { return java.util.Collections.emptyList(); }
 
     TrainingRoom createRoom(Long studentId, Long trainingId);
 

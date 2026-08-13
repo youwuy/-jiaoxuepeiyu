@@ -62,6 +62,10 @@ public class UeTrainingCallbackService {
                 normalized.getScore(),
                 normalized.getTeamScore(),
                 normalized.getEventTime());
+        snapshot.setCurrentTopicName(trimToNull(normalized.getCurrentTopicName()));
+        snapshot.setSubmittedTopicCount(normalized.getSubmittedTopicCount() == null
+                ? null : Integer.valueOf(Math.max(0, normalized.getSubmittedTopicCount().intValue())));
+        snapshot.setDesktopStreamUrl(trimToNull(normalized.getDesktopStreamUrl()));
         repository.upsertMonitorSnapshot(snapshot);
     }
 
@@ -84,11 +88,15 @@ public class UeTrainingCallbackService {
         assertScore(normalized.getPersonalScore(), "Personal score is invalid");
         assertScore(normalized.getTeamScore(), "Team score is invalid");
         validateSteps(normalized.getSteps());
+        if (normalized.getTopicId() != null && !repository.topicBelongsToTraining(trainingId, normalized.getTopicId())) {
+            throw new BusinessException(400, "Training topic does not belong to training");
+        }
 
         TrainingAttemptSubmission submission = new TrainingAttemptSubmission();
         submission.setClientAttemptId(clientAttemptId);
         submission.setStudentId(studentId);
         submission.setTrainingId(trainingId);
+        submission.setTopicId(normalized.getTopicId());
         submission.setTrainingName(task.getTrainingName());
         submission.setTrainingMode(task.getTrainingMode());
         submission.setRoleName(task.getRoleName());
