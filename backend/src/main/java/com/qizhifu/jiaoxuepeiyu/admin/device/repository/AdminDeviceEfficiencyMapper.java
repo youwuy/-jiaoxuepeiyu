@@ -41,7 +41,7 @@ public interface AdminDeviceEfficiencyMapper {
     AdminDeviceEfficiencySummary findSummary(AdminDeviceEfficiencyQuery query);
 
     @Select("<script>"
-            + "SELECT d.id AS device_id, d.device_code, d.device_name, d.device_type, d.device_status, "
+            + "SELECT d.id AS device_id, d.device_code, d.device_name, d.device_type, d.device_status, d.ip_address, "
             + "d.classroom_id, tr.room_name AS classroom_name, e.training_id AS current_training_id, "
             + "tc.training_name AS current_training_name, e.student_id AS current_student_id, "
             + "u.real_name AS current_student_name, e.started_at AS current_started_at, "

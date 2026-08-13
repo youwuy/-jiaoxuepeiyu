@@ -16,6 +16,7 @@ export interface AdminDeviceRealtimeState {
   deviceName?: string;
   deviceType?: string;
   deviceStatus?: string;
+  ipAddress?: string;
   classroomId?: number;
   classroomName?: string;
   currentTrainingName?: string;

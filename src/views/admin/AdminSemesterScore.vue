@@ -230,10 +230,10 @@ const exportForm = reactive({ scope: 'current', format: 'xlsx' });
 const semesterOptions = ref<SemesterOption[]>([]);
 const classOptions = ref<AdminClass[]>([]);
 const weights = reactive([
-  { name: '课件学习', value: 30 },
-  { name: '实训练习', value: 30 },
-  { name: '课程作业', value: 30 },
-  { name: '考试', value: 10 }
+  { name: '课件学习', value: 0 },
+  { name: '实训练习', value: 0 },
+  { name: '课程作业', value: 0 },
+  { name: '考试', value: 0 }
 ]);
 const statistics = reactive<AdminSemesterScoreStatistics>({
   studentCount: 0,
@@ -452,8 +452,8 @@ function scoreParts(row: SemesterScoreRow) {
       index: 1,
       name: '课件学习',
       weight: row.coursewareWeight,
-      contents: ['城市轨道交通行车组织基础理论', '城市轨道交通信号系统原理', '城轨车辆构造与检修技术'],
-      scores: [Math.max(0, row.coursewareScore - 10), row.coursewareScore, Math.max(0, row.coursewareScore - 5)]
+      contents: ['课件学习汇总'],
+      scores: [row.coursewareScore]
     },
     { index: 2, name: '实训练习', weight: row.trainingPracticeWeight, contents: ['行车组织方案实训练习'], scores: [row.trainingScore] },
     { index: 3, name: '课程作业', weight: row.assignmentWeight, contents: ['行车组织方案设计作业'], scores: [row.assignmentScore] },

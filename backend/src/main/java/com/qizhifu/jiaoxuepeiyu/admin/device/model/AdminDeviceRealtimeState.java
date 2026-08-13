@@ -9,6 +9,7 @@ public class AdminDeviceRealtimeState {
     private String deviceName;
     private String deviceType;
     private String deviceStatus;
+    private String ipAddress;
     private Long classroomId;
     private String classroomName;
     private Long currentTrainingId;
@@ -57,6 +58,14 @@ public class AdminDeviceRealtimeState {
 
     public void setDeviceStatus(String deviceStatus) {
         this.deviceStatus = deviceStatus;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     public Long getClassroomId() {
