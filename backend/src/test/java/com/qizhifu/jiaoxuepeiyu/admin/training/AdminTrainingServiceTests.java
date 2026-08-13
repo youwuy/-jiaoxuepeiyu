@@ -10,6 +10,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapsho
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.time.LocalDateTime;
@@ -317,6 +318,11 @@ class AdminTrainingServiceTests {
         @Override
         public AdminTrainingStatistics calculateStatistics(Long trainingId) {
             return null;
+        }
+
+        @Override
+        public List<AdminTrainingWeakStep> findWeakSteps(Long trainingId, String className) {
+            return new ArrayList<AdminTrainingWeakStep>();
         }
 
         @Override

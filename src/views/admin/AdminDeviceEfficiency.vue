@@ -28,27 +28,29 @@
       <section class="admin-device-efficiency-grid is-top">
         <article class="admin-device-efficiency-card is-live">
           <header>
-            <strong><el-icon><Refresh /></el-icon>实训设备实时使用检测</strong>
+            <strong><el-icon><Refresh /></el-icon>学员实时在线信息</strong>
             <el-button text @click="onlineVisible = true">查看在线信息</el-button>
           </header>
           <div class="admin-device-efficiency-device-list">
-            <button v-for="device in liveDevices" :key="device.name" type="button" @click="openDevice(device)">
-              <span :class="{ idle: device.status === '空闲' }"></span>
-              <strong>{{ device.name }}</strong>
-              <em>{{ device.type }}</em>
-              <b :class="{ idle: device.status === '空闲' }">{{ device.status }}</b>
-              <small v-if="device.usedToday">今日已用{{ device.usedToday }}</small>
+            <button v-for="user in onlineUsers" :key="user.userId" type="button" @click="openUser(user)">
+              <span :class="{ idle: !user.online }"></span>
+              <strong>{{ user.realName || user.username || '-' }}</strong>
+              <em>{{ user.username || '-' }}</em>
+              <b :class="{ idle: !user.online }">{{ user.online ? '在线' : '离线' }}</b>
+              <small>{{ user.lastLoginIp || '-' }}</small>
             </button>
+            <el-empty v-if="onlineUsers.length === 0" description="暂无在线学员" />
           </div>
         </article>
 
         <article class="admin-device-efficiency-card is-build">
-          <header><strong><el-icon><OfficeBuilding /></el-icon>设备建设情况</strong></header>
-          <button v-for="item in buildStats" :key="item.name" type="button" class="admin-device-efficiency-build-row" @click="openBuild(item)">
+          <header><strong><el-icon><OfficeBuilding /></el-icon>实训室固定设备数量</strong></header>
+          <button v-for="item in classroomStats" :key="item.name" type="button" class="admin-device-efficiency-build-row" @click="openClassroom(item)">
             <span><el-icon><component :is="item.icon" /></el-icon></span>
             <strong>{{ item.name }}</strong>
             <b>{{ item.count }}</b>
           </button>
+          <el-empty v-if="classroomStats.length === 0" description="暂无实训室配置" />
         </article>
       </section>
 
@@ -57,10 +59,10 @@
     <el-dialog v-model="onlineVisible" class="admin-device-efficiency-dialog" width="720px" :show-close="false" append-to-body>
       <template #header><DialogHead title="实时在线信息" @close="onlineVisible = false" /></template>
       <table class="admin-device-efficiency-dialog-table">
-        <thead><tr><th>设备名称</th><th>类型</th><th>状态</th><th>IP地址</th><th>在线用户</th><th>最后心跳</th></tr></thead>
+        <thead><tr><th>姓名</th><th>账号</th><th>在线状态</th><th>IP地址</th><th>最后心跳</th></tr></thead>
         <tbody>
-          <tr v-for="item in liveDevices" :key="item.name">
-            <td>{{ item.name }}</td><td>{{ item.type }}</td><td>{{ item.status }}</td><td>{{ item.ip }}</td><td>{{ item.user || '-' }}</td><td>{{ item.heartbeat }}</td>
+          <tr v-for="item in onlineUsers" :key="item.userId">
+            <td>{{ item.realName || '-' }}</td><td>{{ item.username || '-' }}</td><td>{{ item.online ? '在线' : '离线' }}</td><td>{{ item.lastLoginIp || '-' }}</td><td>{{ formatHeartbeat(item.lastHeartbeatTime) }}</td>
           </tr>
         </tbody>
       </table>
@@ -79,31 +81,14 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import {
-  Clock,
-  Close,
-  DataLine,
-  Monitor,
-  OfficeBuilding,
-  Refresh,
-  SetUp,
-  User
-} from '@element-plus/icons-vue';
+import { Close, Monitor, OfficeBuilding, Refresh, SetUp, User } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
-  fetchAdminDeviceEfficiencyReport,
-  type AdminDeviceEfficiencyReport
+  fetchAdminOnlineStudents,
+  type AdminOnlineDashboard,
+  type AdminOnlineUser
 } from '../../api/admin-device';
-
-interface LiveDevice {
-  name: string;
-  type: string;
-  status: '使用中' | '空闲';
-  usedToday?: string;
-  ip: string;
-  user?: string;
-  heartbeat: string;
-}
+import { fetchAdminClassrooms, type AdminClassroom } from '../../api/admin-settings';
 
 interface NamedCount {
   name: string;
@@ -116,47 +101,28 @@ const detailVisible = ref(false);
 const detailTitle = ref('');
 const detailRows = ref<{ label: string; value: string }[]>([]);
 const loading = ref(false);
-const report = ref<AdminDeviceEfficiencyReport>({
-  summary: {},
-  realtimeStates: [],
-  monthlyTrends: [],
-  heatRanking: []
-});
+const onlineDashboard = ref<AdminOnlineDashboard>({ users: [] });
+const classrooms = ref<AdminClassroom[]>([]);
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 const metrics = computed(() => {
-  const summary = report.value.summary || {};
-  const total = Number(summary.totalDeviceCount || 0);
-  const active = Number(summary.activeDeviceCount || 0);
-  const online = Number(summary.onlineDeviceCount || 0);
-  const idle = Math.max(0, total - active);
+  const total = classrooms.value.reduce((sum, item) => sum + Number(item.cameraCount || 0), 0);
+  const online = Number(onlineDashboard.value.onlineCount || 0);
+  const idle = Math.max(0, total - online);
   return [
-    { label: '当前实训数', value: String(summary.activeTrainingCount || 0), delta: '', tone: 'blue', icon: DataLine },
-    { label: '累计实训总时长', value: formatHours(summary.totalUsageMinutes || 0), delta: '', tone: 'green', icon: Clock },
-    { label: '设备总数', value: String(total), delta: '', tone: 'orange', icon: Monitor },
-    { label: '在线设备数', value: String(online), delta: '', tone: 'purple', icon: User },
-    { label: '当前空闲设备', value: String(idle), delta: '', tone: 'gray', icon: SetUp }
+    { label: '实训室数量', value: String(classrooms.value.length), delta: '', tone: 'blue', icon: OfficeBuilding },
+    { label: '固定设备总数', value: String(total), delta: '', tone: 'orange', icon: Monitor },
+    { label: '实时在线人数', value: String(online), delta: '', tone: 'purple', icon: User },
+    { label: '当前空闲名额', value: String(idle), delta: '', tone: 'gray', icon: SetUp }
   ];
 });
 
-const liveDevices = computed<LiveDevice[]>(() => (report.value.realtimeStates || []).map((item) => ({
-  name: item.deviceName || item.deviceCode || `设备${item.deviceId || ''}`,
-  type: item.deviceType || '设备',
-  status: normalizeDeviceStatus(item.deviceStatus),
-  usedToday: item.currentUsageMinutes ? formatHours(item.currentUsageMinutes) : undefined,
-  ip: item.ipAddress || '-',
-  user: item.currentStudentName,
-  heartbeat: formatHeartbeat(item.lastHeartbeatAt)
+const onlineUsers = computed(() => (onlineDashboard.value.users || []).filter((item) => item.online));
+const classroomStats = computed<NamedCount[]>(() => classrooms.value.map((item) => ({
+  name: item.roomName,
+  count: Number(item.cameraCount || 0),
+  icon: OfficeBuilding
 })));
-
-const buildStats = computed<NamedCount[]>(() => {
-  const counts = new Map<string, number>();
-  (report.value.realtimeStates || []).forEach((item) => {
-    const type = item.deviceType || '设备';
-    counts.set(type, (counts.get(type) || 0) + 1);
-  });
-  return Array.from(counts.entries()).map(([name, count]) => ({ name, count, icon: name.includes('电脑') ? Monitor : OfficeBuilding }));
-});
 
 const DialogHead = defineComponent({
   props: { title: { type: String, required: true } },
@@ -183,23 +149,19 @@ async function refreshData() {
 async function loadDashboard() {
   loading.value = true;
   try {
-    report.value = await fetchAdminDeviceEfficiencyReport();
+    const [presence, classroomRows] = await Promise.all([
+      fetchAdminOnlineStudents(),
+      fetchAdminClassrooms()
+    ]);
+    onlineDashboard.value = presence;
+    classrooms.value = classroomRows;
   } catch (error) {
-    report.value = { summary: {}, realtimeStates: [], monthlyTrends: [], heatRanking: [] };
-    ElMessage.error(error instanceof Error ? error.message : '设备效能分析加载失败');
+    onlineDashboard.value = { users: [] };
+    classrooms.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '在线信息加载失败');
   } finally {
     loading.value = false;
   }
-}
-
-function normalizeDeviceStatus(status?: string): '使用中' | '空闲' {
-  const value = String(status || '').toUpperCase();
-  return value === 'USING' || value === 'ACTIVE' || value === 'ONLINE' || value === '使用中' ? '使用中' : '空闲';
-}
-
-function formatHours(minutes: number) {
-  const hours = Number(minutes || 0) / 60;
-  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
 }
 
 function formatHeartbeat(value?: string) {
@@ -209,20 +171,19 @@ function formatHeartbeat(value?: string) {
   return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
 }
 
-function openDevice(device: LiveDevice) {
-  detailTitle.value = device.name;
+function openUser(user: AdminOnlineUser) {
+  detailTitle.value = user.realName || user.username || '在线学员';
   detailRows.value = [
-    { label: '设备类型', value: device.type },
-    { label: '当前状态', value: device.status },
-    { label: 'IP地址', value: device.ip },
-    { label: '在线用户', value: device.user || '-' },
-    { label: '今日已用', value: device.usedToday || '0h' }
+    { label: '学员账号', value: user.username || '-' },
+    { label: '当前状态', value: user.online ? '在线' : '离线' },
+    { label: 'IP地址', value: user.lastLoginIp || '-' },
+    { label: '最后心跳', value: formatHeartbeat(user.lastHeartbeatTime) }
   ];
   detailVisible.value = true;
 }
 
-function openBuild(item: NamedCount) {
-  detailTitle.value = `${item.name}建设情况`;
+function openClassroom(item: NamedCount) {
+  detailTitle.value = item.name;
   detailRows.value = [
     { label: '固定数量', value: `${item.count}` },
     { label: '统计方式', value: '管理员维护固定数量' },

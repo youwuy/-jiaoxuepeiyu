@@ -57,3 +57,29 @@ export function fetchAdminDeviceEfficiencyReport() {
     fallbackLabel: '设备效能分析'
   });
 }
+
+export interface AdminOnlineUser {
+  userId?: number;
+  username?: string;
+  realName?: string;
+  userType?: string;
+  lastLoginIp?: string;
+  lastHeartbeatTime?: string;
+  online?: boolean;
+}
+
+export interface AdminOnlineDashboard {
+  generatedAt?: string;
+  totalCount?: number;
+  onlineCount?: number;
+  offlineCount?: number;
+  heartbeatIntervalSeconds?: number;
+  offlineTimeoutSeconds?: number;
+  users?: AdminOnlineUser[];
+}
+
+export function fetchAdminOnlineStudents() {
+  return requestJson<AdminOnlineDashboard>('/admin/online/users?userType=student&limit=1000', {
+    fallbackLabel: '学员在线信息'
+  });
+}
