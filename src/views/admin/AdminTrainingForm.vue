@@ -233,16 +233,6 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="roleVisible" class="admin-training-dialog" width="520px" :show-close="false" append-to-body>
-      <template #header><div class="admin-training-dialog-head"><strong>新增协同角色</strong><el-button text circle :icon="Close" @click="roleVisible = false" /></div></template>
-      <div class="admin-training-mini-form">
-        <label><span>角色名称</span><el-input v-model="roleForm.name" placeholder="请输入角色名称" /></label>
-        <label><span>人数</span><el-input-number v-model="roleForm.capacity" :min="1" :max="8" /></label>
-        <label><span>职责说明</span><el-input v-model="roleForm.duty" type="textarea" :rows="3" placeholder="请输入职责说明" /></label>
-      </div>
-      <template #footer><div class="admin-training-dialog-footer"><el-button @click="roleVisible = false">取消</el-button><el-button type="primary" @click="addRole">确定</el-button></div></template>
-    </el-dialog>
-
     <el-dialog v-model="previewVisible" class="admin-training-dialog" width="820px" :show-close="false" append-to-body>
       <template #header><div class="admin-training-dialog-head"><strong>实训课预览</strong><el-button text circle :icon="Close" @click="previewVisible = false" /></div></template>
       <div class="admin-training-preview">
@@ -312,12 +302,6 @@ interface SelectableItem {
   size?: string;
 }
 
-interface TrainingRole {
-  name: string;
-  capacity: number;
-  duty: string;
-}
-
 interface TrainingFlowNode {
   name: string;
   rule: string;
@@ -331,7 +315,6 @@ const formMode = computed(() => (route.name === 'admin-training-edit' ? 'edit' :
 const loading = ref(false);
 const topicPickerVisible = ref(false);
 const previewVisible = ref(false);
-const roleVisible = ref(false);
 const selectorVisible = ref(false);
 const selectorKind = ref<SelectorKind>('resource');
 const selectorKeyword = ref('');
@@ -369,11 +352,8 @@ const form = reactive({
   classIds: [] as number[],
   recordingEnabled: false,
   scoreBasis: '最高成绩' as '最高成绩' | '最后一次提交的成绩',
-  roles: [] as TrainingRole[],
   flow: [] as TrainingFlowNode[]
 });
-
-const roleForm = reactive({ name: '', capacity: 1, duty: '' });
 
 const semesterOptions = computed(() =>
   academicYears.value.flatMap((year) =>
@@ -443,7 +423,6 @@ function resetForm() {
   form.classIds = [];
   form.recordingEnabled = false;
   form.scoreBasis = '最高成绩';
-  form.roles = [];
   form.flow = [];
   selectedTopicIds.value = [];
   topicPickerIds.value = [];
@@ -476,11 +455,6 @@ async function loadDetail() {
     topicPickerIds.value = [...selectedTopicIds.value];
     boundTopicIds.value = [...selectedTopicIds.value];
     selectedPaperId.value = detail.paperId || 0;
-    form.roles = (detail.roles || []).map((role) => ({
-      name: role.roleName || role.roleCode || '角色',
-      capacity: Number(role.capacity || 1),
-      duty: role.roleCode || '待配置职责'
-    }));
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '实训课详情加载失败');
   }
@@ -636,15 +610,6 @@ function confirmTopicSelection() {
   }
   selectedTopicIds.value = [...new Set([...boundTopicIds.value, ...added])];
   topicPickerVisible.value = false;
-}
-
-function addRole() {
-  if (!roleForm.name.trim()) {
-    ElMessage.warning('请输入角色名称');
-    return;
-  }
-  form.roles.push({ name: roleForm.name, capacity: roleForm.capacity, duty: roleForm.duty || '待配置职责' });
-  roleVisible.value = false;
 }
 
 function buildTrainingCommand(publishStatus: string) {
