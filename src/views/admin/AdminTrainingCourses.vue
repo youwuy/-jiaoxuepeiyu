@@ -9,10 +9,6 @@
       <div class="admin-training-toolbar">
         <div class="admin-training-filter-row">
           <el-input v-model="filters.keyword" class="admin-training-search" :prefix-icon="Search" placeholder="搜索实训课名称" clearable />
-          <el-select v-model="filters.type" class="admin-training-select" placeholder="实训类型" clearable>
-            <el-option label="考试" value="考试" />
-            <el-option label="练习" value="练习" />
-          </el-select>
           <el-date-picker
             v-model="filters.time"
             class="admin-training-time-filter"
@@ -31,7 +27,7 @@
         </div>
         <div class="admin-training-action-row">
           <el-button class="admin-training-primary" type="primary" :icon="Plus" @click="openCreate">新增实训课</el-button>
-          <el-button class="admin-training-ghost" :icon="Upload" @click="openImport">导入实训课</el-button>
+          <el-button class="admin-training-ghost" :icon="Upload" disabled>导入线下成绩</el-button>
         </div>
       </div>
 
@@ -95,37 +91,22 @@
                     </template>
                     <template v-else-if="course.exam">
                       <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
-                      <el-button v-else class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
+                      <el-button v-else-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
                       <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
                       <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
                       <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
-                      <el-dropdown trigger="click">
-                        <el-button class="more-action" link>更多 <el-icon><ArrowDown /></el-icon></el-button>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item @click="openPreview(course)">详情预览</el-dropdown-item>
-                            <el-dropdown-item @click="copyCourse(course)">复制组课</el-dropdown-item>
-                            <el-dropdown-item @click="openLogs(course)">操作日志</el-dropdown-item>
-                          </el-dropdown-menu>
-                        </template>
-                      </el-dropdown>
+                      <el-button link @click="withdrawCourse(course)">取消发布</el-button>
+                      <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else>
-                      <el-button class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
+                      <el-button v-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
                       <el-button class="primary-action" link @click="openMarking(course)">阅卷</el-button>
                       <el-button class="primary-action" link @click="openStats(course)">成绩统计</el-button>
+                      <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
+                      <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
+                      <el-button link @click="withdrawCourse(course)">取消发布</el-button>
                       <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
-                      <el-dropdown trigger="click">
-                        <el-button class="more-action" link>更多 <el-icon><ArrowDown /></el-icon></el-button>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item @click="openPreview(course)">详情预览</el-dropdown-item>
-                            <el-dropdown-item @click="copyCourse(course)">复制组课</el-dropdown-item>
-                            <el-dropdown-item @click="withdrawCourse(course)">撤回发布</el-dropdown-item>
-                          </el-dropdown-menu>
-                        </template>
-                      </el-dropdown>
                     </template>
                   </div>
                 </td>
@@ -397,7 +378,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowDown, Close, Document, FolderOpened, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
+import { Close, Document, FolderOpened, OfficeBuilding, Plus, Search, Tickets, Upload, UploadFilled, User, UserFilled, View } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { fetchAdminPapers } from '../../api/admin-paper';
@@ -406,7 +387,6 @@ import {
   cancelPublishAdminTraining,
   createAdminTraining,
   deleteAdminTraining,
-  fetchAdminTraining,
   fetchAdminTrainingLogs,
   fetchAdminTrainings,
   publishAdminTraining,
@@ -468,7 +448,7 @@ interface TrainingFlowNode {
   score: number;
 }
 
-const filters = reactive({ keyword: '', type: '', time: [] as Date[], status: '' });
+const filters = reactive({ keyword: '', time: [] as Date[], status: '' });
 const loading = ref(false);
 const page = ref(1);
 const pageSize = 8;
@@ -591,7 +571,6 @@ const selectorItems = computed(() => {
 
 function resetFilters() {
   filters.keyword = '';
-  filters.type = '';
   filters.time = [];
   filters.status = '';
   page.value = 1;
@@ -610,7 +589,7 @@ function openCreate() {
 async function openEdit(course: CourseRow) {
   if (course.status === '已发布') {
     try {
-      await ElMessageBox.confirm('该实训课已发布，修改内容可能影响参训学员，确认继续编辑？', '编辑已发布实训课', {
+      await ElMessageBox.confirm(`确定要编辑【${course.name}】吗？编辑后若有学习数据将无法恢复，请谨慎操作`, '编辑实训课', {
         type: 'warning',
         confirmButtonText: '继续编辑',
         cancelButtonText: '取消'
@@ -735,13 +714,6 @@ async function confirmPublish() {
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '发布失败');
   }
-}
-
-function openImport() {
-  importChecked.value = false;
-  importRows.value = [];
-  if (importInput.value) importInput.value.value = '';
-  importVisible.value = true;
 }
 
 function importCell(row: Record<string, unknown>, names: string[]) {
@@ -887,7 +859,7 @@ async function openLogs(row: CourseRow) {
 }
 
 async function confirmDelete(course: CourseRow) {
-  await ElMessageBox.confirm(`确认删除实训课「${course.name}」？`, '删除实训课', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' });
+  await ElMessageBox.confirm(`确定要删除【${course.name}】吗？删除后实训课及学习数据将无法恢复，请谨慎操作`, '删除实训课', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' });
   try {
     await deleteAdminTraining(course.id);
     ElMessage.success('实训课已删除');
@@ -897,45 +869,19 @@ async function confirmDelete(course: CourseRow) {
   }
 }
 
-async function copyCourse(course: CourseRow) {
-  try {
-    const detail = await fetchAdminTraining(course.id);
-    await createAdminTraining({
-      trainingName: `${detail.trainingName || course.name} 副本`,
-      academicYearId: detail.academicYearId,
-      semesterId: detail.semesterId,
-      majorId: detail.majorId,
-      coverUrl: detail.coverUrl,
-      trainingType: detail.trainingType,
-      trainingMode: detail.trainingMode,
-      paperMode: detail.paperMode,
-      paperId: detail.paperId,
-      openStartTime: detail.openStartTime,
-      openEndTime: detail.openEndTime,
-      teamSize: detail.teamSize,
-      appRequired: detail.appRequired,
-      classroomId: detail.classroomId,
-      teacherIds: detail.teacherIds || [],
-      scoreBasis: detail.scoreBasis,
-      topicIds: detail.topicIds || [],
-      classIds: detail.classIds || [],
-      roles: detail.roles || [],
-      publishStatus: 'DRAFT'
-    });
-    ElMessage.success('已复制为草稿');
-    await loadCourses();
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '复制失败');
-  }
-}
-
 async function withdrawCourse(course: CourseRow) {
   try {
+    await ElMessageBox.confirm(`确定要取消发布【${course.name}】吗？取消后学员将无法继续访问该实训`, '取消发布', {
+      type: 'warning',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    });
     await cancelPublishAdminTraining(course.id);
-    ElMessage.success('已撤回发布');
+    ElMessage.success('已取消发布');
     await loadCourses();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '撤回失败');
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error(error instanceof Error ? error.message : '取消发布失败');
   }
 }
 
@@ -944,7 +890,6 @@ async function loadCourses() {
   try {
     const result = await fetchAdminTrainings({
       keyword: filters.keyword.trim() || undefined,
-      trainingType: trainingTypeToApi(filters.type),
       publishStatus: statusToApi(filters.status),
       rangeStart: filters.time[0] ? formatLocalDateTime(filters.time[0]) : undefined,
       rangeEnd: filters.time[1] ? formatLocalDateTime(filters.time[1]) : undefined,
@@ -1103,7 +1048,7 @@ function apiStatusToText(status?: string): CourseStatus {
 
 function statusToApi(status?: string) {
   if (status === '已发布') return 'PUBLISHED';
-  if (status === '未发布') return 'DRAFT';
+  if (status === '未发布') return 'UNPUBLISHED';
   return undefined;
 }
 

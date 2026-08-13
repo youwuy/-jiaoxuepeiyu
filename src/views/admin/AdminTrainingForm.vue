@@ -101,7 +101,7 @@
             <el-button type="primary" class="admin-training-add-topic" :icon="Plus" @click="openTopicPicker">添加实训题</el-button>
           </header>
 
-          <div class="admin-training-topic-table-scroll">
+          <div v-if="selectedTopicRows.length" class="admin-training-topic-table-scroll">
             <table class="admin-training-topic-table">
               <thead>
                 <tr>
@@ -146,6 +146,7 @@
               </tbody>
             </table>
           </div>
+          <el-empty v-else description="暂无实训题，请点击添加实训题" />
           <footer class="admin-training-question-summary">已选择 <b>{{ selectedTopics.length }}</b> 道实训题</footer>
         </section>
 
@@ -175,7 +176,7 @@
         </div>
         <div class="admin-training-topic-overview">
           <p>
-            共 <b>{{ filteredTopicRows.length }}</b> 条实训题，已选 <b>{{ topicPickerIds.length }}</b> 条
+            共 <b>{{ filteredTopicRows.length }}</b> 条实训题，已选 <b>{{ newTopicSelectionCount }}</b> 条
           </p>
           <span>
             <el-icon><InfoFilled /></el-icon>
@@ -187,25 +188,35 @@
             <thead>
               <tr>
                 <th>选择</th>
+                <th>序号</th>
                 <th>实训题名称</th>
-                <th>类型</th>
                 <th>实训模式</th>
-                <th>时长</th>
-                <th>分值</th>
+                <th>总分</th>
               </tr>
             </thead>
             <tbody>
-                <tr v-for="item in filteredTopicRows" :key="item.id">
+              <tr v-for="(item, index) in pagedTopicRows" :key="item.id">
                 <td><el-checkbox :model-value="topicPickerIds.includes(item.id)" :disabled="isBoundTopic(item.id)" @change="toggleTopic(item.id)" /></td>
+                <td>{{ (topicPage - 1) * topicPageSize + index + 1 }}</td>
                 <td class="topic-name">{{ item.name }}</td>
-                <td><span class="topic-pill">{{ item.category }}</span></td>
                 <td>{{ item.mode }}</td>
-                <td>{{ item.duration }} 分钟</td>
                 <td>{{ item.score }} 分</td>
+              </tr>
+              <tr v-if="pagedTopicRows.length === 0">
+                <td colspan="5" class="admin-training-topic-empty">
+                  {{ topicOptions.length ? '暂无匹配的实训题，请更换关键词' : '暂无实训题目，请联系管理员' }}
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+        <el-pagination
+          v-if="filteredTopicRows.length > topicPageSize"
+          v-model:current-page="topicPage"
+          layout="prev, pager, next"
+          :total="filteredTopicRows.length"
+          :page-size="topicPageSize"
+        />
       </section>
       <template #footer>
         <div class="admin-training-dialog-footer">
@@ -238,7 +249,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Check, Close, Delete, Document, InfoFilled, Plus, QuestionFilled, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
@@ -293,6 +304,8 @@ const topicPickerVisible = ref(false);
 const previewVisible = ref(false);
 const topicKeyword = ref('');
 const topicMode = ref('');
+const topicPage = ref(1);
+const topicPageSize = 10;
 const selectedTopicRoles = ref<Record<number, string[]>>({});
 const draggingTopicIndex = ref<number | null>(null);
 
@@ -346,6 +359,11 @@ const totalScore = computed(() => selectedTopics.value.reduce((sum, item) => sum
 const formatRange = computed(() => (form.range.length === 2 ? `${form.range[0]} 至 ${form.range[1]}` : '未选择时间'));
 const selectedTopicRows = computed<TopicRow[]>(() => selectedTopics.value.map(mapTopicRow));
 const filteredTopicRows = computed<TopicRow[]>(() => filteredTopics.value.map(mapTopicRow));
+const pagedTopicRows = computed(() => filteredTopicRows.value.slice(
+  (topicPage.value - 1) * topicPageSize,
+  topicPage.value * topicPageSize
+));
+const newTopicSelectionCount = computed(() => topicPickerIds.value.filter((id) => !boundTopicIds.value.includes(id)).length);
 
 const filteredTopics = computed(() =>
   topicOptions.value.filter((item) => {
@@ -355,8 +373,24 @@ const filteredTopics = computed(() =>
   })
 );
 
-function goBack() {
-  router.push('/admin/training');
+async function goBack() {
+  const hasInput = Boolean(
+    form.name || form.range.length || selectedClassIds.value.length || selectedTeacherIds.value.length
+    || selectedRoomId.value || selectedTopicIds.value.length
+  );
+  if (hasInput) {
+    try {
+      await ElMessageBox.confirm('当前页面数据会丢失，是否离开页面？', '离开确认', {
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+      });
+    } catch {
+      return;
+    }
+  }
+  resetForm();
+  await router.push('/admin/training');
 }
 
 function resetForm() {
@@ -503,16 +537,19 @@ function openTopicPicker() {
   topicPickerIds.value = [...selectedTopicIds.value];
   topicKeyword.value = '';
   topicMode.value = '';
+  topicPage.value = 1;
   topicPickerVisible.value = true;
 }
 
 function queryTopics() {
   topicKeyword.value = topicKeyword.value.trim();
+  topicPage.value = 1;
 }
 
 function resetTopicQuery() {
   topicKeyword.value = '';
   topicMode.value = '';
+  topicPage.value = 1;
 }
 
 function confirmTopicSelection() {
@@ -594,12 +631,8 @@ async function saveDraft() {
   }
   const teamTopics = selectedTopics.value.filter((item) => item.mode === '多人实训');
   const singleTopics = selectedTopics.value.filter((item) => item.mode === '单人实训');
-  if (form.type === '考试' && teamTopics.length > 1) {
-    ElMessage.warning('考试类型最多只能添加一道多人实训题');
-    return;
-  }
-  if (form.type === '考试' && teamTopics.length && singleTopics.length) {
-    ElMessage.warning('考试类型不能混合添加单人和多人实训题');
+  if (form.type === '考试' && (teamTopics.length > 1 || (teamTopics.length && singleTopics.length))) {
+    ElMessage.warning('仅可单独选用 1 道多人实训题，或全部使用单人实训题，不可混合出题');
     return;
   }
   if (teamTopics.some((item) => item.roles.length < 2)) {
@@ -614,7 +647,8 @@ async function saveDraft() {
       await createAdminTraining(command);
     }
     ElMessage.success('草稿已保存');
-    goBack();
+    resetForm();
+    await router.push('/admin/training');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '发布失败');
   }
