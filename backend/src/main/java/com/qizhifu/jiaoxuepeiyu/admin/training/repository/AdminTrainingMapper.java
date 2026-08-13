@@ -6,6 +6,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingLog;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRole;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStudentState;
 import java.util.List;
 import java.util.Map;
@@ -286,6 +287,30 @@ public interface AdminTrainingMapper {
             + "FROM training_participant tp JOIN training_course tc ON tc.id = tp.training_id WHERE tp.training_id = #{trainingId}) final_scores WHERE final_score IS NOT NULL) AS min_score")
     AdminTrainingStatistics calculateStatistics(@Param("trainingId") Long trainingId);
 
+    @Select("<script>SELECT tt.topic_name, tas.step_name, "
+            + "SUM(CASE WHEN tas.actual_operation IS NULL OR tas.standard_operation IS NULL "
+            + "OR tas.actual_operation &lt;&gt; tas.standard_operation THEN 1 ELSE 0 END) AS error_count, "
+            + "COUNT(*) AS total_count, "
+            + "ROUND(SUM(CASE WHEN tas.actual_operation IS NULL OR tas.standard_operation IS NULL "
+            + "OR tas.actual_operation &lt;&gt; tas.standard_operation THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS error_rate "
+            + "FROM training_attempt_step tas JOIN training_attempt ta ON ta.id = tas.attempt_id "
+            + "LEFT JOIN training_topic tt ON tt.id = ta.topic_id "
+            + "LEFT JOIN sys_user u ON u.id = ta.student_id "
+            + "LEFT JOIN edu_class c ON c.id = u.class_id "
+            + "WHERE ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL "
+            + "<if test='className != null'>AND c.class_name = #{className}</if> "
+            + "GROUP BY tt.topic_name, tas.step_name ORDER BY error_rate DESC, total_count DESC, tas.step_name ASC LIMIT 10"
+            + "</script>")
+    @Results(id = "weakStepMap", value = {
+            @Result(column = "topic_name", property = "topicName"),
+            @Result(column = "step_name", property = "stepName"),
+            @Result(column = "error_count", property = "errorCount"),
+            @Result(column = "total_count", property = "totalCount"),
+            @Result(column = "error_rate", property = "errorRate")
+    })
+    List<AdminTrainingWeakStep> findWeakSteps(@Param("trainingId") Long trainingId,
+                                              @Param("className") String className);
+
     @Select("SELECT rc.id AS camera_id, tr.id AS classroom_id, tr.room_name AS classroom_name, "
             + "rc.camera_name, CAST(rc.nvr_channel AS CHAR) AS nvr_channel, rc.rtsp_url AS stream_url, "
             + "CASE WHEN rc.status = 1 THEN 'ONLINE' ELSE 'OFFLINE' END AS camera_status "
@@ -335,6 +360,7 @@ public interface AdminTrainingMapper {
             + "tt.training_mode AS trainingMode, ta.id AS attemptId, ta.submitted_at AS submittedAt, "
             + "ta.personal_score AS systemScore, ta.team_score AS teamScore, ta.manual_score AS manualScore, "
             + "ta.review_comment AS reviewComment, ta.reviewed_at AS reviewedAt, ta.role_name AS roleName, "
+            + "ta.duration_seconds AS durationSeconds, "
             + "(SELECT COUNT(*) FROM training_attempt tx WHERE tx.training_id = tp.training_id "
             + "AND tx.student_id = tp.student_id AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1))) AS submitCount, "

@@ -8,6 +8,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingLog;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapshot;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
@@ -156,6 +157,13 @@ public class AdminTrainingController {
     @Operation(summary = "Get training statistics", description = "Returns participant count, room counts, submitted monitor score count, and score aggregates.")
     public ApiResponse<AdminTrainingStatistics> getStatistics(@PathVariable Long trainingId) {
         return ApiResponse.ok(service.getStatistics(trainingId));
+    }
+
+    @GetMapping("/{trainingId}/statistics/weak-steps")
+    @Operation(summary = "Get training weak steps", description = "Returns the top ten step error rates from submitted training attempts, optionally filtered by class.")
+    public ApiResponse<List<AdminTrainingWeakStep>> getWeakSteps(@PathVariable Long trainingId,
+                                                                  @org.springframework.web.bind.annotation.RequestParam(required = false) String className) {
+        return ApiResponse.ok(service.getWeakSteps(trainingId, className));
     }
 
     @GetMapping("/{trainingId}/monitor")

@@ -6,6 +6,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingLog;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapshot;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,8 @@ public interface AdminTrainingRepository {
     void notifyParticipants(Long trainingId, String title, String content);
 
     AdminTrainingStatistics calculateStatistics(Long trainingId);
+
+    List<AdminTrainingWeakStep> findWeakSteps(Long trainingId, String className);
 
     AdminTrainingMonitorSnapshot getMonitorSnapshot(Long trainingId);
 

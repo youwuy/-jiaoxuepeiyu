@@ -112,6 +112,14 @@ export interface AdminTrainingStatistics {
   minScore?: number;
 }
 
+export interface AdminTrainingWeakStep {
+  topicName?: string;
+  stepName?: string;
+  errorCount?: number;
+  totalCount?: number;
+  errorRate?: number;
+}
+
 export interface AdminTrainingCameraState {
   cameraId?: number;
   classroomName?: string;
@@ -178,6 +186,7 @@ export interface AdminTrainingReviewRow {
   reviewComment?: string;
   reviewedAt?: string;
   roleName?: string;
+  durationSeconds?: number;
   submitCount?: number;
   teammateScores?: string;
 }
@@ -290,6 +299,13 @@ export function fetchAdminTrainingTopics() {
 
 export function fetchAdminTrainingReviews(trainingId: number) {
   return requestJson<AdminTrainingReviewRow[]>(`/admin/trainings/${trainingId}/reviews`, { fallbackLabel: '实训阅卷列表' });
+}
+
+export function fetchAdminTrainingWeakSteps(trainingId: number, className?: string) {
+  const query = className ? `?className=${encodeURIComponent(className)}` : '';
+  return requestJson<AdminTrainingWeakStep[]>(`/admin/trainings/${trainingId}/statistics/weak-steps${query}`, {
+    fallbackLabel: '实训薄弱环节'
+  });
 }
 
 export function fetchAdminTrainingReviewAttempts(trainingId: number, studentId: number, topicId: number) {

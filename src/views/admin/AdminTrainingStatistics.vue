@@ -118,6 +118,7 @@
                 <span><i class="tone-good"></i>良好</span>
                 <span><i class="tone-normal"></i>中等</span>
                 <span><i class="tone-pass"></i>及格</span>
+                <span><i class="tone-bad"></i>不及格</span>
               </div>
             </header>
             <div class="stack-chart">
@@ -131,6 +132,7 @@
                     <i class="tone-good" :style="{ height: `${item.goodHeight}%` }"></i>
                     <i class="tone-normal" :style="{ height: `${item.normalHeight}%` }"></i>
                     <i class="tone-pass" :style="{ height: `${item.passHeight}%` }"></i>
+                    <i class="tone-bad" :style="{ height: `${item.badHeight}%` }"></i>
                   </div>
                   <span>{{ item.name }}</span>
                 </div>
@@ -214,6 +216,7 @@
                   <i :class="progressTone(item.percent)" :style="{ width: `${item.percent}%` }"></i>
                 </div>
               </article>
+              <el-empty v-if="progressRows.length === 0" description="暂无步骤错误数据" />
             </div>
           </article>
         </section>
@@ -223,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Calendar, Check, Document, Histogram, Medal, PieChart, TrendCharts, User, UserFilled, Warning } from '@element-plus/icons-vue';
@@ -232,6 +235,9 @@ import {
   fetchAdminTraining,
   fetchAdminTrainingReviews,
   fetchAdminTrainingStatistics,
+  fetchAdminTrainingWeakSteps,
+  type AdminTrainingReviewRow,
+  type AdminTrainingWeakStep,
   type AdminTrainingStatistics as TrainingStatistics
 } from '../../api/admin-training';
 
@@ -264,10 +270,12 @@ interface StackItem {
   good: number;
   normal: number;
   pass: number;
+  bad: number;
   excellentHeight: number;
   goodHeight: number;
   normalHeight: number;
   passHeight: number;
+  badHeight: number;
 }
 
 interface CompareItem {
@@ -303,7 +311,8 @@ const classText = ref(String(route.query.target || ''));
 const timeText = ref(String(route.query.time || ''));
 const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
-const reviewRows = ref<Array<{ studentId: number; studentName?: string; studentNo?: string; className?: string; attemptId?: number; submittedAt?: string; systemScore?: number; manualScore?: number }>>([]);
+const reviewRows = ref<AdminTrainingReviewRow[]>([]);
+const weakSteps = ref<AdminTrainingWeakStep[]>([]);
 
 const participantCount = computed(() => activeClass.value === '全部班级'
   ? numberValue(statistics.value.participantCount)
@@ -320,7 +329,7 @@ const notCompletedCount = computed(() => Math.max(participantCount.value - compl
 const classLabels = computed(() => {
   const parsed = [...new Set(reviewRows.value.map((item) => item.className).filter(Boolean) as string[])];
   if (parsed.length > 0) {
-    return parsed.slice(0, 5);
+    return parsed;
   }
   return [];
 });
@@ -328,8 +337,19 @@ const classChips = computed(() => ['全部班级', ...classLabels.value]);
 const filteredReviewRows = computed(() => activeClass.value === '全部班级'
   ? reviewRows.value
   : reviewRows.value.filter((item) => item.className === activeClass.value));
-const submittedScores = computed(() => filteredReviewRows.value
-  .filter((item) => item.attemptId)
+const submittedStudentRows = computed(() => {
+  const rows = new Map<number, AdminTrainingReviewRow>();
+  filteredReviewRows.value.filter((item) => item.attemptId).forEach((item) => {
+    const current = rows.get(item.studentId);
+    const currentScore = Number(current?.manualScore ?? current?.systemScore ?? -1);
+    const nextScore = Number(item.manualScore ?? item.systemScore ?? 0);
+    if (!current || nextScore > currentScore || (nextScore === currentScore && Number(item.durationSeconds ?? Number.MAX_SAFE_INTEGER) < Number(current.durationSeconds ?? Number.MAX_SAFE_INTEGER))) {
+      rows.set(item.studentId, item);
+    }
+  });
+  return [...rows.values()];
+});
+const submittedScores = computed(() => submittedStudentRows.value
   .map((item) => Number(item.manualScore ?? item.systemScore ?? 0))
   .filter((score) => Number.isFinite(score)));
 
@@ -444,17 +464,21 @@ const stackedDistribution = computed<StackItem[]>(() =>
     const excellent = scores.filter((score) => score >= 90).length;
     const good = scores.filter((score) => score >= 80 && score < 90).length;
     const normal = scores.filter((score) => score >= 70 && score < 80).length;
-    const pass = scores.filter((score) => score < 70).length;
+    const pass = scores.filter((score) => score >= 60 && score < 70).length;
+    const bad = scores.filter((score) => score < 60).length;
+    const maxCount = Math.max(excellent, good, normal, pass, bad, 1);
     return {
       name: label,
       excellent,
       good,
       normal,
       pass,
-      excellentHeight: 22 + excellent * 2,
-      goodHeight: 28 + good * 1.6,
-      normalHeight: 24 + normal * 1.7,
-      passHeight: 18 + pass * 1.7
+      bad,
+      excellentHeight: (excellent / maxCount) * 100,
+      goodHeight: (good / maxCount) * 100,
+      normalHeight: (normal / maxCount) * 100,
+      passHeight: (pass / maxCount) * 100,
+      badHeight: (bad / maxCount) * 100
     };
   })
 );
@@ -473,12 +497,20 @@ const classAverageCompare = computed<CompareItem[]>(() =>
   })
 );
 
-const rankingRows = computed<RankingRow[]>(() => filteredReviewRows.value.filter((item) => item.attemptId).sort((a, b) => Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0)).slice(0, 10).map((item, index) => {
+const rankingRows = computed<RankingRow[]>(() => [...submittedStudentRows.value].sort((a, b) => {
+  const scoreDiff = Number(b.manualScore ?? b.systemScore ?? 0) - Number(a.manualScore ?? a.systemScore ?? 0);
+  return scoreDiff || Number(a.durationSeconds ?? Number.MAX_SAFE_INTEGER) - Number(b.durationSeconds ?? Number.MAX_SAFE_INTEGER);
+}).slice(0, 10).map((item, index) => {
   const score = Number(item.manualScore ?? item.systemScore ?? 0);
-  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 60 ? '及格' : '不及格', duration: '-' };
+  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: score >= 90 ? '优秀' : score >= 80 ? '良好' : score >= 70 ? '中等' : score >= 60 ? '及格' : '不及格', duration: formatDuration(item.durationSeconds) };
 }));
 
-const progressRows = computed<ProgressRow[]>(() => []);
+const progressRows = computed<ProgressRow[]>(() => weakSteps.value.map((item, index) => ({
+  index: index + 1,
+  title: item.stepName || '未命名步骤',
+  subtitle: item.topicName || trainingTitle.value,
+  percent: numberValue(item.errorRate)
+})));
 
 function numberValue(value: number | string | undefined | null) {
   const parsed = Number(value ?? 0);
@@ -501,6 +533,14 @@ function formatTimeRange(value: string) {
     return '';
   }
   return value.replace(/\s*至\s*/, ' 至 ');
+}
+
+function formatDuration(seconds?: number) {
+  if (seconds === undefined || seconds === null) return '-';
+  const total = Math.max(0, Number(seconds));
+  const minutes = Math.floor(total / 60);
+  const remain = Math.floor(total % 60);
+  return `${minutes}:${String(remain).padStart(2, '0')}`;
 }
 
 function gradeTone(score: number) {
@@ -540,6 +580,10 @@ async function loadStatistics() {
     timeText.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`.trim();
     statistics.value = result;
     reviewRows.value = await fetchAdminTrainingReviews(trainingId.value);
+    weakSteps.value = await fetchAdminTrainingWeakSteps(
+      trainingId.value,
+      activeClass.value === '全部班级' ? undefined : activeClass.value
+    );
   } catch (error) {
     statistics.value = {};
     ElMessage.error(error instanceof Error ? error.message : '成绩统计加载失败');
@@ -550,6 +594,16 @@ async function loadStatistics() {
 
 onMounted(() => {
   void loadStatistics();
+});
+
+watch(activeClass, async (value) => {
+  if (!trainingId.value) return;
+  try {
+    weakSteps.value = await fetchAdminTrainingWeakSteps(trainingId.value, value === '全部班级' ? undefined : value);
+  } catch (error) {
+    weakSteps.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '薄弱环节加载失败');
+  }
 });
 </script>
 
