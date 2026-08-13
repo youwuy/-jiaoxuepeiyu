@@ -47,7 +47,7 @@ class StudentTrainingServiceTests {
         StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
 
         BusinessException exception = assertThrows(BusinessException.class, () -> {
-            service.createRoom(7L, 21L);
+            service.createRoom(7L, 21L, 301L);
         });
 
         assertEquals("Student already has an active room", exception.getMessage());
@@ -59,7 +59,7 @@ class StudentTrainingServiceTests {
         repository.activeRoomId = null;
         StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
 
-        TrainingRoom room = service.createRoom(7L, 21L);
+        TrainingRoom room = service.createRoom(7L, 21L, 301L);
 
         assertEquals(101L, room.getRoomId().longValue());
         assertEquals(7L, repository.addedMemberStudentId.longValue());
@@ -191,7 +191,17 @@ class StudentTrainingServiceTests {
         }
 
         @Override
-        public TrainingRoom createRoom(Long studentId, Long trainingId) {
+        public List<com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic> findTopics(Long trainingId) {
+            com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic topic = new com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic();
+            topic.setTopicId(301L);
+            topic.setTopicName("Team topic");
+            topic.setTrainingMode("TEAM");
+            return Arrays.asList(topic);
+        }
+
+        @Override
+        public TrainingRoom createRoom(Long studentId, Long trainingId, Long topicId) {
+            room.setTopicId(topicId);
             return room;
         }
 

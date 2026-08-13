@@ -20,8 +20,8 @@ public class MyBatisUeTrainingCallbackRepository implements UeTrainingCallbackRe
     }
 
     @Override
-    public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId) {
-        TrainingLaunchTask task = mapper.findTask(trainingId, studentId);
+    public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId, Long topicId) {
+        TrainingLaunchTask task = mapper.findTask(trainingId, studentId, topicId);
         if (task != null && task.getRoomId() != null) {
             task.setAiRoleNames(mapper.findUnclaimedRoleNames(task.getRoomId()));
         }

@@ -33,7 +33,7 @@
             :class="[
               `is-tone-${index % 3}`,
               {
-                'is-occupied': isOccupiedByOther(role),
+                'is-occupied': isOccupiedByOther(role) || role.aiFillEnabled,
                 'is-selected': role.claimedByStudentId === currentStudentId,
                 'is-locked': Boolean(selectedRoleName && role.claimedByStudentId !== currentStudentId)
               }
@@ -47,7 +47,8 @@
               </span>
               <h3>{{ role.roleName }}</h3>
 
-              <div v-if="isOccupiedByOther(role)" class="role-card-occupied-text">
+              <div v-if="role.aiFillEnabled" class="role-card-occupied-text">AI 扮演</div>
+              <div v-else-if="isOccupiedByOther(role)" class="role-card-occupied-text">
                 已被{{ roleOwnerName(role.claimedByStudentId) }}选择
               </div>
               <el-button
@@ -139,7 +140,7 @@ function isOccupiedByOther(role: TrainingRoomRole) {
 }
 
 function canSelectRole(role: TrainingRoomRole) {
-  if (room.value?.roomStatus !== 'WAITING' || isOccupiedByOther(role)) {
+  if (room.value?.roomStatus !== 'WAITING' || role.aiFillEnabled || isOccupiedByOther(role)) {
     return false;
   }
 
@@ -162,7 +163,7 @@ async function loadRoom(showLoading = false) {
       await router.replace({
         name: 'student-training-start',
         params: { roomId: room.value.roomId },
-        query: { trainingId: room.value.trainingId }
+        query: { trainingId: room.value.trainingId, topicId: room.value.topicId }
       });
     }
   } catch (error) {
@@ -203,7 +204,7 @@ async function startRoom() {
       .map((role) => role.roleName);
     if (aiRoles.length) {
       await ElMessageBox.confirm(
-        `尚未被真人选择的角色将由 AI 扮演：${aiRoles.join('、')}，是否确认开启？`,
+        `尚未由真人选择的角色将标记为 AI 扮演：${aiRoles.join('、')}，是否确认开启？`,
         'AI 补位确认',
         { type: 'info', confirmButtonText: '确认开启', cancelButtonText: '取消' }
       );
@@ -212,7 +213,7 @@ async function startRoom() {
     await router.push({
       name: 'student-training-start',
       params: { roomId: room.value.roomId },
-      query: { trainingId: room.value.trainingId }
+      query: { trainingId: room.value.trainingId, topicId: room.value.topicId }
     });
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '开始实训失败');

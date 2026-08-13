@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.ue;
 
 import com.qizhifu.jiaoxuepeiyu.common.validation.InputValidator;
 import com.qizhifu.jiaoxuepeiyu.student.StudentContext;
+import com.qizhifu.jiaoxuepeiyu.ue.UeLaunchSessionService.LaunchScope;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,14 @@ public class UeIdentityResolver {
             return launchSessionService.requireStudentId(token, trainingId);
         }
         return StudentContext.requireStudentId(request);
+    }
+
+    public LaunchScope requireLaunchScope(HttpServletRequest request, Long trainingId) {
+        return launchSessionService.requireScope(request.getHeader(UE_TOKEN_HEADER), trainingId);
+    }
+
+    public boolean hasLaunchToken(HttpServletRequest request) {
+        return InputValidator.hasText(request.getHeader(UE_TOKEN_HEADER));
     }
 
     public Long requireUeStudentId(HttpServletRequest request) {

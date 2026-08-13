@@ -33,19 +33,21 @@ public class UeLaunchSessionService {
         this.clock = clock;
     }
 
-    public UeLaunchSession create(Long studentId, Long trainingId, Long roomId) {
+    public UeLaunchSession create(Long studentId, Long trainingId, Long topicId, Long roomId) {
         requireId(studentId, "Student id is required");
         requireId(trainingId, "Training id is required");
+        requireId(topicId, "Training topic id is required");
         removeExpiredSessions();
 
         String token = tokenGenerator.generate(studentId);
         Instant expiresAt = clock.instant().plus(SESSION_VALIDITY);
-        sessions.put(TokenHash.sha256(token), new SessionRecord(studentId, trainingId, roomId, expiresAt));
+        sessions.put(TokenHash.sha256(token), new SessionRecord(studentId, trainingId, topicId, roomId, expiresAt));
 
         UeLaunchSession session = new UeLaunchSession();
         session.setLaunchToken(token);
         session.setStudentId(studentId);
         session.setTrainingId(trainingId);
+        session.setTopicId(topicId);
         session.setRoomId(roomId);
         session.setExpiresAt(LocalDateTime.ofInstant(expiresAt, clock.getZone()));
         return session;
@@ -56,11 +58,15 @@ public class UeLaunchSessionService {
     }
 
     public Long requireStudentId(String token, Long trainingId) {
+        return requireScope(token, trainingId).getStudentId();
+    }
+
+    public LaunchScope requireScope(String token, Long trainingId) {
         SessionRecord record = requireRecord(token);
         if (!record.trainingId.equals(trainingId)) {
             throw new BusinessException(401, "UE launch token does not match training");
         }
-        return record.studentId;
+        return new LaunchScope(record.studentId, record.trainingId, record.topicId, record.roomId);
     }
 
     void setClock(Clock clock) {
@@ -98,14 +104,35 @@ public class UeLaunchSessionService {
     private static class SessionRecord {
         private final Long studentId;
         private final Long trainingId;
+        private final Long topicId;
         private final Long roomId;
         private final Instant expiresAt;
 
-        private SessionRecord(Long studentId, Long trainingId, Long roomId, Instant expiresAt) {
+        private SessionRecord(Long studentId, Long trainingId, Long topicId, Long roomId, Instant expiresAt) {
             this.studentId = studentId;
             this.trainingId = trainingId;
+            this.topicId = topicId;
             this.roomId = roomId;
             this.expiresAt = expiresAt;
         }
+    }
+
+    public static class LaunchScope {
+        private final Long studentId;
+        private final Long trainingId;
+        private final Long topicId;
+        private final Long roomId;
+
+        private LaunchScope(Long studentId, Long trainingId, Long topicId, Long roomId) {
+            this.studentId = studentId;
+            this.trainingId = trainingId;
+            this.topicId = topicId;
+            this.roomId = roomId;
+        }
+
+        public Long getStudentId() { return studentId; }
+        public Long getTrainingId() { return trainingId; }
+        public Long getTopicId() { return topicId; }
+        public Long getRoomId() { return roomId; }
     }
 }

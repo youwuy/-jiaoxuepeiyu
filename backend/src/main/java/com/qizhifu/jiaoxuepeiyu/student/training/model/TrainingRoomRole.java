@@ -4,6 +4,7 @@ public class TrainingRoomRole {
 
     private Long roleId;
     private String roleName;
+    private boolean aiFillEnabled;
     private boolean claimed;
     private Long claimedByStudentId;
 
@@ -22,6 +23,9 @@ public class TrainingRoomRole {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
+
+    public boolean isAiFillEnabled() { return aiFillEnabled; }
+    public void setAiFillEnabled(boolean aiFillEnabled) { this.aiFillEnabled = aiFillEnabled; }
 
     public boolean isClaimed() {
         return claimed;

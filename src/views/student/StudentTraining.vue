@@ -229,13 +229,14 @@ async function handleTrainingAction(training: StudentTraining, step: StudentTrai
         params: { trainingId: training.id },
         query: {
           title: step.title || training.title,
+          topicId: String(step.id),
           activeRoomId: roomId ? String(roomId) : undefined
         }
       });
       return;
     }
 
-    const session = await createUeLaunchSession(training.id);
+    const session = await createUeLaunchSession(training.id, step.id);
     launchUeApplication({ ...session, roomId: session.roomId || roomId, topicId: step.id });
     ElMessage.success(`正在启动三维实训：${step.title}`);
   } catch (error) {

@@ -64,16 +64,16 @@ class AdminTrainingServiceTests {
     }
 
     @Test
-    void rejectsTeamTrainingWhenRoleCountDoesNotMatchTeamSize() {
+    void acceptsTeamTrainingWhenCourseContainsRolesForMultipleTopics() {
+        FakeTrainings repository = new FakeTrainings();
         AdminTrainingService service = new AdminTrainingService(new FakeTrainings());
         AdminTrainingCommand command = trainingCommand();
         command.setTeamSize(3);
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            service.createTraining(command, 9L);
-        });
+        service = new AdminTrainingService(repository);
+        service.createTraining(command, 9L);
 
-        assertEquals("Team training roles must match team size", exception.getMessage());
+        assertEquals(2, repository.savedCommand.getRoles().size());
     }
 
     @Test
@@ -218,13 +218,15 @@ class AdminTrainingServiceTests {
         command.setScoreBasis("HIGHEST");
         command.setTopicIds(Arrays.asList(21L));
         command.setClassIds(Arrays.asList(10L, 11L));
-        command.setRoles(Arrays.asList(role("Driver", 1), role("Dispatcher", 2)));
+        command.setRoles(Arrays.asList(role(21L, "Driver", 1), role(21L, "Dispatcher", 2)));
         return command;
     }
 
-    private AdminTrainingRoleCommand role(String roleName, int sortOrder) {
+    private AdminTrainingRoleCommand role(Long topicId, String roleName, int sortOrder) {
         AdminTrainingRoleCommand role = new AdminTrainingRoleCommand();
+        role.setTopicId(topicId);
         role.setRoleName(roleName);
+        role.setAiFillEnabled(Boolean.FALSE);
         role.setSortOrder(sortOrder);
         return role;
     }
@@ -238,7 +240,7 @@ class AdminTrainingServiceTests {
         training.setPaperId(5L);
         training.setTeamSize(2);
         training.setClassIds(Arrays.asList(10L, 11L));
-        training.setRoles(Arrays.asList(role("Driver", 1).toRole(), role("Dispatcher", 2).toRole()));
+        training.setRoles(Arrays.asList(role(21L, "Driver", 1).toRole(), role(21L, "Dispatcher", 2).toRole()));
         return training;
     }
 
@@ -273,6 +275,12 @@ class AdminTrainingServiceTests {
         @Override
         public AdminTraining findTraining(Long trainingId) {
             return training;
+        }
+
+        @Override
+        public boolean roleBelongsToTopic(Long topicId, String roleName) {
+            return Long.valueOf(21L).equals(topicId)
+                    && ("Driver".equals(roleName) || "Dispatcher".equals(roleName));
         }
 
         @Override

@@ -32,6 +32,7 @@ class StudentTrainingAttemptServiceTests {
                 new StudentArchiveService(new FakeArchives()));
         StudentTrainingAttemptRequest request = new StudentTrainingAttemptRequest();
         request.setTrainingId(15L);
+        request.setTopicId(31L);
         request.setSubmitType("NORMAL");
         request.setDurationSeconds(480);
         request.setPersonalScore(new BigDecimal("92.5"));
@@ -45,6 +46,7 @@ class StudentTrainingAttemptServiceTests {
         assertEquals(Long.valueOf(101L), attemptId);
         assertEquals(Long.valueOf(7L), callbacks.submission.getStudentId());
         assertEquals(Long.valueOf(15L), callbacks.submission.getTrainingId());
+        assertEquals(Long.valueOf(31L), callbacks.submission.getTopicId());
         assertEquals(new BigDecimal("92.5"), callbacks.submission.getPersonalScore());
         assertEquals("SUBMITTED", callbacks.snapshot.getProgressStatus());
     }
@@ -67,7 +69,7 @@ class StudentTrainingAttemptServiceTests {
         private TrainingMonitorSnapshotCommand snapshot;
 
         @Override
-        public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId) {
+        public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId, Long topicId) {
             TrainingLaunchTask task = new TrainingLaunchTask();
             task.setTrainingId(trainingId);
             task.setTrainingName("Crane Practice");

@@ -82,6 +82,7 @@ const joiningRoomId = ref<number>();
 let pollTimer: number | undefined;
 
 const trainingId = computed(() => Number(route.params.trainingId));
+const topicId = computed(() => Number(route.query.topicId));
 const activeRoomId = computed(() => Number(route.query.activeRoomId || 0));
 const trainingTitle = computed(() => String(route.query.title || fallbackTitle.value));
 
@@ -134,7 +135,7 @@ async function loadRooms(showLoading = false) {
   }
 
   try {
-    rooms.value = await fetchTrainingRooms(trainingId.value);
+    rooms.value = await fetchTrainingRooms(trainingId.value, topicId.value);
     if (activeRoomId.value && !rooms.value.some((room) => room.roomId === activeRoomId.value)) {
       rooms.value.unshift(await fetchTrainingRoom(activeRoomId.value));
     }
@@ -159,7 +160,7 @@ async function createRoom() {
 
   creating.value = true;
   try {
-    const room = await createTrainingRoom(trainingId.value);
+    const room = await createTrainingRoom(trainingId.value, topicId.value);
     await router.push({ name: 'student-training-room-roles', params: { roomId: room.roomId } });
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '创建房间失败');

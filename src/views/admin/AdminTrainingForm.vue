@@ -115,18 +115,32 @@
               </thead>
               <tbody>
                 <tr v-for="(item, index) in selectedTopicRows" :key="item.id">
-                  <td><span class="admin-training-drag-handle">⠿</span></td>
+                  <td>
+                    <span
+                      class="admin-training-drag-handle"
+                      draggable="true"
+                      title="拖动排序"
+                      @dragstart="startTopicDrag(index)"
+                      @dragover.prevent
+                      @drop="dropTopic(index)"
+                    >⠿</span>
+                  </td>
                   <td>{{ index + 1 }}</td>
                   <td class="topic-name">{{ item.name }}</td>
                   <td>{{ item.mode }}</td>
                   <td>
                     <div v-if="item.roles.length" class="admin-training-role-checks">
-                      <el-checkbox v-for="role in item.roles" :key="role" :model-value="true" disabled>{{ role }}</el-checkbox>
+                      <el-checkbox
+                        v-for="role in item.roles"
+                        :key="role"
+                        v-model="selectedTopicRoles[item.id]"
+                        :label="role"
+                      >{{ role }}</el-checkbox>
                     </div>
                     <span v-else>-</span>
                   </td>
                   <td>
-                    <el-button class="admin-training-delete-topic" text type="danger" :icon="Delete" @click="removeSelected('topic', item.id)">删除</el-button>
+                    <el-button class="admin-training-delete-topic" text type="danger" :icon="Delete" @click="removeSelected(item.id)">删除</el-button>
                   </td>
                 </tr>
               </tbody>
@@ -150,12 +164,11 @@
         </div>
       </template>
       <section class="admin-training-topic-picker">
-        <div class="admin-training-topic-toolbar">
+          <div class="admin-training-topic-toolbar">
           <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名搜索" clearable />
-          <el-select v-model="topicType" class="admin-training-topic-select" placeholder="实训题类型" clearable>
-            <el-option label="信号" value="信号" />
-            <el-option label="站务" value="站务" />
-            <el-option label="调度" value="调度" />
+          <el-select v-model="topicMode" class="admin-training-topic-select" placeholder="实训模式" clearable>
+            <el-option label="单人实训" value="单人实训" />
+            <el-option label="多人实训" value="多人实训" />
           </el-select>
           <el-button @click="queryTopics">查询</el-button>
           <el-button @click="resetTopicQuery">重置</el-button>
@@ -182,7 +195,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in filteredTopicRows" :key="item.id">
+                <tr v-for="item in filteredTopicRows" :key="item.id">
                 <td><el-checkbox :model-value="topicPickerIds.includes(item.id)" :disabled="isBoundTopic(item.id)" @change="toggleTopic(item.id)" /></td>
                 <td class="topic-name">{{ item.name }}</td>
                 <td><span class="topic-pill">{{ item.category }}</span></td>
@@ -198,37 +211,6 @@
         <div class="admin-training-dialog-footer">
           <el-button @click="topicPickerVisible = false">取消</el-button>
           <el-button type="primary" @click="confirmTopicSelection">确定添加</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="selectorVisible" class="admin-training-dialog" width="760px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-training-dialog-head">
-          <strong>{{ selectorTitle }}</strong>
-          <el-button text circle :icon="Close" @click="selectorVisible = false" />
-        </div>
-      </template>
-      <div class="admin-training-selector">
-        <div class="admin-training-selector-filter">
-          <el-input v-model="selectorKeyword" :prefix-icon="Search" placeholder="请输入关键字" clearable />
-          <el-select v-if="selectorKind === 'resource'" v-model="selectorType" placeholder="类型" clearable>
-            <el-option label="资源" value="资源" />
-            <el-option label="课件" value="课件" />
-            <el-option label="试卷" value="试卷" />
-          </el-select>
-        </div>
-        <div class="admin-training-selector-list">
-          <article v-for="item in selectorItems" :key="item.id" :class="{ checked: isSelected(item.id) }" @click="toggleSelect(item.id)">
-            <el-checkbox :model-value="isSelected(item.id)" @click.stop @change="toggleSelect(item.id)" />
-            <div><strong>{{ item.name }}</strong><span>{{ item.meta }}</span></div>
-          </article>
-        </div>
-      </div>
-      <template #footer>
-        <div class="admin-training-dialog-footer">
-          <el-button @click="selectorVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmSelector">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -259,8 +241,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Check, Close, Delete, Document, InfoFilled, Plus, QuestionFilled, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
-import { fetchAdminPapers } from '../../api/admin-paper';
-import { fetchAdminResources } from '../../api/admin-resource';
 import {
   createAdminTraining,
   fetchAdminTraining,
@@ -270,11 +250,7 @@ import {
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses } from '../../api/admin-settings';
 import { fetchAdminTeachers, type AdminTeacherOption } from '../../api/admin-course';
 import type { AdminClass } from '../../api/admin-settings';
-import type { AdminPaper } from '../../api/admin-paper';
-import type { AdminResource } from '../../api/admin-resource';
 import trainingCoverUrl from '../../assets/course-station-preview.png';
-
-type SelectorKind = 'resource' | 'paper' | 'class' | 'teacher' | 'room';
 
 interface TopicItem {
   id: number;
@@ -315,26 +291,20 @@ const formMode = computed(() => (route.name === 'admin-training-edit' ? 'edit' :
 const loading = ref(false);
 const topicPickerVisible = ref(false);
 const previewVisible = ref(false);
-const selectorVisible = ref(false);
-const selectorKind = ref<SelectorKind>('resource');
-const selectorKeyword = ref('');
-const selectorType = ref('');
 const topicKeyword = ref('');
-const topicType = ref('');
+const topicMode = ref('');
+const selectedTopicRoles = ref<Record<number, string[]>>({});
+const draggingTopicIndex = ref<number | null>(null);
 
-const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string }> }>>([]);
+const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string; current?: boolean }> }>>([]);
 const classOptions = ref<SelectableItem[]>([]);
 const teacherOptions = ref<SelectableItem[]>([]);
-const resourceOptions = ref<SelectableItem[]>([]);
-const paperOptions = ref<SelectableItem[]>([]);
 const roomOptions = ref<SelectableItem[]>([]);
 const topicOptions = ref<TopicItem[]>([]);
 
 const selectedTopicIds = ref<number[]>([]);
 const topicPickerIds = ref<number[]>([]);
 const boundTopicIds = ref<number[]>([]);
-const selectedResourceIds = ref<number[]>([]);
-const selectedPaperId = ref<number>(0);
 const selectedClassIds = ref<number[]>([]);
 const selectedTeacherIds = ref<number[]>([]);
 const selectedRoomId = ref<number>(0);
@@ -342,8 +312,8 @@ const selectedRoomId = ref<number>(0);
 const form = reactive({
   id: 0,
   name: '',
-  type: '考试' as '考试' | '练习',
-  mode: '协同实训' as '单人实训' | '协同实训',
+  type: '练习' as '考试' | '练习',
+  mode: '单人实训' as '单人实训' | '协同实训',
   semester: '',
   majorId: undefined as number | undefined,
   range: [] as string[],
@@ -366,7 +336,9 @@ const semesterOptions = computed(() =>
   )
 );
 
-const selectedTopics = computed(() => topicOptions.value.filter((item) => selectedTopicIds.value.includes(item.id)));
+const selectedTopics = computed(() => selectedTopicIds.value
+  .map((id) => topicOptions.value.find((item) => item.id === id))
+  .filter((item): item is TopicItem => Boolean(item)));
 const selectedClasses = computed(() => classOptions.value.filter((item) => selectedClassIds.value.includes(item.id)));
 const selectedTeachers = computed(() => teacherOptions.value.filter((item) => selectedTeacherIds.value.includes(item.id)));
 const selectedRoom = computed(() => roomOptions.value.find((item) => item.id === selectedRoomId.value));
@@ -375,36 +347,13 @@ const formatRange = computed(() => (form.range.length === 2 ? `${form.range[0]} 
 const selectedTopicRows = computed<TopicRow[]>(() => selectedTopics.value.map(mapTopicRow));
 const filteredTopicRows = computed<TopicRow[]>(() => filteredTopics.value.map(mapTopicRow));
 
-const selectorTitle = computed(() => ({
-  resource: '选择资源',
-  paper: '选择理论试卷',
-  class: '选择班级/学生',
-  teacher: '选择教师',
-  room: '选择教室'
-})[selectorKind.value]);
-
 const filteredTopics = computed(() =>
   topicOptions.value.filter((item) => {
     const keywordMatched = !topicKeyword.value || item.name.includes(topicKeyword.value) || item.meta.includes(topicKeyword.value);
-    const typeMatched = !topicType.value || item.category === topicType.value;
-    return keywordMatched && typeMatched;
+    const modeMatched = !topicMode.value || item.mode === topicMode.value;
+    return keywordMatched && modeMatched;
   })
 );
-
-const selectorItems = computed(() => {
-  const source = {
-    resource: resourceOptions.value,
-    paper: paperOptions.value,
-    class: classOptions.value,
-    teacher: teacherOptions.value,
-    room: roomOptions.value
-  }[selectorKind.value];
-  return source.filter((item) => {
-    const keywordMatched = !selectorKeyword.value || item.name.includes(selectorKeyword.value) || item.meta.includes(selectorKeyword.value);
-    const typeMatched = !selectorType.value || item.category === selectorType.value || item.name.includes(selectorType.value);
-    return keywordMatched && typeMatched;
-  });
-});
 
 function goBack() {
   router.push('/admin/training');
@@ -413,8 +362,8 @@ function goBack() {
 function resetForm() {
   form.id = 0;
   form.name = '';
-  form.type = '考试';
-  form.mode = '协同实训';
+  form.type = '练习';
+  form.mode = '单人实训';
   form.semester = '';
   form.majorId = undefined;
   form.range = [];
@@ -427,8 +376,7 @@ function resetForm() {
   selectedTopicIds.value = [];
   topicPickerIds.value = [];
   boundTopicIds.value = [];
-  selectedResourceIds.value = [];
-  selectedPaperId.value = 0;
+  selectedTopicRoles.value = {};
   selectedClassIds.value = [];
   selectedTeacherIds.value = [];
   selectedRoomId.value = 0;
@@ -454,7 +402,13 @@ async function loadDetail() {
     selectedTopicIds.value = detail.topicIds || [];
     topicPickerIds.value = [...selectedTopicIds.value];
     boundTopicIds.value = [...selectedTopicIds.value];
-    selectedPaperId.value = detail.paperId || 0;
+    topicOptions.value.forEach((topic) => {
+      const selectedRoleNames = (detail.roles || [])
+        .filter((role) => role.topicId === topic.id && !role.aiFillEnabled)
+        .map((role) => role.roleName || '')
+        .filter(Boolean);
+      selectedTopicRoles.value[topic.id] = topic.roles.filter((role) => selectedRoleNames.includes(role));
+    });
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '实训课详情加载失败');
   }
@@ -462,16 +416,21 @@ async function loadDetail() {
 
 async function loadOptions() {
   try {
-    const [years, classes, teachers, papers, resources, classrooms, questions] = await Promise.all([
+    const [years, classes, teachers, classrooms, questions] = await Promise.all([
       fetchAdminAcademicYears(),
       fetchAdminSettingsClasses(),
       fetchAdminTeachers(),
-      fetchAdminPapers({ page: 1, pageSize: 200 }),
-      fetchAdminResources({ page: 1, pageSize: 200 }),
       fetchAdminClassrooms(),
       fetchAdminTrainingTopics()
     ]);
     academicYears.value = years;
+    if (formMode.value === 'create' && !form.semester) {
+      const currentYear = years.find((year) => year.semesters?.some((semester) => semester.current));
+      const currentSemester = currentYear?.semesters?.find((semester) => semester.current);
+      if (currentYear && currentSemester) {
+        form.semester = `${currentYear.yearName} ${currentSemester.semesterName}`;
+      }
+    }
     classOptions.value = (classes as AdminClass[]).filter((item) => item.enabled !== false).map((item) => ({
       id: item.classId,
       name: item.className,
@@ -484,20 +443,6 @@ async function loadOptions() {
       name: item.realName || item.accountNo || `教师${item.userId}`,
       meta: item.accountNo || '教师',
       category: 'teacher'
-    }));
-    paperOptions.value = ((papers as { records?: AdminPaper[] }).records || []).map((item) => ({
-      id: item.paperId,
-      name: item.paperName,
-      meta: `${item.questionCount || 0} 题 / ${item.totalScore || 0} 分`,
-      category: item.publishStatus
-    }));
-    resourceOptions.value = ((resources as { records?: AdminResource[] }).records || []).map((item) => ({
-      id: item.resourceId,
-      name: item.resourceName,
-      meta: `${item.resourceType || '资源'} / ${item.fileSize ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB` : '-'}`,
-      category: item.resourceType,
-      type: item.resourceType,
-      size: item.fileSize ? `${(item.fileSize / 1024 / 1024).toFixed(1)} MB` : '-'
     }));
     roomOptions.value = classrooms.map((item) => ({
       id: item.classroomId,
@@ -515,64 +460,32 @@ async function loadOptions() {
       mode: item.trainingMode === 'TEAM' ? '多人实训' : '单人实训',
       roles: item.roleNames ? item.roleNames.split(',').map((role) => role.trim()).filter(Boolean) : []
     }));
+    topicOptions.value.forEach((topic) => {
+      if (!(topic.id in selectedTopicRoles.value)) {
+        selectedTopicRoles.value[topic.id] = [...topic.roles];
+      }
+    });
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : '基础数据加载失败');
   }
 }
 
-function isSelected(id: number) {
-  const current = currentSelectedIds(selectorKind.value);
-  return current.includes(id);
+function removeSelected(id: number) {
+  selectedTopicIds.value = selectedTopicIds.value.filter((item) => item !== id);
 }
 
-function currentSelectedIds(kind: SelectorKind) {
-  if (kind === 'resource') return selectedResourceIds.value;
-  if (kind === 'paper') return selectedPaperId.value ? [selectedPaperId.value] : [];
-  if (kind === 'class') return selectedClassIds.value;
-  if (kind === 'teacher') return selectedTeacherIds.value;
-  return selectedRoomId.value ? [selectedRoomId.value] : [];
+function startTopicDrag(index: number) {
+  draggingTopicIndex.value = index;
 }
 
-function toggleSelect(id: number) {
-  const single = selectorKind.value === 'paper' || selectorKind.value === 'room';
-  if (single) {
-    if (selectorKind.value === 'paper') {
-      selectedPaperId.value = id;
-    }
-    if (selectorKind.value === 'room') {
-      selectedRoomId.value = id;
-    }
-    return;
-  }
-
-  if (selectorKind.value === 'resource') {
-    selectedResourceIds.value = selectedResourceIds.value.includes(id)
-      ? selectedResourceIds.value.filter((item) => item !== id)
-      : [...selectedResourceIds.value, id];
-  }
-  if (selectorKind.value === 'class') {
-    selectedClassIds.value = selectedClassIds.value.includes(id)
-      ? selectedClassIds.value.filter((item) => item !== id)
-      : [...selectedClassIds.value, id];
-  }
-  if (selectorKind.value === 'teacher') {
-    selectedTeacherIds.value = selectedTeacherIds.value.includes(id)
-      ? selectedTeacherIds.value.filter((item) => item !== id)
-      : [...selectedTeacherIds.value, id];
-  }
-}
-
-function confirmSelector() {
-  selectorVisible.value = false;
-}
-
-function removeSelected(kind: 'topic' | 'resource', id: number) {
-  if (kind === 'topic') {
-    selectedTopicIds.value = selectedTopicIds.value.filter((item) => item !== id);
-  }
-  if (kind === 'resource') {
-    selectedResourceIds.value = selectedResourceIds.value.filter((item) => item !== id);
-  }
+function dropTopic(targetIndex: number) {
+  const sourceIndex = draggingTopicIndex.value;
+  draggingTopicIndex.value = null;
+  if (sourceIndex === null || sourceIndex === targetIndex) return;
+  const ordered = [...selectedTopicIds.value];
+  const [moved] = ordered.splice(sourceIndex, 1);
+  ordered.splice(targetIndex, 0, moved);
+  selectedTopicIds.value = ordered;
 }
 
 function toggleTopic(id: number) {
@@ -589,7 +502,7 @@ function isBoundTopic(id: number) {
 function openTopicPicker() {
   topicPickerIds.value = [...selectedTopicIds.value];
   topicKeyword.value = '';
-  topicType.value = '';
+  topicMode.value = '';
   topicPickerVisible.value = true;
 }
 
@@ -599,7 +512,7 @@ function queryTopics() {
 
 function resetTopicQuery() {
   topicKeyword.value = '';
-  topicType.value = '';
+  topicMode.value = '';
 }
 
 function confirmTopicSelection() {
@@ -616,15 +529,16 @@ function buildTrainingCommand(publishStatus: string) {
   const semester = semesterOptions.value.find((item) => item.value === form.semester);
   const majorId = classOptions.value.find((item) => selectedClassIds.value.includes(item.id))?.majorId;
   const hasTeamTopic = selectedTopics.value.some((item) => item.mode === '多人实训');
-  const topicRoleNames = Array.from(new Set(selectedTopics.value.flatMap((item) => item.roles)));
   const trainingMode = hasTeamTopic ? 'TEAM' : 'SINGLE';
-  const roles = topicRoleNames.map((roleName, index) => ({
+  const roles = selectedTopics.value.flatMap((topic) => topic.roles.map((roleName, index) => ({
+    topicId: topic.id,
     roleName,
     roleCode: roleName,
     capacity: 1,
-    aiFillEnabled: true,
+    aiFillEnabled: !(selectedTopicRoles.value[topic.id] || []).includes(roleName),
     sortOrder: index + 1
-  }));
+  })));
+  const largestTeamSize = selectedTopics.value.reduce((size, topic) => Math.max(size, topic.roles.length), 1);
 
   return {
     trainingName: form.name.trim(),
@@ -634,11 +548,10 @@ function buildTrainingCommand(publishStatus: string) {
     coverUrl: trainingCoverUrl,
     trainingType: trainingTypeToApi(form.type),
     trainingMode,
-    paperMode: selectedPaperId.value ? 'MANUAL' : 'NONE',
-    paperId: selectedPaperId.value || undefined,
+    paperMode: 'NONE',
     openStartTime: form.range[0],
     openEndTime: form.range[1],
-    teamSize: hasTeamTopic ? roles.length : 1,
+    teamSize: hasTeamTopic ? largestTeamSize : 1,
     appRequired: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
     teacherIds: [...selectedTeacherIds.value],

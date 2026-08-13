@@ -1000,12 +1000,12 @@ describe('api http client', () => {
     globalThis.fetch = fetchMock as typeof fetch;
 
     await expect(fetchTrainingAppInstallation()).resolves.toMatchObject({ installed: true });
-    await expect(createTrainingRoom(66)).resolves.toMatchObject({ roomId: 77, roomCode: 'A100' });
+    await expect(createTrainingRoom(66, 88)).resolves.toMatchObject({ roomId: 77, roomCode: 'A100' });
     await expect(fetchTrainingRoom(77)).resolves.toMatchObject({ roomStatus: 'WAITING' });
     await expect(startTrainingRoom(77)).resolves.toMatchObject({ roomStatus: 'STARTED' });
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/student/trainings/app-installation', expect.any(Object));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/trainings/66/rooms', expect.objectContaining({ method: 'POST' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/student/trainings/66/rooms?topicId=88', expect.objectContaining({ method: 'POST' }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/student/training-rooms/77', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/student/training-rooms/77/start', expect.objectContaining({ method: 'POST' }));
   });
@@ -1017,9 +1017,10 @@ describe('api http client', () => {
     const fetchMock = vi.fn(() => mockJsonResponse({ data: { trainingId: 66, trainingName: '多人协同实训' } }));
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await expect(fetchStudentTrainingTask(66)).resolves.toMatchObject({ trainingId: 66 });
+    await expect(fetchStudentTrainingTask(66, 88)).resolves.toMatchObject({ trainingId: 66 });
 
     const request = (fetchMock as unknown as { mock: { calls: Array<[RequestInfo, RequestInit]> } }).mock.calls[0][1];
+    expect(fetchMock).toHaveBeenCalledWith('/api/ue/trainings/66/task?topicId=88', expect.any(Object));
     const headers = new Headers(request.headers);
     expect(headers.get('Authorization')).toBe('Bearer student-token');
     expect(headers.get('X-User-Id')).toBe('88');

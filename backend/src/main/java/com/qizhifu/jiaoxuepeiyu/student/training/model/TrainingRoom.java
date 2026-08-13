@@ -7,6 +7,8 @@ public class TrainingRoom {
 
     private Long roomId;
     private Long trainingId;
+    private Long topicId;
+    private String topicName;
     private String trainingName;
     private String roomCode;
     private String roomStatus;
@@ -30,6 +32,11 @@ public class TrainingRoom {
     public void setTrainingId(Long trainingId) {
         this.trainingId = trainingId;
     }
+
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
+    public String getTopicName() { return topicName; }
+    public void setTopicName(String topicName) { this.topicName = topicName; }
 
     public String getTrainingName() {
         return trainingName;

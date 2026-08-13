@@ -60,19 +60,21 @@ public class StudentTrainingService {
         return repository.findAppInstallation(studentId);
     }
 
-    public List<TrainingRoom> listWaitingRooms(Long studentId, Long trainingId) {
+    public List<TrainingRoom> listWaitingRooms(Long studentId, Long trainingId, Long topicId) {
         requireTraining(studentId, trainingId);
-        return repository.findWaitingRooms(trainingId);
+        requireTeamTopic(trainingId, topicId);
+        return repository.findWaitingRooms(trainingId, topicId);
     }
 
     @Transactional
-    public TrainingRoom createRoom(Long studentId, Long trainingId) {
+    public TrainingRoom createRoom(Long studentId, Long trainingId, Long topicId) {
         StudentTrainingRecord training = requireTraining(studentId, trainingId);
         if (!"TEAM".equals(training.getTrainingMode())) {
             throw new BusinessException(400, "Only team training can create rooms");
         }
+        requireTeamTopic(trainingId, topicId);
         assertNoActiveRoom(studentId);
-        TrainingRoom room = repository.createRoom(studentId, trainingId);
+        TrainingRoom room = repository.createRoom(studentId, trainingId, topicId);
         repository.addMember(room.getRoomId(), studentId);
         return requireRoom(room.getRoomId());
     }
@@ -111,6 +113,9 @@ public class StudentTrainingService {
             throw new BusinessException(400, "Training role cannot be changed after selection");
         }
         TrainingRoomRole role = findRole(room, roleId);
+        if (role.isAiFillEnabled()) {
+            throw new BusinessException(400, "Training role is reserved for AI");
+        }
         if (role.isClaimed() && !studentId.equals(role.getClaimedByStudentId())) {
             throw new BusinessException(400, "Training role has been claimed");
         }
@@ -159,6 +164,16 @@ public class StudentTrainingService {
     private TrainingRoom requireRoom(Long roomId) {
         return repository.findRoom(roomId)
                 .orElseThrow(() -> new BusinessException(404, "Training room not found"));
+    }
+
+    private void requireTeamTopic(Long trainingId, Long topicId) {
+        if (topicId == null || topicId.longValue() <= 0L) {
+            throw new BusinessException(400, "Training topic is required");
+        }
+        for (com.qizhifu.jiaoxuepeiyu.student.training.model.StudentTrainingTopic topic : repository.findTopics(trainingId)) {
+            if (topicId.equals(topic.getTopicId()) && "TEAM".equals(topic.getTrainingMode())) return;
+        }
+        throw new BusinessException(404, "Team training topic not found");
     }
 
     private void assertNoActiveRoom(Long studentId) {

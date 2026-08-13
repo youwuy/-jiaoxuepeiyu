@@ -4,7 +4,9 @@ public class AdminTrainingRole {
 
     private Long roleId;
     private Long trainingId;
+    private Long topicId;
     private String roleName;
+    private Boolean aiFillEnabled;
     private Integer sortOrder;
 
     public Long getRoleId() {
@@ -23,6 +25,9 @@ public class AdminTrainingRole {
         this.trainingId = trainingId;
     }
 
+    public Long getTopicId() { return topicId; }
+    public void setTopicId(Long topicId) { this.topicId = topicId; }
+
     public String getRoleName() {
         return roleName;
     }
@@ -30,6 +35,9 @@ public class AdminTrainingRole {
     public void setRoleName(String roleName) {
         this.roleName = roleName;
     }
+
+    public Boolean getAiFillEnabled() { return aiFillEnabled; }
+    public void setAiFillEnabled(Boolean aiFillEnabled) { this.aiFillEnabled = aiFillEnabled; }
 
     public Integer getSortOrder() {
         return sortOrder;

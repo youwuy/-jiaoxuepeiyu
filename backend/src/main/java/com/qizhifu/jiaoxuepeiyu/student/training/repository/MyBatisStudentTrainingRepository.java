@@ -54,8 +54,8 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     public List<StudentTrainingTopic> findTopics(Long trainingId) { return mapper.findTopics(trainingId); }
 
     @Override
-    public List<TrainingRoom> findWaitingRooms(Long trainingId) {
-        List<TrainingRoom> rooms = mapper.findWaitingRooms(trainingId);
+    public List<TrainingRoom> findWaitingRooms(Long trainingId, Long topicId) {
+        List<TrainingRoom> rooms = mapper.findWaitingRooms(trainingId, topicId);
         for (TrainingRoom room : rooms) {
             room.setMembers(mapper.findMembers(room.getRoomId()));
             room.setRoles(mapper.findRoles(room.getRoomId()));
@@ -64,13 +64,14 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     }
 
     @Override
-    public TrainingRoom createRoom(Long studentId, Long trainingId) {
+    public TrainingRoom createRoom(Long studentId, Long trainingId, Long topicId) {
         TrainingRoom room = new TrainingRoom();
         room.setTrainingId(trainingId);
+        room.setTopicId(topicId);
         room.setOwnerStudentId(studentId);
         room.setRoomCode("R" + trainingId + studentId + System.currentTimeMillis());
         mapper.insertRoom(room);
-        mapper.insertRoomRoles(room.getRoomId(), trainingId);
+        mapper.insertRoomRoles(room.getRoomId(), trainingId, topicId);
         return findRoom(room.getRoomId()).orElse(room);
     }
 

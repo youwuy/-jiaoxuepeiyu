@@ -18,6 +18,8 @@ public interface AdminTrainingRepository {
 
     AdminTraining findTraining(Long trainingId);
 
+    boolean roleBelongsToTopic(Long topicId, String roleName);
+
     Long createTraining(AdminTrainingCommand command, Long creatorId);
 
     void updateTraining(Long trainingId, AdminTrainingCommand command);

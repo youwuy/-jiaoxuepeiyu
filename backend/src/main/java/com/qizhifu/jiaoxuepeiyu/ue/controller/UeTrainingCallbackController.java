@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.ue.controller;
 
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.ue.UeIdentityResolver;
+import com.qizhifu.jiaoxuepeiyu.ue.UeLaunchSessionService.LaunchScope;
 import com.qizhifu.jiaoxuepeiyu.ue.UeTrainingCallbackService;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingAttemptCommand;
 import com.qizhifu.jiaoxuepeiyu.ue.model.TrainingLaunchTask;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,9 +33,15 @@ public class UeTrainingCallbackController {
 
     @GetMapping("/{trainingId}/task")
     @Operation(summary = "Get UE training task", description = "Returns launch metadata for a training assigned to the current student.")
-    public ApiResponse<TrainingLaunchTask> getTask(@PathVariable Long trainingId, HttpServletRequest request) {
+    public ApiResponse<TrainingLaunchTask> getTask(@PathVariable Long trainingId,
+                                                   @RequestParam(required = false) Long topicId,
+                                                   HttpServletRequest request) {
+        if (identityResolver.hasLaunchToken(request)) {
+            LaunchScope scope = identityResolver.requireLaunchScope(request, trainingId);
+            return ApiResponse.ok(service.getTask(scope.getStudentId(), trainingId, scope.getTopicId()));
+        }
         Long studentId = identityResolver.requireStudentId(request, trainingId);
-        return ApiResponse.ok(service.getTask(studentId, trainingId));
+        return ApiResponse.ok(service.getTask(studentId, trainingId, topicId));
     }
 
     @PostMapping("/{trainingId}/status")
@@ -41,8 +49,8 @@ public class UeTrainingCallbackController {
     public ApiResponse<Void> reportStatus(@PathVariable Long trainingId,
                                           @RequestBody TrainingStatusCommand body,
                                           HttpServletRequest request) {
-        Long studentId = identityResolver.requireStudentId(request, trainingId);
-        service.reportStatus(studentId, trainingId, body);
+        LaunchScope scope = identityResolver.requireLaunchScope(request, trainingId);
+        service.reportStatus(scope.getStudentId(), trainingId, scope.getTopicId(), body);
         return ApiResponse.ok(null);
     }
 
@@ -51,7 +59,7 @@ public class UeTrainingCallbackController {
     public ApiResponse<Long> submitAttempt(@PathVariable Long trainingId,
                                            @RequestBody TrainingAttemptCommand body,
                                            HttpServletRequest request) {
-        Long studentId = identityResolver.requireStudentId(request, trainingId);
-        return ApiResponse.ok(service.submitAttempt(studentId, trainingId, body));
+        LaunchScope scope = identityResolver.requireLaunchScope(request, trainingId);
+        return ApiResponse.ok(service.submitAttempt(scope.getStudentId(), trainingId, scope.getTopicId(), body));
     }
 }

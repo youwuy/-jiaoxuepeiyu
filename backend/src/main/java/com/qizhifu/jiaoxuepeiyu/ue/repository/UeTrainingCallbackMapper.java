@@ -17,18 +17,22 @@ import org.apache.ibatis.annotations.Select;
 public interface UeTrainingCallbackMapper {
 
     @Select("SELECT t.id AS training_id, t.training_name, t.training_type, t.training_mode, "
-            + "t.paper_id, t.open_start_time, t.open_end_time, "
+            + "tt.id AS topic_id, tt.topic_name, t.paper_id, t.open_start_time, t.open_end_time, "
             + "u.id AS student_id, u.real_name AS student_name, "
             + "r.id AS room_id, r.room_code, r.room_status, rm.role_id, rr.role_name, t.team_size "
             + "FROM training_course t "
             + "JOIN training_participant tp ON tp.training_id = t.id "
             + "JOIN sys_user u ON u.id = tp.student_id "
+            + "JOIN training_topic_binding tb ON tb.training_id = t.id AND tb.topic_id = #{topicId} "
+            + "JOIN training_topic tt ON tt.id = tb.topic_id "
             + "LEFT JOIN training_team_room_member rm ON rm.student_id = tp.student_id AND rm.member_status = 'ACTIVE' "
-            + "LEFT JOIN training_team_room r ON r.id = rm.room_id AND r.training_id = t.id "
+            + "LEFT JOIN training_team_room r ON r.id = rm.room_id AND r.training_id = t.id AND r.topic_id = tt.id "
             + "LEFT JOIN training_team_room_role rr ON rr.room_id = r.id AND rr.role_id = rm.role_id "
             + "WHERE t.id = #{trainingId} AND tp.student_id = #{studentId} "
             + "AND t.publish_status = 'PUBLISHED' AND t.deleted_flag = 0 LIMIT 1")
-    TrainingLaunchTask findTask(@Param("trainingId") Long trainingId, @Param("studentId") Long studentId);
+    TrainingLaunchTask findTask(@Param("trainingId") Long trainingId,
+                                @Param("studentId") Long studentId,
+                                @Param("topicId") Long topicId);
 
     @Select("SELECT id FROM training_attempt WHERE student_id = #{studentId} "
             + "AND training_id = #{trainingId} AND client_attempt_id = #{clientAttemptId} LIMIT 1")
@@ -42,7 +46,7 @@ public interface UeTrainingCallbackMapper {
     @Select("SELECT rr.role_name FROM training_team_room_role rr "
             + "LEFT JOIN training_team_room_member m "
             + "ON m.room_id = rr.room_id AND m.role_id = rr.role_id AND m.member_status = 'ACTIVE' "
-            + "WHERE rr.room_id = #{roomId} AND m.student_id IS NULL "
+            + "WHERE rr.room_id = #{roomId} AND (rr.ai_fill_enabled = 1 OR m.student_id IS NULL) "
             + "ORDER BY rr.sort_order ASC, rr.id ASC")
     List<String> findUnclaimedRoleNames(@Param("roomId") Long roomId);
 

@@ -248,7 +248,7 @@ public class AdminTrainingService {
         normalized.setScoreBasis("LAST_SUBMIT".equals(command.getScoreBasis()) ? "LAST_SUBMIT" : "HIGHEST");
         normalized.setTopicIds(normalizedIds(command.getTopicIds(), "Training topics are required"));
         normalized.setClassIds(normalizedIds(command.getClassIds(), "Training classes are required"));
-        normalized.setRoles(normalizedRoles(command.getRoles()));
+        normalized.setRoles(normalizedRoles(command.getRoles(), normalized.getTopicIds()));
         normalized.setTeamSize(normalizedTeamSize(normalized.getTrainingMode(), command.getTeamSize()));
         validatePaper(normalized);
         validateRoles(normalized);
@@ -260,12 +260,8 @@ public class AdminTrainingService {
         if ("MANUAL".equals(training.getPaperMode()) && training.getPaperId() == null) {
             throw new BusinessException(400, "Manual training paper is required");
         }
-        if ("TEAM".equals(training.getTrainingMode())) {
-            int roleCount = training.getRoles() == null ? 0 : training.getRoles().size();
-            int teamSize = training.getTeamSize() == null ? 0 : training.getTeamSize().intValue();
-            if (teamSize <= 1 || roleCount != teamSize) {
-                throw new BusinessException(400, "Team training roles must match team size");
-            }
+        if ("TEAM".equals(training.getTrainingMode()) && (training.getRoles() == null || training.getRoles().isEmpty())) {
+            throw new BusinessException(400, "Team training roles are required");
         }
     }
 
@@ -282,13 +278,12 @@ public class AdminTrainingService {
             }
             throw new BusinessException(400, "Single training cannot configure team roles");
         }
-        int roleCount = command.getRoles() == null ? 0 : command.getRoles().size();
-        if (roleCount != command.getTeamSize().intValue()) {
-            throw new BusinessException(400, "Team training roles must match team size");
+        if (command.getRoles() == null || command.getRoles().isEmpty()) {
+            throw new BusinessException(400, "Team training roles are required");
         }
     }
 
-    private List<AdminTrainingRoleCommand> normalizedRoles(List<AdminTrainingRoleCommand> roles) {
+    private List<AdminTrainingRoleCommand> normalizedRoles(List<AdminTrainingRoleCommand> roles, List<Long> topicIds) {
         List<AdminTrainingRoleCommand> normalized = new ArrayList<AdminTrainingRoleCommand>();
         if (roles == null) {
             return normalized;
@@ -299,8 +294,16 @@ public class AdminTrainingService {
             if (roleName == null) {
                 throw new BusinessException(400, "Training role name is required");
             }
+            if (role.getTopicId() == null || !topicIds.contains(role.getTopicId())) {
+                throw new BusinessException(400, "Training role topic is invalid");
+            }
+            if (!repository.roleBelongsToTopic(role.getTopicId(), roleName)) {
+                throw new BusinessException(400, "Training role is not configured for topic");
+            }
             AdminTrainingRoleCommand normalizedRole = new AdminTrainingRoleCommand();
+            normalizedRole.setTopicId(role.getTopicId());
             normalizedRole.setRoleName(roleName);
+            normalizedRole.setAiFillEnabled(Boolean.TRUE.equals(role.getAiFillEnabled()));
             normalizedRole.setSortOrder(role.getSortOrder() == null ? Integer.valueOf(defaultSort) : role.getSortOrder());
             normalized.add(normalizedRole);
             defaultSort++;

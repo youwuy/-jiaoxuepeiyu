@@ -174,9 +174,14 @@ public interface AdminTrainingMapper {
     @Select("SELECT topic_id FROM training_topic_binding WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
     List<Long> findTopicIds(@Param("trainingId") Long trainingId);
 
-    @Select("SELECT id AS role_id, training_id, role_name, sort_order "
+    @Select("SELECT id AS role_id, training_id, topic_id, role_name, "
+            + "CASE WHEN ai_fill_enabled = 1 THEN TRUE ELSE FALSE END AS ai_fill_enabled, sort_order "
             + "FROM training_role WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
     List<AdminTrainingRole> findRoles(@Param("trainingId") Long trainingId);
+
+    @Select("SELECT COUNT(*) FROM training_topic WHERE id = #{topicId} AND enabled_flag = 1 AND deleted_flag = 0 "
+            + "AND FIND_IN_SET(REPLACE(#{roleName}, ' ', ''), REPLACE(role_names, ' ', '')) > 0")
+    int countTopicRole(@Param("topicId") Long topicId, @Param("roleName") String roleName);
 
     @Insert("INSERT INTO training_course "
             + "(training_name, academic_year_id, semester_id, major_id, cover_url, training_type, training_mode, "
@@ -206,8 +211,8 @@ public interface AdminTrainingMapper {
     @Delete("DELETE FROM training_role WHERE training_id = #{trainingId}")
     void deleteRoles(@Param("trainingId") Long trainingId);
 
-    @Insert("INSERT INTO training_role (training_id, role_name, sort_order, created_at) "
-            + "VALUES (#{trainingId}, #{role.roleName}, #{role.sortOrder}, NOW())")
+    @Insert("INSERT INTO training_role (training_id, topic_id, role_name, ai_fill_enabled, sort_order, created_at) "
+            + "VALUES (#{trainingId}, #{role.topicId}, #{role.roleName}, #{role.aiFillEnabled}, #{role.sortOrder}, NOW())")
     void insertRole(@Param("trainingId") Long trainingId, @Param("role") AdminTrainingRole role);
 
     @Delete("DELETE FROM training_teacher WHERE training_id = #{trainingId}")

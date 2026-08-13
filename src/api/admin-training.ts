@@ -11,6 +11,7 @@ export interface PageResponse<T> {
 }
 
 export interface AdminTrainingRoleCommand {
+  topicId?: number;
   roleName?: string;
   roleCode?: string;
   capacity?: number;

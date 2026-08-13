@@ -7,6 +7,7 @@ public class UeLaunchSession {
     private String launchToken;
     private Long studentId;
     private Long trainingId;
+    private Long topicId;
     private Long roomId;
     private LocalDateTime expiresAt;
 
@@ -32,6 +33,14 @@ public class UeLaunchSession {
 
     public void setTrainingId(Long trainingId) {
         this.trainingId = trainingId;
+    }
+
+    public Long getTopicId() {
+        return topicId;
+    }
+
+    public void setTopicId(Long topicId) {
+        this.topicId = topicId;
     }
 
     public Long getRoomId() {

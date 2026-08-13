@@ -25,9 +25,9 @@ Scope:
 
 ## Launch Session
 
-### `POST /api/student/trainings/{trainingId}/launch-session`
+### `POST /api/student/trainings/{trainingId}/launch-session?topicId={topicId}`
 
-Requires the logged-in student's bearer token. It validates that the published training is assigned to the student and returns an eight-hour token scoped to that student and training.
+Requires the logged-in student's bearer token. It validates that the published training topic is assigned to the student and returns an eight-hour token scoped to that student, training, topic, and optional team room.
 
 Response `data`:
 
@@ -36,6 +36,7 @@ Response `data`:
   "launchToken": "short-lived-token",
   "studentId": 7,
   "trainingId": 15,
+  "topicId": 31,
   "roomId": 22,
   "expiresAt": "2026-08-05T22:00:00"
 }
@@ -44,7 +45,7 @@ Response `data`:
 The web client opens the following registered protocol after creating the session:
 
 ```text
-jiaoyu-ue://launch?protocolVersion=1&apiBase=http%3A%2F%2Fjiaoyu.luoyan.xin%2Fapi&trainingId=15&studentId=7&roomId=22&launchToken=...
+jiaoyu-ue://launch?protocolVersion=1&apiBase=http%3A%2F%2Fjiaoyu.luoyan.xin%2Fapi&trainingId=15&topicId=31&studentId=7&roomId=22&launchToken=...
 ```
 
 The UE installer must register the `jiaoyu-ue` protocol and map these values to the executable's command-line arguments. UE then sends `X-UE-Token` on task, upload, status, and result requests.
@@ -63,6 +64,8 @@ Response `data`:
   "trainingName": "Crane Practice",
   "trainingType": "PRACTICE",
   "trainingMode": "TEAM",
+  "topicId": 31,
+  "topicName": "Platform emergency handling",
   "paperId": 3,
   "openStartTime": "2026-07-30T08:00:00",
   "openEndTime": "2026-07-30T18:00:00",
@@ -82,7 +85,8 @@ Behavior:
 
 - Rejects trainings not assigned to the current student.
 - Rejects unpublished or deleted trainings.
-- For team trainings, `aiRoleNames` contains unclaimed room role names so UE can mark those roles as AI-filled launch parameters.
+- For team trainings, `aiRoleNames` contains roles configured for AI and roles not selected by a human when the room starts. UE only displays those roles as AI-performed; this system does not implement AI behavior.
+- Result submissions must use the topic bound to the launch token. A mismatched `topicId` is rejected.
 
 ## Recording Upload
 

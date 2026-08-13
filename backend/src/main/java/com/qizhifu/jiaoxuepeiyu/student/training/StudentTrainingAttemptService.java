@@ -22,7 +22,7 @@ public class StudentTrainingAttemptService {
         if (request == null || request.getTrainingId() == null) {
             throw new BusinessException(400, "Training id is required");
         }
-        return callbackService.submitAttempt(studentId, request.getTrainingId(), request);
+        return callbackService.submitAttempt(studentId, request.getTrainingId(), request.getTopicId(), request);
     }
 
     public StudentTrainingArchiveDetail getScoreSheet(Long studentId, Long attemptId) {

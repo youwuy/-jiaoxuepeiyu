@@ -10,6 +10,8 @@ public class TrainingLaunchTask {
     private String trainingName;
     private String trainingType;
     private String trainingMode;
+    private Long topicId;
+    private String topicName;
     private Long paperId;
     private LocalDateTime openStartTime;
     private LocalDateTime openEndTime;
@@ -53,6 +55,22 @@ public class TrainingLaunchTask {
 
     public void setTrainingMode(String trainingMode) {
         this.trainingMode = trainingMode;
+    }
+
+    public Long getTopicId() {
+        return topicId;
+    }
+
+    public void setTopicId(Long topicId) {
+        this.topicId = topicId;
+    }
+
+    public String getTopicName() {
+        return topicName;
+    }
+
+    public void setTopicName(String topicName) {
+        this.topicName = topicName;
     }
 
     public Long getPaperId() {

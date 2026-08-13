@@ -20,9 +20,10 @@ class UeLaunchSessionServiceTests {
     void createsScopedLaunchTokenAndResolvesStudent() {
         UeLaunchSessionService service = serviceAt(NOW);
 
-        UeLaunchSession session = service.create(7L, 15L, 22L);
+        UeLaunchSession session = service.create(7L, 15L, 31L, 22L);
 
         assertEquals("launch-token", session.getLaunchToken());
+        assertEquals(Long.valueOf(31L), session.getTopicId());
         assertEquals(Long.valueOf(7L), service.requireStudentId("launch-token", 15L));
         assertEquals(Long.valueOf(7L), service.requireStudentId("launch-token"));
     }
@@ -30,7 +31,7 @@ class UeLaunchSessionServiceTests {
     @Test
     void rejectsTokenForAnotherTraining() {
         UeLaunchSessionService service = serviceAt(NOW);
-        service.create(7L, 15L, null);
+        service.create(7L, 15L, 31L, null);
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> service.requireStudentId("launch-token", 16L));
@@ -41,7 +42,7 @@ class UeLaunchSessionServiceTests {
     @Test
     void rejectsExpiredLaunchToken() {
         UeLaunchSessionService service = serviceAt(NOW);
-        service.create(7L, 15L, null);
+        service.create(7L, 15L, 31L, null);
         service.setClock(Clock.fixed(NOW.plus(Duration.ofHours(9)), ZoneOffset.UTC));
 
         BusinessException exception = assertThrows(BusinessException.class,

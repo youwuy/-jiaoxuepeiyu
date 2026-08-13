@@ -79,12 +79,13 @@
                 :key="role.roleId"
                 type="button"
                 class="team-role-item"
-                :class="{ claimed: role.claimed, mine: role.claimedByStudentId === currentStudentId }"
-                @click="openRoleSelection"
+                :class="{ claimed: role.claimed, mine: role.claimedByStudentId === currentStudentId, ai: role.aiFillEnabled }"
+                @click="role.aiFillEnabled ? undefined : openRoleSelection()"
               >
                 <span class="team-role-icon"><el-icon><User /></el-icon></span>
                 <strong>{{ role.roleName }}</strong>
-                <span v-if="role.claimedByStudentId === currentStudentId" class="team-role-state">已选择</span>
+                <span v-if="role.aiFillEnabled" class="team-role-state">AI 扮演</span>
+                <span v-else-if="role.claimedByStudentId === currentStudentId" class="team-role-state">已选择</span>
                 <span v-else-if="role.claimed" class="team-role-state">已被选择</span>
                 <span v-else class="team-role-state">可选择</span>
               </button>
@@ -230,7 +231,7 @@ async function loadRoom() {
   try {
     room.value = await fetchTrainingRoom(roomId);
     if (room.value.roomStatus === 'STARTED') {
-      await router.replace({ name: 'student-training-start', params: { roomId: room.value.roomId }, query: { trainingId: room.value.trainingId } });
+      await router.replace({ name: 'student-training-start', params: { roomId: room.value.roomId }, query: { trainingId: room.value.trainingId, topicId: room.value.topicId } });
       return;
     }
   } catch (error) {
@@ -266,7 +267,7 @@ async function startRoom() {
   try {
     room.value = await startTrainingRoom(room.value.roomId);
     startDialogVisible.value = false;
-    await router.push({ name: 'student-training-start', params: { roomId: room.value.roomId }, query: { trainingId: room.value.trainingId } });
+    await router.push({ name: 'student-training-start', params: { roomId: room.value.roomId }, query: { trainingId: room.value.trainingId, topicId: room.value.topicId } });
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '开始实训失败');
   } finally {

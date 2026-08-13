@@ -21,9 +21,9 @@ public interface StudentTrainingRepository {
 
     default List<StudentTrainingTopic> findTopics(Long trainingId) { return java.util.Collections.emptyList(); }
 
-    default List<TrainingRoom> findWaitingRooms(Long trainingId) { return java.util.Collections.emptyList(); }
+    default List<TrainingRoom> findWaitingRooms(Long trainingId, Long topicId) { return java.util.Collections.emptyList(); }
 
-    TrainingRoom createRoom(Long studentId, Long trainingId);
+    TrainingRoom createRoom(Long studentId, Long trainingId, Long topicId);
 
     void addMember(Long roomId, Long studentId);
 

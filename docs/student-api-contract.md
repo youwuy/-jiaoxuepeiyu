@@ -422,9 +422,9 @@ Behavior:
 - Allows a room to start before it is full; unclaimed roles are returned to UE as `aiRoleNames` for AI markers.
 - Changes room status to `STARTED`.
 
-### `POST /api/student/trainings/{trainingId}/launch-session`
+### `POST /api/student/trainings/{trainingId}/launch-session?topicId={topicId}`
 
-Creates an eight-hour UE token scoped to the current student and training. The training must be published and assigned to the student. The browser passes the response to the registered `jiaoyu-ue://launch` protocol; see `docs/ue-api-contract.md`.
+Creates an eight-hour UE token scoped to the current student, training topic, and optional team room. The training must be published and assigned to the student. The browser passes the response to the registered `jiaoyu-ue://launch` protocol; see `docs/ue-api-contract.md`.
 
 UE launch and callback integration:
 

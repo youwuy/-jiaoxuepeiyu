@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface UeTrainingCallbackRepository {
 
-    Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId);
+    Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId, Long topicId);
 
     default Optional<Long> findAttemptId(Long studentId, Long trainingId, String clientAttemptId) {
         return Optional.empty();

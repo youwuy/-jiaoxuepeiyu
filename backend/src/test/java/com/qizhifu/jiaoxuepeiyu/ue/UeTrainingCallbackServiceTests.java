@@ -34,7 +34,7 @@ class UeTrainingCallbackServiceTests {
         FakeCallbacks repository = new FakeCallbacks();
         UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> service.getTask(7L, 99L));
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.getTask(7L, 99L, 31L));
 
         assertEquals("Training task not found", exception.getMessage());
     }
@@ -50,7 +50,7 @@ class UeTrainingCallbackServiceTests {
         command.setProgressStatus("RUNNING");
         command.setScore(new BigDecimal("37.5"));
 
-        service.reportStatus(7L, 15L, command);
+        service.reportStatus(7L, 15L, 31L, command);
 
         assertEquals(Long.valueOf(15L), repository.snapshot.getTrainingId());
         assertEquals(Long.valueOf(7L), repository.snapshot.getStudentId());
@@ -82,7 +82,7 @@ class UeTrainingCallbackServiceTests {
         firstStep.setVideoStartSecond(5);
         command.setSteps(Arrays.asList(firstStep));
 
-        Long attemptId = service.submitAttempt(7L, 15L, command);
+        Long attemptId = service.submitAttempt(7L, 15L, 31L, command);
 
         assertEquals(Long.valueOf(101L), attemptId);
         assertEquals("Crane Practice", repository.submission.getTrainingName());
@@ -108,11 +108,25 @@ class UeTrainingCallbackServiceTests {
         command.setClientAttemptId("attempt-20260805-001");
         command.setPersonalScore(new BigDecimal("92.5"));
 
-        Long firstAttemptId = service.submitAttempt(7L, 15L, command);
-        Long repeatedAttemptId = service.submitAttempt(7L, 15L, command);
+        Long firstAttemptId = service.submitAttempt(7L, 15L, 31L, command);
+        Long repeatedAttemptId = service.submitAttempt(7L, 15L, 31L, command);
 
         assertEquals(firstAttemptId, repeatedAttemptId);
         assertEquals(1, repository.insertCount);
+    }
+
+    @Test
+    void rejectsAttemptForTopicOutsideLaunchSession() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+        TrainingAttemptCommand command = new TrainingAttemptCommand();
+        command.setTopicId(32L);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.submitAttempt(7L, 15L, 31L, command));
+
+        assertEquals("Submitted training topic does not match launch session", exception.getMessage());
     }
 
     private TrainingLaunchTask task() {
@@ -121,6 +135,8 @@ class UeTrainingCallbackServiceTests {
         task.setTrainingName("Crane Practice");
         task.setTrainingType("PRACTICE");
         task.setTrainingMode("TEAM");
+        task.setTopicId(31L);
+        task.setTopicName("Platform emergency handling");
         task.setStudentId(7L);
         task.setStudentName("Student Seven");
         task.setRoomId(22L);
@@ -143,7 +159,7 @@ class UeTrainingCallbackServiceTests {
         private final List<TrainingAttemptStepCommand> steps = new ArrayList<TrainingAttemptStepCommand>();
 
         @Override
-        public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId) {
+        public Optional<TrainingLaunchTask> findTask(Long trainingId, Long studentId, Long topicId) {
             if (task == null) {
                 return Optional.empty();
             }

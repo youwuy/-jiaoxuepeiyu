@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,9 +31,11 @@ public class StudentTrainingLaunchController {
 
     @PostMapping("/{trainingId}/launch-session")
     @Operation(summary = "Create UE launch session", description = "Validates the assigned training and returns an eight-hour token scoped to the current student and training.")
-    public ApiResponse<UeLaunchSession> create(@PathVariable Long trainingId, HttpServletRequest request) {
+    public ApiResponse<UeLaunchSession> create(@PathVariable Long trainingId,
+                                               @RequestParam Long topicId,
+                                               HttpServletRequest request) {
         Long studentId = StudentContext.requireStudentId(request);
-        TrainingLaunchTask task = callbackService.getTask(studentId, trainingId);
-        return ApiResponse.ok(launchSessionService.create(studentId, trainingId, task.getRoomId()));
+        TrainingLaunchTask task = callbackService.getTask(studentId, trainingId, topicId);
+        return ApiResponse.ok(launchSessionService.create(studentId, trainingId, topicId, task.getRoomId()));
     }
 }

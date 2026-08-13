@@ -95,6 +95,8 @@ export interface TrainingAppInstallation {
 export interface TrainingRoom {
   roomId: number;
   trainingId: number;
+  topicId?: number;
+  topicName?: string;
   trainingName?: string;
   roomCode?: string;
   roomStatus?: string;
@@ -117,6 +119,7 @@ export interface TrainingRoomRole {
   roleName: string;
   claimed?: boolean;
   claimedByStudentId?: number;
+  aiFillEnabled?: boolean;
 }
 
 export interface StudentTrainingTask {
@@ -124,6 +127,8 @@ export interface StudentTrainingTask {
   trainingName?: string;
   trainingType?: string;
   trainingMode?: string;
+  topicId?: number;
+  topicName?: string;
   openStartTime?: string;
   openEndTime?: string;
   studentId?: number;
@@ -412,8 +417,8 @@ function mapTraining(item: BackendTraining): StudentTraining {
   };
 }
 
-export async function fetchTrainingRooms(trainingId: number): Promise<TrainingRoom[]> {
-  return requestJson<TrainingRoom[]>(`/student/trainings/${trainingId}/rooms`, { fallbackLabel: '组队房间列表' });
+export async function fetchTrainingRooms(trainingId: number, topicId: number): Promise<TrainingRoom[]> {
+  return requestJson<TrainingRoom[]>(`/student/trainings/${trainingId}/rooms?topicId=${topicId}`, { fallbackLabel: '组队房间列表' });
 }
 
 export async function fetchStudentTrainingScoreSheet(attemptId: number): Promise<TrainingArchiveDetail> {
@@ -642,8 +647,8 @@ export async function fetchTrainingAppInstallation(): Promise<TrainingAppInstall
   });
 }
 
-export async function createTrainingRoom(trainingId: number): Promise<TrainingRoom> {
-  return requestJson<TrainingRoom>(`/student/trainings/${trainingId}/rooms`, {
+export async function createTrainingRoom(trainingId: number, topicId: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/trainings/${trainingId}/rooms?topicId=${topicId}`, {
     method: 'POST',
     fallbackLabel: '创建实训房间'
   });
@@ -662,15 +667,15 @@ export async function startTrainingRoom(roomId: number): Promise<TrainingRoom> {
   });
 }
 
-export async function createUeLaunchSession(trainingId: number): Promise<UeLaunchSession> {
-  return requestJson<UeLaunchSession>(`/student/trainings/${trainingId}/launch-session`, {
+export async function createUeLaunchSession(trainingId: number, topicId: number): Promise<UeLaunchSession> {
+  return requestJson<UeLaunchSession>(`/student/trainings/${trainingId}/launch-session?topicId=${topicId}`, {
     method: 'POST',
     fallbackLabel: '启动三维实训'
   });
 }
 
-export async function fetchStudentTrainingTask(trainingId: number): Promise<StudentTrainingTask> {
-  return requestJson<StudentTrainingTask>(`/ue/trainings/${trainingId}/task`, {
+export async function fetchStudentTrainingTask(trainingId: number, topicId: number): Promise<StudentTrainingTask> {
+  return requestJson<StudentTrainingTask>(`/ue/trainings/${trainingId}/task?topicId=${topicId}`, {
     authPortal: 'student',
     fallbackLabel: '实训任务信息'
   });

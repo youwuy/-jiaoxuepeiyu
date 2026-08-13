@@ -126,9 +126,10 @@ async function loadStartData() {
   try {
     room.value = await fetchTrainingRoom(roomId);
     const trainingId = Number(route.query.trainingId) || room.value.trainingId;
-    if (Number.isFinite(trainingId) && trainingId > 0) {
+    const topicId = room.value.topicId || Number(route.query.topicId);
+    if (Number.isFinite(trainingId) && trainingId > 0 && Number.isFinite(topicId) && topicId > 0) {
       try {
-        task.value = await fetchStudentTrainingTask(trainingId);
+        task.value = await fetchStudentTrainingTask(trainingId, topicId);
       } catch {
         task.value = { trainingId, trainingName: room.value.trainingName, roomId: room.value.roomId, roomCode: room.value.roomCode, teamSize: room.value.teamSize };
       }
@@ -171,7 +172,12 @@ async function notifyLaunch() {
 
   launchLoading.value = true;
   try {
-    const session = await createUeLaunchSession(trainingId);
+    const topicId = room.value?.topicId || task.value.topicId || Number(route.query.topicId);
+    if (!Number.isFinite(topicId) || topicId <= 0) {
+      ElMessage.error('实训题信息不完整，无法启动三维实训');
+      return;
+    }
+    const session = await createUeLaunchSession(trainingId, topicId);
     launchUeApplication({
       ...session,
       roomId: session.roomId || room.value?.roomId || Number(route.params.roomId) || undefined

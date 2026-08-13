@@ -72,22 +72,23 @@ public interface StudentTrainingMapper {
             + "AND tt.enabled_flag = 1 AND tt.deleted_flag = 0 ORDER BY tb.sort_order ASC, tb.id ASC")
     List<StudentTrainingTopic> findTopics(@Param("trainingId") Long trainingId);
 
-    @Select("SELECT r.id AS room_id, r.training_id, t.training_name, r.room_code, r.room_status, "
+    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, r.room_code, r.room_status, "
             + "r.owner_student_id, t.team_size FROM training_team_room r "
-            + "JOIN training_course t ON t.id = r.training_id WHERE r.training_id = #{trainingId} "
+            + "JOIN training_course t ON t.id = r.training_id LEFT JOIN training_topic tt ON tt.id = r.topic_id "
+            + "WHERE r.training_id = #{trainingId} AND r.topic_id = #{topicId} "
             + "AND r.room_status = 'WAITING' ORDER BY r.created_at ASC, r.id ASC")
-    List<TrainingRoom> findWaitingRooms(@Param("trainingId") Long trainingId);
+    List<TrainingRoom> findWaitingRooms(@Param("trainingId") Long trainingId, @Param("topicId") Long topicId);
 
     @Insert("INSERT INTO training_team_room "
-            + "(training_id, owner_student_id, room_code, room_status, created_at, updated_at) "
-            + "VALUES (#{trainingId}, #{ownerStudentId}, #{roomCode}, 'WAITING', NOW(), NOW())")
+            + "(training_id, topic_id, owner_student_id, room_code, room_status, created_at, updated_at) "
+            + "VALUES (#{trainingId}, #{topicId}, #{ownerStudentId}, #{roomCode}, 'WAITING', NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "roomId")
     void insertRoom(TrainingRoom room);
 
-    @Insert("INSERT INTO training_team_room_role (room_id, role_id, role_name, sort_order, created_at) "
-            + "SELECT #{roomId}, id, role_name, sort_order, NOW() "
-            + "FROM training_role WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
-    void insertRoomRoles(@Param("roomId") Long roomId, @Param("trainingId") Long trainingId);
+    @Insert("INSERT INTO training_team_room_role (room_id, role_id, role_name, ai_fill_enabled, sort_order, created_at) "
+            + "SELECT #{roomId}, id, role_name, ai_fill_enabled, sort_order, NOW() "
+            + "FROM training_role WHERE training_id = #{trainingId} AND topic_id = #{topicId} ORDER BY sort_order ASC, id ASC")
+    void insertRoomRoles(@Param("roomId") Long roomId, @Param("trainingId") Long trainingId, @Param("topicId") Long topicId);
 
     @Insert("INSERT INTO training_team_room_member "
             + "(room_id, student_id, member_status, joined_at, created_at, updated_at) "
@@ -95,9 +96,10 @@ public interface StudentTrainingMapper {
             + "ON DUPLICATE KEY UPDATE member_status = 'ACTIVE', role_id = NULL, left_at = NULL, updated_at = NOW()")
     void addMember(@Param("roomId") Long roomId, @Param("studentId") Long studentId);
 
-    @Select("SELECT r.id AS room_id, r.training_id, t.training_name, r.room_code, r.room_status, "
+    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, r.room_code, r.room_status, "
             + "r.owner_student_id, t.team_size "
             + "FROM training_team_room r JOIN training_course t ON t.id = r.training_id "
+            + "LEFT JOIN training_topic tt ON tt.id = r.topic_id "
             + "WHERE r.id = #{roomId} LIMIT 1 FOR UPDATE")
     TrainingRoom findRoom(@Param("roomId") Long roomId);
 
@@ -111,7 +113,7 @@ public interface StudentTrainingMapper {
             + "ORDER BY m.joined_at ASC, m.id ASC")
     List<TrainingRoomMember> findMembers(@Param("roomId") Long roomId);
 
-    @Select("SELECT rr.role_id, rr.role_name, "
+    @Select("SELECT rr.role_id, rr.role_name, CASE WHEN rr.ai_fill_enabled = 1 THEN TRUE ELSE FALSE END AS ai_fill_enabled, "
             + "CASE WHEN m.student_id IS NULL THEN FALSE ELSE TRUE END AS claimed, "
             + "m.student_id AS claimed_by_student_id "
             + "FROM training_team_room_role rr "

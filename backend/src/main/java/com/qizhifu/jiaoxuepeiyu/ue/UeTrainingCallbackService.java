@@ -44,16 +44,17 @@ public class UeTrainingCallbackService {
         this.clock = clock;
     }
 
-    public TrainingLaunchTask getTask(Long studentId, Long trainingId) {
+    public TrainingLaunchTask getTask(Long studentId, Long trainingId, Long topicId) {
         requireId(studentId, "Student id is required");
         requireId(trainingId, "Training id is required");
-        return repository.findTask(trainingId, studentId)
+        requireId(topicId, "Training topic id is required");
+        return repository.findTask(trainingId, studentId, topicId)
                 .orElseThrow(() -> new BusinessException(404, "Training task not found"));
     }
 
     @Transactional
-    public void reportStatus(Long studentId, Long trainingId, TrainingStatusCommand command) {
-        getTask(studentId, trainingId);
+    public void reportStatus(Long studentId, Long trainingId, Long topicId, TrainingStatusCommand command) {
+        TrainingLaunchTask task = getTask(studentId, trainingId, topicId);
         TrainingStatusCommand normalized = command == null ? new TrainingStatusCommand() : command;
         TrainingMonitorSnapshotCommand snapshot = snapshot(studentId, trainingId,
                 normalized.getClassroomId(),
@@ -63,6 +64,9 @@ public class UeTrainingCallbackService {
                 normalized.getTeamScore(),
                 normalized.getEventTime());
         snapshot.setCurrentTopicName(trimToNull(normalized.getCurrentTopicName()));
+        if (snapshot.getCurrentTopicName() == null) {
+            snapshot.setCurrentTopicName(task.getTopicName());
+        }
         snapshot.setSubmittedTopicCount(normalized.getSubmittedTopicCount() == null
                 ? null : Integer.valueOf(Math.max(0, normalized.getSubmittedTopicCount().intValue())));
         snapshot.setDesktopStreamUrl(trimToNull(normalized.getDesktopStreamUrl()));
@@ -70,8 +74,8 @@ public class UeTrainingCallbackService {
     }
 
     @Transactional
-    public Long submitAttempt(Long studentId, Long trainingId, TrainingAttemptCommand command) {
-        TrainingLaunchTask task = getTask(studentId, trainingId);
+    public Long submitAttempt(Long studentId, Long trainingId, Long topicId, TrainingAttemptCommand command) {
+        TrainingLaunchTask task = getTask(studentId, trainingId, topicId);
         TrainingAttemptCommand normalized = command == null ? new TrainingAttemptCommand() : command;
         String clientAttemptId = trimToNull(normalized.getClientAttemptId());
         if (clientAttemptId != null && clientAttemptId.length() > 64) {
@@ -88,15 +92,15 @@ public class UeTrainingCallbackService {
         assertScore(normalized.getPersonalScore(), "Personal score is invalid");
         assertScore(normalized.getTeamScore(), "Team score is invalid");
         validateSteps(normalized.getSteps());
-        if (normalized.getTopicId() != null && !repository.topicBelongsToTraining(trainingId, normalized.getTopicId())) {
-            throw new BusinessException(400, "Training topic does not belong to training");
+        if (normalized.getTopicId() != null && !topicId.equals(normalized.getTopicId())) {
+            throw new BusinessException(400, "Submitted training topic does not match launch session");
         }
 
         TrainingAttemptSubmission submission = new TrainingAttemptSubmission();
         submission.setClientAttemptId(clientAttemptId);
         submission.setStudentId(studentId);
         submission.setTrainingId(trainingId);
-        submission.setTopicId(normalized.getTopicId());
+        submission.setTopicId(topicId);
         submission.setTrainingName(task.getTrainingName());
         submission.setTrainingMode(task.getTrainingMode());
         submission.setRoleName(task.getRoleName());

@@ -42,6 +42,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     }
 
     @Override
+    public boolean roleBelongsToTopic(Long topicId, String roleName) {
+        return mapper.countTopicRole(topicId, roleName) > 0;
+    }
+
+    @Override
     public Long createTraining(AdminTrainingCommand command, Long creatorId) {
         AdminTraining training = toTraining(null, command, creatorId);
         mapper.insertTraining(training);
@@ -201,7 +206,9 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
 
     private AdminTrainingRole toRole(AdminTrainingRoleCommand command) {
         AdminTrainingRole role = new AdminTrainingRole();
+        role.setTopicId(command.getTopicId());
         role.setRoleName(command.getRoleName());
+        role.setAiFillEnabled(command.getAiFillEnabled());
         role.setSortOrder(command.getSortOrder());
         return role;
     }

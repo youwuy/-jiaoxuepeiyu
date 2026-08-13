@@ -45,14 +45,18 @@ public class StudentTrainingController {
 
     @PostMapping("/trainings/{trainingId}/rooms")
     @Operation(summary = "Create training room", description = "Creates a team training room for the current student and returns room state.")
-    public ApiResponse<TrainingRoom> createRoom(@PathVariable Long trainingId, HttpServletRequest request) {
-        return ApiResponse.ok(service.createRoom(StudentContext.requireStudentId(request), trainingId));
+    public ApiResponse<TrainingRoom> createRoom(@PathVariable Long trainingId,
+                                                 @RequestParam("topicId") Long topicId,
+                                                 HttpServletRequest request) {
+        return ApiResponse.ok(service.createRoom(StudentContext.requireStudentId(request), trainingId, topicId));
     }
 
     @GetMapping("/trainings/{trainingId}/rooms")
     @Operation(summary = "List waiting training rooms", description = "Returns joinable rooms for a published training assigned to the current student.")
-    public ApiResponse<List<TrainingRoom>> listRooms(@PathVariable Long trainingId, HttpServletRequest request) {
-        return ApiResponse.ok(service.listWaitingRooms(StudentContext.requireStudentId(request), trainingId));
+    public ApiResponse<List<TrainingRoom>> listRooms(@PathVariable Long trainingId,
+                                                      @RequestParam("topicId") Long topicId,
+                                                      HttpServletRequest request) {
+        return ApiResponse.ok(service.listWaitingRooms(StudentContext.requireStudentId(request), trainingId, topicId));
     }
 
     @GetMapping("/training-rooms/{roomId}")
