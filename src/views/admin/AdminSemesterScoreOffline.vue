@@ -449,10 +449,10 @@ function selectedWeights(semesterId: number | null) {
   const rows = scoreWeights.value.filter((item) => item.semesterId === semesterId);
   const row = [...rows, ...scoreWeights.value].sort((left, right) => Number(right.weightId || 0) - Number(left.weightId || 0))[0];
   return {
-    coursewareWeight: row?.coursewareWeight ?? 30,
-    trainingPracticeWeight: row?.trainingPracticeWeight ?? 30,
-    assignmentWeight: row?.assignmentWeight ?? 30,
-    examWeight: row?.examWeight ?? 10
+    coursewareWeight: row?.coursewareWeight ?? 0,
+    trainingPracticeWeight: row?.trainingPracticeWeight ?? 0,
+    assignmentWeight: row?.assignmentWeight ?? 0,
+    examWeight: row?.examWeight ?? 0
   };
 }
 

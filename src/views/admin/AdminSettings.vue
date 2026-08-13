@@ -482,10 +482,10 @@ const localCameras = ref<CameraRow[]>([]);
 const gradeDraftRows = ref<GradeDraftRow[]>([]);
 
 const weightForm = reactive({
-  coursewareWeight: 30,
-  trainingPracticeWeight: 30,
-  assignmentWeight: 30,
-  examWeight: 10
+  coursewareWeight: 0,
+  trainingPracticeWeight: 0,
+  assignmentWeight: 0,
+  examWeight: 0
 });
 
 const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
@@ -532,10 +532,7 @@ const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trai
 const semesterRows = computed<SemesterDisplayRow[]>(() => {
   const rows: SemesterDisplayRow[] = [];
   academicYears.value.forEach((year, index) => {
-    const semesters = year.semesters?.length ? year.semesters : [
-      { semesterId: year.academicYearId * 10 + 1, academicYearId: year.academicYearId, semesterName: '上学期', current: false },
-      { semesterId: year.academicYearId * 10 + 2, academicYearId: year.academicYearId, semesterName: '下学期', current: false }
-    ];
+    const semesters = year.semesters ?? [];
     semesters.forEach((semester) => {
       rows.push({ semesterId: semester.semesterId, index: index + 1, yearName: year.yearName.replace('学年', ''), semesterName: semester.semesterName, current: semester.current });
     });
