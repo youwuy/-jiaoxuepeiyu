@@ -399,29 +399,28 @@ async function openEdit(role: AdminRole) {
   }
   formMode.value = 'edit';
   editingRole.value = role;
-  roleFormPageVisible.value = true;
-  const detail = await safeRoleDetail(role);
-  applyForm({
-    roleName: detail.roleName,
-    roleCode: detail.roleCode,
-    dataScope: detail.dataScope || 'SELF',
-    remark: detail.remark || '',
-    permissionIds: detail.permissionIds || [],
-    pageDataScopes: detail.pageDataScopes || []
-  });
+  try {
+    const detail = await fetchAdminRoleDetail(role.roleId);
+    applyForm({
+      roleName: detail.roleName,
+      roleCode: detail.roleCode,
+      dataScope: detail.dataScope || 'SELF',
+      remark: detail.remark || '',
+      permissionIds: detail.permissionIds || [],
+      pageDataScopes: detail.pageDataScopes || []
+    });
+    roleFormPageVisible.value = true;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '角色详情加载失败，无法编辑');
+  }
 }
 
 async function openDetail(role: AdminRole) {
-  detailRole.value = role;
-  detailVisible.value = true;
-  detailRole.value = await safeRoleDetail(role);
-}
-
-async function safeRoleDetail(role: AdminRole) {
   try {
-    return await fetchAdminRoleDetail(role.roleId);
-  } catch {
-    return role;
+    detailRole.value = await fetchAdminRoleDetail(role.roleId);
+    detailVisible.value = true;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '角色详情加载失败');
   }
 }
 

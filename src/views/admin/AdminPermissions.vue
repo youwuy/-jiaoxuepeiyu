@@ -218,7 +218,6 @@ const drawerVisible = ref(false);
 const drawerMode = ref<DrawerMode>('create');
 const editingPermission = ref<AdminPermissionRow | null>(null);
 const permissionTree = ref<AdminPermissionNode[]>([]);
-const usingFallbackPermissions = ref(false);
 const expandedIds = ref(new Set<number>([1, 2, 12, 13]));
 const adminPermissionsChangedEvent = 'admin-permissions-changed';
 
@@ -378,11 +377,6 @@ async function dropPermission(target: AdminPermissionRow, event: DragEvent) {
   });
   permissionTree.value = [...permissionTree.value];
 
-  if (usingFallbackPermissions.value) {
-    ElMessage.success('菜单排序已更新');
-    return;
-  }
-
   sorting.value = true;
   try {
     await updateAdminPermissionSorts(
@@ -509,26 +503,16 @@ async function savePermission() {
 
   saving.value = true;
   try {
-    if (usingFallbackPermissions.value) {
-      if (drawerMode.value === 'edit' && editingPermission.value) {
-        updateLocalPermission(editingPermission.value.permissionId, payload);
-        ElMessage.success('菜单已更新');
-      } else {
-        createLocalPermission(payload);
-        ElMessage.success('菜单已新增');
-      }
+    if (drawerMode.value === 'edit' && editingPermission.value) {
+      await updateAdminPermission(editingPermission.value.permissionId, payload);
+      ElMessage.success('菜单已更新');
       drawerVisible.value = false;
     } else {
-      if (drawerMode.value === 'edit' && editingPermission.value) {
-        await updateAdminPermission(editingPermission.value.permissionId, payload);
-        ElMessage.success('菜单已更新');
-      } else {
-        await createAdminPermission(payload);
-        ElMessage.success('菜单已新增');
-      }
+      await createAdminPermission(payload);
+      ElMessage.success('菜单已新增');
       drawerVisible.value = false;
-      await loadPermissionTree();
     }
+    await loadPermissionTree();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '菜单保存失败');
   } finally {
@@ -539,16 +523,12 @@ async function savePermission() {
 async function toggleVisible(row: AdminPermissionRow) {
   busyId.value = row.permissionId;
   try {
-    if (usingFallbackPermissions.value) {
-      setLocalPermissionVisible(row.permissionId, !row.visible, row.visible);
+    if (row.visible) {
+      await disableAdminPermission(row.permissionId);
     } else {
-      if (row.visible) {
-        await disableAdminPermission(row.permissionId);
-      } else {
-        await enableAdminPermission(row.permissionId);
-      }
-      await loadPermissionTree();
+      await enableAdminPermission(row.permissionId);
     }
+    await loadPermissionTree();
     window.dispatchEvent(new Event(adminPermissionsChangedEvent));
     ElMessage.success(row.visible ? '菜单已隐藏' : '菜单已显示');
   } catch (error) {
@@ -571,12 +551,8 @@ async function removePermission(row: AdminPermissionRow) {
 
   busyId.value = row.permissionId;
   try {
-    if (usingFallbackPermissions.value) {
-      deleteLocalPermission(row.permissionId);
-    } else {
-      await deleteAdminPermission(row.permissionId);
-      await loadPermissionTree();
-    }
+    await deleteAdminPermission(row.permissionId);
+    await loadPermissionTree();
     ElMessage.success('菜单已删除');
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '删除失败');
@@ -596,115 +572,14 @@ function buildDefaultExpandedIds(tree: AdminPermissionNode[]) {
   return ids;
 }
 
-function nextLocalPermissionId() {
-  return Math.max(0, ...flattenAllAdminPermissions(permissionTree.value).map((item) => item.permissionId)) + 1;
-}
-
-function createLocalPermission(payload: AdminPermissionCommand) {
-  const node: AdminPermissionNode = {
-    permissionId: nextLocalPermissionId(),
-    parentId: payload.parentId ?? null,
-    permissionName: payload.permissionName,
-    permissionCode: payload.permissionCode,
-    permissionType: payload.permissionType,
-    routePath: payload.routePath ?? null,
-    visible: payload.visible,
-    sortOrder: payload.sortOrder,
-    children: []
-  };
-
-  if (!node.parentId) {
-    permissionTree.value = [...permissionTree.value, node];
-    return;
-  }
-
-  const insertInto = (items: AdminPermissionNode[]): AdminPermissionNode[] =>
-    items.map((item) => {
-      if (item.permissionId === node.parentId) {
-        return {
-          ...item,
-          children: [...(item.children ?? []), node]
-        };
-      }
-      return {
-        ...item,
-        children: item.children ? insertInto(item.children) : undefined
-      };
-    });
-
-  permissionTree.value = insertInto(permissionTree.value);
-  expandedIds.value = new Set([...expandedIds.value, node.parentId]);
-}
-
-function updateLocalPermission(permissionId: number, payload: AdminPermissionCommand) {
-  const updateIn = (items: AdminPermissionNode[]): AdminPermissionNode[] =>
-    items.map((item) => {
-      if (item.permissionId === permissionId) {
-        return {
-          ...item,
-          parentId: payload.parentId ?? null,
-          permissionName: payload.permissionName,
-          permissionCode: payload.permissionCode,
-          permissionType: payload.permissionType,
-          routePath: payload.routePath ?? null,
-          visible: payload.visible,
-          sortOrder: payload.sortOrder
-        };
-      }
-      return {
-        ...item,
-        children: item.children ? updateIn(item.children) : undefined
-      };
-    });
-
-  permissionTree.value = updateIn(permissionTree.value);
-}
-
-function setLocalPermissionVisible(permissionId: number, visible: boolean, includeChildren: boolean) {
-  const updateIn = (items: AdminPermissionNode[]): AdminPermissionNode[] =>
-    items.map((item) => {
-      if (item.permissionId === permissionId) {
-        return setNodeVisible(item, visible, includeChildren);
-      }
-      return {
-        ...item,
-        children: item.children ? updateIn(item.children) : undefined
-      };
-    });
-
-  permissionTree.value = updateIn(permissionTree.value);
-}
-
-function setNodeVisible(item: AdminPermissionNode, visible: boolean, includeChildren: boolean): AdminPermissionNode {
-  return {
-    ...item,
-    visible,
-    children: includeChildren ? item.children?.map((child) => setNodeVisible(child, visible, true)) : item.children
-  };
-}
-
-function deleteLocalPermission(permissionId: number) {
-  const removeFrom = (items: AdminPermissionNode[]): AdminPermissionNode[] =>
-    items
-      .filter((item) => item.permissionId !== permissionId)
-      .map((item) => ({
-        ...item,
-        children: item.children ? removeFrom(item.children) : undefined
-      }));
-
-  permissionTree.value = removeFrom(permissionTree.value);
-}
-
 async function loadPermissionTree() {
   loading.value = true;
   try {
     const result = await fetchAdminPermissionTree();
-    usingFallbackPermissions.value = false;
     permissionTree.value = result;
     expandedIds.value = buildDefaultExpandedIds(permissionTree.value);
     currentPage.value = 1;
   } catch (error) {
-    usingFallbackPermissions.value = false;
     permissionTree.value = [];
     expandedIds.value = new Set();
     currentPage.value = 1;
