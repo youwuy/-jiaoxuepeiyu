@@ -95,10 +95,10 @@
               </span>
               <div>
                 <strong>实训题列表</strong>
-                <p>选择本次实训包含的题目，可拖拽排序，注意：暂考试题型，刷多人实训题只能添加一个，单人实训题数量不限</p>
+                <p>选择本次实训包含的题目，可拖拽排序；考试类型只能添加一道多人实训题，或全部使用单人实训题</p>
               </div>
             </div>
-            <el-button type="primary" class="admin-training-add-topic" :icon="Plus" @click="topicPickerVisible = true">添加实训题</el-button>
+            <el-button type="primary" class="admin-training-add-topic" :icon="Plus" @click="openTopicPicker">添加实训题</el-button>
           </header>
 
           <div class="admin-training-topic-table-scroll">
@@ -151,16 +151,18 @@
       </template>
       <section class="admin-training-topic-picker">
         <div class="admin-training-topic-toolbar">
-          <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名称" clearable />
+          <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名搜索" clearable />
           <el-select v-model="topicType" class="admin-training-topic-select" placeholder="实训题类型" clearable>
             <el-option label="信号" value="信号" />
             <el-option label="站务" value="站务" />
             <el-option label="调度" value="调度" />
           </el-select>
+          <el-button @click="queryTopics">查询</el-button>
+          <el-button @click="resetTopicQuery">重置</el-button>
         </div>
         <div class="admin-training-topic-overview">
           <p>
-            共 <b>{{ filteredTopicRows.length }}</b> 条实训题，已选 <b>{{ selectedTopicIds.length }}</b> 条
+            共 <b>{{ filteredTopicRows.length }}</b> 条实训题，已选 <b>{{ topicPickerIds.length }}</b> 条
           </p>
           <span>
             <el-icon><InfoFilled /></el-icon>
@@ -181,7 +183,7 @@
             </thead>
             <tbody>
               <tr v-for="item in filteredTopicRows" :key="item.id">
-                <td><el-checkbox :model-value="selectedTopicIds.includes(item.id)" @change="toggleTopic(item.id)" /></td>
+                <td><el-checkbox :model-value="topicPickerIds.includes(item.id)" :disabled="isBoundTopic(item.id)" @change="toggleTopic(item.id)" /></td>
                 <td class="topic-name">{{ item.name }}</td>
                 <td><span class="topic-pill">{{ item.category }}</span></td>
                 <td>{{ item.mode }}</td>
@@ -195,7 +197,7 @@
       <template #footer>
         <div class="admin-training-dialog-footer">
           <el-button @click="topicPickerVisible = false">取消</el-button>
-          <el-button type="primary" @click="topicPickerVisible = false">确定</el-button>
+          <el-button type="primary" @click="confirmTopicSelection">确定添加</el-button>
         </div>
       </template>
     </el-dialog>
@@ -346,6 +348,8 @@ const roomOptions = ref<SelectableItem[]>([]);
 const topicOptions = ref<TopicItem[]>([]);
 
 const selectedTopicIds = ref<number[]>([]);
+const topicPickerIds = ref<number[]>([]);
+const boundTopicIds = ref<number[]>([]);
 const selectedResourceIds = ref<number[]>([]);
 const selectedPaperId = ref<number>(0);
 const selectedClassIds = ref<number[]>([]);
@@ -442,6 +446,8 @@ function resetForm() {
   form.roles = [];
   form.flow = [];
   selectedTopicIds.value = [];
+  topicPickerIds.value = [];
+  boundTopicIds.value = [];
   selectedResourceIds.value = [];
   selectedPaperId.value = 0;
   selectedClassIds.value = [];
@@ -467,6 +473,8 @@ async function loadDetail() {
     form.recordingEnabled = detail.appRequired === true;
     form.scoreBasis = detail.scoreBasis === 'LAST_SUBMIT' ? '最后一次提交的成绩' : '最高成绩';
     selectedTopicIds.value = detail.topicIds || [];
+    topicPickerIds.value = [...selectedTopicIds.value];
+    boundTopicIds.value = [...selectedTopicIds.value];
     selectedPaperId.value = detail.paperId || 0;
     form.roles = (detail.roles || []).map((role) => ({
       name: role.roleName || role.roleCode || '角色',
@@ -594,9 +602,40 @@ function removeSelected(kind: 'topic' | 'resource', id: number) {
 }
 
 function toggleTopic(id: number) {
-  selectedTopicIds.value = selectedTopicIds.value.includes(id)
-    ? selectedTopicIds.value.filter((item) => item !== id)
-    : [...selectedTopicIds.value, id];
+  if (isBoundTopic(id)) return;
+  topicPickerIds.value = topicPickerIds.value.includes(id)
+    ? topicPickerIds.value.filter((item) => item !== id)
+    : [...topicPickerIds.value, id];
+}
+
+function isBoundTopic(id: number) {
+  return boundTopicIds.value.includes(id);
+}
+
+function openTopicPicker() {
+  topicPickerIds.value = [...selectedTopicIds.value];
+  topicKeyword.value = '';
+  topicType.value = '';
+  topicPickerVisible.value = true;
+}
+
+function queryTopics() {
+  topicKeyword.value = topicKeyword.value.trim();
+}
+
+function resetTopicQuery() {
+  topicKeyword.value = '';
+  topicType.value = '';
+}
+
+function confirmTopicSelection() {
+  const added = topicPickerIds.value.filter((id) => !boundTopicIds.value.includes(id));
+  if (!added.length && !selectedTopicIds.value.length) {
+    ElMessage.warning('请选择需要添加的实训题');
+    return;
+  }
+  selectedTopicIds.value = [...new Set([...boundTopicIds.value, ...added])];
+  topicPickerVisible.value = false;
 }
 
 function addRole() {

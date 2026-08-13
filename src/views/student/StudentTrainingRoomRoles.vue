@@ -92,12 +92,13 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowRight, CircleCheckFilled, User, WarningFilled } from '@element-plus/icons-vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import {
   claimTrainingRoomRole,
   fetchTrainingRoom,
+  leaveTrainingRoom,
   startTrainingRoom,
   type TrainingRoom,
   type TrainingRoomRole
@@ -142,7 +143,7 @@ function canSelectRole(role: TrainingRoomRole) {
     return false;
   }
 
-  return !selectedRoleName.value || role.claimedByStudentId === currentStudentId;
+  return !selectedRoleName.value;
 }
 
 async function loadRoom(showLoading = false) {
@@ -197,6 +198,16 @@ async function startRoom() {
 
   starting.value = true;
   try {
+    const aiRoles = (room.value.roles || [])
+      .filter((role) => !role.claimed)
+      .map((role) => role.roleName);
+    if (aiRoles.length) {
+      await ElMessageBox.confirm(
+        `尚未被真人选择的角色将由 AI 扮演：${aiRoles.join('、')}，是否确认开启？`,
+        'AI 补位确认',
+        { type: 'info', confirmButtonText: '确认开启', cancelButtonText: '取消' }
+      );
+    }
     room.value = await startTrainingRoom(room.value.roomId);
     await router.push({
       name: 'student-training-start',
@@ -210,12 +221,22 @@ async function startRoom() {
   }
 }
 
-function returnLobby() {
+async function leaveCurrentRoom() {
+  if (!room.value || room.value.roomStatus !== 'WAITING') return;
+  try {
+    await leaveTrainingRoom(room.value.roomId);
+  } catch {
+    // The room may already have been dissolved by its owner or the teacher.
+  }
+}
+
+async function returnLobby() {
   if (!room.value) {
     void router.push('/student/training');
     return;
   }
 
+  await leaveCurrentRoom();
   void router.push({
     name: 'student-training-lobby',
     params: { trainingId: room.value.trainingId },
@@ -231,6 +252,12 @@ onMounted(async () => {
   pollTimer = window.setInterval(() => {
     void loadRoom();
   }, 3000);
+});
+
+onBeforeRouteLeave(async (to) => {
+  if (to.name !== 'student-training-start') {
+    await leaveCurrentRoom();
+  }
 });
 
 onBeforeUnmount(() => {

@@ -74,7 +74,6 @@ public class StudentTrainingService {
         assertNoActiveRoom(studentId);
         TrainingRoom room = repository.createRoom(studentId, trainingId);
         repository.addMember(room.getRoomId(), studentId);
-        assignAvailableRoles(room.getRoomId());
         return requireRoom(room.getRoomId());
     }
 
@@ -107,6 +106,10 @@ public class StudentTrainingService {
         TrainingRoom room = requireRoom(roomId);
         assertWaiting(room);
         assertMember(room, studentId);
+        TrainingRoomMember member = findMember(room, studentId);
+        if (member.getRoleId() != null && !member.getRoleId().equals(roleId)) {
+            throw new BusinessException(400, "Training role cannot be changed after selection");
+        }
         TrainingRoomRole role = findRole(room, roleId);
         if (role.isClaimed() && !studentId.equals(role.getClaimedByStudentId())) {
             throw new BusinessException(400, "Training role has been claimed");
@@ -137,33 +140,9 @@ public class StudentTrainingService {
         if (!studentId.equals(room.getOwnerStudentId())) {
             throw new BusinessException(403, "Only room owner can start training");
         }
-        assignAvailableRoles(roomId);
         room = requireRoom(roomId);
-        for (TrainingRoomMember member : room.getMembers()) {
-            if (member.getRoleId() == null) {
-                throw new BusinessException(400, "Training room roles are incomplete");
-            }
-        }
         repository.startRoom(roomId);
         return requireRoom(roomId);
-    }
-
-    private void assignAvailableRoles(Long roomId) {
-        TrainingRoom room = requireRoom(roomId);
-        List<TrainingRoomRole> availableRoles = new ArrayList<TrainingRoomRole>();
-        for (TrainingRoomRole role : room.getRoles()) {
-            if (!role.isClaimed()) {
-                availableRoles.add(role);
-            }
-        }
-        int availableIndex = 0;
-        for (TrainingRoomMember member : room.getMembers()) {
-            if (member.getRoleId() == null && availableIndex < availableRoles.size()) {
-                TrainingRoomRole role = availableRoles.get(availableIndex);
-                repository.claimRole(roomId, member.getStudentId(), role.getRoleId());
-                availableIndex++;
-            }
-        }
     }
 
     public TrainingRoom getRoom(Long studentId, Long roomId) {
@@ -195,9 +174,13 @@ public class StudentTrainingService {
     }
 
     private void assertMember(TrainingRoom room, Long studentId) {
+        findMember(room, studentId);
+    }
+
+    private TrainingRoomMember findMember(TrainingRoom room, Long studentId) {
         for (TrainingRoomMember member : room.getMembers()) {
             if (studentId.equals(member.getStudentId())) {
-                return;
+                return member;
             }
         }
         throw new BusinessException(403, "Student is not in this room");

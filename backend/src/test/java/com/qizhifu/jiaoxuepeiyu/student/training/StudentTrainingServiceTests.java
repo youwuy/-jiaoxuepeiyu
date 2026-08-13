@@ -63,8 +63,8 @@ class StudentTrainingServiceTests {
 
         assertEquals(101L, room.getRoomId().longValue());
         assertEquals(7L, repository.addedMemberStudentId.longValue());
-        assertEquals(501L, repository.claimedRoleId.longValue());
-        assertEquals(501L, room.getMembers().get(0).getRoleId().longValue());
+        assertEquals(null, repository.claimedRoleId);
+        assertEquals(null, room.getMembers().get(0).getRoleId());
     }
 
     @Test
@@ -97,6 +97,20 @@ class StudentTrainingServiceTests {
     }
 
     @Test
+    void rejectsChangingRoleAfterSelection() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.room.getRoles().add(role(502L, "Dispatcher"));
+        repository.room.getMembers().get(0).setRoleId(501L);
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.claimRole(7L, 101L, 502L);
+        });
+
+        assertEquals("Training role cannot be changed after selection", exception.getMessage());
+    }
+
+    @Test
     void releasesCurrentStudentsClaimedRole() {
         FakeTrainings repository = new FakeTrainings();
         repository.room.getMembers().get(0).setRoleId(501L);
@@ -126,7 +140,7 @@ class StudentTrainingServiceTests {
     }
 
     @Test
-    void startsRoomWithUnclaimedRolesFilledByAi() {
+    void startsRoomWithUnclaimedRolesLeftForAi() {
         FakeTrainings repository = new FakeTrainings();
         repository.room.getMembers().clear();
         repository.room.getMembers().add(member(7L, 501L));

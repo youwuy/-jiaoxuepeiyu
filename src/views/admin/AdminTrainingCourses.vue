@@ -1081,10 +1081,18 @@ function buildTrainingCommand(publishStatus: string) {
 }
 
 function mapLog(item: AdminTrainingLog) {
+  const actionText: Record<string, string> = {
+    CREATE: '新增',
+    UPDATE: '编辑',
+    PUBLISH: '发布',
+    CANCEL_PUBLISH: '取消发布',
+    START_EXAM: '开始考试'
+  };
+  const action = String(item.action || '').toUpperCase();
   return {
     time: formatDateTime(item.createdAt),
     operator: item.operatorName || '-',
-    action: item.action || '-',
+    action: actionText[action] || item.action || '-',
     content: item.content || '-'
   };
 }

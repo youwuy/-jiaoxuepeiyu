@@ -117,7 +117,7 @@
 
         <aside class="admin-training-archive-video-card">
           <header><strong><i></i>实训操作视频</strong></header>
-          <button type="button" class="admin-training-archive-video" @click="openVideoPreview">
+          <button v-if="activeArchive?.recordingUrl" type="button" class="admin-training-archive-video" @click="openVideoPreview">
             <span class="play"></span>
             <span class="track"><b></b></span>
             <em class="time start">00:00</em>
@@ -129,6 +129,7 @@
               <i class="screen"></i>
             </span>
           </button>
+          <el-empty v-else description="暂无实训操作视频" />
         </aside>
       </section>
 
@@ -239,15 +240,18 @@ function backToList() {
 }
 
 function openVideoPreview() {
-  if (activeArchive.value?.recordingUrl) {
-    window.open(activeArchive.value.recordingUrl, '_blank', 'noopener');
+  const recordingUrl = activeArchive.value?.recordingUrl;
+  if (!recordingUrl) {
     return;
   }
-  previewTitle.value = '实训操作视频';
-  videoVisible.value = true;
+  window.open(recordingUrl, '_blank', 'noopener');
 }
 
 function openStepVideo(step: ArchiveStep) {
+  if (!activeArchive.value?.recordingUrl) {
+    ElMessage.info('暂无该步骤的操作视频');
+    return;
+  }
   previewTitle.value = `${step.name} - 操作视频`;
   videoVisible.value = true;
 }

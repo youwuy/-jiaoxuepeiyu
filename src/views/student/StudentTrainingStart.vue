@@ -58,7 +58,7 @@
               <span class="training-workspace-icon"><el-icon><Monitor /></el-icon></span>
               <h2>实训场景已准备就绪</h2>
               <p>请打开本地三维实训程序开始操作，系统会同步记录你的实训过程。</p>
-              <el-button type="primary" @click="notifyLaunch">进入三维实训</el-button>
+              <el-button type="primary" :loading="launchLoading" @click="notifyLaunch">进入三维实训</el-button>
             </div>
             <aside class="training-workspace-info">
               <h2>实训信息</h2>
@@ -81,7 +81,15 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Cpu, Loading, Monitor, UserFilled } from '@element-plus/icons-vue';
-import { fetchStudentTrainingTask, fetchTrainingRoom, type StudentTrainingTask, type TrainingRoom } from '../../api/student';
+import {
+  createUeLaunchSession,
+  fetchStudentTrainingTask,
+  fetchTrainingRoom,
+  type StudentTrainingTask,
+  type TrainingRoom,
+  type UeLaunchSession
+} from '../../api/student';
+import { resolveApiBaseUrl } from '../../api/http';
 import StudentShell from '../../components/student/StudentShell.vue';
 
 type StartPhase = 'loading' | 'countdown' | 'running';
@@ -92,6 +100,7 @@ const phase = ref<StartPhase>('loading');
 const countdown = ref(3);
 const room = ref<TrainingRoom>();
 const task = ref<StudentTrainingTask>({ trainingId: Number(route.query.trainingId) || 0 });
+const launchLoading = ref(false);
 let countdownTimer: number | undefined;
 
 const currentStudentId = computed(() => {
@@ -149,8 +158,53 @@ function backToTraining() {
   void router.push('/student/training');
 }
 
-function notifyLaunch() {
-  ElMessage.info('三维实训程序启动参数待后端接口提供后接入');
+async function notifyLaunch() {
+  if (launchLoading.value) {
+    return;
+  }
+
+  const trainingId = Number(route.query.trainingId) || room.value?.trainingId || task.value.trainingId;
+  if (!Number.isFinite(trainingId) || trainingId <= 0) {
+    ElMessage.error('实训信息不完整，无法启动三维实训');
+    return;
+  }
+
+  launchLoading.value = true;
+  try {
+    const session = await createUeLaunchSession(trainingId);
+    launchUeApplication({
+      ...session,
+      roomId: session.roomId || room.value?.roomId || Number(route.params.roomId) || undefined
+    });
+    ElMessage.success('正在启动三维实训');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '三维实训启动失败');
+  } finally {
+    launchLoading.value = false;
+  }
+}
+
+function launchUeApplication(session: UeLaunchSession) {
+  const query = new URLSearchParams({
+    protocolVersion: '1',
+    apiBase: resolveApiBaseUrl(),
+    trainingId: String(session.trainingId),
+    studentId: String(session.studentId),
+    launchToken: session.launchToken
+  });
+  if (session.roomId) {
+    query.set('roomId', String(session.roomId));
+  }
+  if (session.topicId) {
+    query.set('topicId', String(session.topicId));
+  }
+
+  const scheme = String(import.meta.env.VITE_UE_PROTOCOL || 'jiaoyu-ue').replace(/[^a-z0-9+.-]/gi, '');
+  const launcher = document.createElement('iframe');
+  launcher.hidden = true;
+  launcher.src = `${scheme}://launch?${query.toString()}`;
+  document.body.appendChild(launcher);
+  window.setTimeout(() => launcher.remove(), 2000);
 }
 
 onMounted(() => { void loadStartData(); });

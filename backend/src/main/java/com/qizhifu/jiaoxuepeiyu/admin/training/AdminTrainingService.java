@@ -214,13 +214,7 @@ public class AdminTrainingService {
         if (command.getAcademicYearId() == null || command.getSemesterId() == null) {
             throw new BusinessException(400, "Training academic year and semester are required");
         }
-        if (command.getMajorId() == null) {
-            throw new BusinessException(400, "Training major is required");
-        }
         String coverUrl = trimToNull(command.getCoverUrl());
-        if (coverUrl == null) {
-            throw new BusinessException(400, "Training cover is required");
-        }
         validateOpenTime(command.getOpenStartTime(), command.getOpenEndTime());
 
         AdminTrainingCommand normalized = new AdminTrainingCommand();
