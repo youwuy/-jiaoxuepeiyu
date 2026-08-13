@@ -283,7 +283,7 @@ public class AdminAccountService {
         normalized.setIdCard(trimToNull(command.getIdCard()));
         normalized.setJobTitle(trimToNull(command.getJobTitle()));
         normalized.setUserType(userType);
-        normalized.setOrgId(command.getOrgId());
+        normalized.setOrgId("teacher".equals(userType) ? command.getOrgId() : null);
         normalized.setClassId("student".equals(userType) ? command.getClassId() : null);
         normalized.setFaceFileId(command.getFaceFileId());
         normalized.setFingerprintFileId(command.getFingerprintFileId());

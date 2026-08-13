@@ -52,6 +52,29 @@ class AdminAccountServiceTests {
     }
 
     @Test
+    void studentNeverPersistsOrganization() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+        AdminAccountCommand command = student();
+        command.setOrgId(99L);
+
+        service.createStudent(command);
+
+        assertEquals(null, repository.createdCommand.getOrgId());
+        assertEquals(3L, repository.createdCommand.getClassId().longValue());
+    }
+
+    @Test
+    void teacherKeepsSubmittedOrganization() {
+        FakeAccounts repository = new FakeAccounts();
+        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
+
+        service.createTeacher(teacher());
+
+        assertEquals(1L, repository.createdCommand.getOrgId().longValue());
+    }
+
+    @Test
     void rejectsInvalidPhone() {
         AdminAccountService service = new AdminAccountService(new FakeAccounts(), new PrefixHasher(), "InitPass123");
         AdminAccountCommand command = teacher();

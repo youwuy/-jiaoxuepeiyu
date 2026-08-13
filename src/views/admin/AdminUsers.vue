@@ -121,10 +121,6 @@
               <span>身份证号</span>
               <el-input v-model="form.idCard" maxlength="18" placeholder="请输入18位身份证号" />
             </label>
-            <label v-if="formMode === 'create'">
-              <span>初始密码 <b>*</b></span>
-              <el-input v-model="form.initialPassword" maxlength="20" placeholder="请输入初始密码" show-password />
-            </label>
             <label>
               <span>所在班级 <b>*</b></span>
               <el-select v-model="form.classId" placeholder="请选择所在班级" filterable>
@@ -770,7 +766,7 @@ function openCreate() {
   formMode.value = 'create';
   editingId.value = null;
   applyForm(emptyForm());
-  form.orgId = selectedOrgId.value || null;
+  form.orgId = activeKind.value === 'teacher' ? selectedOrgId.value || null : null;
   resetBioState();
   if (activeKind.value === 'teacher') {
     teacherFormPageVisible.value = true;
@@ -833,9 +829,6 @@ function validateForm() {
   if (activeKind.value === 'student' && !form.classId) {
     throw new Error('请选择班级');
   }
-  if (formMode.value === 'create' && activeKind.value === 'student') {
-    validateAccountPassword(form.initialPassword || '');
-  }
 }
 
 function cancelTeacherForm() {
@@ -871,9 +864,9 @@ async function saveAccount() {
   saving.value = true;
   try {
     if (formMode.value === 'create') {
-      const command = activeKind.value === 'teacher'
-        ? { ...form, initialPassword: undefined }
-        : form;
+      const command = activeKind.value === 'student'
+        ? { ...form, orgId: null, initialPassword: undefined }
+        : { ...form, initialPassword: undefined };
       await createAdminAccount(activeKind.value, command);
       ElMessage.success(`新增${activeKindLabel.value}成功`);
     } else if (editingId.value) {
