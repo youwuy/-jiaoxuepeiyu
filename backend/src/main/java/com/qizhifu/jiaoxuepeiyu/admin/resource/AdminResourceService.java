@@ -46,9 +46,25 @@ public class AdminResourceService {
                 repository.countResources(normalized));
     }
 
+    public PageResponse<AdminResource> listPersonalResources(AdminResourceQuery query, Long uploaderId) {
+        requireOperator(uploaderId);
+        AdminResourceQuery personalQuery = query == null ? new AdminResourceQuery() : query;
+        personalQuery.setUploaderId(uploaderId);
+        return listResources(personalQuery);
+    }
+
     public AdminResource getResource(Long resourceId) {
         AdminResource resource = repository.findResource(resourceId);
         if (resource == null) {
+            throw new BusinessException(404, "Resource not found");
+        }
+        return resource;
+    }
+
+    public AdminResource getPersonalResource(Long resourceId, Long uploaderId) {
+        requireOperator(uploaderId);
+        AdminResource resource = getResource(resourceId);
+        if (!uploaderId.equals(resource.getUploaderId())) {
             throw new BusinessException(404, "Resource not found");
         }
         return resource;
@@ -78,6 +94,12 @@ public class AdminResourceService {
     }
 
     @Transactional
+    public void updatePersonalResource(Long resourceId, AdminResourceCommand command, Long operatorId) {
+        getPersonalResource(resourceId, operatorId);
+        updateResource(resourceId, command, operatorId);
+    }
+
+    @Transactional
     public void batchUpdate(AdminResourceBatchCommand command, Long operatorId) {
         requireOperator(operatorId);
         AdminResourceBatchCommand normalized = normalizedBatch(command);
@@ -85,6 +107,12 @@ public class AdminResourceService {
         for (Long resourceId : normalized.getResourceIds()) {
             repository.appendResourceLog(resourceId, operatorId, "BATCH_UPDATE", "Batch update resource");
         }
+    }
+
+    @Transactional
+    public void batchUpdatePersonalResources(AdminResourceBatchCommand command, Long operatorId) {
+        requirePersonalResources(command == null ? null : command.getResourceIds(), operatorId);
+        batchUpdate(command, operatorId);
     }
 
     @Transactional
@@ -99,6 +127,12 @@ public class AdminResourceService {
         for (Long resourceId : ids) {
             repository.appendResourceLog(resourceId, operatorId, "DELETE", "Delete resource");
         }
+    }
+
+    @Transactional
+    public void deletePersonalResources(List<Long> resourceIds, Long operatorId) {
+        requirePersonalResources(resourceIds, operatorId);
+        deleteResources(resourceIds, operatorId);
     }
 
     @Transactional
@@ -121,6 +155,12 @@ public class AdminResourceService {
                 isPublicVersionChanged(resource) ? "APPLY_PUBLIC_LATEST" : "APPLY_PUBLIC",
                 "Submit public application");
         return applicationId;
+    }
+
+    @Transactional
+    public Long submitPersonalPublicApplication(Long resourceId, Long applicantId) {
+        getPersonalResource(resourceId, applicantId);
+        return submitPublicApplication(resourceId, applicantId);
     }
 
     public PageResponse<AdminPublicApplication> listPublicApplications(AdminResourceQuery query) {
@@ -151,6 +191,11 @@ public class AdminResourceService {
 
     public List<AdminResourceLog> listResourceLogs(Long resourceId) {
         getResource(resourceId);
+        return repository.findResourceLogs(resourceId);
+    }
+
+    public List<AdminResourceLog> listPersonalResourceLogs(Long resourceId, Long uploaderId) {
+        getPersonalResource(resourceId, uploaderId);
         return repository.findResourceLogs(resourceId);
     }
 
@@ -290,6 +335,15 @@ public class AdminResourceService {
             throw new BusinessException(400, "Resource ids are required");
         }
         return normalized;
+    }
+
+    private List<Long> requirePersonalResources(List<Long> resourceIds, Long uploaderId) {
+        requireOperator(uploaderId);
+        List<Long> ids = normalizedIds(resourceIds);
+        for (Long resourceId : ids) {
+            getPersonalResource(resourceId, uploaderId);
+        }
+        return ids;
     }
 
     private String detectResourceType(String fileName, String fileUrl) {

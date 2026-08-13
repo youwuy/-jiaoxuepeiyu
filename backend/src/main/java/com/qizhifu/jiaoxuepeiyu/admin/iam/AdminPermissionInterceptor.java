@@ -56,6 +56,11 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         List<String> pages = pagesFor(path);
         if (pages.isEmpty()) return pages;
         if ("GET".equals(request.getMethod())) return withAction(pages, "list", true);
+        if (path.endsWith("/approve") || path.endsWith("/reject")) {
+            return withAction(pages, "update", false);
+        }
+        if (path.endsWith("/publish")) return withAction(pages, "enable", false);
+        if (path.endsWith("/cancel-publish")) return withAction(pages, "disable", false);
         if (path.endsWith("/enable") || path.endsWith("/current")) return withAction(pages, "enable", false);
         if (path.endsWith("/disable")) return withAction(pages, "disable", false);
         if (path.endsWith("/delete") || "DELETE".equals(request.getMethod())) {
@@ -78,6 +83,15 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         if (path.startsWith("/api/admin/classrooms")) return Arrays.asList("config:classroom", "system:settings");
         if (path.startsWith("/api/admin/score-weights")) return Arrays.asList("config:score-weight", "system:settings");
         if (path.startsWith("/api/admin/score-grade-rules")) return Arrays.asList("config:score-grade", "system:settings");
+        if (path.startsWith("/api/admin/public-applications")) return Arrays.asList("resource:public-apply");
+        if (path.startsWith("/api/admin/public-resources")) return Arrays.asList("resource:public-library");
+        if (path.startsWith("/api/admin/resources")) return Arrays.asList("resource:personal");
+        if (path.startsWith("/api/admin/questions")) {
+            return Arrays.asList("resource:theory-question", "exam:question-bank");
+        }
+        if (path.startsWith("/api/admin/papers")) {
+            return Arrays.asList("resource:theory-paper", "exam:paper");
+        }
         return new ArrayList<String>();
     }
 

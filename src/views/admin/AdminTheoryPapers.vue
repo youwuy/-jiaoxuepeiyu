@@ -36,10 +36,10 @@
 
       <section class="admin-theory-paper-actions">
         <div>
-          <el-button class="admin-theory-paper-primary" :icon="Plus" @click="openCreate">新增</el-button>
-          <el-button class="admin-theory-paper-primary" :icon="UploadFilled" @click="openImport">导入试卷</el-button>
-          <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(true)">批量启用</el-button>
-          <el-button class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(false)">批量禁用</el-button>
+          <el-button v-if="can('create')" class="admin-theory-paper-primary" :icon="Plus" @click="openCreate">新增</el-button>
+          <el-button v-if="can('create')" class="admin-theory-paper-primary" :icon="UploadFilled" @click="openImport">导入试卷</el-button>
+          <el-button v-if="can('enable')" class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(true)">批量启用</el-button>
+          <el-button v-if="can('disable')" class="admin-theory-paper-lite" :disabled="selectedIds.length === 0" @click="batchSetEnabled(false)">批量禁用</el-button>
         </div>
         <p>共 <b>{{ totalCount }}</b> 条记录</p>
       </section>
@@ -74,8 +74,8 @@
                 <td><span class="admin-theory-paper-status" :class="row.enabled ? 'enabled' : 'disabled'"><i></i>{{ row.enabled ? '启用' : '禁用' }}</span></td>
                 <td>
                   <div class="admin-theory-paper-row-actions">
-                    <el-button text @click="openManage(row)">修改</el-button>
-                    <el-button text :class="row.enabled ? 'warn' : 'success'" @click="setEnabled(row)">{{ row.enabled ? '禁用' : '启用' }}</el-button>
+                    <el-button v-if="can('update')" text @click="openManage(row)">修改</el-button>
+                    <el-button v-if="can(row.enabled ? 'disable' : 'enable')" text :class="row.enabled ? 'warn' : 'success'" @click="setEnabled(row)">{{ row.enabled ? '禁用' : '启用' }}</el-button>
                     <el-button text @click="openLogs(row)">操作日志</el-button>
                   </div>
                 </td>
@@ -449,6 +449,7 @@ import {
   type AdminPaperQuestion
 } from '../../api/admin-paper';
 import { fetchAdminQuestions, previewAdminQuestionImport, type AdminQuestion, type AdminQuestionImportRow } from '../../api/admin-question';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
 
@@ -600,6 +601,7 @@ const saving = ref(false);
 const importParsing = ref(false);
 const jumpPage = ref(1);
 const selectedIds = ref<number[]>([]);
+const { can } = useAdminPermissions('resource:theory-paper');
 const importVisible = ref(false);
 const previewVisible = ref(false);
 const logsVisible = ref(false);
@@ -683,7 +685,7 @@ const selectedScore = computed(() => selectedQuestions.value.reduce((sum, item) 
 const autoQuestionTotal = computed(() => builder.rules.reduce((sum, rule) => sum + (rule.selected ? Number(rule.count || 0) : 0), 0));
 const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value) && (!manageCourse.value || item.courseName.includes(manageCourse.value))));
 const pagedManageQuestions = computed(() => filteredQuestionBank.value.slice((managePage.value - 1) * managePageSize, managePage.value * managePageSize));
-const allQuestionSelected = computed(() => filteredQuestionBank.value.length > 0 && filteredQuestionBank.value.every((item) => selectedQuestionIds.value.includes(item.id)));
+const allQuestionSelected = computed(() => pagedManageQuestions.value.length > 0 && pagedManageQuestions.value.every((item) => selectedQuestionIds.value.includes(item.id)));
 const partQuestionSelected = computed(() => selectedQuestionIds.value.length > 0 && !allQuestionSelected.value);
 const questionStats = computed(() => questionTypeOptions.map((type) => ({
   type,
@@ -718,7 +720,14 @@ const logRows = computed(() => [
   }))
 ]);
 
-watch(page, (value) => { jumpPage.value = value; });
+watch(page, (value) => {
+  jumpPage.value = value;
+  selectedIds.value = [];
+});
+
+watch(managePage, () => {
+  selectedQuestionIds.value = [];
+});
 
 function formatDateTime(value?: string) { return value ? value.replace('T', ' ').slice(0, 19) : '-'; }
 function publishStatus(enabled?: boolean) { return enabled === undefined ? undefined : enabled ? 'PUBLISHED' : 'OFFLINE'; }
@@ -788,7 +797,8 @@ async function loadPapers() {
   loading.value = true;
   try {
     const result = await fetchAdminPapers({
-      keyword: [applied.value.keyword, applied.value.courseName].map((item) => item.trim()).filter(Boolean).join(' ') || undefined,
+      keyword: applied.value.keyword.trim() || undefined,
+      courseName: applied.value.courseName.trim() || undefined,
       publishStatus: publishStatus(applied.value.enabled),
       creatorId: applied.value.creatorId,
       page: page.value,
@@ -806,8 +816,16 @@ async function loadPapers() {
 }
 async function loadQuestionBank() {
   try {
-    const result = await fetchAdminQuestions({ enabled: true, page: 1, pageSize: 100 });
-    questionBank.value = result.records.map(mapQuestion).filter((item) => item.id > 0);
+    const allQuestions: AdminQuestion[] = [];
+    let currentPage = 1;
+    let total = 0;
+    do {
+      const result = await fetchAdminQuestions({ enabled: true, page: currentPage, pageSize: 100 });
+      allQuestions.push(...result.records);
+      total = result.total;
+      currentPage += 1;
+    } while (allQuestions.length < total);
+    questionBank.value = allQuestions.map(mapQuestion).filter((item) => item.id > 0);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '理论试题加载失败');
   }
@@ -847,8 +865,8 @@ function isQuestionInPaper(id: number) { return selectedQuestions.value.some((it
 function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
 function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }
-function toggleAllQuestions(value: string | number | boolean) { selectedQuestionIds.value = value ? Array.from(new Set([...selectedQuestionIds.value, ...filteredQuestionBank.value.map((item) => item.id)])) : selectedQuestionIds.value.filter((id) => !filteredQuestionBank.value.some((item) => item.id === id)); }
-function addFilteredQuestions() { filteredQuestionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
+function toggleAllQuestions(value: string | number | boolean) { selectedQuestionIds.value = value ? Array.from(new Set([...selectedQuestionIds.value, ...pagedManageQuestions.value.map((item) => item.id)])) : selectedQuestionIds.value.filter((id) => !pagedManageQuestions.value.some((item) => item.id === id)); }
+function addFilteredQuestions() { questionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
 function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; managePage.value = 1; selectedQuestionIds.value = []; }
 function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
 async function saveBuilder() {

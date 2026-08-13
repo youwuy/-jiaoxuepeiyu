@@ -106,7 +106,7 @@ export function hasAuthSession(portal: AuthPortal): boolean {
   return Boolean(getStoredToken(portal));
 }
 
-function getStoredUserId(portal?: AuthPortal): string {
+export function getStoredUserId(portal?: AuthPortal): string {
   const storedUser = getStoredUser(portal);
 
   if (!storedUser) {

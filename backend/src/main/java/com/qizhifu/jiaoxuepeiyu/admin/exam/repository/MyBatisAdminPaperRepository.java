@@ -188,6 +188,7 @@ public class MyBatisAdminPaperRepository implements AdminPaperRepository {
     private AdminPaperQuery likeQuery(AdminPaperQuery source) {
         AdminPaperQuery query = new AdminPaperQuery();
         query.setKeyword(like(source.getKeyword()));
+        query.setCourseName(like(source.getCourseName()));
         query.setComposeMode(source.getComposeMode());
         query.setPublishStatus(source.getPublishStatus());
         query.setCreatorId(source.getCreatorId());

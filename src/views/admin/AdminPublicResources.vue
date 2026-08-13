@@ -6,32 +6,6 @@
         <el-breadcrumb-item>公开资源库</el-breadcrumb-item>
       </el-breadcrumb>
 
-      <header class="admin-public-resource-head">
-        <div>
-          <h1>公开资源库</h1>
-          <p>统一管理已公开资源的展示、预览、日志和下架申请。</p>
-        </div>
-
-        <div class="admin-public-resource-summary">
-          <div class="admin-public-resource-summary-card published">
-            <span>已公开</span>
-            <strong>{{ publishedCount }}</strong>
-          </div>
-          <div class="admin-public-resource-summary-card reviewing">
-            <span>下架中</span>
-            <strong>{{ reviewingCount }}</strong>
-          </div>
-          <div class="admin-public-resource-summary-card suspended">
-            <span>已下架</span>
-            <strong>{{ suspendedCount }}</strong>
-          </div>
-          <div class="admin-public-resource-summary-card total">
-            <span>总资源</span>
-            <strong>{{ totalCount }}</strong>
-          </div>
-        </div>
-      </header>
-
       <section class="admin-public-resource-filter-card">
         <div class="admin-public-resource-filter-row">
           <label class="admin-public-resource-field is-name">
@@ -80,21 +54,8 @@
 
       <p class="admin-public-resource-count">共 <b>{{ totalCount }}</b> 个公开资源</p>
 
-      <div class="admin-public-resource-workspace" :class="{ 'has-panel': Boolean(selectedResource) }">
+      <div class="admin-public-resource-workspace">
         <section class="admin-public-resource-board">
-          <header class="admin-public-resource-board-head">
-            <div>
-              <strong>资源列表</strong>
-              <p>共 {{ totalCount }} 条记录，当前选中 {{ selectedResource ? 1 : 0 }} 条</p>
-            </div>
-            <div class="admin-public-resource-board-actions">
-              <el-button class="admin-public-resource-lite-button" :disabled="selectedIds.length === 0" @click="openBatchTakeDown">
-                批量下架申请
-              </el-button>
-              <el-button class="admin-public-resource-lite-button" @click="refreshList">刷新</el-button>
-            </div>
-          </header>
-
           <div v-if="loading" class="admin-public-resource-empty">公开资源加载中...</div>
           <div v-else-if="pagedResources.length === 0" class="admin-public-resource-empty">
             <el-empty description="暂无匹配资源" />
@@ -122,7 +83,6 @@
                   <tr
                     v-for="(row, index) in pagedResources"
                     :key="row.resourceId"
-                    :class="{ selected: selectedResource?.resourceId === row.resourceId }"
                   >
                     <td class="check-col">
                       <el-checkbox :model-value="selectedIds.includes(row.resourceId)" @change="toggleOne(row.resourceId)" />
@@ -168,129 +128,8 @@
           </template>
         </section>
 
-        <aside v-if="selectedResource" class="admin-public-resource-panel">
-          <div class="admin-public-resource-panel-head">
-            <div>
-              <strong>{{ selectedResource.resourceName }}</strong>
-              <p>{{ selectedResource.courseName || '公开资源详情' }}</p>
-            </div>
-            <el-button text circle :icon="Close" @click="selectedResource = null" />
-          </div>
-
-          <div class="admin-public-resource-tabs">
-            <button type="button" :class="{ active: activeTab === 'detail' }" @click="activeTab = 'detail'">资源详情</button>
-            <button type="button" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">版本记录</button>
-            <button type="button" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">操作日志</button>
-          </div>
-
-          <section v-if="activeTab === 'detail'" class="admin-public-resource-detail-stack">
-            <section class="admin-public-resource-status-card">
-              <div>
-                <span>公开状态</span>
-                <strong :class="selectedResource.statusTone">{{ selectedResource.statusLabel }}</strong>
-              </div>
-              <div>
-                <span>公开版本</span>
-                <strong>{{ formatVersion(selectedResource.publicVersion ?? selectedResource.currentVersion) }}</strong>
-              </div>
-              <div>
-                <span>公开时间</span>
-                <strong>{{ selectedResource.publishedAtLabel }}</strong>
-              </div>
-              <div>
-                <span>最后更新</span>
-                <strong>{{ selectedResource.updatedAtLabel }}</strong>
-              </div>
-            </section>
-
-            <section class="admin-public-resource-preview">
-              <img :src="selectedResource.coverResolved" :alt="selectedResource.resourceName" />
-              <div>
-                <strong>{{ selectedResource.resourceName }}</strong>
-                <p>{{ selectedResource.fileName || '-' }}</p>
-                <div class="admin-public-resource-preview-actions">
-                  <el-button class="plain" @click="openPreview(selectedResource)">打开预览</el-button>
-                  <el-button class="plain" @click="copyLink(selectedResource)">复制链接</el-button>
-                </div>
-              </div>
-            </section>
-
-            <section class="admin-public-resource-detail-card">
-              <p>基础信息</p>
-              <dl>
-                <div><dt>资源类型</dt><dd>{{ selectedResource.typeLabel }}</dd></div>
-                <div><dt>所属专业</dt><dd>{{ selectedResource.majorLabel }}</dd></div>
-                <div><dt>课程名称</dt><dd>{{ selectedResource.courseName || '-' }}</dd></div>
-                <div><dt>上传人</dt><dd>{{ selectedResource.uploaderName || '-' }}</dd></div>
-                <div><dt>文件大小</dt><dd>{{ selectedResource.fileSizeLabel }}</dd></div>
-                <div><dt>文件名称</dt><dd>{{ selectedResource.fileName || '-' }}</dd></div>
-              </dl>
-            </section>
-
-            <section class="admin-public-resource-detail-card">
-              <p>公开说明</p>
-              <dl>
-                <div><dt>来源资源</dt><dd>{{ selectedResource.sourceResourceId || selectedResource.resourceId }}</dd></div>
-                <div><dt>审核人</dt><dd>{{ selectedResource.reviewerName || '-' }}</dd></div>
-                <div class="wide"><dt>审核意见</dt><dd>{{ selectedResource.reviewComment || '暂无说明' }}</dd></div>
-              </dl>
-            </section>
-
-            <section class="admin-public-resource-panel-actions">
-              <el-button class="admin-public-resource-panel-primary" @click="openPreview(selectedResource)">预览资源</el-button>
-              <el-button class="admin-public-resource-panel-ghost" @click="openLogs(selectedResource)">查看日志</el-button>
-              <el-button class="admin-public-resource-panel-warn" @click="openTakeDown(selectedResource)">发起下架申请</el-button>
-            </section>
-          </section>
-
-          <section v-else-if="activeTab === 'history'" class="admin-public-resource-history">
-            <article v-for="item in selectedResource.historyItems" :key="`${selectedResource.resourceId}-${item.version}`" class="admin-public-resource-history-item">
-              <header>
-                <strong>V{{ item.version }}</strong>
-                <span>{{ item.publishedAt }}</span>
-              </header>
-              <p>{{ item.title }}</p>
-              <small>{{ item.note || item.reviewerName || '-' }}</small>
-            </article>
-          </section>
-
-          <section v-else class="admin-public-resource-log-card">
-            <article v-for="item in selectedLogs" :key="item.logId" class="admin-public-resource-log-row">
-              <header>
-                <strong>{{ item.action }}</strong>
-                <span>{{ formatDateTime(item.createdAt) }}</span>
-              </header>
-              <p>{{ item.content }}</p>
-              <small>{{ item.operatorName }}</small>
-            </article>
-            <div v-if="selectedLogs.length === 0" class="admin-public-resource-log-empty">暂无日志</div>
-          </section>
-        </aside>
       </div>
     </section>
-
-    <el-drawer v-model="logDrawerVisible" class="admin-public-resource-drawer" direction="rtl" size="560px" :with-header="false">
-      <div class="admin-public-resource-drawer-head">
-        <div>
-          <p>操作日志</p>
-          <h3>{{ logTarget?.resourceName || '公开资源日志' }}</h3>
-        </div>
-        <el-button text :icon="Close" @click="logDrawerVisible = false" />
-      </div>
-
-      <div v-if="logsLoading" class="admin-public-resource-empty drawer-state">日志加载中...</div>
-      <template v-else>
-        <article v-for="item in selectedLogs" :key="item.logId" class="admin-public-resource-log-row">
-          <header>
-            <strong>{{ item.action }}</strong>
-            <span>{{ formatDateTime(item.createdAt) }}</span>
-          </header>
-          <p>{{ item.content }}</p>
-          <small>{{ item.operatorName }}</small>
-        </article>
-        <div v-if="selectedLogs.length === 0" class="admin-public-resource-log-empty">暂无日志</div>
-      </template>
-    </el-drawer>
 
     <el-dialog
       v-model="previewVisible"
@@ -307,42 +146,7 @@
         </div>
       </template>
 
-      <div v-if="previewTarget" class="admin-public-resource-preview-doc">
-        <template v-if="resourcePreviewSource(previewTarget)">
-          <img
-            v-if="resourcePreviewKind(previewTarget) === 'image'"
-            class="admin-resource-preview-media image"
-            :src="resourcePreviewSource(previewTarget)"
-            :alt="previewTarget.resourceName"
-          />
-          <video
-            v-else-if="resourcePreviewKind(previewTarget) === 'video'"
-            class="admin-resource-preview-media"
-            :src="resourcePreviewSource(previewTarget)"
-            controls
-          />
-          <audio
-            v-else-if="resourcePreviewKind(previewTarget) === 'audio'"
-            class="admin-resource-preview-audio"
-            :src="resourcePreviewSource(previewTarget)"
-            controls
-          />
-          <iframe
-            v-else-if="resourcePreviewKind(previewTarget) === 'frame'"
-            class="admin-resource-preview-frame"
-            :src="resourcePreviewSource(previewTarget)"
-            :title="previewTarget.resourceName"
-          />
-          <div v-else class="admin-resource-preview-unsupported">
-            <span class="admin-resource-file-icon">
-              <el-icon><Document /></el-icon>
-            </span>
-            <strong>{{ previewTarget.fileName || previewTarget.resourceName }}</strong>
-            <p>当前文件类型不支持在线预览，请下载后查看。</p>
-          </div>
-        </template>
-        <el-empty v-else description="暂无可预览内容" />
-      </div>
+      <div v-if="previewTarget" class="admin-public-resource-preview-doc"><AdminResourcePreview :resource="previewTarget" /></div>
 
       <template #footer>
         <div class="admin-public-resource-preview-footer">
@@ -351,53 +155,25 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="takeDownVisible" class="admin-public-resource-dialog" width="560px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-public-resource-dialog-head">
-          <strong>下架申请</strong>
-          <el-button text circle :icon="Close" @click="takeDownVisible = false" />
-        </div>
-      </template>
-
-      <div v-if="takeDownTarget" class="admin-public-resource-take-down">
-        <div class="admin-public-resource-dialog-summary">
-          <strong>{{ takeDownTarget.resourceName }}</strong>
-          <span>{{ takeDownTarget.courseName || '公开资源' }}</span>
-        </div>
-
-        <label class="admin-public-resource-dialog-field">
-          <span>申请原因</span>
-          <el-input v-model="takeDownReason" type="textarea" :rows="5" maxlength="120" show-word-limit placeholder="请输入下架原因" />
-        </label>
-      </div>
-
-      <template #footer>
-        <div class="admin-public-resource-dialog-footer">
-          <el-button @click="takeDownVisible = false">取消</el-button>
-          <el-button type="warning" :loading="saving" @click="submitTakeDown">确认申请</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Close, Document, Search } from '@element-plus/icons-vue';
+import { Close, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import AdminResourcePreview from '../../components/admin/AdminResourcePreview.vue';
 import {
   fetchAdminPublicResources,
   type AdminResource,
-  type AdminResourceLog,
   type AdminResourceQuery
 } from '../../api/admin-resource';
 import { resolvePublicUrl } from '../../api/http';
-import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
+import { fetchAdminMajors, fetchAdminTeachers } from '../../api/admin-course';
 
 type ResourceStatus = 'PUBLISHED' | 'REVIEWING' | 'SUSPENDED';
-type ResourceTab = 'detail' | 'history' | 'logs';
 
 interface ResourceOption {
   label: string;
@@ -407,14 +183,6 @@ interface ResourceOption {
 interface MajorOption {
   label: string;
   value: number;
-}
-
-interface PublicHistoryItem {
-  version: number;
-  title: string;
-  publishedAt: string;
-  reviewerName?: string;
-  note?: string;
 }
 
 interface PublicResourceRow extends AdminResource {
@@ -427,27 +195,14 @@ interface PublicResourceRow extends AdminResource {
   fileSizeLabel: string;
   publishedAtLabel: string;
   updatedAtLabel: string;
-  historyItems: PublicHistoryItem[];
-  reviewerName?: string;
-  reviewComment?: string;
 }
 
 const pageSize = 6;
 const loading = ref(false);
-const saving = ref(false);
-const logsLoading = ref(false);
 const page = ref(1);
 const resources = ref<PublicResourceRow[]>([]);
-const selectedResource = ref<PublicResourceRow | null>(null);
-const selectedLogs = ref<AdminResourceLog[]>([]);
-const activeTab = ref<ResourceTab>('detail');
 const previewVisible = ref(false);
 const previewTarget = ref<PublicResourceRow | null>(null);
-const logDrawerVisible = ref(false);
-const logTarget = ref<PublicResourceRow | null>(null);
-const takeDownVisible = ref(false);
-const takeDownTarget = ref<PublicResourceRow | null>(null);
-const takeDownReason = ref('');
 const selectedIds = ref<number[]>([]);
 const draft = reactive({
   keyword: '',
@@ -459,57 +214,21 @@ const draft = reactive({
 
 const appliedFilters = ref({ ...draft });
 
-const majorOptions: MajorOption[] = [
-  { label: '城市轨道交通运营管理', value: 1 },
-  { label: '城市轨道交通车辆技术', value: 2 },
-  { label: '城市轨道交通机电技术', value: 3 },
-  { label: '城市轨道交通通信信号技术', value: 4 }
-];
+const majorOptions = ref<MajorOption[]>([]);
+const uploaderOptions = ref<ResourceOption[]>([]);
 
 const resourceTypeOptions: ResourceOption[] = [
-  { label: '文本文档', value: '文本文档' },
-  { label: '演示文稿', value: '演示文稿' },
-  { label: '图片', value: '图片' },
-  { label: '音频', value: '音频' },
-  { label: '视频', value: '视频' },
-  { label: '实训试题', value: '实训试题' }
+  { label: '文本文档', value: 'DOCUMENT' },
+  { label: '演示文稿', value: 'PRESENTATION' },
+  { label: '图片', value: 'IMAGE' },
+  { label: '音频', value: 'AUDIO' },
+  { label: '视频', value: 'VIDEO' }
 ];
 
-const filteredResources = computed(() =>
-  resources.value.filter((item) => {
-    const keyword = appliedFilters.value.keyword.trim().toLowerCase();
-    const courseName = appliedFilters.value.courseName.trim().toLowerCase();
-    const uploaderKey = appliedFilters.value.uploaderKey;
-    const matchesKeyword =
-      !keyword ||
-      [item.resourceName, item.fileName].some((text) => String(text || '').toLowerCase().includes(keyword));
-    const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
-    const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
-    const matchesCourse = !courseName || String(item.courseName || '').toLowerCase().includes(courseName);
-    const matchesUploader = !uploaderKey || uploaderKey === buildUploaderKey(item);
-    return matchesKeyword && matchesType && matchesMajor && matchesCourse && matchesUploader;
-  })
-);
-
-const totalCount = computed(() => filteredResources.value.length);
-const publishedCount = computed(() => filteredResources.value.filter((item) => item.statusTone === 'published').length);
-const reviewingCount = computed(() => filteredResources.value.filter((item) => item.statusTone === 'reviewing').length);
-const suspendedCount = computed(() => filteredResources.value.filter((item) => item.statusTone === 'suspended').length);
-const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize, page.value * pageSize));
+const totalCount = ref(0);
+const pagedResources = computed(() => resources.value);
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
-const uploaderOptions = computed<ResourceOption[]>(() => {
-  const seen = new Map<string, string>();
-  resources.value.forEach((item) => {
-    const label = item.uploaderName?.trim();
-    if (!label) {
-      return;
-    }
-    seen.set(buildUploaderKey(item), label);
-  });
-  return Array.from(seen, ([value, label]) => ({ value, label }));
-});
-
 
 function normalizeStatus(value?: string): ResourceStatus {
   const upper = String(value || '').toUpperCase();
@@ -581,12 +300,15 @@ function formatFileSize(bytes?: number) {
     return '-';
   }
   if (bytes < 1024) {
-    return `${bytes} KB`;
+    return `${bytes} B`;
   }
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
   }
-  return `${(bytes / 1024 / 1024).toFixed(1)} GB`;
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
 function formatDateTime(value?: string) {
@@ -597,36 +319,7 @@ function formatDateTime(value?: string) {
 }
 
 function findMajorLabel(majorId?: number | null) {
-  return majorOptions.find((item) => item.value === majorId)?.label || '-';
-}
-
-function buildUploaderKey(resource: AdminResource) {
-  if (resource.uploaderId) {
-    return `id:${resource.uploaderId}`;
-  }
-  return `name:${resource.uploaderName || ''}`;
-}
-
-function formatVersion(value?: number) {
-  const version = Number(value);
-  return Number.isFinite(version) && version > 0 ? `V${version}` : '-';
-}
-
-function buildHistoryItems(resource: AdminResource): PublicHistoryItem[] {
-  const version = Number(resource.publicVersion ?? resource.currentVersion);
-  if (!Number.isFinite(version) || version <= 0) {
-    return [];
-  }
-
-  return [
-    {
-      version,
-      title: resource.resourceName,
-      publishedAt: formatDateTime(resource.createdAt || resource.updatedAt),
-      reviewerName: resource.uploaderName || '-',
-      note: ''
-    }
-  ];
+  return majorOptions.value.find((item) => item.value === majorId)?.label || '-';
 }
 
 function mapResourceRow(resource: AdminResource): PublicResourceRow {
@@ -649,8 +342,7 @@ function mapResourceRow(resource: AdminResource): PublicResourceRow {
     fileSizeLabel: formatFileSize(resource.fileSize),
     publishedAtLabel: formatDateTime(resource.createdAt || resource.updatedAt),
     updatedAtLabel: formatDateTime(resource.updatedAt || resource.createdAt),
-    publicStatus: status,
-    historyItems: buildHistoryItems(resource)
+    publicStatus: status
   };
 }
 
@@ -662,12 +354,6 @@ function createEmptyFilters() {
     courseName: '',
     uploaderKey: ''
   };
-}
-
-async function selectResource(row: PublicResourceRow) {
-  selectedResource.value = row;
-  activeTab.value = 'detail';
-  selectedLogs.value = [];
 }
 
 function toggleOne(resourceId: number) {
@@ -713,8 +399,8 @@ function buildQuery(): AdminResourceQuery {
     majorId: appliedFilters.value.majorId ?? undefined,
     courseName: appliedFilters.value.courseName.trim() || undefined,
     uploaderId: Number.isFinite(uploaderId) ? uploaderId : undefined,
-    page: 1,
-    pageSize: 999
+    page: page.value,
+    pageSize
   };
 }
 
@@ -724,15 +410,10 @@ async function loadResources() {
     const result = await fetchAdminPublicResources(buildQuery());
     const mapped = result.records.map(mapResourceRow);
     resources.value = mapped;
-    if (!selectedResource.value || !resources.value.some((item) => item.resourceId === selectedResource.value?.resourceId)) {
-      selectedResource.value = resources.value[0] ?? null;
-    }
-    if (selectedResource.value) {
-      void selectResource(selectedResource.value);
-    }
+    totalCount.value = result.total;
   } catch (error) {
     resources.value = [];
-    selectedResource.value = null;
+    totalCount.value = 0;
     ElMessage.error(error instanceof Error ? error.message : '公开资源库加载失败');
   } finally {
     loading.value = false;
@@ -740,35 +421,24 @@ async function loadResources() {
   }
 }
 
-async function refreshList() {
-  await loadResources();
-}
-
-async function openLogs(row: PublicResourceRow) {
-  logTarget.value = row;
-  logDrawerVisible.value = true;
-  loadLogs();
-}
-
-function loadLogs() {
-  logsLoading.value = true;
-  selectedLogs.value = [];
-  logsLoading.value = false;
+async function loadFilterOptions() {
+  try {
+    const [majors, teachers] = await Promise.all([fetchAdminMajors(), fetchAdminTeachers()]);
+    majorOptions.value = majors.map((item) => ({
+      label: `${item.majorName}${item.enabled === false ? '（已禁用）' : ''}`,
+      value: item.majorId
+    }));
+    uploaderOptions.value = teachers
+      .filter((item) => item.enabled !== false)
+      .map((item) => ({ label: item.realName, value: `id:${item.userId}` }));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '筛选项加载失败');
+  }
 }
 
 function openPreview(row: PublicResourceRow) {
   previewTarget.value = row;
   previewVisible.value = true;
-}
-
-function copyLink(row: PublicResourceRow) {
-  const url = row.fileUrl || row.previewUrl;
-  if (!url) {
-    ElMessage.warning('暂无可复制链接');
-    return;
-  }
-  void navigator.clipboard?.writeText(url);
-  ElMessage.success('链接已复制');
 }
 
 function downloadPreview() {
@@ -780,51 +450,13 @@ function downloadPreview() {
   ElMessage.info('正在下载资源');
 }
 
-function openTakeDown(row: PublicResourceRow) {
-  takeDownTarget.value = row;
-  takeDownReason.value = '';
-  takeDownVisible.value = true;
-}
-
-function openBatchTakeDown() {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning('请先选择资源');
-    return;
-  }
-  takeDownTarget.value = selectedResource.value;
-  takeDownReason.value = '';
-  takeDownVisible.value = true;
-}
-
-async function submitTakeDown() {
-  if (!takeDownTarget.value) {
-    return;
-  }
-
-  if (!takeDownReason.value.trim()) {
-    ElMessage.warning('请输入下架原因');
-    return;
-  }
-
-  saving.value = true;
-  try {
-    const targets = selectedIds.value.length > 0 ? resources.value.filter((item) => selectedIds.value.includes(item.resourceId)) : [takeDownTarget.value];
-    targets.forEach((item) => {
-      item.publicStatus = 'REVIEWING';
-      item.statusTone = 'reviewing';
-      item.statusLabel = statusLabel('REVIEWING');
-    });
-    takeDownVisible.value = false;
-    ElMessage.success('下架申请已提交');
-    if (selectedResource.value) {
-      selectedResource.value = resources.value.find((item) => item.resourceId === selectedResource.value?.resourceId) ?? selectedResource.value;
-    }
-  } finally {
-    saving.value = false;
-  }
-}
+watch(page, () => {
+  selectedIds.value = [];
+  void loadResources();
+});
 
 onMounted(() => {
+  void loadFilterOptions();
   void loadResources();
 });
 </script>

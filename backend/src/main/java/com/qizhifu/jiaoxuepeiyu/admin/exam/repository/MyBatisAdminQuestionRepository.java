@@ -57,11 +57,6 @@ public class MyBatisAdminQuestionRepository implements AdminQuestionRepository {
     }
 
     @Override
-    public void deleteQuestion(Long questionId) {
-        mapper.softDeleteQuestion(questionId);
-    }
-
-    @Override
     public void appendQuestionLog(Long questionId, Long operatorId, String action, String content) {
         mapper.insertQuestionLog(questionId, operatorId, action, content);
     }

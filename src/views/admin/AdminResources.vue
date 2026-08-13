@@ -55,15 +55,15 @@
       </section>
 
       <section class="admin-resource-actions-row">
-        <el-button class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
+        <el-button v-if="can('create')" class="admin-resource-primary-button" type="primary" @click="openCreatePanel">
           <el-icon><Plus /></el-icon>
           上传资源
         </el-button>
-        <el-button class="admin-resource-lite-button" @click="openBatchEdit">
+        <el-button v-if="can('update')" class="admin-resource-lite-button" :disabled="selectedIds.length === 0" @click="openBatchEdit">
           <el-icon><Setting /></el-icon>
           批量设置
         </el-button>
-        <el-button class="admin-resource-lite-button danger" @click="batchDeleteResources">
+        <el-button v-if="can('delete')" class="admin-resource-lite-button danger" :disabled="selectedIds.length === 0" @click="batchDeleteResources">
           <el-icon><Delete /></el-icon>
           批量删除
         </el-button>
@@ -112,15 +112,15 @@
                   <td>
                     <span class="admin-resource-public-text" :class="row.statusTone">{{ row.statusLabel }}</span>
                   </td>
-                  <td>{{ row.updatedAtLabel }}</td>
+                  <td>{{ row.createdAtLabel }}</td>
                   <td>{{ row.uploaderName || '-' }}</td>
                   <td>
                     <div class="admin-resource-row-actions design">
                       <el-button class="plain" @click="openPreview(row)">预览</el-button>
-                      <el-button class="plain" @click="openEditPanel(row)">编辑</el-button>
-                      <el-button class="plain" :loading="busyId === row.resourceId" @click="deleteResource(row)">删除</el-button>
-                      <el-button v-if="row.publicStatus !== 'PUBLISHED'" class="warn" @click="applyPublic(row)">申请公开</el-button>
-                      <el-button v-else-if="row.publicStatus === 'PUBLISHED'" class="warn" @click="applyPublic(row)">申请公开最新版</el-button>
+                      <el-button v-if="can('update')" class="plain" @click="openEditPanel(row)">编辑</el-button>
+                      <el-button v-if="can('delete')" class="plain" :loading="busyId === row.resourceId" @click="deleteResource(row)">删除</el-button>
+                      <el-button v-if="can('update') && (row.publicStatus === 'DRAFT' || row.publicStatus === 'REJECTED')" class="warn" @click="applyPublic(row)">申请公开</el-button>
+                      <el-button v-else-if="can('update') && row.publicStatus === 'PUBLISHED' && row.currentVersion !== row.publicVersion" class="warn" @click="applyPublic(row)">申请公开最新版</el-button>
                       <el-button class="log" @click="openLogs(row)">操作日志</el-button>
                     </div>
                   </td>
@@ -143,7 +143,7 @@
         </template>
       </section>
 
-      <el-dialog v-model="resourceFormVisible" class="admin-resource-design-dialog" width="600px" :show-close="false" append-to-body>
+      <el-dialog v-model="resourceFormVisible" class="admin-resource-design-dialog" width="600px" :show-close="false" :close-on-click-modal="false" append-to-body>
         <template #header>
           <div class="admin-resource-design-dialog-head">
             <span v-if="panelMode === 'create'" class="admin-resource-dialog-icon upload">
@@ -173,7 +173,7 @@
               </div>
               <el-button text circle :icon="Delete" @click.stop="clearCover" />
             </div>
-            <button v-else type="button" class="admin-resource-upload-drop cover" :disabled="uploadingCover" @click="coverInput?.click()">
+            <button v-else type="button" class="admin-resource-upload-drop cover" :disabled="uploadingCover" @click="coverInput?.click()" @dragover.prevent @drop.prevent="uploadCoverDrop">
               <el-icon><Picture /></el-icon>
               <strong>{{ uploadingCover ? '封面上传中...' : '点击或拖拽上传封面图' }}</strong>
               <span>支持 JPG、PNG 格式，大小不超过 5MB</span>
@@ -193,7 +193,7 @@
               </div>
               <el-button text circle :icon="Delete" @click.stop="clearFile" />
             </div>
-            <button v-else type="button" class="admin-resource-upload-drop content" :disabled="uploadingFile" @click="fileInput?.click()">
+            <button v-else type="button" class="admin-resource-upload-drop content" :disabled="uploadingFile" @click="fileInput?.click()" @dragover.prevent @drop.prevent="uploadResourceDrop">
               <el-icon><UploadFilled /></el-icon>
               <strong>{{ uploadingFile ? '资源上传中...' : '点击或拖拽上传资源文件' }}</strong>
               <span>支持 PDF、Word、PPT、视频等多种格式，大小不超过 200MB</span>
@@ -234,42 +234,7 @@
         </template>
 
         <section class="admin-resource-preview-content">
-          <div class="admin-resource-preview-document">
-            <template v-if="detailResource && resourcePreviewSource(detailResource)">
-              <img
-                v-if="resourcePreviewKind(detailResource) === 'image'"
-                class="admin-resource-preview-media image"
-                :src="resourcePreviewSource(detailResource)"
-                :alt="detailResource.resourceName"
-              />
-              <video
-                v-else-if="resourcePreviewKind(detailResource) === 'video'"
-                class="admin-resource-preview-media"
-                :src="resourcePreviewSource(detailResource)"
-                controls
-              />
-              <audio
-                v-else-if="resourcePreviewKind(detailResource) === 'audio'"
-                class="admin-resource-preview-audio"
-                :src="resourcePreviewSource(detailResource)"
-                controls
-              />
-              <iframe
-                v-else-if="resourcePreviewKind(detailResource) === 'frame'"
-                class="admin-resource-preview-frame"
-                :src="resourcePreviewSource(detailResource)"
-                :title="detailResource.resourceName"
-              />
-              <div v-else class="admin-resource-preview-unsupported">
-                <span class="admin-resource-file-icon">
-                  <el-icon><Document /></el-icon>
-                </span>
-                <strong>{{ detailResource.fileName || detailResource.resourceName }}</strong>
-                <p>当前文件类型不支持在线预览，请下载后查看。</p>
-              </div>
-            </template>
-            <el-empty v-else description="暂无可预览内容" />
-          </div>
+          <div class="admin-resource-preview-document"><AdminResourcePreview :resource="detailResource" /></div>
         </section>
 
         <template #footer>
@@ -291,14 +256,10 @@
         <section class="admin-resource-detail-card admin-resource-log-card">
           <p>操作日志</p>
           <div v-if="detailLogs.length === 0" class="admin-resource-log-empty">暂无日志</div>
-          <article v-for="item in detailLogs" :key="item.logId" class="admin-resource-log-row">
-            <header>
-              <strong>{{ item.action }}</strong>
-              <span>{{ formatDateTime(item.createdAt) }}</span>
-            </header>
-            <p>{{ item.content }}</p>
-            <small>{{ item.operatorName }}</small>
-          </article>
+          <table v-else class="admin-resource-log-table">
+            <thead><tr><th>操作人</th><th>操作类型</th><th>操作内容</th><th>操作时间</th></tr></thead>
+            <tbody><tr v-for="item in detailLogs" :key="item.logId"><td>{{ item.operatorName || '-' }}</td><td>{{ resourceLogAction(item.action) }}</td><td>{{ item.content || '-' }}</td><td>{{ formatDateTime(item.createdAt) }}</td></tr></tbody>
+          </table>
         </section>
       </el-drawer>
 
@@ -316,7 +277,7 @@
         <div class="admin-resource-upload-form batch">
           <label class="admin-resource-modal-field">
             <span>封面图</span>
-            <button type="button" class="admin-resource-upload-drop cover" :disabled="uploadingBatchCover" @click="batchCoverInput?.click()">
+            <button type="button" class="admin-resource-upload-drop cover" :disabled="uploadingBatchCover" @click="batchCoverInput?.click()" @dragover.prevent @drop.prevent="uploadBatchCoverDrop">
               <el-icon><Picture /></el-icon>
               <strong>{{ uploadingBatchCover ? '封面上传中...' : batchForm.coverName || '点击或拖拽上传封面图' }}</strong>
               <span>{{ batchForm.coverSize || '支持 JPG、PNG 格式，大小不超过 5MB' }}</span>
@@ -351,6 +312,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Delete, Document, Picture, Plus, Search, Setting, UploadFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import AdminResourcePreview from '../../components/admin/AdminResourcePreview.vue';
 import {
   batchUpdateAdminResources,
   createAdminResource,
@@ -367,8 +329,10 @@ import {
   type AdminResourceQuery
 } from '../../api/admin-resource';
 import { resolvePublicUrl } from '../../api/http';
-import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
 import { coverForResourceType } from '../../features/student/resources';
+import { fetchAdminMajors } from '../../api/admin-settings';
+import { fileFromDrop, validateResourceUpload } from '../../features/admin/resource-upload';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 type ResourceStatus = 'DRAFT' | 'REVIEWING' | 'PUBLISHED' | 'REJECTED';
 type PanelMode = 'create' | 'edit';
@@ -392,6 +356,7 @@ interface ResourceRow extends AdminResource {
   majorLabel: string;
   fileSizeLabel: string;
   updatedAtLabel: string;
+  createdAtLabel: string;
 }
 
 interface ResourceForm {
@@ -434,6 +399,7 @@ const batchCoverInput = ref<HTMLInputElement | null>(null);
 const uploadingCover = ref(false);
 const uploadingFile = ref(false);
 const uploadingBatchCover = ref(false);
+const { can } = useAdminPermissions('resource:personal');
 
 const draft = reactive({
   keyword: '',
@@ -444,20 +410,14 @@ const draft = reactive({
   uploadDateRange: [] as string[]
 });
 
-const majorOptions: MajorOption[] = [
-  { label: '城市轨道交通运营管理', value: 1 },
-  { label: '城市轨道交通车辆技术', value: 2 },
-  { label: '城市轨道交通机电技术', value: 3 },
-  { label: '城市轨道交通通信信号技术', value: 4 }
-];
+const majorOptions = ref<MajorOption[]>([]);
 
 const resourceTypeOptions: ResourceOption[] = [
-  { label: '文本文档', value: '文本文档' },
-  { label: '演示文稿', value: '演示文稿' },
-  { label: '图片', value: '图片' },
-  { label: '音频', value: '音频' },
-  { label: '视频', value: '视频' },
-  { label: '实训试题', value: '实训试题' }
+  { label: '文本文档', value: 'DOCUMENT' },
+  { label: '演示文稿', value: 'PRESENTATION' },
+  { label: '图片', value: 'IMAGE' },
+  { label: '音频', value: 'AUDIO' },
+  { label: '视频', value: 'VIDEO' }
 ];
 
 const appliedFilters = ref({ ...draft });
@@ -470,21 +430,8 @@ const batchForm = reactive({
   coverSize: ''
 });
 
-const totalCount = computed(() => filteredResources.value.length);
-const filteredResources = computed(() =>
-  resources.value.filter((item) => {
-    const keyword = appliedFilters.value.keyword.trim().toLowerCase();
-    const matchesKeyword =
-      !keyword ||
-      [item.resourceName, item.courseName, item.uploaderName, item.fileName, item.majorLabel].some((text) => String(text || '').toLowerCase().includes(keyword));
-    const matchesType = !appliedFilters.value.resourceType || item.resourceType === appliedFilters.value.resourceType;
-    const matchesMajor = !appliedFilters.value.majorId || item.majorId === appliedFilters.value.majorId;
-    const matchesCourse = !appliedFilters.value.courseName || String(item.courseName || '').includes(appliedFilters.value.courseName);
-    const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    return matchesKeyword && matchesType && matchesMajor && matchesCourse && matchesStatus;
-  })
-);
-const pagedResources = computed(() => filteredResources.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value));
+const totalCount = ref(0);
+const pagedResources = computed(() => resources.value);
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
 function createEmptyForm(): ResourceForm {
@@ -510,7 +457,7 @@ function createEmptyForm(): ResourceForm {
 
 
 function mapResourceRow(resource: AdminResource): ResourceRow {
-  const typeLabel = resource.resourceType || '资源';
+  const typeLabel = normalizeResourceTypeLabel(resource.resourceType);
   const status = normalizeStatus(resource.publicStatus);
   const majorLabel = resource.majorName || findMajorLabel(resource.majorId) || '-';
   const fileSizeLabel = formatFileSize(resource.fileSize);
@@ -530,6 +477,7 @@ function mapResourceRow(resource: AdminResource): ResourceRow {
     majorLabel,
     fileSizeLabel,
     updatedAtLabel,
+    createdAtLabel: formatDateTime(resource.createdAt),
     publicStatus: status
   };
 }
@@ -540,7 +488,7 @@ function normalizeStatus(value?: string): ResourceStatus {
     return 'PUBLISHED';
   }
 
-  if (upper === 'REVIEWING' || upper === 'REVIEW' || upper === '审核中' || upper === 'APPROVING') {
+  if (upper === 'REVIEWING' || upper === 'PENDING' || upper === 'REVIEW' || upper === '审核中' || upper === 'APPROVING') {
     return 'REVIEWING';
   }
 
@@ -592,11 +540,22 @@ function typeTone(type: string) {
 }
 
 const statusLabels: Record<ResourceStatus, string> = {
-  DRAFT: '未公示',
-  REVIEWING: '审核中',
-  PUBLISHED: '已公示',
+  DRAFT: '未公开',
+  REVIEWING: '申请中',
+  PUBLISHED: '已公开',
   REJECTED: '审核驳回'
 };
+
+function normalizeResourceTypeCode(type?: string) {
+  const raw = String(type || '').trim().toUpperCase();
+  const codes: Record<string, string> = { 文本文档: 'DOCUMENT', 演示文稿: 'PRESENTATION', 图片: 'IMAGE', 图像: 'IMAGE', 音频: 'AUDIO', 视频: 'VIDEO' };
+  return codes[type || ''] || raw;
+}
+
+function normalizeResourceTypeLabel(type?: string) {
+  const labels: Record<string, string> = { DOCUMENT: '文本文档', PRESENTATION: '演示文稿', IMAGE: '图片', AUDIO: '音频', VIDEO: '视频' };
+  return labels[normalizeResourceTypeCode(type)] || type || '资源';
+}
 
 function formatFileSize(bytes?: number) {
   if (!bytes || bytes <= 0) {
@@ -626,8 +585,26 @@ function formatDateTime(value?: string) {
   return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
 }
 
+function resourceLogAction(action?: string) {
+  const labels: Record<string, string> = {
+    CREATE: '新增资源', UPDATE: '编辑资源', DELETE: '删除资源', APPLY_PUBLIC: '申请公开',
+    APPROVE_PUBLIC: '审核通过', REJECT_PUBLIC: '审核驳回', BATCH_UPDATE: '批量修改'
+  };
+  return labels[String(action || '').toUpperCase()] || action || '-';
+}
+
 function findMajorLabel(majorId?: number | null) {
-  return majorOptions.find((item) => item.value === majorId)?.label || '';
+  return majorOptions.value.find((item) => item.value === majorId)?.label || '';
+}
+
+async function loadMajorOptions() {
+  try {
+    majorOptions.value = (await fetchAdminMajors())
+      .filter((item) => item.enabled)
+      .map((item) => ({ label: item.majorName, value: item.majorId }));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '专业数据加载失败');
+  }
 }
 
 function resetSelection() {
@@ -820,13 +797,15 @@ async function loadResources() {
       publicStatus: appliedFilters.value.publicStatus || undefined,
       uploadStartDate: appliedFilters.value.uploadDateRange[0],
       uploadEndDate: appliedFilters.value.uploadDateRange[1],
-      page: 1,
-      pageSize: 999
+      page: page.value,
+      pageSize: pageSize.value
     };
     const result = await fetchAdminResources(query);
     resources.value = result.records.map(mapResourceRow);
+    totalCount.value = result.total;
   } catch (error) {
     resources.value = [];
+    totalCount.value = 0;
     ElMessage.error(error instanceof Error ? error.message : '个人资源库加载失败');
   } finally {
     loading.value = false;
@@ -964,6 +943,8 @@ async function uploadCoverFile(event: Event) {
   if (!file) {
     return;
   }
+  const validation = validateResourceUpload(file, 'cover');
+  if (validation) { ElMessage.warning(validation); clearFileInput(event); return; }
   uploadingCover.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'covers');
@@ -987,6 +968,8 @@ async function uploadResourceFile(event: Event) {
   if (!file) {
     return;
   }
+  const validation = validateResourceUpload(file);
+  if (validation) { ElMessage.warning(validation); clearFileInput(event); return; }
   uploadingFile.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'resources');
@@ -1012,6 +995,8 @@ async function uploadBatchCoverFile(event: Event) {
   if (!file) {
     return;
   }
+  const validation = validateResourceUpload(file, 'cover');
+  if (validation) { ElMessage.warning(validation); clearFileInput(event); return; }
   uploadingBatchCover.value = true;
   try {
     const uploaded = await uploadAdminFile(file, 'covers');
@@ -1028,6 +1013,21 @@ async function uploadBatchCoverFile(event: Event) {
     uploadingBatchCover.value = false;
     clearFileInput(event);
   }
+}
+
+function uploadCoverDrop(event: DragEvent) {
+  const file = fileFromDrop(event);
+  if (file) void uploadCoverFile({ target: { files: [file] } } as unknown as Event);
+}
+
+function uploadResourceDrop(event: DragEvent) {
+  const file = fileFromDrop(event);
+  if (file) void uploadResourceFile({ target: { files: [file] } } as unknown as Event);
+}
+
+function uploadBatchCoverDrop(event: DragEvent) {
+  const file = fileFromDrop(event);
+  if (file) void uploadBatchCoverFile({ target: { files: [file] } } as unknown as Event);
 }
 
 function firstSelectedFile(event: Event) {
@@ -1073,7 +1073,13 @@ watch(
   }
 );
 
+watch([page, pageSize], () => {
+  resetSelection();
+  void loadResources();
+});
+
 onMounted(() => {
+  void loadMajorOptions();
   void loadResources();
 });
 </script>

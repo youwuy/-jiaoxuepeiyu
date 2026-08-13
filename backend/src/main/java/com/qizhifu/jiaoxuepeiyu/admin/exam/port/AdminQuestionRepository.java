@@ -21,9 +21,6 @@ public interface AdminQuestionRepository {
 
     void updateQuestionStatus(Long questionId, boolean enabled);
 
-    default void deleteQuestion(Long questionId) {
-    }
-
     void appendQuestionLog(Long questionId, Long operatorId, String action, String content);
 
     default List<AdminQuestionLog> findQuestionLogs(Long questionId) {

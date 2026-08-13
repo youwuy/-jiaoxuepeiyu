@@ -38,10 +38,10 @@
 
       <section class="admin-question-actions">
         <div>
-          <el-button class="admin-question-primary-button" :icon="Plus" @click="openQuestionDialog('SINGLE')">新增试题</el-button>
-          <el-button class="admin-question-primary-button" :icon="Upload" @click="openImport">导入试题</el-button>
-          <el-button class="admin-question-lite-button" :icon="CircleCheck" :disabled="selectedIds.length === 0" @click="batchEnable(true)">批量启用</el-button>
-          <el-button class="admin-question-lite-button" :icon="CircleClose" :disabled="selectedIds.length === 0" @click="batchEnable(false)">批量禁用</el-button>
+          <el-button v-if="can('create')" class="admin-question-primary-button" :icon="Plus" @click="openQuestionDialog('SINGLE')">新增试题</el-button>
+          <el-button v-if="can('create')" class="admin-question-primary-button" :icon="Upload" @click="openImport">导入试题</el-button>
+          <el-button v-if="can('enable')" class="admin-question-lite-button" :icon="CircleCheck" :disabled="selectedIds.length === 0" @click="batchEnable(true)">批量启用</el-button>
+          <el-button v-if="can('disable')" class="admin-question-lite-button" :icon="CircleClose" :disabled="selectedIds.length === 0" @click="batchEnable(false)">批量禁用</el-button>
         </div>
         <p>共 <b>{{ totalCount }}</b> 道试题</p>
       </section>
@@ -81,10 +81,9 @@
                   </td>
                   <td>
                     <div class="admin-question-row-actions">
-                      <el-button text @click="openQuestionDialog(row.questionTypeNormalized, row)">修改</el-button>
-                      <el-button text :class="row.enabled ? 'warn' : 'success'" @click="toggleEnabled(row)">{{ row.enabled ? '禁用' : '启用' }}</el-button>
+                      <el-button v-if="can('update')" text @click="openQuestionDialog(row.questionTypeNormalized, row)">修改</el-button>
+                      <el-button v-if="can(row.enabled ? 'disable' : 'enable')" text :class="row.enabled ? 'warn' : 'success'" @click="toggleEnabled(row)">{{ row.enabled ? '禁用' : '启用' }}</el-button>
                       <el-button text @click="openLogs(row)">操作日志</el-button>
-                      <el-button text class="warn" @click="removeQuestion(row)">删除</el-button>
                     </div>
                   </td>
                 </tr>
@@ -294,15 +293,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, UploadFiles, UploadUserFile } from 'element-plus';
 import { CircleCheck, CircleClose, Close, Delete, Document, Plus, Refresh, Search, Upload, UploadFilled } from '@element-plus/icons-vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   createAdminQuestion,
-  deleteAdminQuestion,
   disableAdminQuestion,
   enableAdminQuestion,
   fetchAdminQuestion,
@@ -368,6 +367,7 @@ const logs = ref<AdminQuestionLog[]>([]);
 const importCourseName = ref('');
 const importFile = ref<File | null>(null);
 const importFileList = ref<UploadUserFile[]>([]);
+const { can } = useAdminPermissions('resource:theory-question');
 const importRows = ref<AdminQuestionImportRow[]>([]);
 const importParsing = ref(false);
 const importing = ref(false);
@@ -609,21 +609,6 @@ async function batchEnable(enabled: boolean) {
   } catch (error) {
     if (error === 'cancel' || error === 'close') return;
     ElMessage.error(error instanceof Error ? error.message : '批量更新失败');
-  }
-}
-
-async function removeQuestion(row: QuestionRow) {
-  try {
-    await ElMessageBox.confirm('删除后试题将不再出现在题库中，已生成试卷中的历史内容不会受影响。', '删除试题', {
-      confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning'
-    });
-    await deleteAdminQuestion(row.questionId);
-    ElMessage.success('试题已删除');
-    if (questions.value.length === 1 && page.value > 1) page.value--;
-    await loadQuestions();
-  } catch (error) {
-    if (error === 'cancel' || error === 'close') return;
-    ElMessage.error(error instanceof Error ? error.message : '试题删除失败');
   }
 }
 
@@ -930,5 +915,9 @@ async function loadCreatorOptions() {
 onMounted(() => {
   void loadQuestions();
   void loadCreatorOptions();
+});
+
+watch(page, () => {
+  selectedIds.value = [];
 });
 </script>

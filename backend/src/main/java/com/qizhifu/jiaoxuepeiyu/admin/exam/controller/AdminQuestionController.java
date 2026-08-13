@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,13 +58,6 @@ public class AdminQuestionController {
                                             @RequestBody AdminQuestionCommand body,
                                             HttpServletRequest request) {
         service.updateQuestion(questionId, body, AdminContext.requireAdminId(request));
-        return ApiResponse.ok(null);
-    }
-
-    @DeleteMapping("/{questionId}")
-    @Operation(summary = "Delete question", description = "Soft deletes a question while preserving historical paper snapshots and operation logs.")
-    public ApiResponse<Void> deleteQuestion(@PathVariable Long questionId, HttpServletRequest request) {
-        service.deleteQuestion(questionId, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 

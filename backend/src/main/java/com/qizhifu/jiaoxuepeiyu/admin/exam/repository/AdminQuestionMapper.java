@@ -147,10 +147,6 @@ public interface AdminQuestionMapper {
             + "WHERE id = #{questionId} AND deleted_flag = 0")
     void updateQuestionStatus(@Param("questionId") Long questionId, @Param("enabled") boolean enabled);
 
-    @Update("UPDATE exam_question SET deleted_flag = 1, enabled_flag = 0, updated_at = NOW() "
-            + "WHERE id = #{questionId} AND deleted_flag = 0")
-    void softDeleteQuestion(@Param("questionId") Long questionId);
-
     @Insert("INSERT INTO exam_question_log (question_id, operator_id, action, content, created_at) "
             + "VALUES (#{questionId}, #{operatorId}, #{action}, #{content}, NOW())")
     void insertQuestionLog(@Param("questionId") Long questionId,

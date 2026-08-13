@@ -45,6 +45,33 @@ class AdminResourceServiceTests {
     }
 
     @Test
+    void scopesPersonalResourceListToCurrentUploader() {
+        FakeResources repository = new FakeResources();
+        AdminResourceService service = new AdminResourceService(repository);
+        AdminResourceQuery query = new AdminResourceQuery();
+        query.setUploaderId(88L);
+
+        service.listPersonalResources(query, 9L);
+
+        assertEquals(9L, repository.listQuery.getUploaderId().longValue());
+    }
+
+    @Test
+    void hidesAnotherUsersPersonalResource() {
+        FakeResources repository = new FakeResources();
+        repository.resource = resource(40L, "NOT_APPLIED", 1, null);
+        repository.resource.setUploaderId(8L);
+        AdminResourceService service = new AdminResourceService(repository);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.getPersonalResource(40L, 9L);
+        });
+
+        assertEquals(404, exception.getCode());
+        assertEquals("Resource not found", exception.getMessage());
+    }
+
+    @Test
     void batchUpdatesOnlyProvidedFields() {
         FakeResources repository = new FakeResources();
         AdminResourceService service = new AdminResourceService(repository);
@@ -207,9 +234,11 @@ class AdminResourceServiceTests {
         private Integer updatedPublicVersion;
         private Long notificationSourceId;
         private String lastLogAction;
+        private AdminResourceQuery listQuery;
 
         @Override
         public List<AdminResource> findResources(AdminResourceQuery query) {
+            this.listQuery = query;
             return new ArrayList<AdminResource>();
         }
 

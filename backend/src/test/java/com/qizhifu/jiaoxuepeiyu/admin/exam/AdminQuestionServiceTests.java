@@ -126,16 +126,13 @@ class AdminQuestionServiceTests {
     }
 
     @Test
-    void persistsCourseAndSoftDeletesQuestion() {
+    void persistsCourseName() {
         FakeQuestions repository = new FakeQuestions();
         AdminQuestionService service = new AdminQuestionService(repository);
 
         service.createQuestion(singleChoice(), 9L);
-        service.deleteQuestion(11L, 9L);
 
         assertEquals("Operations", repository.savedCommand.getCourseName());
-        assertEquals(11L, repository.deletedQuestionId.longValue());
-        assertEquals("DELETE", repository.lastLogAction);
     }
 
     @Test
@@ -190,7 +187,6 @@ class AdminQuestionServiceTests {
         private Long statusQuestionId;
         private Boolean statusEnabled;
         private String lastLogAction;
-        private Long deletedQuestionId;
         private int createdCount;
 
         @Override
@@ -226,11 +222,6 @@ class AdminQuestionServiceTests {
         public void updateQuestionStatus(Long questionId, boolean enabled) {
             this.statusQuestionId = questionId;
             this.statusEnabled = enabled;
-        }
-
-        @Override
-        public void deleteQuestion(Long questionId) {
-            this.deletedQuestionId = questionId;
         }
 
         @Override

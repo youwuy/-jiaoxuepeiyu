@@ -3,6 +3,7 @@ package com.qizhifu.jiaoxuepeiyu.admin.exam.model;
 public class AdminPaperQuery {
 
     private String keyword;
+    private String courseName;
     private String composeMode;
     private String publishStatus;
     private Long creatorId;
@@ -15,6 +16,14 @@ public class AdminPaperQuery {
 
     public void setKeyword(String keyword) {
         this.keyword = keyword;
+    }
+
+    public String getCourseName() {
+        return courseName;
+    }
+
+    public void setCourseName(String courseName) {
+        this.courseName = courseName;
     }
 
     public String getComposeMode() {

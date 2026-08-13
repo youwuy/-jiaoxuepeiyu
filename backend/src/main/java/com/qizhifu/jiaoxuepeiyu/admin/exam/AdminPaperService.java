@@ -259,6 +259,7 @@ public class AdminPaperService {
         AdminPaperQuery normalized = new AdminPaperQuery();
         if (query != null) {
             normalized.setKeyword(trimToNull(query.getKeyword()));
+            normalized.setCourseName(trimToNull(query.getCourseName()));
             normalized.setComposeMode(upper(trimToNull(query.getComposeMode())));
             normalized.setPublishStatus(upper(trimToNull(query.getPublishStatus())));
             normalized.setCreatorId(query.getCreatorId());

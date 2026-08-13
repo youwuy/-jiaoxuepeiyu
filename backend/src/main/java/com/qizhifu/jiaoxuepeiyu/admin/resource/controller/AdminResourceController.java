@@ -38,14 +38,15 @@ public class AdminResourceController {
 
     @GetMapping("/resources")
     @Operation(summary = "List personal resources", description = "Returns paged personal resources filtered by name, type, major, course, uploader, status, or upload date.")
-    public ApiResponse<PageResponse<AdminResource>> listResources(@ModelAttribute AdminResourceQuery query) {
-        return ApiResponse.ok(service.listResources(query));
+    public ApiResponse<PageResponse<AdminResource>> listResources(@ModelAttribute AdminResourceQuery query,
+                                                                   HttpServletRequest request) {
+        return ApiResponse.ok(service.listPersonalResources(query, AdminContext.requireAdminId(request)));
     }
 
     @GetMapping("/resources/{resourceId}")
     @Operation(summary = "Get resource detail", description = "Returns one personal resource with file metadata and public version state.")
-    public ApiResponse<AdminResource> getResource(@PathVariable Long resourceId) {
-        return ApiResponse.ok(service.getResource(resourceId));
+    public ApiResponse<AdminResource> getResource(@PathVariable Long resourceId, HttpServletRequest request) {
+        return ApiResponse.ok(service.getPersonalResource(resourceId, AdminContext.requireAdminId(request)));
     }
 
     @PostMapping("/resources")
@@ -59,34 +60,35 @@ public class AdminResourceController {
     public ApiResponse<Void> updateResource(@PathVariable Long resourceId,
                                             @RequestBody AdminResourceCommand body,
                                             HttpServletRequest request) {
-        service.updateResource(resourceId, body, AdminContext.requireAdminId(request));
+        service.updatePersonalResource(resourceId, body, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 
     @PutMapping("/resources/batch")
     @Operation(summary = "Batch update resources", description = "Batch updates selected resources using only provided cover, major, or course fields.")
     public ApiResponse<Void> batchUpdate(@RequestBody AdminResourceBatchCommand body, HttpServletRequest request) {
-        service.batchUpdate(body, AdminContext.requireAdminId(request));
+        service.batchUpdatePersonalResources(body, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 
     @PostMapping("/resources/batch/delete")
     @Operation(summary = "Batch delete resources", description = "Soft deletes resources after checking that selected resources are not bound to courses.")
     public ApiResponse<Void> deleteResources(@RequestBody AdminResourceIdsCommand body, HttpServletRequest request) {
-        service.deleteResources(body == null ? null : body.getResourceIds(), AdminContext.requireAdminId(request));
+        service.deletePersonalResources(body == null ? null : body.getResourceIds(), AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
     }
 
     @PostMapping("/resources/{resourceId}/public-applications")
     @Operation(summary = "Submit public application", description = "Submits the resource current version for public review and marks the resource as PENDING.")
     public ApiResponse<Long> submitPublicApplication(@PathVariable Long resourceId, HttpServletRequest request) {
-        return ApiResponse.ok(service.submitPublicApplication(resourceId, AdminContext.requireAdminId(request)));
+        return ApiResponse.ok(service.submitPersonalPublicApplication(resourceId, AdminContext.requireAdminId(request)));
     }
 
     @GetMapping("/resources/{resourceId}/logs")
     @Operation(summary = "List resource operation logs", description = "Returns operation logs for one resource sorted by newest first.")
-    public ApiResponse<List<AdminResourceLog>> listResourceLogs(@PathVariable Long resourceId) {
-        return ApiResponse.ok(service.listResourceLogs(resourceId));
+    public ApiResponse<List<AdminResourceLog>> listResourceLogs(@PathVariable Long resourceId,
+                                                                 HttpServletRequest request) {
+        return ApiResponse.ok(service.listPersonalResourceLogs(resourceId, AdminContext.requireAdminId(request)));
     }
 
     @GetMapping("/public-applications")

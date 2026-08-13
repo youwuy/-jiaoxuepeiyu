@@ -34,42 +34,7 @@
             <span><el-icon><Document /></el-icon></span>
             <strong>资源内容预览</strong>
           </div>
-          <div class="admin-public-review-doc">
-            <template v-if="selectedApplication && resourcePreviewSource(selectedApplication)">
-              <img
-                v-if="resourcePreviewKind(selectedApplication) === 'image'"
-                class="admin-resource-preview-media image"
-                :src="resourcePreviewSource(selectedApplication)"
-                :alt="selectedApplication.resourceName"
-              />
-              <video
-                v-else-if="resourcePreviewKind(selectedApplication) === 'video'"
-                class="admin-resource-preview-media"
-                :src="resourcePreviewSource(selectedApplication)"
-                controls
-              />
-              <audio
-                v-else-if="resourcePreviewKind(selectedApplication) === 'audio'"
-                class="admin-resource-preview-audio"
-                :src="resourcePreviewSource(selectedApplication)"
-                controls
-              />
-              <iframe
-                v-else-if="resourcePreviewKind(selectedApplication) === 'frame'"
-                class="admin-resource-preview-frame"
-                :src="resourcePreviewSource(selectedApplication)"
-                :title="selectedApplication.resourceName"
-              />
-              <div v-else class="admin-resource-preview-unsupported">
-                <span class="admin-resource-file-icon">
-                  <el-icon><Document /></el-icon>
-                </span>
-                <strong>{{ selectedApplication.fileName || selectedApplication.resourceName }}</strong>
-                <p>当前文件类型不支持在线预览，请下载后查看。</p>
-              </div>
-            </template>
-            <el-empty v-else description="暂无可预览内容" />
-          </div>
+          <div class="admin-public-review-doc"><AdminResourcePreview :resource="selectedApplication" /></div>
         </section>
 
         <aside class="admin-public-review-progress-card">
@@ -125,32 +90,6 @@
         <el-breadcrumb-item>资源公开申请</el-breadcrumb-item>
       </el-breadcrumb>
 
-      <header class="admin-public-head">
-        <div>
-          <h1>资源公开申请</h1>
-          <p>统一查看资源申请、审核意见和公开状态，支持快速通过或驳回。</p>
-        </div>
-
-        <div class="admin-public-summary">
-          <div class="admin-public-summary-card pending">
-            <span>待审核</span>
-            <strong>{{ pendingCount }}</strong>
-          </div>
-          <div class="admin-public-summary-card approved">
-            <span>已通过</span>
-            <strong>{{ approvedCount }}</strong>
-          </div>
-          <div class="admin-public-summary-card rejected">
-            <span>已驳回</span>
-            <strong>{{ rejectedCount }}</strong>
-          </div>
-          <div class="admin-public-summary-card total">
-            <span>总申请</span>
-            <strong>{{ totalCount }}</strong>
-          </div>
-        </div>
-      </header>
-
       <section class="admin-public-filter-card">
         <div class="admin-public-filter-row">
           <el-input
@@ -169,21 +108,12 @@
         </div>
       </section>
 
-      <div class="admin-public-workspace" :class="{ 'has-detail': Boolean(selectedApplication) }">
+      <div class="admin-public-workspace">
         <section class="admin-public-board">
           <header class="admin-public-board-head">
             <div>
               <strong>申请列表</strong>
-              <p>共 {{ totalCount }} 条申请，当前待审 {{ pendingCount }} 条，已选 {{ selectedIds.length }} 条</p>
-            </div>
-            <div class="admin-public-board-actions">
-              <el-button class="admin-public-lite-button" :disabled="selectedIds.length === 0" @click="openBatchReview('APPROVED')">
-                批量通过
-              </el-button>
-              <el-button class="admin-public-lite-button" :disabled="selectedIds.length === 0" @click="openBatchReview('REJECTED')">
-                批量驳回
-              </el-button>
-              <el-button class="admin-public-lite-button" @click="refreshList">刷新</el-button>
+              <p>共 {{ totalCount }} 条申请</p>
             </div>
           </header>
 
@@ -196,17 +126,13 @@
               <table class="admin-public-table">
                 <thead>
                   <tr>
-                    <th class="check-col">
-                      <el-checkbox :model-value="allCurrentSelected" :indeterminate="partCurrentSelected" @change="toggleAllCurrent" />
-                    </th>
                     <th>资源名称</th>
                     <th>资源类型</th>
-                    <th>所属课程</th>
                     <th>所属专业</th>
+                    <th>所属课程</th>
                     <th>申请人</th>
                     <th>申请时间</th>
                     <th>审核状态</th>
-                    <th>审核人</th>
                     <th>审核时间</th>
                     <th>操作</th>
                   </tr>
@@ -215,12 +141,7 @@
                   <tr
                     v-for="row in pagedApplications"
                     :key="row.applicationId"
-                    :class="{ selected: selectedApplication?.applicationId === row.applicationId }"
-                    @click="selectApplication(row)"
                   >
-                    <td class="check-col">
-                      <el-checkbox :model-value="selectedIds.includes(row.applicationId)" @change="toggleOne(row.applicationId)" />
-                    </td>
                     <td>
                       <div class="admin-public-name-cell">
                         <img :src="row.coverResolved" :alt="row.resourceName" />
@@ -233,8 +154,8 @@
                     <td>
                       <span class="admin-public-type-pill" :class="row.typeTone">{{ row.typeLabel }}</span>
                     </td>
-                    <td class="wrap-cell">{{ row.courseName || '-' }}</td>
                     <td class="wrap-cell">{{ row.majorLabel }}</td>
+                    <td class="wrap-cell">{{ row.courseName || '-' }}</td>
                     <td>{{ row.applicantName || '-' }}</td>
                     <td>{{ row.appliedAtLabel }}</td>
                     <td>
@@ -243,13 +164,12 @@
                         {{ row.statusLabel }}
                       </span>
                     </td>
-                    <td>{{ row.reviewerName || '-' }}</td>
                     <td>{{ row.reviewedAtLabel }}</td>
                     <td>
                       <div class="admin-public-row-actions">
-                        <el-button v-if="row.statusTone === 'pending'" class="approve" @click.stop="openReviewDetail(row)">审核</el-button>
+                        <el-button v-if="row.statusTone === 'pending' && can('update')" class="approve" @click.stop="openReviewDetail(row)">审核</el-button>
                         <el-button v-else class="detail-button" @click.stop="openReadonlyDetail(row)">查看审核详情</el-button>
-                        <el-button v-if="row.statusTone === 'rejected'" class="warn" @click.stop="openEditRestatement(row)">编辑重申</el-button>
+                        <el-button v-if="row.statusTone === 'rejected' && can('update') && isOwnApplication(row)" class="warn" @click.stop="openEditRestatement(row)">编辑重申</el-button>
                         <el-button class="plain" @click.stop="openPreview(row)">预览</el-button>
                       </div>
                     </td>
@@ -270,181 +190,8 @@
             </footer>
           </template>
         </section>
-
-        <aside v-if="selectedApplication" class="admin-public-panel">
-          <div class="admin-public-panel-head">
-            <div>
-              <strong>申请详情</strong>
-              <p>{{ selectedApplication.resourceName }}</p>
-            </div>
-            <el-button text circle :icon="Close" @click="selectedApplication = null" />
-          </div>
-
-          <section class="admin-public-status-card">
-            <div>
-              <span>审核状态</span>
-              <strong :class="selectedApplication.statusTone">{{ selectedApplication.statusLabel }}</strong>
-            </div>
-            <div>
-              <span>申请人</span>
-              <strong>{{ selectedApplication.applicantName || '-' }}</strong>
-            </div>
-            <div>
-              <span>申请时间</span>
-              <strong>{{ selectedApplication.appliedAtLabel }}</strong>
-            </div>
-            <div>
-              <span>审核人</span>
-              <strong>{{ selectedApplication.reviewerName || '-' }}</strong>
-            </div>
-          </section>
-
-          <section class="admin-public-preview">
-            <img :src="selectedApplication.coverResolved" :alt="selectedApplication.resourceName" />
-            <div>
-              <strong>{{ selectedApplication.resourceName }}</strong>
-              <p>{{ selectedApplication.fileName || '-' }}</p>
-              <div class="admin-public-preview-actions">
-                <el-button class="plain" @click="openPreview(selectedApplication)">打开预览</el-button>
-                <el-button class="plain" @click="copyFileLink(selectedApplication)">复制链接</el-button>
-              </div>
-            </div>
-          </section>
-
-          <section class="admin-public-detail-grid">
-            <div class="admin-public-detail-card">
-              <p>资源快照</p>
-              <dl>
-                <div><dt>资源类型</dt><dd>{{ selectedApplication.typeLabel }}</dd></div>
-                <div><dt>所属专业</dt><dd>{{ selectedApplication.majorLabel }}</dd></div>
-                <div><dt>课程名称</dt><dd>{{ selectedApplication.courseName || '-' }}</dd></div>
-                <div><dt>文件大小</dt><dd>{{ selectedApplication.fileSizeLabel }}</dd></div>
-                <div><dt>申请版本</dt><dd>{{ formatVersion(selectedApplication.resourceVersion) }}</dd></div>
-                <div><dt>公开版本</dt><dd>{{ formatVersion(selectedApplication.publicVersion ?? selectedApplication.resourceVersion) }}</dd></div>
-              </dl>
-            </div>
-
-            <div class="admin-public-detail-card">
-              <p>审核信息</p>
-              <dl>
-                <div><dt>审核状态</dt><dd>{{ selectedApplication.statusLabel }}</dd></div>
-                <div><dt>审核人</dt><dd>{{ selectedApplication.reviewerName || '-' }}</dd></div>
-                <div class="wide"><dt>审核意见</dt><dd>{{ selectedApplication.reviewComment || '-' }}</dd></div>
-              </dl>
-            </div>
-          </section>
-
-          <section class="admin-public-log-card">
-            <p>处理动作</p>
-                      <div class="admin-public-panel-actions">
-                        <el-button
-                          v-if="selectedApplication.statusTone === 'pending'"
-                          class="admin-public-panel-approve"
-                          :loading="busyId === selectedApplication.applicationId"
-                @click="openReview(selectedApplication, 'APPROVED')"
-              >
-                通过公开
-              </el-button>
-              <el-button
-                v-if="selectedApplication.statusTone === 'pending'"
-                class="admin-public-panel-reject"
-                :loading="busyId === selectedApplication.applicationId"
-                @click="openReview(selectedApplication, 'REJECTED')"
-              >
-                驳回申请
-              </el-button>
-              <el-button class="admin-public-panel-ghost" @click="selectApplication(selectedApplication)">保持选中</el-button>
-            </div>
-          </section>
-
-          <section class="admin-public-timeline-card">
-            <p>处理时间线</p>
-            <article class="admin-public-timeline-item">
-              <header>
-                <strong>提交申请</strong>
-                <span>{{ selectedApplication.appliedAtLabel }}</span>
-              </header>
-              <p>申请人 {{ selectedApplication.applicantName || '-' }} 提交了资源公开申请。</p>
-            </article>
-            <article class="admin-public-timeline-item">
-              <header>
-                <strong>当前状态</strong>
-                <span>{{ selectedApplication.reviewedAtLabel || '-' }}</span>
-              </header>
-              <p>
-                {{
-                  selectedApplication.statusTone === 'pending'
-                    ? '当前还在等待审核。'
-                    : selectedApplication.statusTone === 'approved'
-                      ? '申请已通过，资源已进入公开库。'
-                      : '申请已驳回，可重新整理后再次提交。'
-                }}
-              </p>
-            </article>
-          </section>
-        </aside>
       </div>
     </section>
-
-    <el-dialog v-model="reviewVisible" class="admin-public-dialog" width="560px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-public-dialog-head">
-          <strong>{{ reviewMode === 'APPROVED' ? '通过公开申请' : '驳回公开申请' }}</strong>
-          <el-button text circle :icon="Close" @click="reviewVisible = false" />
-        </div>
-      </template>
-
-      <div v-if="reviewTarget" class="admin-public-dialog-body">
-        <div class="admin-public-dialog-summary">
-          <strong>{{ reviewTarget.resourceName }}</strong>
-          <span>{{ reviewTarget.applicantName || '-' }} · {{ reviewTarget.appliedAtLabel }}</span>
-        </div>
-
-        <label class="admin-public-dialog-field">
-          <span>{{ reviewMode === 'APPROVED' ? '通过说明' : '驳回原因' }}</span>
-          <el-input
-            v-model="reviewComment"
-            type="textarea"
-            :rows="5"
-            maxlength="120"
-            show-word-limit
-            :placeholder="reviewMode === 'APPROVED' ? '可填写通过说明' : '请填写驳回原因'"
-          />
-        </label>
-      </div>
-
-      <template #footer>
-        <div class="admin-public-dialog-footer">
-          <el-button @click="reviewVisible = false">取消</el-button>
-          <el-button :type="reviewMode === 'APPROVED' ? 'primary' : 'danger'" :loading="saving" @click="submitReview">
-            {{ reviewMode === 'APPROVED' ? '确认通过' : '确认驳回' }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <el-drawer v-model="logDrawerVisible" class="admin-public-log-drawer" direction="rtl" size="560px" :with-header="false">
-      <div class="admin-public-resource-drawer-head">
-        <div>
-          <p>申请记录</p>
-          <h3>{{ logTarget?.resourceName || '资源申请记录' }}</h3>
-        </div>
-        <el-button text :icon="Close" @click="logDrawerVisible = false" />
-      </div>
-
-      <div v-if="logsLoading" class="admin-public-resource-empty drawer-state">记录加载中...</div>
-      <template v-else>
-        <article v-for="item in selectedLogs" :key="item.logId" class="admin-public-resource-log-row">
-          <header>
-            <strong>{{ item.action }}</strong>
-            <span>{{ formatDateTime(item.createdAt) }}</span>
-          </header>
-          <p>{{ item.content }}</p>
-          <small>{{ item.operatorName }}</small>
-        </article>
-        <div v-if="selectedLogs.length === 0" class="admin-public-resource-log-empty">暂无记录</div>
-      </template>
-    </el-drawer>
 
     <el-dialog v-model="previewVisible" class="admin-public-preview-modal" width="820px" :show-close="false" append-to-body>
       <template #header>
@@ -454,42 +201,7 @@
         </div>
       </template>
 
-      <div v-if="previewTarget" class="admin-public-preview-doc">
-        <template v-if="resourcePreviewSource(previewTarget)">
-          <img
-            v-if="resourcePreviewKind(previewTarget) === 'image'"
-            class="admin-resource-preview-media image"
-            :src="resourcePreviewSource(previewTarget)"
-            :alt="previewTarget.resourceName"
-          />
-          <video
-            v-else-if="resourcePreviewKind(previewTarget) === 'video'"
-            class="admin-resource-preview-media"
-            :src="resourcePreviewSource(previewTarget)"
-            controls
-          />
-          <audio
-            v-else-if="resourcePreviewKind(previewTarget) === 'audio'"
-            class="admin-resource-preview-audio"
-            :src="resourcePreviewSource(previewTarget)"
-            controls
-          />
-          <iframe
-            v-else-if="resourcePreviewKind(previewTarget) === 'frame'"
-            class="admin-resource-preview-frame"
-            :src="resourcePreviewSource(previewTarget)"
-            :title="previewTarget.resourceName"
-          />
-          <div v-else class="admin-resource-preview-unsupported">
-            <span class="admin-resource-file-icon">
-              <el-icon><Document /></el-icon>
-            </span>
-            <strong>{{ previewTarget.fileName || previewTarget.resourceName }}</strong>
-            <p>当前文件类型不支持在线预览，请下载后查看。</p>
-          </div>
-        </template>
-        <el-empty v-else description="暂无可预览内容" />
-      </div>
+      <div v-if="previewTarget" class="admin-public-preview-doc"><AdminResourcePreview :resource="previewTarget" /></div>
     </el-dialog>
 
     <el-dialog v-model="editRestatementVisible" class="admin-public-edit-dialog" width="600px" :show-close="false" append-to-body>
@@ -507,25 +219,29 @@
         </label>
         <label>
           <span>封面图 <b>*</b></span>
-          <div class="admin-public-edit-file cover">
+          <div v-if="editForm.coverUrl" class="admin-public-edit-file cover">
             <img :src="editForm.coverUrl" alt="封面图" />
             <div>
               <strong>{{ editForm.coverName || '-' }}</strong>
               <p>{{ editForm.coverSize || '-' }}</p>
             </div>
-            <el-button text circle :icon="Close" />
+            <el-button text circle :icon="Close" @click="clearEditCover" />
           </div>
+          <button v-else type="button" class="admin-public-edit-upload-drop" :disabled="uploadingEditCover" @click="editCoverInput?.click()" @dragover.prevent @drop.prevent="uploadEditCoverDrop">上传封面图</button>
+          <input ref="editCoverInput" type="file" accept="image/jpeg,image/png" hidden @change="uploadEditCover" />
         </label>
         <label>
           <span>资源内容 <b>*</b></span>
-          <div class="admin-public-edit-file">
+          <div v-if="editForm.fileUrl" class="admin-public-edit-file">
             <span class="admin-public-edit-file-icon"><el-icon><Document /></el-icon></span>
             <div>
               <strong>{{ editForm.fileName }}</strong>
               <p>{{ editForm.fileSizeLabel }} <i></i> 上传完成 <em>✓</em></p>
             </div>
-            <el-button text circle :icon="Close" />
+            <el-button text circle :icon="Close" @click="clearEditFile" />
           </div>
+          <button v-else type="button" class="admin-public-edit-upload-drop" :disabled="uploadingEditFile" @click="editFileInput?.click()" @dragover.prevent @drop.prevent="uploadEditFileDrop">上传资源文件</button>
+          <input ref="editFileInput" type="file" hidden @change="uploadEditFile" />
         </label>
         <label>
           <span>所属专业 <b>*</b></span>
@@ -542,64 +258,36 @@
       <template #footer>
         <div class="admin-public-edit-footer">
           <el-button @click="editRestatementVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitEditRestatement">编辑重申</el-button>
+          <el-button type="primary" :loading="saving" @click="submitEditRestatement">编辑重申</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="batchReviewVisible" class="admin-public-dialog" width="560px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-public-dialog-head">
-          <strong>{{ batchReviewMode === 'APPROVED' ? '批量通过' : '批量驳回' }}</strong>
-          <el-button text circle :icon="Close" @click="batchReviewVisible = false" />
-        </div>
-      </template>
-
-      <div class="admin-public-dialog-summary">
-        <strong>已选 {{ selectedIds.length }} 条申请</strong>
-        <span>{{ batchReviewMode === 'APPROVED' ? '将统一通过并进入公开流程' : '将统一驳回并保留历史记录' }}</span>
-      </div>
-
-      <label class="admin-public-dialog-field">
-        <span>{{ batchReviewMode === 'APPROVED' ? '通过说明' : '驳回原因' }}</span>
-        <el-input
-          v-model="batchReviewComment"
-          type="textarea"
-          :rows="5"
-          maxlength="120"
-          show-word-limit
-          :placeholder="batchReviewMode === 'APPROVED' ? '可填写统一通过说明' : '请填写统一驳回原因'"
-        />
-      </label>
-
-      <template #footer>
-        <div class="admin-public-dialog-footer">
-          <el-button @click="batchReviewVisible = false">取消</el-button>
-          <el-button :type="batchReviewMode === 'APPROVED' ? 'primary' : 'danger'" :loading="saving" @click="submitBatchReview">
-            {{ batchReviewMode === 'APPROVED' ? '确认通过' : '确认驳回' }}
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Close, Document, Refresh, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import AdminResourcePreview from '../../components/admin/AdminResourcePreview.vue';
 import {
   approveAdminPublicApplication,
   fetchAdminPublicApplication,
   fetchAdminPublicApplications,
   rejectAdminPublicApplication,
+  submitAdminResourcePublicApplication,
+  updateAdminResource,
+  uploadAdminFile,
   type AdminPublicApplication,
-  type AdminResourceLog,
   type AdminResourceQuery
 } from '../../api/admin-resource';
+import { fetchAdminMajors } from '../../api/admin-course';
 import { resolvePublicUrl } from '../../api/http';
-import { resourcePreviewKind, resourcePreviewSource } from '../../features/admin/resource-preview';
+import { fileFromDrop, validateResourceUpload } from '../../features/admin/resource-upload';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
+import { getStoredUserId } from '../../api/http';
 import { coverForResourceType } from '../../features/student/resources';
 
 type ReviewMode = 'APPROVED' | 'REJECTED';
@@ -634,30 +322,30 @@ const busyId = ref<number | null>(null);
 const page = ref(1);
 const applications = ref<PublicApplicationRow[]>([]);
 const selectedApplication = ref<PublicApplicationRow | null>(null);
-const reviewVisible = ref(false);
 const reviewMode = ref<ReviewMode>('APPROVED');
 const reviewTarget = ref<PublicApplicationRow | null>(null);
 const reviewComment = ref('');
-const logDrawerVisible = ref(false);
-const logTarget = ref<PublicApplicationRow | null>(null);
-const logsLoading = ref(false);
-const selectedLogs = ref<AdminResourceLog[]>([]);
 const previewVisible = ref(false);
 const previewTarget = ref<PublicApplicationRow | null>(null);
-const selectedIds = ref<number[]>([]);
-const batchReviewVisible = ref(false);
-const batchReviewMode = ref<ReviewMode>('APPROVED');
-const batchReviewComment = ref('');
 const detailPageVisible = ref(false);
 const detailMode = ref<'review' | 'readonly'>('review');
 const editRestatementVisible = ref(false);
+const { can } = useAdminPermissions('resource:public-apply');
+const currentAdminId = Number(getStoredUserId('admin'));
 const editTarget = ref<PublicApplicationRow | null>(null);
+const editCoverInput = ref<HTMLInputElement | null>(null);
+const editFileInput = ref<HTMLInputElement | null>(null);
+const uploadingEditCover = ref(false);
+const uploadingEditFile = ref(false);
 const editForm = reactive({
   resourceName: '',
   coverUrl: '',
   coverName: '',
   coverSize: '',
+  fileUrl: '',
+  previewUrl: '',
   fileName: '',
+  fileSize: 0,
   fileSizeLabel: '',
   majorId: null as number | null,
   courseName: ''
@@ -669,14 +357,6 @@ const reviewTimeline = computed(() => {
   }
 
   return [
-    {
-      title: '提交申请',
-      date: row.appliedAtLabel.slice(0, 10),
-      operator: row.applicantName || '-',
-      time: row.appliedAtLabel.slice(11) || '-',
-      status: '',
-      comment: ''
-    },
     ...(row.reviewedAtLabel === '-'
       ? []
       : [
@@ -688,7 +368,15 @@ const reviewTimeline = computed(() => {
             status: row.statusTone === 'approved' ? '审核通过' : row.statusTone === 'rejected' ? '审核驳回' : '',
             comment: row.reviewComment || '-'
           }
-        ])
+        ]),
+    {
+      title: '提交申请',
+      date: row.appliedAtLabel.slice(0, 10),
+      operator: row.applicantName || '-',
+      time: row.appliedAtLabel.slice(11) || '-',
+      status: '',
+      comment: ''
+    }
   ];
 });
 
@@ -699,12 +387,7 @@ const draft = reactive({
 
 const appliedFilters = ref({ ...draft });
 
-const majorOptions: MajorOption[] = [
-  { label: '城市轨道交通运营管理', value: 1 },
-  { label: '城市轨道交通车辆技术', value: 2 },
-  { label: '城市轨道交通机电技术', value: 3 },
-  { label: '城市轨道交通通信信号技术', value: 4 }
-];
+const majorOptions = ref<MajorOption[]>([]);
 
 const publicStatusOptions: ResourceOption[] = [
   { label: '待审核', value: 'PENDING' },
@@ -712,27 +395,8 @@ const publicStatusOptions: ResourceOption[] = [
   { label: '已驳回', value: 'REJECTED' }
 ];
 
-const filteredApplications = computed(() =>
-  applications.value.filter((item) => {
-    const keyword = appliedFilters.value.keyword.trim().toLowerCase();
-    const matchesKeyword = !keyword || item.resourceName.toLowerCase().includes(keyword);
-    const matchesStatus = !appliedFilters.value.publicStatus || item.publicStatus === appliedFilters.value.publicStatus;
-    return matchesKeyword && matchesStatus;
-  })
-);
-
-const totalCount = computed(() => filteredApplications.value.length);
-const pendingCount = computed(() => filteredApplications.value.filter((item) => item.statusTone === 'pending').length);
-const approvedCount = computed(() => filteredApplications.value.filter((item) => item.statusTone === 'approved').length);
-const rejectedCount = computed(() => filteredApplications.value.filter((item) => item.statusTone === 'rejected').length);
-const pagedApplications = computed(() => filteredApplications.value.slice((page.value - 1) * pageSize, page.value * pageSize));
-const allCurrentSelected = computed(() => pagedApplications.value.length > 0 && pagedApplications.value.every((item) => selectedIds.value.includes(item.applicationId)));
-const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
-
-function formatVersion(value?: number) {
-  const version = Number(value);
-  return Number.isFinite(version) && version > 0 ? `V${version}` : '-';
-}
+const totalCount = ref(0);
+const pagedApplications = computed(() => applications.value);
 
 function normalizeStatus(value?: string): ApplicationStatus {
   const upper = String(value || '').toUpperCase();
@@ -805,12 +469,15 @@ function formatFileSize(bytes?: number) {
     return '-';
   }
   if (bytes < 1024) {
-    return `${bytes} KB`;
+    return `${bytes} B`;
   }
   if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
   }
-  return `${(bytes / 1024 / 1024).toFixed(1)} GB`;
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
 function formatDateTime(value?: string) {
@@ -821,7 +488,7 @@ function formatDateTime(value?: string) {
 }
 
 function findMajorLabel(majorId?: number | null) {
-  return majorOptions.find((item) => item.value === majorId)?.label || '-';
+  return majorOptions.value.find((item) => item.value === majorId)?.label || '-';
 }
 
 function mapApplicationRow(application: AdminPublicApplication): PublicApplicationRow {
@@ -848,20 +515,11 @@ function mapApplicationRow(application: AdminPublicApplication): PublicApplicati
   };
 }
 
-function mergeSelectedIds(ids: number[]) {
-  selectedIds.value = Array.from(new Set([...selectedIds.value, ...ids]));
-}
-
 function createEmptyFilters() {
   return {
     keyword: '',
     publicStatus: '' as '' | ApplicationStatus
   };
-}
-
-function selectApplication(application: PublicApplicationRow) {
-  selectedApplication.value = application;
-  void loadApplicationDetail(application);
 }
 
 function openReviewDetail(application: PublicApplicationRow) {
@@ -894,37 +552,6 @@ async function submitDetailReview(mode: ReviewMode) {
   detailPageVisible.value = false;
 }
 
-function openReview(application: PublicApplicationRow, mode: ReviewMode) {
-  reviewTarget.value = application;
-  reviewMode.value = mode;
-  reviewComment.value = '';
-  reviewVisible.value = true;
-}
-
-function openBatchReview(mode: ReviewMode) {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning('请先选择申请');
-    return;
-  }
-  batchReviewMode.value = mode;
-  batchReviewComment.value = '';
-  batchReviewVisible.value = true;
-}
-
-function toggleOne(applicationId: number) {
-  selectedIds.value = selectedIds.value.includes(applicationId)
-    ? selectedIds.value.filter((id) => id !== applicationId)
-    : [...selectedIds.value, applicationId];
-}
-
-function toggleAllCurrent(value: string | number | boolean) {
-  if (!value) {
-    selectedIds.value = selectedIds.value.filter((id) => !pagedApplications.value.some((item) => item.applicationId === id));
-    return;
-  }
-  mergeSelectedIds(pagedApplications.value.map((item) => item.applicationId));
-}
-
 function applyFilters() {
   appliedFilters.value = {
     keyword: draft.keyword,
@@ -945,8 +572,8 @@ function buildQuery(): AdminResourceQuery {
   return {
     keyword: appliedFilters.value.keyword.trim() || undefined,
     publicStatus: appliedFilters.value.publicStatus || undefined,
-    page: 1,
-    pageSize: 999
+    page: page.value,
+    pageSize
   };
 }
 
@@ -956,25 +583,15 @@ async function loadApplications() {
     const result = await fetchAdminPublicApplications(buildQuery());
     const mapped = result.records.map(mapApplicationRow);
     applications.value = mapped;
-    if (!selectedApplication.value || !applications.value.some((item) => item.applicationId === selectedApplication.value?.applicationId)) {
-      selectedApplication.value = applications.value[0] ?? null;
-    }
-    selectedIds.value = selectedIds.value.filter((id) => applications.value.some((item) => item.applicationId === id));
-    if (selectedApplication.value) {
-      void loadApplicationDetail(selectedApplication.value);
-    }
+    totalCount.value = result.total;
   } catch (error) {
     applications.value = [];
+    totalCount.value = 0;
     selectedApplication.value = null;
-    selectedIds.value = [];
     ElMessage.error(error instanceof Error ? error.message : '资源公开申请加载失败');
   } finally {
     loading.value = false;
   }
-}
-
-async function refreshList() {
-  await loadApplications();
 }
 
 async function loadApplicationDetail(application: PublicApplicationRow) {
@@ -998,7 +615,10 @@ function openEditRestatement(application: PublicApplicationRow) {
     coverUrl: application.coverResolved,
     coverName: '',
     coverSize: '',
+    fileUrl: application.fileUrl || '',
+    previewUrl: application.previewUrl || '',
     fileName: application.fileName || '',
+    fileSize: application.fileSize || 0,
     fileSizeLabel: application.fileSizeLabel === '-' ? '-' : application.fileSizeLabel,
     majorId: application.majorId ?? null,
     courseName: application.courseName || ''
@@ -1006,72 +626,112 @@ function openEditRestatement(application: PublicApplicationRow) {
   editRestatementVisible.value = true;
 }
 
-function submitEditRestatement() {
+function isOwnApplication(application: PublicApplicationRow) {
+  return Number.isFinite(currentAdminId) && Number(application.applicantId) === currentAdminId;
+}
+
+function clearEditCover() {
+  editForm.coverUrl = '';
+  editForm.coverName = '';
+  editForm.coverSize = '';
+}
+
+function clearEditFile() {
+  editForm.fileUrl = '';
+  editForm.previewUrl = '';
+  editForm.fileName = '';
+  editForm.fileSize = 0;
+  editForm.fileSizeLabel = '';
+}
+
+async function uploadEditCover(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  const validation = validateResourceUpload(file, 'cover');
+  if (validation) { ElMessage.warning(validation); input.value = ''; return; }
+  uploadingEditCover.value = true;
+  try {
+    const uploaded = await uploadAdminFile(file, 'covers');
+    editForm.coverUrl = uploaded.fileUrl;
+    editForm.coverName = uploaded.fileName || file.name;
+    editForm.coverSize = formatFileSize(uploaded.fileSize ?? file.size);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '封面上传失败');
+  } finally {
+    uploadingEditCover.value = false;
+    input.value = '';
+  }
+}
+
+async function uploadEditFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  const validation = validateResourceUpload(file);
+  if (validation) { ElMessage.warning(validation); input.value = ''; return; }
+  uploadingEditFile.value = true;
+  try {
+    const uploaded = await uploadAdminFile(file, 'resources');
+    editForm.fileUrl = uploaded.fileUrl;
+    editForm.previewUrl = uploaded.fileUrl;
+    editForm.fileName = uploaded.fileName || file.name;
+    editForm.fileSize = uploaded.fileSize ?? file.size;
+    editForm.fileSizeLabel = formatFileSize(editForm.fileSize);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '资源文件上传失败');
+  } finally {
+    uploadingEditFile.value = false;
+    input.value = '';
+  }
+}
+
+function uploadEditCoverDrop(event: DragEvent) {
+  const file = fileFromDrop(event);
+  if (file) void uploadEditCover({ target: { files: [file] } } as unknown as Event);
+}
+
+function uploadEditFileDrop(event: DragEvent) {
+  const file = fileFromDrop(event);
+  if (file) void uploadEditFile({ target: { files: [file] } } as unknown as Event);
+}
+
+async function submitEditRestatement() {
   if (!editTarget.value) {
     return;
   }
-
-  editRestatementVisible.value = false;
-  ElMessage.warning('重申接口暂未提供，当前仅关闭弹窗');
-}
-
-function copyFileLink(application: PublicApplicationRow) {
-  const url = application.fileUrl || application.previewUrl;
-  if (!url) {
-    ElMessage.warning('暂无可复制链接');
+  const resourceName = editForm.resourceName.trim();
+  const majorId = Number(editForm.majorId);
+  if (!resourceName) {
+    ElMessage.warning('请输入资源名称');
     return;
   }
-  void navigator.clipboard?.writeText(url);
-  ElMessage.success('链接已复制');
-}
-
-async function submitBatchReview() {
-  if (selectedIds.value.length === 0) {
-    ElMessage.warning('请先选择申请');
+  if (!majorId) {
+    ElMessage.warning('请选择所属专业');
     return;
   }
-
-  if (batchReviewMode.value === 'REJECTED' && !batchReviewComment.value.trim()) {
-    ElMessage.warning('请填写驳回原因');
+  if (!editForm.coverUrl || !editForm.fileUrl || !editForm.fileName || !editForm.fileSize) {
+    ElMessage.warning('请上传封面图和资源文件');
     return;
   }
-
-  try {
-    await ElMessageBox.confirm(
-      batchReviewMode.value === 'APPROVED'
-        ? `确认批量通过 ${selectedIds.value.length} 条公开申请？`
-        : `确认批量驳回 ${selectedIds.value.length} 条公开申请？`,
-      batchReviewMode.value === 'APPROVED' ? '批量通过' : '批量驳回',
-      {
-        confirmButtonText: batchReviewMode.value === 'APPROVED' ? '通过' : '驳回',
-        cancelButtonText: '取消',
-        type: batchReviewMode.value === 'APPROVED' ? 'success' : 'warning'
-      }
-    );
-  } catch {
-    return;
-  }
-
   saving.value = true;
   try {
-    const targets = applications.value.filter((item) => selectedIds.value.includes(item.applicationId));
-    await Promise.all(
-      targets.map((item) =>
-        batchReviewMode.value === 'APPROVED'
-          ? approveAdminPublicApplication(item.applicationId, {
-              reviewComment: batchReviewComment.value.trim() || undefined
-            })
-          : rejectAdminPublicApplication(item.applicationId, {
-              reviewComment: batchReviewComment.value.trim()
-            })
-      )
-    );
-    ElMessage.success(batchReviewMode.value === 'APPROVED' ? '批量通过成功' : '批量驳回成功');
-    batchReviewVisible.value = false;
-    selectedIds.value = [];
+    await updateAdminResource(editTarget.value.resourceId, {
+      resourceName,
+      coverUrl: editForm.coverUrl,
+      fileUrl: editForm.fileUrl,
+      previewUrl: editForm.previewUrl || editForm.fileUrl,
+      fileName: editForm.fileName,
+      fileSize: editForm.fileSize,
+      majorId,
+      courseName: editForm.courseName.trim() || undefined
+    });
+    await submitAdminResourcePublicApplication(editTarget.value.resourceId);
+    editRestatementVisible.value = false;
+    ElMessage.success('资源已编辑并重新提交审核');
     await loadApplications();
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '批量审核失败');
+    ElMessage.error(error instanceof Error ? error.message : '编辑重申失败');
   } finally {
     saving.value = false;
   }
@@ -1118,7 +778,6 @@ async function submitReview() {
       });
       ElMessage.success('公开申请已驳回');
     }
-    reviewVisible.value = false;
     await loadApplications();
     const nextStatus = reviewMode.value;
     selectedApplication.value = {
@@ -1138,7 +797,22 @@ async function submitReview() {
   }
 }
 
+async function loadMajorOptions() {
+  try {
+    majorOptions.value = (await fetchAdminMajors())
+      .filter((item) => item.enabled !== false)
+      .map((item) => ({ label: item.majorName, value: item.majorId }));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '专业数据加载失败');
+  }
+}
+
+watch(page, () => {
+  void loadApplications();
+});
+
 onMounted(() => {
+  void loadMajorOptions();
   void loadApplications();
 });
 </script>

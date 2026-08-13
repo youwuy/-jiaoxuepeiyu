@@ -79,14 +79,6 @@ public class AdminQuestionService {
         updateStatus(questionId, false, operatorId, "DISABLE", "Disable question");
     }
 
-    @Transactional
-    public void deleteQuestion(Long questionId, Long operatorId) {
-        requireOperator(operatorId);
-        getQuestion(questionId);
-        repository.deleteQuestion(questionId);
-        repository.appendQuestionLog(questionId, operatorId, "DELETE", "Delete question");
-    }
-
     public List<AdminQuestionLog> listQuestionLogs(Long questionId) {
         getQuestion(questionId);
         return repository.findQuestionLogs(questionId);

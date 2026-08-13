@@ -147,10 +147,6 @@ export function disableAdminQuestion(questionId: number) {
   return requestJson<void>(`/admin/questions/${questionId}/disable`, { method: 'POST', fallbackLabel: '停用试题' });
 }
 
-export function deleteAdminQuestion(questionId: number) {
-  return requestJson<void>(`/admin/questions/${questionId}`, { method: 'DELETE', fallbackLabel: '删除试题' });
-}
-
 export function fetchAdminQuestionLogs(questionId: number) {
   return requestJson<AdminQuestionLog[]>(`/admin/questions/${questionId}/logs`, { fallbackLabel: '试题操作记录' });
 }

@@ -30,7 +30,7 @@ export function resourcePreviewKind(resource?: PreviewableResource | null): Reso
     return 'audio';
   }
   if (
-    ['pdf', 'txt', 'html', 'htm'].includes(extension) ||
+    ['pdf', 'txt', 'html', 'htm', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(extension) ||
     enumType === 'DOCUMENT' ||
     type.includes('pdf') ||
     type.includes('文档') ||
