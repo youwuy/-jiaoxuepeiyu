@@ -33,6 +33,7 @@
           <div class="admin-public-review-card-title">
             <span><el-icon><Document /></el-icon></span>
             <strong>资源内容预览</strong>
+            <el-button class="admin-public-preview-download" :icon="Download" @click="downloadResource(selectedApplication)">下载</el-button>
           </div>
           <div class="admin-public-review-doc"><AdminResourcePreview :resource="selectedApplication" /></div>
         </section>
@@ -202,6 +203,9 @@
       </template>
 
       <div v-if="previewTarget" class="admin-public-preview-doc"><AdminResourcePreview :resource="previewTarget" /></div>
+      <template #footer>
+        <el-button type="primary" :icon="Download" @click="downloadResource(previewTarget)">下载资源</el-button>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="editRestatementVisible" class="admin-public-edit-dialog" width="600px" :show-close="false" append-to-body>
@@ -269,7 +273,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowLeft, Close, Document, Refresh, Search } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, Document, Download, Refresh, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import AdminResourcePreview from '../../components/admin/AdminResourcePreview.vue';
 import {
@@ -548,8 +552,10 @@ async function submitDetailReview(mode: ReviewMode) {
 
   reviewTarget.value = selectedApplication.value;
   reviewMode.value = mode;
-  await submitReview();
-  detailPageVisible.value = false;
+  const completed = await submitReview();
+  if (completed) {
+    detailPageVisible.value = false;
+  }
 }
 
 function applyFilters() {
@@ -606,6 +612,22 @@ async function loadApplicationDetail(application: PublicApplicationRow) {
 function openPreview(application: PublicApplicationRow) {
   previewTarget.value = application;
   previewVisible.value = true;
+}
+
+function downloadResource(resource: PublicApplicationRow | null | undefined) {
+  const url = resource?.fileUrl || resource?.previewUrl;
+  if (!url) {
+    ElMessage.warning('当前资源没有可下载文件');
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.download = resource.fileName || resource.resourceName || '资源文件';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 function openEditRestatement(application: PublicApplicationRow) {
@@ -737,15 +759,15 @@ async function submitEditRestatement() {
   }
 }
 
-async function submitReview() {
+async function submitReview(): Promise<boolean> {
   if (!reviewTarget.value) {
-    return;
+    return false;
   }
 
   const application = reviewTarget.value;
   if (reviewMode.value === 'REJECTED' && !reviewComment.value.trim()) {
     ElMessage.warning('请填写驳回原因');
-    return;
+    return false;
   }
 
   try {
@@ -761,7 +783,7 @@ async function submitReview() {
       }
     );
   } catch {
-    return;
+    return false;
   }
 
   busyId.value = application.applicationId;
@@ -791,10 +813,12 @@ async function submitReview() {
     };
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '审核失败');
+    return false;
   } finally {
     busyId.value = null;
     saving.value = false;
   }
+  return true;
 }
 
 async function loadMajorOptions() {

@@ -13596,6 +13596,10 @@ a {
   font-weight: 900;
 }
 
+.admin-public-preview-download {
+  margin-left: auto;
+}
+
 .admin-public-review-info-card dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
