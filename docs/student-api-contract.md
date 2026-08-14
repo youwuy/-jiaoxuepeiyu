@@ -483,5 +483,7 @@ Each `steps[]` item:
 - `standardOperation`
 - `actualOperation`
 - `score`
+- `maxScore`
 - `durationSeconds`
 - `videoStartSecond`
+- `videoEndSecond`

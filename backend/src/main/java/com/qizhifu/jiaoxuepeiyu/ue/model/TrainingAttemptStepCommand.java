@@ -12,6 +12,7 @@ public class TrainingAttemptStepCommand {
     private BigDecimal maxScore;
     private Integer durationSeconds;
     private Integer videoStartSecond;
+    private Integer videoEndSecond;
     private Integer sortOrder;
 
     public Long getAttemptId() {
@@ -77,6 +78,9 @@ public class TrainingAttemptStepCommand {
     public void setVideoStartSecond(Integer videoStartSecond) {
         this.videoStartSecond = videoStartSecond;
     }
+
+    public Integer getVideoEndSecond() { return videoEndSecond; }
+    public void setVideoEndSecond(Integer videoEndSecond) { this.videoEndSecond = videoEndSecond; }
 
     public Integer getSortOrder() {
         return sortOrder;

@@ -73,19 +73,43 @@
         </el-breadcrumb>
       </header>
 
-      <section v-if="activeArchive" class="admin-training-archive-student-card">
-        <span>学生姓名：<b>{{ activeArchive.studentName }}</b></span>
-        <span>学生学号：<b>{{ activeArchive.studentNo }}</b></span>
-        <span>所属班级：<b>{{ activeArchive.className }}</b></span>
-        <span>提交时间：<b>{{ activeArchive.submittedAt }}</b></span>
-      </section>
+      <section v-if="activeArchive" v-loading="detailLoading" class="admin-training-archive-workspace">
+        <aside class="admin-training-archive-history">
+          <header><strong>实训历史记录</strong><span>共 {{ studentHistory.length }} 条</span></header>
+          <div class="admin-training-archive-history-list">
+            <button
+              v-for="item in studentHistory"
+              :key="item.id"
+              type="button"
+              :class="{ active: item.id === activeArchive.id }"
+              @click="selectHistory(item)"
+            >
+              <strong>{{ item.trainingName }}</strong>
+              <span>{{ item.submittedAt }}</span>
+              <b>{{ item.personalScore }} 分</b>
+            </button>
+          </div>
+        </aside>
 
-      <section v-if="activeArchive" class="admin-training-archive-title-card">
-        <h1>{{ activeArchive.detailTitle }}</h1>
-        <p>{{ activeArchive.trainingMode }}</p>
-      </section>
+        <div class="admin-training-archive-detail-main">
+          <section class="admin-training-archive-student-card">
+            <span>学生姓名：<b>{{ activeArchive.studentName }}</b></span>
+            <span>学生学号：<b>{{ activeArchive.studentNo }}</b></span>
+            <span>所属班级：<b>{{ activeArchive.className }}</b></span>
+            <span>提交时间：<b>{{ activeArchive.submittedAt }}</b></span>
+          </section>
 
-      <section class="admin-training-archive-detail-grid">
+          <section class="admin-training-archive-title-card">
+            <div><h1>{{ activeArchive.detailTitle }}</h1><p>{{ activeArchive.trainingMode }}</p></div>
+            <div class="admin-training-archive-summary">
+              <span>实训成绩<b>{{ activeArchive.personalScore }} 分</b></span>
+              <span>成绩等级<b>{{ archiveGrade }}</b></span>
+              <span>训练时长<b>{{ activeArchive.durationSeconds }} 秒</b></span>
+              <span>出错步骤<b>{{ archiveErrorCount }} 个</b></span>
+            </div>
+          </section>
+
+          <section class="admin-training-archive-detail-grid">
         <article class="admin-training-archive-step-card">
           <header>
             <strong><i></i>实训步骤详情</strong>
@@ -102,13 +126,16 @@
                 <th>用时(秒)</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="(step, index) in archiveSteps" :key="step.name">
+            <tbody ref="archiveStepBody">
+              <tr v-if="archiveSteps.length === 0" class="admin-training-archive-empty-row">
+                <td colspan="6">暂无实训步骤记录</td>
+              </tr>
+              <tr v-for="(step, index) in archiveSteps" :key="step.id" :class="{ active: activeStepIndex === index, error: step.isError }">
                 <td>{{ index + 1 }}</td>
-                <td><button type="button" @click="openStepVideo(step)">{{ step.name }}</button></td>
+                <td><button type="button" @click="seekStep(step, index)">{{ step.name }}</button></td>
                 <td><span class="admin-training-archive-pill blue">{{ step.expected }}</span></td>
-                <td><span class="admin-training-archive-pill" :class="step.score > 0 ? 'green' : 'red'">{{ step.actual }}</span></td>
-                <td><b :class="step.score > 0 ? 'pass' : 'fail'">{{ step.score }}</b></td>
+                <td><span class="admin-training-archive-pill" :class="step.isError ? 'red' : 'green'">{{ step.actual }}</span></td>
+                <td><b :class="step.isError ? 'fail' : 'pass'">{{ formatStepScore(step) }}</b></td>
                 <td>{{ step.seconds }}</td>
               </tr>
             </tbody>
@@ -117,42 +144,24 @@
 
         <aside class="admin-training-archive-video-card">
           <header><strong><i></i>实训操作视频</strong></header>
-          <button v-if="activeArchive?.recordingUrl" type="button" class="admin-training-archive-video" @click="openVideoPreview">
-            <span class="play"></span>
-            <span class="track"><b></b></span>
-            <em class="time start">00:00</em>
-            <em class="time end">{{ formatDuration(activeArchive?.durationSeconds) }}</em>
-            <span class="controls">
-              <i class="pause"></i>
-              <i class="volume"></i>
-              <i class="bar"></i>
-              <i class="screen"></i>
-            </span>
-          </button>
-          <el-empty v-else description="暂无实训操作视频" />
-        </aside>
-      </section>
-
-      <el-dialog v-model="videoVisible" class="admin-training-archive-video-dialog" width="780px" :show-close="false" append-to-body>
-        <template #header>
-          <div class="admin-training-archive-dialog-head">
-            <strong>{{ previewTitle }}</strong>
-            <el-button text circle :icon="Close" @click="videoVisible = false" />
+          <div v-if="activeArchive?.recordingUrl" class="admin-training-archive-player-shell">
+            <video
+              ref="archiveVideo"
+              class="admin-training-archive-player"
+              :src="activeArchive.recordingUrl"
+              controls
+              preload="metadata"
+              @loadedmetadata="syncActiveStep"
+              @timeupdate="syncActiveStep"
+              @seeked="syncActiveStep"
+            />
+            <p>{{ activeStepIndex >= 0 ? `当前步骤：${archiveSteps[activeStepIndex]?.name}` : '拖动进度条可同步定位操作步骤' }}</p>
           </div>
-        </template>
-        <button type="button" class="admin-training-archive-video is-dialog" @click="videoVisible = false">
-          <span class="play"></span>
-          <span class="track"><b></b></span>
-          <em class="time start">00:00</em>
-          <em class="time end">{{ formatDuration(activeArchive?.durationSeconds) }}</em>
-          <span class="controls">
-            <i class="pause"></i>
-            <i class="volume"></i>
-            <i class="bar"></i>
-            <i class="screen"></i>
-          </span>
-        </button>
-      </el-dialog>
+          <el-empty v-else description="本次实训未上传录屏，无法播放回放" />
+        </aside>
+          </section>
+        </div>
+      </section>
     </section>
   </AdminShell>
 </template>
@@ -160,8 +169,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Back, Close, Search } from '@element-plus/icons-vue';
+import { Back, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { resolvePublicUrl } from '../../api/http';
+import { fetchAdminScoreGradeRules, type AdminScoreGradeRule } from '../../api/admin-settings';
 import {
   fetchAdminTrainingArchiveDetail,
   fetchAdminTrainingArchives,
@@ -171,6 +182,7 @@ import {
 
 interface TrainingArchiveRow {
   id: number;
+  studentId: number;
   className: string;
   studentNo: string;
   studentName: string;
@@ -187,29 +199,46 @@ interface TrainingArchiveRow {
 }
 
 interface ArchiveStep {
+  id: number;
   name: string;
   expected: string;
   actual: string;
   score: number;
+  maxScore: number;
   seconds: number;
+  videoStartSecond: number;
+  videoEndSecond: number;
+  isError: boolean;
 }
 
 const page = ref(1);
 const pageSize = 10;
 const total = ref(0);
 const loading = ref(false);
+const detailLoading = ref(false);
 const viewMode = ref<'list' | 'detail'>('list');
 const activeArchive = ref<TrainingArchiveRow | null>(null);
-const videoVisible = ref(false);
-const previewTitle = ref('实训操作视频');
+const archiveVideo = ref<HTMLVideoElement>();
+const archiveStepBody = ref<HTMLElement>();
+const activeStepIndex = ref(-1);
 const draft = reactive({ className: '', studentNo: '', studentName: '' });
 const applied = ref({ ...draft });
 
 const archives = ref<TrainingArchiveRow[]>([]);
+const studentHistory = ref<TrainingArchiveRow[]>([]);
 const archiveSteps = ref<ArchiveStep[]>([]);
+const gradeRules = ref<AdminScoreGradeRule[]>([]);
 
 const classOptions = computed(() => Array.from(new Set(archives.value.map((item) => item.className))));
 const pagedArchives = computed(() => archives.value);
+const archiveErrorCount = computed(() => archiveSteps.value.filter((step) => step.isError).length);
+const archiveGrade = computed(() => {
+  const total = archiveSteps.value.reduce((sum, step) => sum + step.maxScore, 0);
+  const score = Number(activeArchive.value?.personalScore || 0);
+  if (total <= 0 || gradeRules.value.length === 0) return '-';
+  const percentage = (score / total) * 100;
+  return gradeRules.value.find((rule) => percentage >= rule.minScore && percentage <= rule.maxScore)?.gradeName || '-';
+});
 
 function applyFilters() {
   applied.value = { ...draft };
@@ -223,37 +252,102 @@ function resetFilters() {
 }
 
 async function openDetail(row: TrainingArchiveRow) {
+  viewMode.value = 'detail';
+  activeArchive.value = row;
+  studentHistory.value = [row];
+  try {
+    studentHistory.value = await loadStudentHistory(row.studentId);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '实训历史记录加载失败');
+  }
+  await selectHistory(row);
+}
+
+async function loadStudentHistory(studentId: number) {
+  const records: TrainingArchiveRow[] = [];
+  let historyPage = 1;
+  let historyTotal = 0;
+  do {
+    const result = await fetchAdminTrainingArchives({ studentId, page: historyPage, pageSize: 100 });
+    const pageRecords = result.records.map(mapArchive);
+    records.push(...pageRecords);
+    historyTotal = result.total;
+    historyPage += 1;
+    if (pageRecords.length === 0) break;
+  } while (records.length < historyTotal);
+  return records;
+}
+
+async function selectHistory(row: TrainingArchiveRow) {
+  archiveVideo.value?.pause();
+  detailLoading.value = true;
   try {
     const detail = await fetchAdminTrainingArchiveDetail(row.id);
     activeArchive.value = mapArchive(detail);
     archiveSteps.value = (detail.steps || []).map(mapStep);
+    activeStepIndex.value = -1;
   } catch (error) {
-    activeArchive.value = row;
-    archiveSteps.value = [];
     ElMessage.error(error instanceof Error ? error.message : '实训档案详情加载失败');
+  } finally {
+    detailLoading.value = false;
   }
-  viewMode.value = 'detail';
+}
+
+async function loadGradeRules() {
+  try {
+    gradeRules.value = await fetchAdminScoreGradeRules();
+  } catch (error) {
+    gradeRules.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '成绩等级配置加载失败');
+  }
 }
 
 function backToList() {
+  archiveVideo.value?.pause();
   viewMode.value = 'list';
 }
 
-function openVideoPreview() {
-  const recordingUrl = activeArchive.value?.recordingUrl;
-  if (!recordingUrl) {
-    return;
-  }
-  window.open(recordingUrl, '_blank', 'noopener');
-}
-
-function openStepVideo(step: ArchiveStep) {
+async function seekStep(step: ArchiveStep, index: number) {
   if (!activeArchive.value?.recordingUrl) {
     ElMessage.info('暂无该步骤的操作视频');
     return;
   }
-  previewTitle.value = `${step.name} - 操作视频`;
-  videoVisible.value = true;
+  const video = archiveVideo.value;
+  if (!video) return;
+  video.currentTime = Math.max(0, step.videoStartSecond);
+  setActiveStep(index);
+  try {
+    await video.play();
+  } catch {
+    ElMessage.info('浏览器已阻止自动播放，请点击播放器开始播放');
+  }
+}
+
+function syncActiveStep() {
+  const video = archiveVideo.value;
+  if (!video || !archiveSteps.value.length) return;
+  const currentTime = video.currentTime;
+  let matchedIndex = -1;
+  archiveSteps.value.forEach((step, index) => {
+    const nextStart = archiveSteps.value[index + 1]?.videoStartSecond;
+    const end = step.videoEndSecond > step.videoStartSecond
+      ? step.videoEndSecond
+      : (nextStart ?? Number.POSITIVE_INFINITY);
+    if (currentTime >= step.videoStartSecond && currentTime < end) matchedIndex = index;
+  });
+  if (matchedIndex < 0) {
+    archiveSteps.value.forEach((step, index) => {
+      if (currentTime >= step.videoStartSecond) matchedIndex = index;
+    });
+  }
+  if (matchedIndex >= 0 && matchedIndex !== activeStepIndex.value) setActiveStep(matchedIndex);
+}
+
+function setActiveStep(index: number) {
+  activeStepIndex.value = index;
+  requestAnimationFrame(() => {
+    archiveStepBody.value?.querySelectorAll('tr')[index]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
 }
 
 async function loadArchives() {
@@ -283,6 +377,7 @@ function mapArchive(item: AdminTrainingArchive): TrainingArchiveRow {
   const title = item.trainingName || '-';
   return {
     id: item.archiveId,
+    studentId: Number(item.studentId || 0),
     className: item.className || '-',
     studentNo: item.studentNo || '-',
     studentName: item.studentName || '-',
@@ -295,18 +390,29 @@ function mapArchive(item: AdminTrainingArchive): TrainingArchiveRow {
     durationSeconds: Number(item.durationSeconds || 0),
     personalScore: formatScore(item.personalScore),
     teamScore: item.teamScore === undefined || item.teamScore === null ? '-' : formatScore(item.teamScore),
-    recordingUrl: (item as { recordingUrl?: string }).recordingUrl
+    recordingUrl: resolvePublicUrl((item as { recordingUrl?: string }).recordingUrl)
   };
 }
 
 function mapStep(step: AdminTrainingArchiveStep): ArchiveStep {
+  const score = Number(step.score || 0);
+  const maxScore = Number(step.maxScore || 0);
   return {
+    id: Number(step.stepId || 0),
     name: step.stepName || '-',
     expected: step.standardOperation || '-',
     actual: step.actualOperation || '-',
-    score: Number(step.score || 0),
-    seconds: Number(step.durationSeconds || 0)
+    score,
+    maxScore,
+    seconds: Number(step.durationSeconds || 0),
+    videoStartSecond: Number(step.videoStartSecond || 0),
+    videoEndSecond: Number(step.videoEndSecond || 0),
+    isError: maxScore > 0 ? score < maxScore : false
   };
+}
+
+function formatStepScore(step: ArchiveStep) {
+  return step.maxScore > 0 ? `${formatScore(step.score)} / ${formatScore(step.maxScore)}` : formatScore(step.score);
 }
 
 function formatDateTime(value?: string) {
@@ -321,14 +427,8 @@ function formatScore(value?: number | string) {
   return Number.isInteger(score) ? String(score) : score.toFixed(1);
 }
 
-function formatDuration(value?: number) {
-  const totalSeconds = Math.max(0, Math.round(Number(value || 0)));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
 onMounted(() => {
   void loadArchives();
+  void loadGradeRules();
 });
 </script>

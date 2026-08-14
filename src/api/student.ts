@@ -221,6 +221,7 @@ interface BackendArchiveStep {
   maxScore?: number;
   durationSeconds?: number;
   videoStartSecond?: number;
+  videoEndSecond?: number;
 }
 
 interface BackendArchiveDetail extends BackendArchive {
@@ -510,7 +511,8 @@ function mapArchiveStep(step: BackendArchiveStep): TrainingArchiveStep {
     score: Number(step.score ?? 0),
     maxScore: Number(step.maxScore ?? 0),
     durationSeconds: step.durationSeconds ?? 0,
-    videoStartSecond: step.videoStartSecond
+    videoStartSecond: step.videoStartSecond,
+    videoEndSecond: step.videoEndSecond
   };
 }
 

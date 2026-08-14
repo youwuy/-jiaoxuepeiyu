@@ -1985,6 +1985,20 @@ Response `data`: `PageResponse` of immutable training attempt archive rows.
 
 Response `data`: archive detail with student, class, training, scores, recording URL, and ordered step records.
 
+Each `steps[]` item:
+
+- `stepId`
+- `stepName`
+- `standardOperation`
+- `actualOperation`
+- `score`
+- `maxScore`
+- `durationSeconds`
+- `videoStartSecond`
+- `videoEndSecond`
+
+`videoStartSecond` and `videoEndSecond` bind each operation step to its recording interval. Management playback uses these persisted timestamps to seek to a selected step and to highlight the active step while the video plays.
+
 Archive rows are created by UE result callbacks documented in `docs/ue-api-contract.md`.
 
 ### `GET /api/admin/archives/statistics`

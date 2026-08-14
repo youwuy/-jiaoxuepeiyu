@@ -180,7 +180,8 @@ Request body:
       "score": 10,
       "maxScore": 10,
       "durationSeconds": 40,
-      "videoStartSecond": 5
+      "videoStartSecond": 5,
+      "videoEndSecond": 45
     }
   ]
 }
@@ -198,7 +199,7 @@ Behavior:
 
 - Defaults `submitType` to `NORMAL`.
 - `clientAttemptId` is optional but strongly recommended. Repeating the same value for the same student and training returns the original archive id without creating duplicate scores.
-- Defaults missing duration fields to `0`.
+- Defaults missing duration and video timeline fields to `0`; video start/end must be supplied together, and `videoEndSecond` cannot be before `videoStartSecond`.
 - Each step requires `score` and `maxScore`; both must be between `0` and `100`, `maxScore` must be greater than `0`, and `score` cannot exceed `maxScore`.
 - Inserts one immutable `training_attempt` row and ordered `training_attempt_step` rows.
 - Step score and maximum score are used by management statistics to calculate the weak-step error rate as `1 - sum(score) / sum(maxScore)`.

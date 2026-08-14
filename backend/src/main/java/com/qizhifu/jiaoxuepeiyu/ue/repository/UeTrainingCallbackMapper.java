@@ -71,13 +71,14 @@ public interface UeTrainingCallbackMapper {
 
     @Insert("INSERT INTO training_attempt_step "
             + "(attempt_id, step_name, standard_operation, actual_operation, score, max_score, duration_seconds, "
-            + "video_start_second, sort_order, created_at) "
+            + "video_start_second, video_end_second, sort_order, created_at) "
             + "VALUES (#{attemptId}, #{step.stepName}, #{step.standardOperation}, #{step.actualOperation}, "
-            + "#{step.score}, #{step.maxScore}, #{durationSeconds}, #{videoStartSecond}, #{sortOrder}, NOW())")
+            + "#{step.score}, #{step.maxScore}, #{durationSeconds}, #{videoStartSecond}, #{videoEndSecond}, #{sortOrder}, NOW())")
     void insertAttemptStep(@Param("attemptId") Long attemptId,
                            @Param("step") TrainingAttemptStepCommand step,
                            @Param("durationSeconds") int durationSeconds,
                            @Param("videoStartSecond") int videoStartSecond,
+                           @Param("videoEndSecond") int videoEndSecond,
                            @Param("sortOrder") int sortOrder);
 
     @Select("SELECT id FROM edu_semester ORDER BY current_flag DESC, id DESC LIMIT 1")

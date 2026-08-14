@@ -52,7 +52,7 @@ public class MyBatisUeTrainingCallbackRepository implements UeTrainingCallbackRe
     @Override
     public void insertAttemptStep(Long attemptId, TrainingAttemptStepCommand step, int sortOrder) {
         mapper.insertAttemptStep(attemptId, step, defaultInteger(step.getDurationSeconds()),
-                defaultInteger(step.getVideoStartSecond()), sortOrder);
+                defaultInteger(step.getVideoStartSecond()), defaultInteger(step.getVideoEndSecond()), sortOrder);
     }
 
     @Override

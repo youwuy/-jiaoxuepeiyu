@@ -184,6 +184,14 @@ public class UeTrainingCallbackService {
             }
             assertNonNegative(step.getDurationSeconds(), "Step duration seconds is invalid");
             assertNonNegative(step.getVideoStartSecond(), "Step video start second is invalid");
+            assertNonNegative(step.getVideoEndSecond(), "Step video end second is invalid");
+            if ((step.getVideoStartSecond() == null) != (step.getVideoEndSecond() == null)) {
+                throw new BusinessException(400, "Step video time range is incomplete");
+            }
+            if (step.getVideoStartSecond() != null && step.getVideoEndSecond() != null
+                    && step.getVideoEndSecond().intValue() < step.getVideoStartSecond().intValue()) {
+                throw new BusinessException(400, "Step video end second cannot be before start second");
+            }
         }
     }
 

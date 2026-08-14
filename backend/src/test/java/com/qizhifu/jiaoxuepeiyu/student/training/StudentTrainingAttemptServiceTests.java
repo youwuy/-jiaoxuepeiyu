@@ -40,6 +40,8 @@ class StudentTrainingAttemptServiceTests {
         step.setStepName("Power on");
         step.setScore(new BigDecimal("10"));
         step.setMaxScore(new BigDecimal("10"));
+        step.setVideoStartSecond(0);
+        step.setVideoEndSecond(40);
         request.setSteps(Arrays.asList(step));
 
         Long attemptId = service.submitAttempt(7L, request);

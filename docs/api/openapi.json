@@ -7122,11 +7122,18 @@
           "score": {
             "type": "number"
           },
+          "maxScore": {
+            "type": "number"
+          },
           "durationSeconds": {
             "type": "integer",
             "format": "int32"
           },
           "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoEndSecond": {
             "type": "integer",
             "format": "int32"
           },
@@ -8437,11 +8444,18 @@
           "score": {
             "type": "number"
           },
+          "maxScore": {
+            "type": "number"
+          },
           "durationSeconds": {
             "type": "integer",
             "format": "int32"
           },
           "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoEndSecond": {
             "type": "integer",
             "format": "int32"
           }
@@ -12562,11 +12576,18 @@
           "score": {
             "type": "number"
           },
+          "maxScore": {
+            "type": "number"
+          },
           "durationSeconds": {
             "type": "integer",
             "format": "int32"
           },
           "videoStartSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "videoEndSecond": {
             "type": "integer",
             "format": "int32"
           }

@@ -12,6 +12,7 @@ public class StudentTrainingArchiveStep {
     private BigDecimal maxScore;
     private int durationSeconds;
     private int videoStartSecond;
+    private int videoEndSecond;
 
     public Long getStepId() {
         return stepId;
@@ -71,4 +72,7 @@ public class StudentTrainingArchiveStep {
     public void setVideoStartSecond(int videoStartSecond) {
         this.videoStartSecond = videoStartSecond;
     }
+
+    public int getVideoEndSecond() { return videoEndSecond; }
+    public void setVideoEndSecond(int videoEndSecond) { this.videoEndSecond = videoEndSecond; }
 }

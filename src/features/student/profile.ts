@@ -47,6 +47,7 @@ export interface TrainingArchiveStep {
   maxScore: number;
   durationSeconds: number;
   videoStartSecond?: number;
+  videoEndSecond?: number;
 }
 
 export interface TrainingArchiveDetail extends TrainingArchive {

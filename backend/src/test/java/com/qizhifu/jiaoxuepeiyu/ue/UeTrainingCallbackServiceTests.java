@@ -81,6 +81,7 @@ class UeTrainingCallbackServiceTests {
         firstStep.setMaxScore(new BigDecimal("10"));
         firstStep.setDurationSeconds(40);
         firstStep.setVideoStartSecond(5);
+        firstStep.setVideoEndSecond(45);
         command.setSteps(Arrays.asList(firstStep));
 
         Long attemptId = service.submitAttempt(7L, 15L, 31L, command);
@@ -94,6 +95,7 @@ class UeTrainingCallbackServiceTests {
         assertEquals(Long.valueOf(101L), repository.steps.get(0).getAttemptId());
         assertEquals("Power on", repository.steps.get(0).getStepName());
         assertEquals(new BigDecimal("10"), repository.steps.get(0).getMaxScore());
+        assertEquals(Integer.valueOf(45), repository.steps.get(0).getVideoEndSecond());
         assertEquals("SUBMITTED", repository.snapshot.getProgressStatus());
         assertEquals(new BigDecimal("92.5"), repository.snapshot.getScore());
         assertEquals(new BigDecimal("88.0"), repository.snapshot.getTeamScore());
@@ -116,6 +118,39 @@ class UeTrainingCallbackServiceTests {
                 () -> service.submitAttempt(7L, 15L, 31L, command));
 
         assertEquals("Step max score is required", exception.getMessage());
+    }
+
+    @Test
+    void rejectsIncompleteStepVideoTimeRange() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+        TrainingAttemptCommand command = new TrainingAttemptCommand();
+        TrainingAttemptStepCommand step = validStep();
+        step.setVideoStartSecond(5);
+        command.setSteps(Arrays.asList(step));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.submitAttempt(7L, 15L, 31L, command));
+
+        assertEquals("Step video time range is incomplete", exception.getMessage());
+    }
+
+    @Test
+    void rejectsStepVideoEndBeforeStart() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+        TrainingAttemptCommand command = new TrainingAttemptCommand();
+        TrainingAttemptStepCommand step = validStep();
+        step.setVideoStartSecond(45);
+        step.setVideoEndSecond(5);
+        command.setSteps(Arrays.asList(step));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.submitAttempt(7L, 15L, 31L, command));
+
+        assertEquals("Step video end second cannot be before start second", exception.getMessage());
     }
 
     @Test
@@ -182,6 +217,14 @@ class UeTrainingCallbackServiceTests {
         task.setTeamSize(2);
         task.setAiRoleNames(Collections.singletonList("Safety Officer"));
         return task;
+    }
+
+    private TrainingAttemptStepCommand validStep() {
+        TrainingAttemptStepCommand step = new TrainingAttemptStepCommand();
+        step.setStepName("Power on");
+        step.setScore(new BigDecimal("10"));
+        step.setMaxScore(new BigDecimal("10"));
+        return step;
     }
 
     private static class FakeCallbacks implements UeTrainingCallbackRepository {

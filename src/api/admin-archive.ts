@@ -12,6 +12,8 @@ export interface PageResponse<T> {
 
 export interface AdminTrainingArchive {
   archiveId: number;
+  trainingId?: number;
+  studentId?: number;
   trainingName?: string;
   trainingMode?: string;
   studentName?: string;
@@ -34,6 +36,7 @@ export interface AdminTrainingArchiveStep {
   maxScore?: number;
   durationSeconds?: number;
   videoStartSecond?: number;
+  videoEndSecond?: number;
 }
 
 export interface AdminTrainingArchiveDetail extends AdminTrainingArchive {
@@ -42,6 +45,11 @@ export interface AdminTrainingArchiveDetail extends AdminTrainingArchive {
 }
 
 export interface AdminTrainingArchiveQuery {
+  studentId?: number;
+  classId?: number;
+  trainingId?: number;
+  trainingMode?: string;
+  submitType?: string;
   keyword?: string;
   page?: number;
   pageSize?: number;
