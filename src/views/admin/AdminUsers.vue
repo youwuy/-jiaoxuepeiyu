@@ -296,7 +296,7 @@
                       <th>{{ activeKind === 'teacher' ? '工号' : '学号' }}</th>
                       <th>手机号</th>
                       <th v-if="activeKind === 'teacher'">岗位</th>
-                      <th>所属组织</th>
+                      <th v-if="activeKind === 'teacher'">所属组织</th>
                       <th v-if="activeKind === 'teacher'">管理组织</th>
                       <th>{{ activeKind === 'teacher' ? '授课班级' : '班级' }}</th>
                       <th v-if="activeKind === 'teacher'">角色</th>
@@ -314,7 +314,7 @@
                       <td>{{ row.accountNo }}</td>
                       <td>{{ row.maskedPhone || row.phone || '-' }}</td>
                       <td v-if="activeKind === 'teacher'">{{ row.jobTitle || '-' }}</td>
-                      <td class="wrap-cell">{{ row.orgName || '-' }}</td>
+                      <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ row.orgName || '-' }}</td>
                       <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ orgNames(row.managedOrgIds) }}</td>
                       <td class="wrap-cell">{{ activeKind === 'teacher' ? classNames(row.teachingClassIds) : row.className || '-' }}</td>
                       <td v-if="activeKind === 'teacher'" class="wrap-cell">{{ compactList(row.roleNames) }}</td>
@@ -457,7 +457,7 @@
           <el-button text circle :icon="Close" @click="roleVisible = false" />
         </div>
       </template>
-      <el-select v-model="roleFormId" class="admin-users-full-select" placeholder="请选择角色">
+      <el-select v-model="roleFormIds" class="admin-users-full-select" placeholder="请选择角色" multiple collapse-tags collapse-tags-tooltip>
         <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
       </el-select>
       <template #footer>
@@ -503,7 +503,7 @@
         <input ref="importFileInput" type="file" accept=".xlsx,.csv,.txt" @change="handleImportFile" />
         <el-icon><UploadFilled /></el-icon>
         <strong>{{ importFileName || '点击上传或拖拽文件到此处' }}</strong>
-        <span>教师支持 xlsx，学员支持 csv/txt，文件大小不超过10MB</span>
+        <span>支持 xlsx/csv/txt，文件大小不超过10MB</span>
       </label>
       <div v-if="importPreview" class="admin-users-import-preview">
         <div v-for="row in importPreview.rows.slice(0, 5)" :key="row.rowNo" :class="{ error: row.valid === false }">
@@ -523,7 +523,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Camera, Close, Plus, Pointer, Search, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
@@ -592,7 +592,7 @@ const detailAccount = ref<AdminAccount | null>(null);
 const roleVisible = ref(false);
 const roleAccount = ref<AdminAccount | null>(null);
 const roleMode = ref<'single' | 'batch'>('single');
-const roleFormId = ref<number | null>(null);
+const roleFormIds = ref<number[]>([]);
 const batchOrgVisible = ref(false);
 const batchOrgId = ref<number | null>(null);
 const resetVisible = ref(false);
@@ -625,6 +625,15 @@ const emptyForm = (): AdminAccountCommand => ({
 const form = reactive<AdminAccountCommand>(emptyForm());
 const activeKindLabel = computed(() => accountKindLabel(activeKind.value));
 const orgOptions = computed(() => flattenOrgOptions(orgTree.value));
+function mapOrgTree(nodes: AdminOrgNode[]): Array<AdminOrgNode & { disabled?: boolean }> {
+  return nodes.map((node) => ({
+    ...node,
+    orgName: node.enabled ? node.orgName : `${node.orgName} (已禁用)`,
+    disabled: !node.enabled,
+    children: mapOrgTree(node.children ?? [])
+  }));
+}
+
 const orgTreeWithAll = computed(() => [
   {
     orgId: 0,
@@ -632,12 +641,35 @@ const orgTreeWithAll = computed(() => [
     parentId: null,
     sortOrder: 0,
     enabled: true,
-    children: orgTree.value
+    children: mapOrgTree(orgTree.value)
   }
 ]);
 const visibleAccounts = computed(() => accounts.value);
 const allCurrentSelected = computed(() => visibleAccounts.value.length > 0 && visibleAccounts.value.every((row) => selectedIds.value.includes(row.userId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);
+
+const accountState = {
+  teacher: { query: {} as AdminAccountQuery, draft: { enabled: null } as AdminAccountQuery, page: 1, pageSize: 20, selectedIds: [] as number[], orgId: 0 },
+  student: { query: {} as AdminAccountQuery, draft: { enabled: null } as AdminAccountQuery, page: 1, pageSize: 20, selectedIds: [] as number[], orgId: 0 }
+};
+
+function saveAccountState(kind: AdminAccountKind) {
+  accountState[kind].query = { ...query };
+  accountState[kind].draft = { ...draft };
+  accountState[kind].page = page.page;
+  accountState[kind].pageSize = page.pageSize;
+  accountState[kind].selectedIds = [...selectedIds.value];
+  accountState[kind].orgId = selectedOrgId.value;
+}
+
+function restoreAccountState(kind: AdminAccountKind) {
+  Object.assign(query, accountState[kind].query);
+  Object.assign(draft, { enabled: null }, accountState[kind].draft);
+  page.page = accountState[kind].page;
+  page.pageSize = accountState[kind].pageSize;
+  selectedIds.value = [...accountState[kind].selectedIds];
+  selectedOrgId.value = accountState[kind].orgId;
+}
 
 function applyForm(next: AdminAccountCommand) {
   Object.assign(form, emptyForm(), next);
@@ -672,16 +704,18 @@ async function loadOptions() {
   }
 
   try {
-    roleOptions.value = normalizeRoleOptions(await fetchAdminRoles());
+    roleOptions.value = normalizeRoleOptions(await fetchAdminRoles()).filter(
+      (role) => role.enabled !== false && role.roleCode !== 'super_admin' && role.roleName !== '超级管理员'
+    );
   } catch (error) {
     roleOptions.value = [];
     ElMessage.error(error instanceof Error ? error.message : '角色选项加载失败');
   }
 }
 
-async function loadAccounts() {
+async function loadAccounts(clearSelection = true) {
   loading.value = true;
-  selectedIds.value = [];
+  if (clearSelection) selectedIds.value = [];
   try {
     const result = await fetchAdminAccounts(activeKind.value, currentQuery());
     accounts.value = result.records;
@@ -689,6 +723,7 @@ async function loadAccounts() {
     page.page = result.page;
     page.pageSize = result.pageSize;
     updateTabCount(result.total);
+    saveAccountState(activeKind.value);
   } catch (error) {
     accounts.value = [];
     page.total = 0;
@@ -719,15 +754,14 @@ function updateTabCount(total: number) {
 }
 
 function switchKind(kind: AdminAccountKind) {
+  if (activeKind.value === kind) return;
+  saveAccountState(activeKind.value);
   teacherFormPageVisible.value = false;
   studentFormPageVisible.value = false;
   detailPageVisible.value = false;
   activeKind.value = kind;
-  page.page = 1;
-  Object.assign(query, {});
-  selectedOrgId.value = 0;
-  Object.assign(draft, { realName: '', accountNo: '', phone: '', jobTitle: '', orgId: null, classId: null, enabled: null });
-  loadAccounts();
+  restoreAccountState(kind);
+  loadAccounts(false);
 }
 
 function applySearch() {
@@ -741,6 +775,7 @@ function applySearch() {
     enabled: draft.enabled
   });
   page.page = 1;
+  selectedIds.value = [];
   loadAccounts();
 }
 
@@ -749,6 +784,7 @@ function resetSearch() {
   Object.assign(draft, { realName: '', accountNo: '', phone: '', jobTitle: '', orgId: null, classId: null, enabled: null });
   Object.assign(query, { realName: undefined, accountNo: undefined, phone: undefined, jobTitle: undefined, orgId: undefined, classId: undefined, enabled: undefined });
   page.page = 1;
+  selectedIds.value = [];
   loadAccounts();
 }
 
@@ -920,7 +956,7 @@ function closeDetailPage() {
 function openRole(row: AdminAccount) {
   roleMode.value = 'single';
   roleAccount.value = row;
-  roleFormId.value = row.roleIds?.[0] ?? null;
+  roleFormIds.value = [...(row.roleIds ?? [])];
   roleVisible.value = true;
 }
 
@@ -931,7 +967,7 @@ function openBatchRole() {
   }
   roleMode.value = 'batch';
   roleAccount.value = null;
-  roleFormId.value = null;
+  roleFormIds.value = [];
   roleVisible.value = true;
 }
 
@@ -939,16 +975,16 @@ async function saveRole() {
   if (roleMode.value === 'single' && !roleAccount.value) {
     return;
   }
-  if (!roleFormId.value) {
+  if (!roleFormIds.value.length) {
     ElMessage.warning('请选择角色');
     return;
   }
   saving.value = true;
   try {
     if (roleMode.value === 'batch') {
-      await Promise.all(selectedIds.value.map((userId) => updateAdminTeacherRoles(userId, [roleFormId.value as number])));
+      await Promise.all(selectedIds.value.map((userId) => updateAdminTeacherRoles(userId, roleFormIds.value)));
     } else if (roleAccount.value) {
-      await updateAdminTeacherRoles(roleAccount.value.userId, [roleFormId.value]);
+      await updateAdminTeacherRoles(roleAccount.value.userId, roleFormIds.value);
     }
     ElMessage.success('角色设置成功');
     roleVisible.value = false;
@@ -975,6 +1011,7 @@ function selectOrg(node: AdminOrgNode & { orgId: number }) {
   draft.orgId = node.orgId === 0 ? null : node.orgId;
   query.orgId = node.orgId === 0 ? undefined : node.orgId;
   page.page = 1;
+  selectedIds.value = [];
   loadAccounts();
 }
 
@@ -1046,6 +1083,15 @@ async function saveBatchOrg() {
     ElMessage.warning('请选择所属组织');
     return;
   }
+  try {
+    await ElMessageBox.confirm(
+      `确认将选中 ${selectedIds.value.length} 条数据批量变更至所选组织，操作不可回退`,
+      '批量设置所属组织',
+      { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' }
+    );
+  } catch {
+    return;
+  }
   saving.value = true;
   try {
     await updateAdminAccountOrg(selectedIds.value, batchOrgId.value);
@@ -1078,14 +1124,10 @@ function downloadImportTemplate() {
     link.click();
     return;
   }
-  const header = '学号,姓名,手机号,所在班级,所属组织';
-  const blob = new Blob([`${header}\n`], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${activeKindLabel.value}导入模板.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  const worksheet = XLSX.utils.aoa_to_sheet([['学号', '姓名', '手机号', '所在班级']]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '学员信息');
+  XLSX.writeFile(workbook, '学员导入表格.xlsx');
 }
 
 async function handleImportFile(event: Event) {
@@ -1105,6 +1147,15 @@ async function handleImportFile(event: Event) {
       await previewImportRows();
     } catch (error) {
       ElMessage.error(error instanceof Error ? error.message : '教师模板读取失败');
+    }
+    return;
+  }
+  if (activeKind.value === 'student' && /\.xlsx?$/i.test(file.name)) {
+    try {
+      importText.value = JSON.stringify(parseStudentWorkbook(await file.arrayBuffer()));
+      await previewImportRows();
+    } catch (error) {
+      ElMessage.error(error instanceof Error ? error.message : '学员模板读取失败');
     }
     return;
   }
@@ -1147,6 +1198,30 @@ function parseTeacherWorkbook(buffer: ArrayBuffer): AdminAccountImportRow[] {
   }).filter((row) => row.accountNo || row.realName || row.phone);
 }
 
+function parseStudentWorkbook(buffer: ArrayBuffer): AdminAccountImportRow[] {
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) return [];
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', raw: false });
+  const headerIndex = matrix.findIndex((row) => {
+    const headers = row.map((cell) => String(cell ?? '').replace(/[\s*＊]/g, ''));
+    return headers.includes('学号') && headers.includes('姓名') && headers.includes('所在班级');
+  });
+  if (headerIndex < 0) throw new Error('未找到“学号、姓名、所在班级”表头，请使用学员导入模板');
+  const headers = matrix[headerIndex].map((cell) => String(cell ?? '').replace(/[\s*＊]/g, ''));
+  return matrix.slice(headerIndex + 1).map((values, index) => {
+    const row = Object.fromEntries(headers.map((header, column) => [header, String(values[column] ?? '').trim()]));
+    const read = (...names: string[]) => names.map((name) => row[name.replace(/[\s*＊]/g, '')]).find(Boolean) || '';
+    return {
+      rowNo: headerIndex + index + 2,
+      accountNo: read('学号'),
+      realName: read('姓名'),
+      phone: read('手机号'),
+      classId: resolveClassId(read('所在班级'))
+    };
+  }).filter((row) => row.accountNo || row.realName || row.phone);
+}
+
 function resolveOrgId(path: string): number | undefined {
   if (!path) return undefined;
   const names = path.split('/').map((item) => item.trim()).filter(Boolean);
@@ -1159,7 +1234,7 @@ function resolveClassId(name: string): number | undefined {
 }
 
 function parseImportRows(): AdminAccountImportRow[] {
-  if (activeKind.value === 'teacher' && importText.value.trim().startsWith('[')) {
+  if (importText.value.trim().startsWith('[')) {
     try {
       return JSON.parse(importText.value) as AdminAccountImportRow[];
     } catch {
@@ -1172,8 +1247,8 @@ function parseImportRows(): AdminAccountImportRow[] {
     .filter(Boolean)
     .filter((line, index) => index > 0 || !/^(工号|学号),姓名,手机号/.test(line))
     .map((line, index) => {
-      const [accountNo = '', realName = '', phone = ''] = line.split(',').map((item) => item.trim());
-      return { rowNo: index + 1, accountNo, realName, phone };
+      const [accountNo = '', realName = '', phone = '', className = ''] = line.split(',').map((item) => item.trim());
+      return { rowNo: index + 1, accountNo, realName, phone, classId: resolveClassId(className) };
     })
     .filter((row) => row.accountNo || row.realName || row.phone);
 }
