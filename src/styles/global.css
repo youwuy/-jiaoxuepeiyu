@@ -1765,6 +1765,38 @@ a {
   margin-top: 18px;
 }
 
+.admin-permission-dialog .el-dialog {
+  margin: 0 auto;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-permission-dialog .el-dialog__header {
+  margin: 0;
+  padding: 22px 24px 0;
+}
+
+.admin-permission-dialog .el-dialog__body {
+  padding: 0 24px 4px;
+}
+
+.admin-permission-dialog .el-dialog__footer {
+  padding: 0 24px 22px;
+}
+
+.admin-permission-dialog .admin-permission-panel-head {
+  margin-bottom: 0;
+}
+
+.admin-permission-dialog .admin-permission-form {
+  padding-top: 20px;
+}
+
+.admin-permission-dialog .admin-permission-panel-footer {
+  margin-top: 0;
+}
+
 .admin-permission-dialog-cancel.el-button,
 .admin-permission-dialog-confirm.el-button {
   width: 72px;

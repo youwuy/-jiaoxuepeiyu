@@ -8,7 +8,7 @@
         <el-breadcrumb-item>功能管理</el-breadcrumb-item>
       </el-breadcrumb>
 
-      <div class="admin-permission-layout" :class="{ 'has-panel': drawerVisible }">
+      <div class="admin-permission-layout">
         <section class="admin-permission-board">
           <header class="admin-permission-board-head">
             <strong>菜单权限树</strong>
@@ -128,50 +128,63 @@
           </section>
         </section>
 
-        <aside v-if="drawerVisible" class="admin-permission-panel">
+      </div>
+
+      <el-dialog
+        v-model="drawerVisible"
+        class="admin-permission-dialog"
+        width="560px"
+        :show-close="false"
+        :close-on-click-modal="false"
+        :close-on-press-escape="true"
+        append-to-body
+      >
+        <template #header>
           <div class="admin-permission-panel-head">
             <div>
               <strong>{{ dialogTitle }}</strong>
               <p>维护菜单层级、路由地址和显示状态</p>
             </div>
-            <el-button text circle :icon="Close" @click="closeDrawer" />
+            <el-button text circle :icon="Close" aria-label="关闭" @click="closeDrawer" />
+          </div>
+        </template>
+
+        <div class="admin-permission-form">
+          <div class="admin-permission-field">
+            <span>菜单类型 <b>*</b></span>
+            <el-radio-group v-model="form.permissionType" class="admin-permission-radio-row">
+              <el-radio label="MENU">一级菜单</el-radio>
+              <el-radio label="PAGE">二级菜单</el-radio>
+              <el-radio label="BUTTON">功能按钮</el-radio>
+            </el-radio-group>
           </div>
 
-          <div class="admin-permission-form">
-            <div class="admin-permission-field">
-              <span>菜单类型 <b>*</b></span>
-              <el-radio-group v-model="form.permissionType" class="admin-permission-radio-row">
-                <el-radio label="MENU">目录</el-radio>
-                <el-radio label="PAGE">菜单</el-radio>
-                <el-radio label="BUTTON">按钮</el-radio>
-              </el-radio-group>
-            </div>
+          <label class="admin-permission-field">
+            <span>所属父级菜单</span>
+            <el-select v-model="form.parentId" clearable placeholder="请选择父级菜单" :disabled="form.permissionType === 'MENU'">
+              <el-option label="无上级菜单" :value="null" />
+              <el-option v-for="item in parentOptions" :key="item.permissionId" :label="item.label" :value="item.permissionId" />
+            </el-select>
+          </label>
 
-            <label class="admin-permission-field">
-              <span>所属父级菜单</span>
-              <el-select v-model="form.parentId" clearable placeholder="请选择父级菜单" :disabled="form.permissionType === 'MENU'">
-                <el-option label="无上级菜单" :value="null" />
-                <el-option v-for="item in parentOptions" :key="item.permissionId" :label="item.label" :value="item.permissionId" />
-              </el-select>
-            </label>
+          <label class="admin-permission-field">
+            <span>菜单名称 <b>*</b></span>
+            <el-input v-model="form.permissionName" maxlength="8" show-word-limit placeholder="请输入菜单名称" @input="syncPermissionCode" />
+          </label>
 
-            <label class="admin-permission-field">
-              <span>菜单名称 <b>*</b></span>
-              <el-input v-model="form.permissionName" maxlength="8" placeholder="请输入菜单名称" @input="syncPermissionCode" />
-            </label>
+          <label v-if="form.permissionType !== 'BUTTON'" class="admin-permission-field">
+            <span>路由地址 <b>*</b></span>
+            <el-input v-model="form.routePath" maxlength="100" show-word-limit placeholder="请输入路由地址" />
+          </label>
+        </div>
 
-            <label class="admin-permission-field">
-              <span>路由地址 <b>*</b></span>
-              <el-input v-model="form.routePath" maxlength="100" placeholder="请输入路由地址" />
-            </label>
-          </div>
-
+        <template #footer>
           <div class="admin-permission-panel-footer">
             <el-button class="admin-permission-dialog-cancel" @click="closeDrawer">取消</el-button>
             <el-button class="admin-permission-dialog-confirm" type="primary" :loading="saving" @click="savePermission">确定</el-button>
           </div>
-        </aside>
-      </div>
+        </template>
+      </el-dialog>
     </section>
   </AdminShell>
 </template>
@@ -264,6 +277,7 @@ watch(
         form.parentId = defaultParent?.permissionId ?? null;
       }
     } else if (nextType === 'BUTTON') {
+      form.routePath = '';
       const parent = form.parentId ? findAdminPermissionById(permissionTree.value, form.parentId) : null;
       if (!parent || parent.permissionType === 'MENU') {
         const defaultParent =
@@ -477,10 +491,6 @@ function validateForm(): AdminPermissionCommand {
   if (form.permissionType !== 'BUTTON' && !routePath) {
     throw new Error('请输入路由地址');
   }
-  if (form.permissionType === 'BUTTON' && !routePath) {
-    throw new Error('请输入按钮权限标识');
-  }
-
   return {
     parentId: form.permissionType === 'MENU' ? null : form.parentId ?? null,
     permissionName,
@@ -539,6 +549,11 @@ async function toggleVisible(row: AdminPermissionRow) {
 }
 
 async function removePermission(row: AdminPermissionRow) {
+  if (row.hasChildren) {
+    ElMessage.warning('该菜单存在下级菜单或功能按钮，无法删除');
+    return;
+  }
+
   try {
     await ElMessageBox.confirm(`确认删除菜单「${row.permissionName}」？`, '删除菜单', {
       confirmButtonText: '删除',
