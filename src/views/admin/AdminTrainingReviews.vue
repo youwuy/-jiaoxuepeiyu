@@ -26,15 +26,15 @@
         <div class="admin-course-reviews-filter-row">
           <label class="admin-course-reviews-field">
             <span>学员姓名</span>
-            <el-input v-model="filters.studentName" placeholder="请输入学员姓名" clearable />
+            <el-input v-model="filterDraft.studentName" placeholder="请输入学员姓名" clearable @keyup.enter="applyFilters" />
           </label>
           <label class="admin-course-reviews-field">
             <span>学员学号</span>
-            <el-input v-model="filters.studentNo" placeholder="请输入学员学号" clearable />
+            <el-input v-model="filterDraft.studentNo" placeholder="请输入学员学号" clearable @keyup.enter="applyFilters" />
           </label>
           <label class="admin-course-reviews-field">
             <span>所属班级</span>
-            <el-select v-model="filters.classNames" multiple collapse-tags placeholder="请选择所属班级" clearable>
+            <el-select v-model="filterDraft.classNames" multiple collapse-tags placeholder="请选择所属班级" clearable>
               <el-option v-for="name in classOptions" :key="name" :label="name" :value="name" />
             </el-select>
           </label>
@@ -125,7 +125,7 @@
                     @click="openReview(item)"
                   >
                     <el-icon><View /></el-icon>
-                    修改批阅
+                    查看批阅
                   </el-button>
                   <el-button v-else class="admin-course-reviews-action edit" @click="openReview(item)">
                     <el-icon><EditPen /></el-icon>
@@ -169,13 +169,15 @@
             <span>学员姓名<strong>{{ reviewTarget.studentName }}</strong></span>
             <span>学号<strong>{{ reviewTarget.studentNo }}</strong></span>
             <span>所属班级<strong>{{ reviewTarget.className }}</strong></span>
-            <span>实训任务<strong>{{ reviewTarget.taskName }}</strong></span>
-            <span>个人训练时长<strong>{{ formatDuration(selectedAttempt?.durationSeconds) }}</strong></span>
+            <span>提交时间<strong>{{ formatDateTime(selectedAttempt?.submittedAt) }}</strong></span>
           </div>
           <div class="review-attempt-list">
             <button v-for="attempt in attempts" :key="attempt.attemptId" :class="{ active: selectedAttempt?.attemptId === attempt.attemptId }" @click="selectAttempt(attempt)">
               <span>{{ formatDateTime(attempt.submittedAt) }}</span>
-              <strong>{{ attempt.manualScore ?? attempt.systemScore ?? 0 }} 分</strong>
+              <strong>
+                {{ attempt.manualScore ?? attempt.systemScore ?? 0 }} 分
+                <em v-if="attempt.attemptId === reviewTarget.id">（最终成绩）</em>
+              </strong>
               <small>{{ attempt.reviewedAt ? '已批阅' : '待批阅' }}</small>
             </button>
           </div>
@@ -190,15 +192,20 @@
                 </tr></tbody>
               </table>
               <div class="review-score-row"><span>系统核算个人得分：{{ selectedAttempt?.systemScore ?? 0 }} / {{ attemptMaxScore }}</span>
-                <label>人工修正总分 <el-input-number v-model="manualScore" :min="0" :max="attemptMaxScore" :controls="false" /></label>
+                <span v-if="reviewReadonly">人工修正总分：{{ manualScore }} / {{ attemptMaxScore }}</span>
+                <label v-else>人工修正总分 <el-input-number v-model="manualScore" :min="0" :max="attemptMaxScore" :controls="false" /></label>
               </div>
             </section>
             <section class="review-video-panel">
-              <video v-if="attemptDetail.recordingUrl" ref="reviewVideo" :src="attemptDetail.recordingUrl" controls />
+              <video v-if="attemptDetail.recordingUrl" ref="reviewVideo" :src="resolvePublicUrl(attemptDetail.recordingUrl)" controls />
               <div v-else>本实训未开启操作视频录制，无法播放回放</div>
             </section>
           </div>
-          <label class="review-comment"><span>实训评语</span><el-input v-model="reviewComment" type="textarea" :rows="4" maxlength="500" show-word-limit :disabled="reviewReadonly" placeholder="请输入本次实训作业整体评语（选填，最多500字）" /></label>
+          <label class="review-comment">
+            <span>实训评语</span>
+            <p v-if="reviewReadonly" class="review-comment-readonly">{{ reviewComment || '暂无教师实训评语' }}</p>
+            <el-input v-else v-model="reviewComment" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="请输入本次实训作业整体评语（选填，最多500字）" />
+          </label>
         </div>
         <template #footer><el-button @click="reviewVisible = false">关闭</el-button><el-button v-if="!reviewReadonly" type="primary" @click="saveReview">保存批阅结果</el-button></template>
       </el-dialog>
@@ -222,6 +229,7 @@ import {
   View
 } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { resolvePublicUrl } from '../../api/http';
 import { fetchAdminTrainingArchiveDetail, type AdminTrainingArchiveDetail } from '../../api/admin-archive';
 import {
   fetchAdminTraining,
@@ -261,7 +269,12 @@ const page = ref(1);
 const pageSize = ref(10);
 const activeTab = ref<ReviewTabKey>('all');
 const loading = ref(false);
-const filters = reactive({
+const filterDraft = reactive({
+  studentName: '',
+  studentNo: '',
+  classNames: [] as string[]
+});
+const appliedFilters = reactive({
   studentName: '',
   studentNo: '',
   classNames: [] as string[]
@@ -284,9 +297,9 @@ const attemptMaxScore = computed(() => Number(selectedAttempt.value?.maxScore ||
 const matchedRows = computed(() =>
   rows.value.filter((item) => {
     const keywordMatched =
-      (!filters.studentName || item.studentName.includes(filters.studentName.trim())) &&
-      (!filters.studentNo || item.studentNo.includes(filters.studentNo.trim())) &&
-      (!filters.classNames.length || filters.classNames.includes(item.className)) &&
+      (!appliedFilters.studentName || item.studentName.includes(appliedFilters.studentName)) &&
+      (!appliedFilters.studentNo || item.studentNo.includes(appliedFilters.studentNo)) &&
+      (!appliedFilters.classNames.length || appliedFilters.classNames.includes(item.className)) &&
       (!activeTopicId.value || item.topicId === activeTopicId.value);
     if (!keywordMatched) {
       return false;
@@ -307,9 +320,9 @@ const matchedRows = computed(() =>
 const filterBaseRows = computed(() =>
   rows.value.filter((item) => {
     return (
-      (!filters.studentName || item.studentName.includes(filters.studentName.trim())) &&
-      (!filters.studentNo || item.studentNo.includes(filters.studentNo.trim())) &&
-      (!filters.classNames.length || filters.classNames.includes(item.className)) &&
+      (!appliedFilters.studentName || item.studentName.includes(appliedFilters.studentName)) &&
+      (!appliedFilters.studentNo || item.studentNo.includes(appliedFilters.studentNo)) &&
+      (!appliedFilters.classNames.length || appliedFilters.classNames.includes(item.className)) &&
       (!activeTopicId.value || item.topicId === activeTopicId.value)
     );
   })
@@ -356,13 +369,19 @@ function setTab(tab: ReviewTabKey) {
 }
 
 function applyFilters() {
+  appliedFilters.studentName = filterDraft.studentName.trim();
+  appliedFilters.studentNo = filterDraft.studentNo.trim();
+  appliedFilters.classNames = [...filterDraft.classNames];
   page.value = 1;
 }
 
 function resetFilters() {
-  filters.studentName = '';
-  filters.studentNo = '';
-  filters.classNames = [];
+  filterDraft.studentName = '';
+  filterDraft.studentNo = '';
+  filterDraft.classNames = [];
+  appliedFilters.studentName = '';
+  appliedFilters.studentNo = '';
+  appliedFilters.classNames = [];
   page.value = 1;
 }
 
@@ -377,22 +396,33 @@ function selectTopic(topicId: number) {
 
 async function openReview(row: TrainingReviewRow) {
   reviewTarget.value = row;
-  reviewReadonly.value = false;
+  attempts.value = [];
+  selectedAttempt.value = undefined;
+  attemptDetail.value = undefined;
+  manualScore.value = 0;
+  reviewComment.value = '';
+  reviewReadonly.value = row.reviewed;
   try {
     attempts.value = await fetchAdminTrainingReviewAttempts(trainingId.value, row.studentId, row.topicId);
     reviewVisible.value = true;
-    if (attempts.value[0]) await selectAttempt(attempts.value[0]);
+    const finalAttempt = attempts.value.find((attempt) => attempt.attemptId === row.id) || attempts.value[0];
+    if (finalAttempt) await selectAttempt(finalAttempt);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '提交记录加载失败');
   }
 }
 
 async function selectAttempt(attempt: AdminTrainingReviewAttempt) {
-  selectedAttempt.value = attempt;
-  reviewReadonly.value = false;
-  manualScore.value = Number(attempt.manualScore ?? attempt.systemScore ?? 0);
-  reviewComment.value = attempt.reviewComment || '';
-  attemptDetail.value = await fetchAdminTrainingArchiveDetail(attempt.attemptId);
+  try {
+    const detail = await fetchAdminTrainingArchiveDetail(attempt.attemptId);
+    selectedAttempt.value = attempt;
+    reviewReadonly.value = Boolean(attempt.reviewedAt);
+    manualScore.value = Number(attempt.manualScore ?? attempt.systemScore ?? 0);
+    reviewComment.value = attempt.reviewComment || '';
+    attemptDetail.value = detail;
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '提交详情加载失败');
+  }
 }
 
 function seekVideo(second = 0) {
@@ -496,13 +526,6 @@ function formatDateTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
 }
 
-function formatDuration(value?: number) {
-  const seconds = Math.max(0, Number(value || 0));
-  const minutes = Math.floor(seconds / 60);
-  const restSeconds = seconds % 60;
-  return `${minutes} 分 ${restSeconds} 秒`;
-}
-
 onMounted(async () => {
   if (await loadTrainingTitle()) {
     await loadReviews();
@@ -560,6 +583,7 @@ onMounted(async () => {
 .review-attempt-list button { display: grid; flex: 0 0 190px; gap: 4px; border: 1px solid #e2e8f0; padding: 10px; background: #fff; text-align: left; cursor: pointer; }
 .review-attempt-list button.active { border-color: #3b82f6; background: #eff6ff; }
 .review-attempt-list small { color: #64748b; }
+.review-attempt-list em { color: #2563eb; font-size: 11px; font-style: normal; }
 .review-detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr); gap: 16px; }
 .review-step-table { width: 100%; border-collapse: collapse; }
 .review-step-table th, .review-step-table td { border: 1px solid #e5e7eb; padding: 9px; text-align: left; }
@@ -571,6 +595,7 @@ onMounted(async () => {
 .review-video-panel { display: grid; min-height: 320px; place-items: center; background: #0f172a; color: #cbd5e1; text-align: center; }
 .review-video-panel video { width: 100%; max-height: 420px; }
 .review-comment { display: grid; gap: 8px; margin-top: 16px; }
+.review-comment-readonly { min-height: 88px; margin: 0; border: 1px solid #e5e7eb; padding: 14px 16px; background: #f8fafc; color: #475569; line-height: 24px; white-space: pre-wrap; }
 
 .admin-training-reviews-page .admin-course-reviews-table-card {
   overflow: hidden;
