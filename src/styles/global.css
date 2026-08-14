@@ -9697,6 +9697,12 @@ a {
   color: #ef4444;
 }
 
+.admin-settings-link:disabled,
+.admin-settings-link:disabled:hover {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
 .admin-settings-pill-status {
   min-width: 72px;
   height: 28px;
@@ -10009,6 +10015,12 @@ a {
   cursor: pointer;
   font: inherit;
   font-weight: 800;
+}
+
+.admin-settings-camera-card header button:disabled,
+.admin-settings-camera-card header button:disabled:hover {
+  color: #cbd5e1;
+  cursor: not-allowed;
 }
 
 .admin-settings-camera-grid {
