@@ -93,8 +93,8 @@
                 <td>{{ major.majorName }}</td>
                 <td><span class="admin-settings-status" :class="{ disabled: !major.enabled }">{{ major.enabled ? '已启用' : '已禁用' }}</span></td>
                 <td>
-                  <button class="admin-settings-link" @click="setMajorStatus(major.majorId, true)">启用</button>
-                  <button class="admin-settings-link danger" @click="setMajorStatus(major.majorId, false)">禁用</button>
+                  <button class="admin-settings-link" :disabled="major.enabled" @click="setMajorStatus(major.majorId, true)">启用</button>
+                  <button class="admin-settings-link danger" :disabled="!major.enabled" @click="setMajorStatus(major.majorId, false)">禁用</button>
                 </td>
               </tr>
             </tbody>
@@ -223,7 +223,7 @@
                   <el-input v-model.number="row.maxScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
                 </td>
                 <td>
-                  <el-button class="admin-settings-grade-delete" text circle :icon="Delete" @click="removeGradeDraft(row.id)" />
+                    <el-button class="admin-settings-grade-delete" text circle :icon="Delete" :disabled="gradeDraftRows.length <= 1" @click="removeGradeDraft(row.id)" />
                 </td>
               </tr>
             </tbody>
@@ -318,7 +318,7 @@
             </el-button>
           </div>
           <section v-for="(camera, index) in roomForm.cameras" :key="camera.id" class="admin-settings-camera-card">
-            <header><strong>{{ index + 1 }}</strong><span>摄像头</span><button @click="removeRoomCamera(camera.id)">删除</button></header>
+            <header><strong>{{ index + 1 }}</strong><span>摄像头</span><button :disabled="roomForm.cameras.length <= 1" @click="removeRoomCamera(camera.id)">删除</button></header>
             <div class="admin-settings-camera-grid">
               <label class="host"><span>NVR主机IP <b>*</b></span><el-input v-model="camera.host" placeholder="请输入NVR主机IP" /></label>
               <label><span>端口 <b>*</b></span><el-input v-model="camera.port" placeholder="请输入端口" /></label>
@@ -379,7 +379,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Delete, Edit, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
@@ -735,7 +735,7 @@ function openAdd(kind: AddKind) {
   if (kind === 'room') {
     roomForm.roomName = '';
     roomForm.fixedDeviceCount = undefined;
-    roomForm.cameras = [newCamera(1), newCamera(2)];
+    roomForm.cameras = [newCamera(1)];
   }
   addVisible.value = true;
 }
@@ -753,6 +753,19 @@ function selectCurrentSemester(semesterId: number) {
 }
 
 async function setMajorStatus(majorId: number, enabled: boolean) {
+  const major = majors.value.find((item) => item.majorId === majorId);
+  if (!major || major.enabled === enabled) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认${enabled ? '启用' : '禁用'}专业「${major.majorName}」？`, `${enabled ? '启用' : '禁用'}专业`, {
+      confirmButtonText: enabled ? '启用' : '禁用',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
   try {
     if (enabled) {
       await enableAdminMajor(majorId);
@@ -767,6 +780,19 @@ async function setMajorStatus(majorId: number, enabled: boolean) {
 }
 
 async function setClassStatus(classId: number, enabled: boolean) {
+  const item = classes.value.find((row) => row.classId === classId);
+  if (!item || item.enabled === enabled) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认${enabled ? '启用' : '禁用'}班级「${item.className}」？`, `${enabled ? '启用' : '禁用'}班级`, {
+      confirmButtonText: enabled ? '启用' : '禁用',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
   try {
     if (enabled) {
       await enableAdminClass(classId);
@@ -782,6 +808,18 @@ async function setClassStatus(classId: number, enabled: boolean) {
 
 async function removeCamera(id: number) {
   const target = classroomCameraRows.value.find((item) => item.id === id);
+  if (!target) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(`确认删除「${target.roomName}」的这路摄像头配置？`, '删除摄像头', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
   if (!target?.classroomId) {
     localCameras.value = classroomCameraRows.value.filter((item) => item.id !== id);
     return;
@@ -853,6 +891,10 @@ function addCamera() {
 }
 
 function removeRoomCamera(id: number) {
+  if (roomForm.cameras.length <= 1) {
+    ElMessage.warning('至少保留一组摄像头配置');
+    return;
+  }
   roomForm.cameras = roomForm.cameras.filter((item) => item.id !== id);
 }
 
@@ -920,7 +962,20 @@ function addGradeDraft() {
   });
 }
 
-function removeGradeDraft(id: number) {
+async function removeGradeDraft(id: number) {
+  if (gradeDraftRows.value.length <= 1) {
+    ElMessage.warning('至少保留一个成绩等级');
+    return;
+  }
+  try {
+    await ElMessageBox.confirm('确认删除该成绩等级？', '删除成绩等级', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
   gradeDraftRows.value = gradeDraftRows.value.filter((row) => row.id !== id);
 }
 
@@ -1003,19 +1058,12 @@ async function saveGradeRules() {
     return;
   }
 
-  const overlaps = nextRules.some((rule, index) => index > 0 && rule.maxScore > nextRules[index - 1].minScore);
-  if (overlaps) {
-    ElMessage.warning('成绩等级的分数范围不能重叠');
-    return;
-  }
-
   const hasGap = nextRules[0].maxScore !== 100
     || nextRules[nextRules.length - 1].minScore !== 0
     || nextRules.some((rule, index) => index > 0
-      && rule.maxScore !== nextRules[index - 1].minScore
       && rule.maxScore + 1 !== nextRules[index - 1].minScore);
   if (hasGap) {
-    ElMessage.warning('成绩等级必须无空白地完整覆盖0-100分');
+    ElMessage.warning('成绩等级区间不能重叠或留有空白，必须完整覆盖0-100分');
     return;
   }
 
@@ -1026,6 +1074,11 @@ async function saveGradeRules() {
 }
 
 async function saveWeight() {
+  const weights = [weightForm.coursewareWeight, weightForm.trainingPracticeWeight, weightForm.assignmentWeight, weightForm.examWeight];
+  if (weights.some((value) => !Number.isInteger(value) || value < 0 || value > 100)) {
+    ElMessage.warning('四项权重必须是0-100的整数');
+    return;
+  }
   if (weightTotal.value !== 100) {
     ElMessage.warning('四项权重之和需等于100%');
     return;
