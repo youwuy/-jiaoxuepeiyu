@@ -15,6 +15,7 @@ public class TrainingLaunchTask {
     private Long paperId;
     private LocalDateTime openStartTime;
     private LocalDateTime openEndTime;
+    private LocalDateTime examStartedAt;
     private Long studentId;
     private String studentName;
     private Long roomId;
@@ -96,6 +97,9 @@ public class TrainingLaunchTask {
     public void setOpenEndTime(LocalDateTime openEndTime) {
         this.openEndTime = openEndTime;
     }
+
+    public LocalDateTime getExamStartedAt() { return examStartedAt; }
+    public void setExamStartedAt(LocalDateTime examStartedAt) { this.examStartedAt = examStartedAt; }
 
     public Long getStudentId() {
         return studentId;

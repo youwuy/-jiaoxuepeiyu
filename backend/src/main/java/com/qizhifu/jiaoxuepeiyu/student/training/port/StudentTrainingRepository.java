@@ -19,6 +19,8 @@ public interface StudentTrainingRepository {
 
     Optional<Long> findActiveRoomId(Long studentId);
 
+    default boolean isExamStarted(Long trainingId) { return false; }
+
     default List<StudentTrainingTopic> findTopics(Long trainingId) { return java.util.Collections.emptyList(); }
 
     default List<TrainingRoom> findWaitingRooms(Long trainingId, Long topicId) { return java.util.Collections.emptyList(); }

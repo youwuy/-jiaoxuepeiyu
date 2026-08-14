@@ -285,6 +285,10 @@ public interface AdminTrainingMapper {
     @Update("UPDATE training_course SET exam_started_at = NOW(), updated_at = NOW() WHERE id = #{trainingId} AND deleted_flag = 0")
     void markExamStarted(@Param("trainingId") Long trainingId);
 
+    @Update("UPDATE training_team_room SET room_status = 'STARTED', started_at = NOW(), updated_at = NOW() "
+            + "WHERE training_id = #{trainingId} AND room_status = 'WAITING'")
+    void startWaitingExamRooms(@Param("trainingId") Long trainingId);
+
     @Update("UPDATE training_course SET deleted_flag = 1, publish_status = 'OFFLINE', updated_at = NOW() "
             + "WHERE id = #{trainingId} AND deleted_flag = 0")
     void deleteTraining(@Param("trainingId") Long trainingId);

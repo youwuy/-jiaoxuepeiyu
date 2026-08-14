@@ -69,6 +69,7 @@ public class StudentTrainingService {
     @Transactional
     public TrainingRoom createRoom(Long studentId, Long trainingId, Long topicId) {
         StudentTrainingRecord training = requireTraining(studentId, trainingId);
+        assertExamNotStarted(trainingId);
         if (!"TEAM".equals(training.getTrainingMode())) {
             throw new BusinessException(400, "Only team training can create rooms");
         }
@@ -83,6 +84,7 @@ public class StudentTrainingService {
     public TrainingRoom joinRoom(Long studentId, Long roomId) {
         assertNoActiveRoom(studentId);
         TrainingRoom room = requireRoom(roomId);
+        assertExamNotStarted(room.getTrainingId());
         requireTraining(studentId, room.getTrainingId());
         assertWaiting(room);
         if (room.getMembers().size() >= room.getTeamSize()) {
@@ -179,6 +181,12 @@ public class StudentTrainingService {
     private void assertNoActiveRoom(Long studentId) {
         if (repository.findActiveRoomId(studentId).isPresent()) {
             throw new BusinessException(400, "Student already has an active room");
+        }
+    }
+
+    private void assertExamNotStarted(Long trainingId) {
+        if (repository.isExamStarted(trainingId)) {
+            throw new BusinessException(400, "Training exam has already started");
         }
     }
 

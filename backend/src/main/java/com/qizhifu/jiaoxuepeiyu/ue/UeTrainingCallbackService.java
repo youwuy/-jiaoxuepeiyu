@@ -48,8 +48,13 @@ public class UeTrainingCallbackService {
         requireId(studentId, "Student id is required");
         requireId(trainingId, "Training id is required");
         requireId(topicId, "Training topic id is required");
-        return repository.findTask(trainingId, studentId, topicId)
+        TrainingLaunchTask task = repository.findTask(trainingId, studentId, topicId)
                 .orElseThrow(() -> new BusinessException(404, "Training task not found"));
+        if ("EXAM".equals(task.getTrainingType()) && "TEAM".equals(task.getTrainingMode())
+                && task.getExamStartedAt() != null && task.getRoleId() == null) {
+            throw new BusinessException(403, "Student has no assigned role for the started exam");
+        }
+        return task;
     }
 
     @Transactional

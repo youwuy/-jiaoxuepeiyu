@@ -1686,6 +1686,15 @@ Behavior:
 - Marks the training `OFFLINE`.
 - Preserves participants, rooms, monitor rows, and logs.
 
+### `POST /api/admin/trainings/{trainingId}/start-exam`
+
+Behavior:
+
+- Accepts only a published, not-yet-started team exam.
+- Records the exam start time and changes all waiting rooms to `STARTED` in the same transaction.
+- After the start, students cannot create or join rooms; UE launch metadata is available only to students who already have an assigned role.
+- Appends the fixed `START_EXAM` operation log.
+
 ### `POST /api/admin/trainings/{trainingId}/delete`
 
 Behavior:

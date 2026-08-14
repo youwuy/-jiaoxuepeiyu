@@ -51,6 +51,11 @@ public class MyBatisStudentTrainingRepository implements StudentTrainingReposito
     }
 
     @Override
+    public boolean isExamStarted(Long trainingId) {
+        return mapper.countStartedTeamExam(trainingId) > 0;
+    }
+
+    @Override
     public List<StudentTrainingTopic> findTopics(Long trainingId) { return mapper.findTopics(trainingId); }
 
     @Override

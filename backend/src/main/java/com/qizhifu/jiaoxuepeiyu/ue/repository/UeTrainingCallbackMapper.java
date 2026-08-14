@@ -17,7 +17,7 @@ import org.apache.ibatis.annotations.Select;
 public interface UeTrainingCallbackMapper {
 
     @Select("SELECT t.id AS training_id, t.training_name, t.training_type, t.training_mode, "
-            + "tt.id AS topic_id, tt.topic_name, t.paper_id, t.open_start_time, t.open_end_time, "
+            + "tt.id AS topic_id, tt.topic_name, t.paper_id, t.open_start_time, t.open_end_time, t.exam_started_at, "
             + "u.id AS student_id, u.real_name AS student_name, "
             + "r.id AS room_id, r.room_code, r.room_status, rm.role_id, rr.role_name, t.team_size "
             + "FROM training_course t "

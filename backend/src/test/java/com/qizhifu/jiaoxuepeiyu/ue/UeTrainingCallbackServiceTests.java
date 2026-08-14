@@ -119,6 +119,22 @@ class UeTrainingCallbackServiceTests {
     }
 
     @Test
+    void rejectsUnassignedStudentAfterTeamExamStarts() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        repository.task.setTrainingType("EXAM");
+        repository.task.setExamStartedAt(LocalDateTime.of(2026, 7, 30, 16, 0));
+        repository.task.setRoleId(null);
+        repository.task.setRoleName(null);
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.getTask(7L, 15L, 31L));
+
+        assertEquals("Student has no assigned role for the started exam", exception.getMessage());
+    }
+
+    @Test
     void returnsExistingAttemptForRepeatedClientAttemptId() {
         FakeCallbacks repository = new FakeCallbacks();
         repository.task = task();

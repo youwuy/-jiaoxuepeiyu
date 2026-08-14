@@ -68,6 +68,19 @@ class StudentTrainingServiceTests {
     }
 
     @Test
+    void rejectsCreatingRoomAfterTeamExamStarts() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.activeRoomId = null;
+        repository.examStarted = true;
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createRoom(7L, 21L, 301L));
+
+        assertEquals("Training exam has already started", exception.getMessage());
+    }
+
+    @Test
     void rejectsJoiningFullRoom() {
         FakeTrainings repository = new FakeTrainings();
         repository.activeRoomId = null;
@@ -160,6 +173,7 @@ class StudentTrainingServiceTests {
         private Long claimedRoleId;
         private Long releasedRoleId;
         private Long startedRoomId;
+        private boolean examStarted;
         private TrainingRoom room = room();
 
         @Override
@@ -188,6 +202,11 @@ class StudentTrainingServiceTests {
         @Override
         public Optional<Long> findActiveRoomId(Long studentId) {
             return Optional.ofNullable(activeRoomId);
+        }
+
+        @Override
+        public boolean isExamStarted(Long trainingId) {
+            return examStarted;
         }
 
         @Override

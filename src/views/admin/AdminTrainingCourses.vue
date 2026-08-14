@@ -406,7 +406,6 @@ import {
   fetchAdminTrainings,
   importAdminTrainingOfflineScores,
   publishAdminTraining,
-  startAdminTrainingExam,
   updateAdminTraining,
   type AdminTraining,
   type AdminTrainingLog,
@@ -872,21 +871,12 @@ function openMonitor(row: CourseRow) {
   });
 }
 
-async function openExamStart(row: CourseRow) {
-  try {
-    await ElMessageBox.confirm(`确认开始实训考试「${row.name}」？开始后参训学员可进入考试。`, '开始考试', {
-      type: 'warning',
-      confirmButtonText: '开始考试',
-      cancelButtonText: '取消'
-    });
-    await startAdminTrainingExam(row.id);
-    ElMessage.success('考试已开始');
-    await loadCourses();
-    openMonitor({ ...row, examStarted: true });
-  } catch (error) {
-    if (error === 'cancel' || error === 'close') return;
-    ElMessage.error(error instanceof Error ? error.message : '开始考试失败');
-  }
+function openExamStart(row: CourseRow) {
+  router.push({
+    name: 'admin-training-exam-start',
+    params: { id: row.id },
+    query: { title: row.name, time: row.time, room: row.room }
+  });
 }
 
 function openMarking(row: CourseRow) {

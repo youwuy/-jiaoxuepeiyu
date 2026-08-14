@@ -69,6 +69,7 @@ Response `data`:
   "paperId": 3,
   "openStartTime": "2026-07-30T08:00:00",
   "openEndTime": "2026-07-30T18:00:00",
+  "examStartedAt": null,
   "studentId": 7,
   "studentName": "Student Seven",
   "roomId": 22,
@@ -85,6 +86,7 @@ Behavior:
 
 - Rejects trainings not assigned to the current student.
 - Rejects unpublished or deleted trainings.
+- For a started team exam, rejects students who did not already receive a room role before the administrator started the exam.
 - For team trainings, `aiRoleNames` contains roles configured for AI and roles not selected by a human when the room starts. UE only displays those roles as AI-performed; this system does not implement AI behavior.
 - Result submissions must use the topic bound to the launch token. A mismatched `topicId` is rejected.
 

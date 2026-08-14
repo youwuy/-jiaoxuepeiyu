@@ -82,6 +82,7 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     @Override
     public void markExamStarted(Long trainingId) {
         mapper.markExamStarted(trainingId);
+        mapper.startWaitingExamRooms(trainingId);
     }
 
     @Override

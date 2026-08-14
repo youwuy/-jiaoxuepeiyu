@@ -147,7 +147,7 @@ public class AdminTrainingController {
     }
 
     @PostMapping("/{trainingId}/start-exam")
-    @Operation(summary = "Start team training exam", description = "Persists the start state for a published team exam.")
+    @Operation(summary = "Start team training exam", description = "Starts a published team exam, locks waiting rooms, and allows only students with assigned roles to launch.")
     public ApiResponse<Void> startExam(@PathVariable Long trainingId, HttpServletRequest request) {
         service.startExam(trainingId, AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);

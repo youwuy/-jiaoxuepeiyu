@@ -55,6 +55,10 @@ public interface StudentTrainingMapper {
             + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1")
     Long findLatestAttemptId(@Param("studentId") Long studentId, @Param("trainingId") Long trainingId);
 
+    @Select("SELECT COUNT(*) FROM training_course WHERE id = #{trainingId} AND training_type = 'EXAM' "
+            + "AND training_mode = 'TEAM' AND exam_started_at IS NOT NULL")
+    int countStartedTeamExam(@Param("trainingId") Long trainingId);
+
     @Select("SELECT CASE WHEN installed = 1 THEN TRUE ELSE FALSE END AS installed, "
             + "app_version AS version, download_url, install_message AS message "
             + "FROM training_app_installation WHERE student_id = #{studentId} LIMIT 1")

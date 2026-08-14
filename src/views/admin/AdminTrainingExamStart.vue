@@ -9,7 +9,9 @@
             <p>请等待全部学员进入指定实训试题、自动被分配随机角色，确认人员全部就绪后，点击开始考试。</p>
           </div>
         </div>
-        <el-button class="admin-training-exam-start" type="primary" @click="startExam">开始考试</el-button>
+        <el-button class="admin-training-exam-start" type="primary" :loading="starting" :disabled="examStarted" @click="startExam">
+          {{ examStarted ? '考试已开始' : '开始考试' }}
+        </el-button>
       </header>
 
       <main v-loading="loading" class="admin-training-exam-content">
@@ -59,14 +61,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Monitor } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminTraining,
   fetchAdminTrainingMonitor,
+  startAdminTrainingExam,
   type AdminTrainingStudentState
 } from '../../api/admin-training';
 
@@ -87,22 +90,37 @@ const trainingTitle = ref(String(route.query.title || '期末考试'));
 const trainingTime = ref(String(route.query.time || ''));
 const trainingRoom = ref(String(route.query.room || ''));
 const loading = ref(false);
+const starting = ref(false);
+const examStarted = ref(false);
 const students = ref<ExamStudentRow[]>([]);
+let refreshTimer: number | undefined;
 
 function goBack() {
   router.push('/admin/training');
 }
 
-function startExam() {
-  router.push({
-    name: 'admin-training-monitor',
-    params: { id: trainingId.value },
-    query: {
-      title: trainingTitle.value,
-      time: trainingTime.value,
-      room: trainingRoom.value
-    }
-  });
+async function startExam() {
+  try {
+    await ElMessageBox.confirm(
+      '是否确认开始考试？开始后已有角色的学员将自动进入实训场景中，其他学员无法进入',
+      '开始考试',
+      { type: 'warning', confirmButtonText: '开始考试', cancelButtonText: '取消' }
+    );
+    starting.value = true;
+    await startAdminTrainingExam(trainingId.value);
+    examStarted.value = true;
+    ElMessage.success('考试已开始');
+    await router.push({
+      name: 'admin-training-monitor',
+      params: { id: trainingId.value },
+      query: { title: trainingTitle.value, time: trainingTime.value, room: trainingRoom.value }
+    });
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error(error instanceof Error ? error.message : '开始考试失败');
+  } finally {
+    starting.value = false;
+  }
 }
 
 function mapStudent(item: AdminTrainingStudentState, index: number): ExamStudentRow {
@@ -110,21 +128,21 @@ function mapStudent(item: AdminTrainingStudentState, index: number): ExamStudent
     id: item.studentId || index + 1,
     name: item.studentName || '-',
     studentNo: item.studentNo || '-',
-    topic: item.progressStatus && item.progressStatus !== 'OFFLINE' ? trainingTitle.value : '-',
-    mode: item.roomStatus === 'SINGLE' ? '单人实训' : item.roomId ? '多人实训' : '-',
+    topic: item.currentTopicName || '-',
+    mode: item.currentTopicName ? (item.trainingMode === 'SINGLE' ? '单人实训' : '多人实训') : '-',
     role: item.roleName || '-',
-    room: item.roomId ? `房间${item.roomId}` : '-'
+    room: item.roomCode || '-'
   };
 }
 
-async function loadExamPreparation() {
+async function loadExamPreparation(silent = false) {
   if (!trainingId.value) {
     ElMessage.error('实训课编号无效');
     goBack();
     return;
   }
 
-  loading.value = true;
+  if (!silent) loading.value = true;
   try {
     const [detail, snapshot] = await Promise.all([
       fetchAdminTraining(trainingId.value),
@@ -132,17 +150,29 @@ async function loadExamPreparation() {
     ]);
     trainingTitle.value = detail.trainingName || trainingTitle.value;
     trainingTime.value = [detail.openStartTime, detail.openEndTime].filter(Boolean).join(' 至 ') || trainingTime.value;
+    examStarted.value = Boolean(detail.examStartedAt);
     students.value = (snapshot.students || []).map(mapStudent);
   } catch (error) {
-    students.value = [];
-    ElMessage.error(error instanceof Error ? error.message : '考试准备信息加载失败');
+    if (!silent) {
+      students.value = [];
+      ElMessage.error(error instanceof Error ? error.message : '考试准备信息加载失败');
+    }
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
 
 onMounted(() => {
   void loadExamPreparation();
+  refreshTimer = window.setInterval(() => {
+    void loadExamPreparation(true);
+  }, 5000);
+});
+
+onBeforeUnmount(() => {
+  if (refreshTimer !== undefined) {
+    window.clearInterval(refreshTimer);
+  }
 });
 </script>
 
