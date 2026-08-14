@@ -30,6 +30,17 @@ class UeTrainingCallbackServiceTests {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-07-30T10:15:30Z"), ZoneId.of("Asia/Shanghai"));
 
     @Test
+    void exposesRecordingSettingToUeTask() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+
+        TrainingLaunchTask task = service.getTask(7L, 15L, 31L);
+
+        assertEquals(true, task.isRecordingEnabled());
+    }
+
+    @Test
     void rejectsTaskOutsideCurrentStudentAssignments() {
         FakeCallbacks repository = new FakeCallbacks();
         UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
@@ -215,6 +226,7 @@ class UeTrainingCallbackServiceTests {
         task.setRoleId(5L);
         task.setRoleName("Operator");
         task.setTeamSize(2);
+        task.setRecordingEnabled(true);
         task.setAiRoleNames(Collections.singletonList("Safety Officer"));
         return task;
     }

@@ -40,6 +40,7 @@ class AdminTrainingServiceTests {
         assertEquals("DRAFT", repository.savedCommand.getPublishStatus());
         assertEquals("PRACTICE", repository.savedCommand.getTrainingType());
         assertEquals("TEAM", repository.savedCommand.getTrainingMode());
+        assertEquals(Boolean.TRUE, repository.savedCommand.getRecordingEnabled());
         assertEquals(2, repository.savedCommand.getRoles().size());
         assertEquals("CREATE", repository.lastLogAction);
     }
@@ -272,6 +273,7 @@ class AdminTrainingServiceTests {
         command.setOpenEndTime(LocalDateTime.of(2026, 12, 31, 23, 59));
         command.setTeamSize(2);
         command.setAppRequired(Boolean.TRUE);
+        command.setRecordingEnabled(Boolean.TRUE);
         command.setClassroomId(8L);
         command.setTeacherIds(Arrays.asList(9L));
         command.setScoreBasis("HIGHEST");

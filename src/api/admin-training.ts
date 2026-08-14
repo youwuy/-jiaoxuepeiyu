@@ -39,6 +39,7 @@ export interface AdminTraining {
   openEndTime?: string;
   teamSize?: number;
   appRequired?: boolean;
+  recordingEnabled?: boolean;
   classroomId?: number;
   teacherIds?: number[];
   scoreBasis?: 'HIGHEST' | 'LAST_SUBMIT';
@@ -73,6 +74,7 @@ export interface AdminTrainingCommand {
   openEndTime?: string;
   teamSize?: number;
   appRequired?: boolean;
+  recordingEnabled?: boolean;
   classroomId?: number;
   teacherIds?: number[];
   scoreBasis?: 'HIGHEST' | 'LAST_SUBMIT';

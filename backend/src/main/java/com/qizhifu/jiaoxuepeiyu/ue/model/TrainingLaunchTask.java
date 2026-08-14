@@ -24,6 +24,7 @@ public class TrainingLaunchTask {
     private Long roleId;
     private String roleName;
     private Integer teamSize;
+    private boolean recordingEnabled;
     private List<String> aiRoleNames = new ArrayList<String>();
 
     public Long getTrainingId() {
@@ -163,6 +164,14 @@ public class TrainingLaunchTask {
 
     public void setTeamSize(Integer teamSize) {
         this.teamSize = teamSize;
+    }
+
+    public boolean isRecordingEnabled() {
+        return recordingEnabled;
+    }
+
+    public void setRecordingEnabled(boolean recordingEnabled) {
+        this.recordingEnabled = recordingEnabled;
     }
 
     public List<String> getAiRoleNames() {

@@ -25,6 +25,7 @@ public class AdminTraining {
     private LocalDateTime examStartedAt;
     private Integer teamSize;
     private Boolean appRequired;
+    private Boolean recordingEnabled;
     private Long classroomId;
     private List<Long> teacherIds;
     private String scoreBasis;
@@ -198,6 +199,14 @@ public class AdminTraining {
 
     public void setAppRequired(Boolean appRequired) {
         this.appRequired = appRequired;
+    }
+
+    public Boolean getRecordingEnabled() {
+        return recordingEnabled;
+    }
+
+    public void setRecordingEnabled(Boolean recordingEnabled) {
+        this.recordingEnabled = recordingEnabled;
     }
 
     public Long getClassroomId() { return classroomId; }

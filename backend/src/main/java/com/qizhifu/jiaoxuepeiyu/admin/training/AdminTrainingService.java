@@ -257,6 +257,7 @@ public class AdminTrainingService {
         normalized.setOpenStartTime(command.getOpenStartTime());
         normalized.setOpenEndTime(command.getOpenEndTime());
         normalized.setAppRequired(command.getAppRequired() == null ? Boolean.TRUE : command.getAppRequired());
+        normalized.setRecordingEnabled(Boolean.TRUE.equals(command.getRecordingEnabled()));
         if (command.getClassroomId() == null || command.getClassroomId().longValue() <= 0) {
             throw new BusinessException(400, "Training classroom is required");
         }

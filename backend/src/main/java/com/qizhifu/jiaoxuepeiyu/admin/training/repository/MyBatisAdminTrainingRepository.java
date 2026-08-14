@@ -213,6 +213,7 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         training.setOpenEndTime(command.getOpenEndTime());
         training.setTeamSize(command.getTeamSize());
         training.setAppRequired(command.getAppRequired());
+        training.setRecordingEnabled(command.getRecordingEnabled());
         training.setClassroomId(command.getClassroomId());
         training.setTeacherIds(command.getTeacherIds());
         training.setScoreBasis(command.getScoreBasis());

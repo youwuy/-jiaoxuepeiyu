@@ -6665,6 +6665,10 @@
           "appRequired": {
             "type": "boolean"
           },
+          "recordingEnabled": {
+            "type": "boolean",
+            "description": "Whether the UE client should record this training"
+          },
           "classIds": {
             "type": "array",
             "items": {
@@ -8446,6 +8450,13 @@
           "trainingMode": {
             "type": "string"
           },
+          "topicId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "topicName": {
+            "type": "string"
+          },
           "paperId": {
             "type": "integer",
             "format": "int64"
@@ -8455,6 +8466,10 @@
             "format": "date-time"
           },
           "openEndTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "examStartedAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -8485,6 +8500,10 @@
           "teamSize": {
             "type": "integer",
             "format": "int32"
+          },
+          "recordingEnabled": {
+            "type": "boolean",
+            "description": "Whether this launch should record the UE session"
           },
           "aiRoleNames": {
             "type": "array",
@@ -9491,6 +9510,10 @@
           },
           "appRequired": {
             "type": "boolean"
+          },
+          "recordingEnabled": {
+            "type": "boolean",
+            "description": "Whether the UE client should record this training"
           },
           "classNames": {
             "type": "string"

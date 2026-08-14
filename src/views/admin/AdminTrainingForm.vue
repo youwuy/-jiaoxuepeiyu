@@ -474,7 +474,7 @@ async function loadDetail() {
     ];
     selectedTeacherIds.value = detail.teacherIds || [];
     selectedRoomId.value = detail.classroomId || 0;
-    form.recordingEnabled = detail.appRequired === true;
+    form.recordingEnabled = detail.recordingEnabled === true;
     form.scoreBasis = detail.scoreBasis === 'LAST_SUBMIT' ? '最后一次提交的成绩' : '最高成绩';
     selectedTopicIds.value = detail.topicIds || [];
     topicPickerIds.value = [...selectedTopicIds.value];
@@ -650,7 +650,8 @@ function buildTrainingCommand(publishStatus: string) {
     openStartTime: form.range[0],
     openEndTime: form.range[1],
     teamSize: hasTeamTopic ? largestTeamSize : 1,
-    appRequired: form.recordingEnabled,
+    appRequired: true,
+    recordingEnabled: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
     studentIds: [...selectedStudentIds.value],
     teacherIds: [...selectedTeacherIds.value],

@@ -32,6 +32,7 @@ public interface AdminTrainingMapper {
             + "t.paper_mode, t.paper_id, p.paper_name, t.publish_status, "
             + "t.open_start_time, t.open_end_time, t.exam_started_at, t.team_size, "
             + "CASE WHEN t.app_required = 1 THEN TRUE ELSE FALSE END AS app_required, "
+            + "CASE WHEN t.recording_enabled = 1 THEN TRUE ELSE FALSE END AS recording_enabled, "
             + "t.class_names, t.classroom_id, t.score_basis, "
             + "(SELECT GROUP_CONCAT(u2.real_name ORDER BY tt.sort_order SEPARATOR ', ') FROM training_teacher tt JOIN sys_user u2 ON u2.id = tt.teacher_id WHERE tt.training_id = t.id) AS teacher_names, "
             + "(SELECT room_name FROM training_room WHERE id = t.classroom_id) AS classroom_name, "
@@ -82,6 +83,7 @@ public interface AdminTrainingMapper {
             @Result(column = "exam_started_at", property = "examStartedAt"),
             @Result(column = "team_size", property = "teamSize"),
             @Result(column = "app_required", property = "appRequired"),
+            @Result(column = "recording_enabled", property = "recordingEnabled"),
             @Result(column = "class_names", property = "classNames"),
             @Result(column = "classroom_id", property = "classroomId"),
             @Result(column = "score_basis", property = "scoreBasis"),
@@ -126,6 +128,7 @@ public interface AdminTrainingMapper {
             + "t.training_type, t.training_mode, t.paper_mode, t.paper_id, p.paper_name, "
             + "t.publish_status, t.open_start_time, t.open_end_time, t.exam_started_at, t.team_size, "
             + "CASE WHEN t.app_required = 1 THEN TRUE ELSE FALSE END AS app_required, "
+            + "CASE WHEN t.recording_enabled = 1 THEN TRUE ELSE FALSE END AS recording_enabled, "
             + "t.class_names, t.classroom_id, t.score_basis, t.created_by, u.real_name AS creator_name, t.created_at, t.updated_at "
             + "FROM training_course t "
             + "LEFT JOIN edu_academic_year ay ON ay.id = t.academic_year_id "
@@ -155,6 +158,7 @@ public interface AdminTrainingMapper {
             @Result(column = "exam_started_at", property = "examStartedAt"),
             @Result(column = "team_size", property = "teamSize"),
             @Result(column = "app_required", property = "appRequired"),
+            @Result(column = "recording_enabled", property = "recordingEnabled"),
             @Result(column = "class_names", property = "classNames"),
             @Result(column = "classroom_id", property = "classroomId"),
             @Result(column = "score_basis", property = "scoreBasis"),
@@ -193,11 +197,11 @@ public interface AdminTrainingMapper {
 
     @Insert("INSERT INTO training_course "
             + "(training_name, academic_year_id, semester_id, major_id, cover_url, training_type, training_mode, "
-            + "paper_mode, paper_id, publish_status, open_start_time, open_end_time, team_size, app_required, classroom_id, score_basis, "
+            + "paper_mode, paper_id, publish_status, open_start_time, open_end_time, team_size, app_required, recording_enabled, classroom_id, score_basis, "
             + "class_names, created_by, deleted_flag, created_at, updated_at) "
             + "VALUES (#{trainingName}, #{academicYearId}, #{semesterId}, #{majorId}, #{coverUrl}, "
             + "#{trainingType}, #{trainingMode}, #{paperMode}, #{paperId}, #{publishStatus}, "
-            + "#{openStartTime}, #{openEndTime}, #{teamSize}, #{appRequired}, #{classroomId}, #{scoreBasis}, #{classNames}, #{createdBy}, 0, NOW(), NOW())")
+            + "#{openStartTime}, #{openEndTime}, #{teamSize}, #{appRequired}, #{recordingEnabled}, #{classroomId}, #{scoreBasis}, #{classNames}, #{createdBy}, 0, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "trainingId")
     void insertTraining(AdminTraining training);
 
@@ -205,7 +209,7 @@ public interface AdminTrainingMapper {
             + "semester_id = #{semesterId}, major_id = #{majorId}, cover_url = #{coverUrl}, "
             + "training_type = #{trainingType}, training_mode = #{trainingMode}, paper_mode = #{paperMode}, "
             + "paper_id = #{paperId}, open_start_time = #{openStartTime}, open_end_time = #{openEndTime}, "
-            + "team_size = #{teamSize}, app_required = #{appRequired}, classroom_id = #{classroomId}, score_basis = #{scoreBasis}, class_names = #{classNames}, updated_at = NOW() "
+            + "team_size = #{teamSize}, app_required = #{appRequired}, recording_enabled = #{recordingEnabled}, classroom_id = #{classroomId}, score_basis = #{scoreBasis}, class_names = #{classNames}, updated_at = NOW() "
             + "WHERE id = #{trainingId} AND deleted_flag = 0")
     void updateTraining(AdminTraining training);
 
