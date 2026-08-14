@@ -21,12 +21,12 @@
             </el-select>
           </label>
           <label class="admin-semester-score-field">
-            <span>学员姓名</span>
-            <el-input v-model="draft.studentName" placeholder="请输入学员姓名" clearable @keyup.enter="applyFilters" />
+            <span>学号</span>
+            <el-input v-model="draft.studentNo" placeholder="学号搜索" clearable @keyup.enter="applyFilters" />
           </label>
           <label class="admin-semester-score-field">
-            <span>学号</span>
-            <el-input v-model="draft.studentNo" placeholder="请输入学号" clearable @keyup.enter="applyFilters" />
+            <span>学员姓名</span>
+            <el-input v-model="draft.studentName" placeholder="姓名搜索" clearable @keyup.enter="applyFilters" />
           </label>
           <div class="admin-semester-score-actions-inline">
             <el-button class="admin-semester-score-query" @click="applyFilters">查询</el-button>
@@ -46,7 +46,7 @@
             <b>{{ item.value }}%</b>
           </span>
         </div>
-        <el-button class="admin-semester-score-primary" @click="openOfflineExam">线下考试成绩管理</el-button>
+        <el-button class="admin-semester-score-primary" :disabled="!can('list')" @click="openOfflineExam">线下考试成绩管理</el-button>
       </section>
 
       <section class="admin-semester-score-board" v-loading="loading">
@@ -83,8 +83,8 @@
                 <td><span class="admin-semester-score-grade" :class="scoreTone(row.totalScore)">{{ row.grade }}</span></td>
                 <td>
                   <div class="admin-semester-score-row-actions">
-                    <el-button text @click="openDetail(row)">查看详情</el-button>
-                    <el-button text @click="openArchive(row)">学习档案</el-button>
+                    <el-button text :disabled="!can('list')" @click="openDetail(row)">查看详情</el-button>
+                    <el-button text :disabled="!canFor('score:archive', 'list')" @click="openArchive(row)">学习档案</el-button>
                   </div>
                 </td>
               </tr>
@@ -135,16 +135,16 @@
         <label><span>导出范围</span><el-radio-group v-model="exportForm.scope"><el-radio label="current">当前筛选结果</el-radio><el-radio label="all">全部成绩</el-radio></el-radio-group></label>
         <label><span>文件格式</span><el-select v-model="exportForm.format"><el-option label="Excel文件" value="xlsx" /><el-option label="CSV文件" value="csv" /></el-select></label>
       </div>
-      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="exportVisible = false">取消</el-button><el-button type="primary" :loading="exporting" @click="confirmExport">确认导出</el-button></div></template>
+      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="exportVisible = false">取消</el-button><el-button type="primary" :loading="exporting" :disabled="!can('list')" @click="confirmExport">确认导出</el-button></div></template>
     </el-dialog>
 
     <el-dialog v-model="weightVisible" class="admin-semester-score-export-dialog" width="620px" :show-close="false" append-to-body>
       <template #header><div class="admin-semester-score-dialog-head"><strong>成绩权重</strong><el-button text circle :icon="Close" @click="weightVisible = false" /></div></template>
       <div class="admin-semester-score-weight-list">
-        <label v-for="item in weights" :key="item.name"><span>{{ item.name }}</span><el-input-number v-model="item.value" :min="0" :max="100" controls-position="right" /><em>%</em></label>
+        <label v-for="item in weights" :key="item.name"><span>{{ item.name }}</span><el-input-number v-model="item.value" :min="0" :max="100" :disabled="!canManageScoreWeights" controls-position="right" /><em>%</em></label>
         <p>合计：<b>{{ weightTotal }}</b>%</p>
       </div>
-      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="weightVisible = false">取消</el-button><el-button type="primary" :loading="savingWeights" @click="saveWeights">保存</el-button></div></template>
+      <template #footer><div class="admin-semester-score-dialog-footer"><el-button @click="weightVisible = false">取消</el-button><el-button type="primary" :loading="savingWeights" :disabled="!canManageScoreWeights" @click="saveWeights">保存</el-button></div></template>
     </el-dialog>
   </AdminShell>
 </template>
@@ -173,6 +173,7 @@ import {
   type AdminScoreGradeRule,
   type AdminScoreWeight
 } from '../../api/admin-settings';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface SemesterScoreRow {
   scoreId: number;
@@ -209,6 +210,8 @@ interface ScoreFilters {
 }
 
 const router = useRouter();
+const { can, canFor } = useAdminPermissions('score:semester');
+const canManageScoreWeights = computed(() => canFor('config:score-weight', 'create') || canFor('system:settings', 'create'));
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
