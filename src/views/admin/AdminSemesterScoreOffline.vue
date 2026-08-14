@@ -129,18 +129,31 @@
           </el-select>
         </label>
 
-        <button type="button" class="admin-semester-score-upload-box" @click="fileInput?.click()">
+        <div
+          class="admin-semester-score-upload-box"
+          @click="fileInput?.click()"
+          @dragover.prevent
+          @drop.prevent="handleFileDrop"
+        >
           <input
             ref="fileInput"
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx"
             hidden
             @change="handleFileChange"
           />
-          <el-icon><UploadFilled /></el-icon>
-          <strong>{{ selectedFileName || '点击上传或拖拽文件到此处' }}</strong>
-          <span>仅支持 .xlsx 格式，文件大小不超过10MB</span>
-        </button>
+          <template v-if="selectedFileName">
+            <el-icon><DocumentChecked /></el-icon>
+            <strong>{{ selectedFileName }}</strong>
+            <span>{{ selectedFileSize }}</span>
+            <el-button text type="danger" @click.stop="clearSelectedFile">移除文件</el-button>
+          </template>
+          <template v-else>
+            <el-icon><UploadFilled /></el-icon>
+            <strong>点击上传或拖拽文件到此处</strong>
+            <span>仅支持 .xlsx 格式，文件大小不超过10MB</span>
+          </template>
+        </div>
 
         <div v-if="parsedRows.length" class="admin-semester-score-import-preview">
           已读取 <b>{{ parsedRows.length }}</b> 条成绩记录
@@ -225,7 +238,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Close, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, DocumentChecked, InfoFilled, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useRouter } from 'vue-router';
 import AdminShell from '../../components/admin/AdminShell.vue';
@@ -295,6 +308,7 @@ const savingEdit = ref(false);
 const importVisible = ref(false);
 const editVisible = ref(false);
 const selectedFileName = ref('');
+const selectedFileSize = ref('');
 const parsedRows = ref<LocalImportRow[]>([]);
 const previewResult = ref<AdminSemesterScoreImportPreview | null>(null);
 const editingExam = ref<OfflineExam | null>(null);
@@ -346,6 +360,7 @@ function openImportDialog() {
 function closeImportDialog() {
   importVisible.value = false;
   selectedFileName.value = '';
+  selectedFileSize.value = '';
   parsedRows.value = [];
   previewResult.value = null;
   importForm.name = '';
@@ -358,7 +373,19 @@ function closeImportDialog() {
 
 async function handleFileChange(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0];
+  await processSelectedFile(file);
+}
+
+async function handleFileDrop(event: DragEvent) {
+  await processSelectedFile(event.dataTransfer?.files?.[0]);
+}
+
+async function processSelectedFile(file?: File) {
   if (!file) {
+    return;
+  }
+  if (!/\.xlsx$/i.test(file.name)) {
+    ElMessage.warning('成绩文件仅支持.xlsx格式');
     return;
   }
   if (file.size > 10 * 1024 * 1024) {
@@ -367,6 +394,7 @@ async function handleFileChange(event: Event) {
   }
 
   selectedFileName.value = file.name;
+  selectedFileSize.value = formatFileSize(file.size);
   try {
     parsedRows.value = await parseSpreadsheet(file);
     previewResult.value = null;
@@ -376,6 +404,16 @@ async function handleFileChange(event: Event) {
   } catch (error) {
     parsedRows.value = [];
     ElMessage.error(error instanceof Error ? error.message : '成绩文件读取失败');
+  }
+}
+
+function clearSelectedFile() {
+  selectedFileName.value = '';
+  selectedFileSize.value = '';
+  parsedRows.value = [];
+  previewResult.value = null;
+  if (fileInput.value) {
+    fileInput.value.value = '';
   }
 }
 
@@ -438,6 +476,12 @@ function normalizeHeader(value: string) {
 
 function textValue(value: unknown) {
   return String(value ?? '').trim();
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function numberValue(value: unknown) {
