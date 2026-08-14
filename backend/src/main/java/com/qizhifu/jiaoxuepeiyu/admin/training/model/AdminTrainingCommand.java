@@ -23,6 +23,7 @@ public class AdminTrainingCommand {
     private String scoreBasis;
     private List<Long> topicIds;
     private List<Long> classIds;
+    private List<Long> studentIds;
     private List<AdminTrainingRoleCommand> roles;
     private String publishStatus;
 
@@ -146,6 +147,9 @@ public class AdminTrainingCommand {
     public void setClassIds(List<Long> classIds) {
         this.classIds = classIds;
     }
+
+    public List<Long> getStudentIds() { return studentIds; }
+    public void setStudentIds(List<Long> studentIds) { this.studentIds = studentIds; }
 
     public List<AdminTrainingRoleCommand> getRoles() {
         return roles;

@@ -251,7 +251,11 @@ public class AdminTrainingService {
         normalized.setTeacherIds(normalizedIds(command.getTeacherIds(), "Training invigilators are required"));
         normalized.setScoreBasis("LAST_SUBMIT".equals(command.getScoreBasis()) ? "LAST_SUBMIT" : "HIGHEST");
         normalized.setTopicIds(normalizedIds(command.getTopicIds(), "Training topics are required"));
-        normalized.setClassIds(normalizedIds(command.getClassIds(), "Training classes are required"));
+        normalized.setClassIds(normalizedOptionalIds(command.getClassIds()));
+        normalized.setStudentIds(normalizedOptionalIds(command.getStudentIds()));
+        if (normalized.getClassIds().isEmpty() && normalized.getStudentIds().isEmpty()) {
+            throw new BusinessException(400, "Training classes or students are required");
+        }
         normalized.setRoles(normalizedRoles(command.getRoles(), normalized.getTopicIds()));
         normalized.setTeamSize(normalizedTeamSize(normalized.getTrainingMode(), command.getTeamSize()));
         validatePaper(normalized);
@@ -385,6 +389,17 @@ public class AdminTrainingService {
         }
         if (normalized.isEmpty()) {
             throw new BusinessException(400, message);
+        }
+        return normalized;
+    }
+
+    private List<Long> normalizedOptionalIds(List<Long> ids) {
+        List<Long> normalized = new ArrayList<Long>();
+        if (ids == null) return normalized;
+        for (Long id : ids) {
+            if (id != null && id.longValue() > 0 && !normalized.contains(id)) {
+                normalized.add(id);
+            }
         }
         return normalized;
     }

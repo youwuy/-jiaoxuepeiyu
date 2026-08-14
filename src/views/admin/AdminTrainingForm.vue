@@ -54,9 +54,17 @@
             </label>
             <label class="admin-training-form-item">
               <span><b>*</b> 参训班级/学员</span>
-              <el-select v-model="selectedClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择参训班级/学员（可多选）">
-                <el-option v-for="item in classOptions" :key="item.id" :label="item.name" :value="item.id" />
-              </el-select>
+              <el-cascader
+                v-model="selectedTargetKeys"
+                :options="trainingTargetOptions"
+                :props="trainingTargetProps"
+                :show-all-levels="false"
+                collapse-tags
+                collapse-tags-tooltip
+                filterable
+                clearable
+                placeholder="请选择参训班级/学员（可多选）"
+              />
             </label>
             <label class="admin-training-form-item">
               <span><b>*</b> 监考教师</span>
@@ -235,7 +243,7 @@
           <div><span>{{ form.type }}</span><span>{{ form.mode }}</span><span>{{ selectedRoom?.name || '未选择教室' }}</span></div>
         </section>
         <section class="admin-training-preview-grid">
-          <article><span>参训对象</span><strong>{{ selectedClasses.map((item) => item.name).join('、') || '未选择' }}</strong></article>
+          <article><span>参训对象</span><strong>{{ selectedTargetLabels.join('、') || '未选择' }}</strong></article>
           <article><span>监考教师</span><strong>{{ selectedTeachers.map((item) => item.name).join('、') || '未选择' }}</strong></article>
           <article><span>实训题</span><strong>{{ selectedTopics.length }} 个</strong></article>
           <article><span>总分</span><strong>{{ totalScore }} 分</strong></article>
@@ -260,6 +268,7 @@ import {
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses } from '../../api/admin-settings';
 import { fetchAdminTeachers, type AdminTeacherOption } from '../../api/admin-course';
+import { fetchAdminAccounts, type AdminAccount } from '../../api/admin-account';
 import type { AdminClass } from '../../api/admin-settings';
 import trainingCoverUrl from '../../assets/course-station-preview.png';
 
@@ -311,6 +320,7 @@ const draggingTopicIndex = ref<number | null>(null);
 
 const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string; current?: boolean }> }>>([]);
 const classOptions = ref<SelectableItem[]>([]);
+const studentOptions = ref<AdminAccount[]>([]);
 const teacherOptions = ref<SelectableItem[]>([]);
 const roomOptions = ref<SelectableItem[]>([]);
 const topicOptions = ref<TopicItem[]>([]);
@@ -318,7 +328,7 @@ const topicOptions = ref<TopicItem[]>([]);
 const selectedTopicIds = ref<number[]>([]);
 const topicPickerIds = ref<number[]>([]);
 const boundTopicIds = ref<number[]>([]);
-const selectedClassIds = ref<number[]>([]);
+const selectedTargetKeys = ref<string[]>([]);
 const selectedTeacherIds = ref<number[]>([]);
 const selectedRoomId = ref<number>(0);
 
@@ -352,7 +362,37 @@ const semesterOptions = computed(() =>
 const selectedTopics = computed(() => selectedTopicIds.value
   .map((id) => topicOptions.value.find((item) => item.id === id))
   .filter((item): item is TopicItem => Boolean(item)));
+const selectedClassIds = computed(() => selectedTargetKeys.value
+  .filter((key) => key.startsWith('class:'))
+  .map((key) => Number(key.slice(6)))
+  .filter((id) => Number.isFinite(id)));
+const selectedStudentIds = computed(() => {
+  const selectedClassSet = new Set(selectedClassIds.value);
+  return selectedTargetKeys.value
+    .filter((key) => key.startsWith('student:'))
+    .map((key) => Number(key.slice(8)))
+    .filter((id) => {
+      const student = studentOptions.value.find((item) => item.userId === id);
+      return Number.isFinite(id) && !selectedClassSet.has(Number(student?.classId));
+    });
+});
 const selectedClasses = computed(() => classOptions.value.filter((item) => selectedClassIds.value.includes(item.id)));
+const selectedStudents = computed(() => studentOptions.value.filter((item) => selectedStudentIds.value.includes(item.userId)));
+const selectedTargetLabels = computed(() => [
+  ...selectedClasses.value.map((item) => item.name),
+  ...selectedStudents.value.map((item) => item.realName || item.accountNo)
+]);
+const trainingTargetProps = { multiple: true, checkStrictly: true, emitPath: false };
+const trainingTargetOptions = computed(() => classOptions.value.map((classItem) => ({
+  value: `class:${classItem.id}`,
+  label: classItem.name,
+  children: studentOptions.value
+    .filter((student) => Number(student.classId) === classItem.id)
+    .map((student) => ({
+      value: `student:${student.userId}`,
+      label: `${student.realName || student.accountNo}${student.accountNo ? `（${student.accountNo}）` : ''}`
+    }))
+})));
 const selectedTeachers = computed(() => teacherOptions.value.filter((item) => selectedTeacherIds.value.includes(item.id)));
 const selectedRoom = computed(() => roomOptions.value.find((item) => item.id === selectedRoomId.value));
 const totalScore = computed(() => selectedTopics.value.reduce((sum, item) => sum + item.score, 0));
@@ -375,7 +415,7 @@ const filteredTopics = computed(() =>
 
 async function goBack() {
   const hasInput = Boolean(
-    form.name || form.range.length || selectedClassIds.value.length || selectedTeacherIds.value.length
+    form.name || form.range.length || selectedTargetKeys.value.length || selectedTeacherIds.value.length
     || selectedRoomId.value || selectedTopicIds.value.length
   );
   if (hasInput) {
@@ -411,7 +451,7 @@ function resetForm() {
   topicPickerIds.value = [];
   boundTopicIds.value = [];
   selectedTopicRoles.value = {};
-  selectedClassIds.value = [];
+  selectedTargetKeys.value = [];
   selectedTeacherIds.value = [];
   selectedRoomId.value = 0;
 }
@@ -428,7 +468,10 @@ async function loadDetail() {
     form.mode = apiTrainingModeToText(detail.trainingMode);
     form.semester = `${detail.academicYearName || ''} ${detail.semesterName || ''}`.trim();
     form.range = [detail.openStartTime || '', detail.openEndTime || ''].filter(Boolean);
-    selectedClassIds.value = detail.classIds || [];
+    selectedTargetKeys.value = [
+      ...(detail.classIds || []).map((id) => `class:${id}`),
+      ...(detail.studentIds || []).map((id) => `student:${id}`)
+    ];
     selectedTeacherIds.value = detail.teacherIds || [];
     selectedRoomId.value = detail.classroomId || 0;
     form.recordingEnabled = detail.appRequired === true;
@@ -450,9 +493,10 @@ async function loadDetail() {
 
 async function loadOptions() {
   try {
-    const [years, classes, teachers, classrooms, questions] = await Promise.all([
+    const [years, classes, students, teachers, classrooms, questions] = await Promise.all([
       fetchAdminAcademicYears(),
       fetchAdminSettingsClasses(),
+      fetchAllEnabledStudents(),
       fetchAdminTeachers(),
       fetchAdminClassrooms(),
       fetchAdminTrainingTopics()
@@ -472,6 +516,7 @@ async function loadOptions() {
       majorId: item.majorId,
       category: item.majorName || 'class'
     }));
+    studentOptions.value = students;
     teacherOptions.value = (teachers as AdminTeacherOption[]).filter((item) => item.enabled !== false).map((item) => ({
       id: item.userId,
       name: item.realName || item.accountNo || `教师${item.userId}`,
@@ -502,6 +547,20 @@ async function loadOptions() {
   } catch (error) {
     ElMessage.warning(error instanceof Error ? error.message : '基础数据加载失败');
   }
+}
+
+async function fetchAllEnabledStudents() {
+  const students: AdminAccount[] = [];
+  const pageSize = 100;
+  let page = 1;
+  while (true) {
+    const result = await fetchAdminAccounts('student', { page, pageSize, enabled: true });
+    const records = result.records || [];
+    students.push(...records.filter((item) => item.enabled !== false));
+    if (!records.length || students.length >= result.total) break;
+    page += 1;
+  }
+  return students;
 }
 
 function removeSelected(id: number) {
@@ -564,7 +623,9 @@ function confirmTopicSelection() {
 
 function buildTrainingCommand(publishStatus: string) {
   const semester = semesterOptions.value.find((item) => item.value === form.semester);
-  const majorId = classOptions.value.find((item) => selectedClassIds.value.includes(item.id))?.majorId;
+  const firstTargetClassId = selectedClassIds.value[0]
+    || Number(studentOptions.value.find((item) => selectedStudentIds.value.includes(item.userId))?.classId);
+  const majorId = classOptions.value.find((item) => item.id === firstTargetClassId)?.majorId;
   const hasTeamTopic = selectedTopics.value.some((item) => item.mode === '多人实训');
   const trainingMode = hasTeamTopic ? 'TEAM' : 'SINGLE';
   const roles = selectedTopics.value.flatMap((topic) => topic.roles.map((roleName, index) => ({
@@ -591,6 +652,7 @@ function buildTrainingCommand(publishStatus: string) {
     teamSize: hasTeamTopic ? largestTeamSize : 1,
     appRequired: form.recordingEnabled,
     classIds: [...selectedClassIds.value],
+    studentIds: [...selectedStudentIds.value],
     teacherIds: [...selectedTeacherIds.value],
     classroomId: selectedRoomId.value,
     scoreBasis: (form.scoreBasis === '最后一次提交的成绩' ? 'LAST_SUBMIT' : 'HIGHEST') as 'HIGHEST' | 'LAST_SUBMIT',
@@ -613,7 +675,7 @@ async function saveDraft() {
     ElMessage.warning('请选择所属学年学期');
     return;
   }
-  if (!selectedClassIds.value.length) {
+  if (!selectedClassIds.value.length && !selectedStudentIds.value.length) {
     ElMessage.warning('请选择参训班级或学员');
     return;
   }
@@ -1426,6 +1488,10 @@ onMounted(async () => {
   min-width: 0;
   display: grid;
   gap: 9px;
+}
+
+.admin-training-form-item :deep(.el-cascader) {
+  width: 100%;
 }
 
 .admin-training-form-item > span {

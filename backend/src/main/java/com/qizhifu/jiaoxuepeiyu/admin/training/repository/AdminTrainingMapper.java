@@ -96,6 +96,7 @@ public interface AdminTrainingMapper {
             @Result(column = "created_at", property = "createdAt"),
             @Result(column = "updated_at", property = "updatedAt"),
             @Result(column = "training_id", property = "classIds", many = @Many(select = "findClassIds")),
+            @Result(column = "training_id", property = "studentIds", many = @Many(select = "findStudentIds")),
             @Result(column = "training_id", property = "roles", many = @Many(select = "findRoles")),
             @Result(column = "training_id", property = "teacherIds", many = @Many(select = "findTeacherIds")),
             @Result(column = "training_id", property = "topicIds", many = @Many(select = "findTopicIds"))
@@ -161,6 +162,7 @@ public interface AdminTrainingMapper {
             @Result(column = "created_at", property = "createdAt"),
             @Result(column = "updated_at", property = "updatedAt"),
             @Result(column = "training_id", property = "classIds", many = @Many(select = "findClassIds")),
+            @Result(column = "training_id", property = "studentIds", many = @Many(select = "findStudentIds")),
             @Result(column = "training_id", property = "roles", many = @Many(select = "findRoles")),
             @Result(column = "training_id", property = "teacherIds", many = @Many(select = "findTeacherIds")),
             @Result(column = "training_id", property = "topicIds", many = @Many(select = "findTopicIds"))
@@ -169,6 +171,9 @@ public interface AdminTrainingMapper {
 
     @Select("SELECT class_id FROM training_class WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
     List<Long> findClassIds(@Param("trainingId") Long trainingId);
+
+    @Select("SELECT student_id FROM training_student WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
+    List<Long> findStudentIds(@Param("trainingId") Long trainingId);
 
     @Select("SELECT teacher_id FROM training_teacher WHERE training_id = #{trainingId} ORDER BY sort_order ASC, id ASC")
     List<Long> findTeacherIds(@Param("trainingId") Long trainingId);
@@ -210,6 +215,15 @@ public interface AdminTrainingMapper {
             + "VALUES (#{trainingId}, #{classId}, #{sortOrder}, NOW())")
     void insertClass(@Param("trainingId") Long trainingId, @Param("classId") Long classId, @Param("sortOrder") int sortOrder);
 
+    @Delete("DELETE FROM training_student WHERE training_id = #{trainingId}")
+    void deleteStudents(@Param("trainingId") Long trainingId);
+
+    @Insert("INSERT INTO training_student (training_id, student_id, sort_order, created_at) "
+            + "SELECT #{trainingId}, id, #{sortOrder}, NOW() FROM sys_user "
+            + "WHERE id = #{studentId} AND user_type = 'student' AND status = 1")
+    void insertStudent(@Param("trainingId") Long trainingId, @Param("studentId") Long studentId,
+                       @Param("sortOrder") int sortOrder);
+
     @Delete("DELETE FROM training_role WHERE training_id = #{trainingId}")
     void deleteRoles(@Param("trainingId") Long trainingId);
 
@@ -235,9 +249,18 @@ public interface AdminTrainingMapper {
             + "</script>")
     String findClassNamesByIds(@Param("classIds") List<Long> classIds);
 
-    @Select("SELECT COUNT(DISTINCT u.id) FROM sys_user u "
-            + "JOIN training_class tc ON tc.class_id = u.class_id "
-            + "WHERE tc.training_id = #{trainingId} AND u.user_type = 'student' AND u.status = 1")
+    @Select("<script>"
+            + "SELECT GROUP_CONCAT(real_name ORDER BY id SEPARATOR ', ') FROM sys_user WHERE user_type = 'student' AND id IN "
+            + "<foreach collection='studentIds' item='studentId' open='(' separator=',' close=')'>#{studentId}</foreach>"
+            + "</script>")
+    String findStudentNamesByIds(@Param("studentIds") List<Long> studentIds);
+
+    @Select("SELECT COUNT(*) FROM ("
+            + "SELECT u.id FROM sys_user u JOIN training_class tc ON tc.class_id = u.class_id "
+            + "WHERE tc.training_id = #{trainingId} AND u.user_type = 'student' AND u.status = 1 "
+            + "UNION SELECT u.id FROM sys_user u JOIN training_student ts ON ts.student_id = u.id "
+            + "WHERE ts.training_id = #{trainingId} AND u.user_type = 'student' AND u.status = 1"
+            + ") training_students")
     int countEnabledStudentsByTrainingClasses(@Param("trainingId") Long trainingId);
 
     @Delete("DELETE FROM training_participant WHERE training_id = #{trainingId}")
@@ -248,6 +271,12 @@ public interface AdminTrainingMapper {
             + "JOIN training_class tc ON tc.class_id = u.class_id "
             + "WHERE tc.training_id = #{trainingId} AND u.user_type = 'student' AND u.status = 1")
     void insertParticipantsFromClasses(@Param("trainingId") Long trainingId);
+
+    @Insert("INSERT IGNORE INTO training_participant (training_id, student_id, created_at) "
+            + "SELECT #{trainingId}, u.id, NOW() FROM sys_user u "
+            + "JOIN training_student ts ON ts.student_id = u.id "
+            + "WHERE ts.training_id = #{trainingId} AND u.user_type = 'student' AND u.status = 1")
+    void insertParticipantsFromStudents(@Param("trainingId") Long trainingId);
 
     @Update("UPDATE training_course SET publish_status = #{publishStatus}, updated_at = NOW() "
             + "WHERE id = #{trainingId} AND deleted_flag = 0")

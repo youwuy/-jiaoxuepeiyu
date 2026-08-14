@@ -1610,7 +1610,7 @@ Behavior:
 
 ### `GET /api/admin/trainings/{trainingId}`
 
-Response `data`: training detail with bound `classIds` and team `roles`.
+Response `data`: training detail with bound `classIds`, individually bound `studentIds`, and team `roles`.
 
 ### `POST /api/admin/trainings`
 
@@ -1636,6 +1636,7 @@ Request body:
   "teamSize": 2,
   "appRequired": true,
   "classIds": [10, 11],
+  "studentIds": [31, 32],
   "roles": [
     {
       "roleName": "Driver",
@@ -1652,7 +1653,8 @@ Request body:
 Behavior:
 
 - Creates a draft training course.
-- Training name, academic year, semester, major, cover, open time range, and at least one class are required.
+- Training name, academic year, semester, open time range, and at least one class or individual student are required.
+- `classIds` binds all enabled students in the selected classes. `studentIds` binds individual enabled students; participant synchronization de-duplicates students already included through a selected class.
 - `trainingType` defaults to `PRACTICE`; `trainingMode` defaults to `SINGLE`; `paperMode` defaults to `MANUAL`.
 - Manual paper mode requires `paperId`; exam training also requires `paperId`.
 - Single training uses `teamSize = 1` and cannot configure team roles.
@@ -1665,15 +1667,15 @@ Request body: same as create.
 Behavior:
 
 - Updates training metadata.
-- Fully replaces submitted class bindings and role definitions.
+- Fully replaces submitted class bindings, individual student bindings, and role definitions.
 
 ### `POST /api/admin/trainings/{trainingId}/publish`
 
 Behavior:
 
-- Rejects publishing when bound classes have no enabled students.
+- Rejects publishing when the combined class and individual bindings have no enabled students.
 - Revalidates exam paper and team role constraints.
-- Rebuilds `training_participant` from enabled students in bound classes.
+- Rebuilds `training_participant` from enabled students in bound classes and individually bound students, with duplicates removed.
 - Marks the training `PUBLISHED`.
 - Sends a `TRAINING` notification to participants.
 

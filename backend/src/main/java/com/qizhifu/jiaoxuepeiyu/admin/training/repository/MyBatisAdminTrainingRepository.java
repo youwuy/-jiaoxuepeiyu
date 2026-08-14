@@ -71,6 +71,7 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     public void syncParticipants(Long trainingId) {
         mapper.deleteParticipants(trainingId);
         mapper.insertParticipantsFromClasses(trainingId);
+        mapper.insertParticipantsFromStudents(trainingId);
     }
 
     @Override
@@ -167,6 +168,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         for (Long classId : command.getClassIds()) {
             mapper.insertClass(trainingId, classId, classSort++);
         }
+        mapper.deleteStudents(trainingId);
+        int studentSort = 1;
+        for (Long studentId : command.getStudentIds()) {
+            mapper.insertStudent(trainingId, studentId, studentSort++);
+        }
         mapper.deleteRoles(trainingId);
         for (AdminTrainingRoleCommand roleCommand : command.getRoles()) {
             mapper.insertRole(trainingId, toRole(roleCommand));
@@ -204,9 +210,17 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         training.setTeacherIds(command.getTeacherIds());
         training.setScoreBasis(command.getScoreBasis());
         training.setTopicIds(command.getTopicIds());
-        training.setClassNames(mapper.findClassNamesByIds(command.getClassIds()));
+        String classNames = command.getClassIds().isEmpty() ? null : mapper.findClassNamesByIds(command.getClassIds());
+        String studentNames = command.getStudentIds().isEmpty() ? null : mapper.findStudentNamesByIds(command.getStudentIds());
+        training.setClassNames(joinTargetNames(classNames, studentNames));
         training.setCreatedBy(creatorId);
         return training;
+    }
+
+    private String joinTargetNames(String classNames, String studentNames) {
+        if (classNames == null || classNames.trim().isEmpty()) return studentNames;
+        if (studentNames == null || studentNames.trim().isEmpty()) return classNames;
+        return classNames + ", " + studentNames;
     }
 
     private AdminTrainingRole toRole(AdminTrainingRoleCommand command) {

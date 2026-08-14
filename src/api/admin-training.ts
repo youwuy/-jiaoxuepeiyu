@@ -49,6 +49,7 @@ export interface AdminTraining {
   examStartedAt?: string;
   classNames?: string;
   classIds?: number[];
+  studentIds?: number[];
   roles?: AdminTrainingRoleCommand[];
   participantCount?: number;
   roomCount?: number;
@@ -77,6 +78,7 @@ export interface AdminTrainingCommand {
   scoreBasis?: 'HIGHEST' | 'LAST_SUBMIT';
   topicIds?: number[];
   classIds?: number[];
+  studentIds?: number[];
   roles?: AdminTrainingRoleCommand[];
   publishStatus?: string;
 }

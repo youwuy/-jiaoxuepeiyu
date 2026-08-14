@@ -34,6 +34,7 @@ public class AdminTraining {
     private Integer topicCount;
     private String classNames;
     private List<Long> classIds;
+    private List<Long> studentIds;
     private List<AdminTrainingRole> roles;
     private Integer participantCount;
     private Integer roomCount;
@@ -229,6 +230,9 @@ public class AdminTraining {
     public void setClassIds(List<Long> classIds) {
         this.classIds = classIds;
     }
+
+    public List<Long> getStudentIds() { return studentIds; }
+    public void setStudentIds(List<Long> studentIds) { this.studentIds = studentIds; }
 
     public List<AdminTrainingRole> getRoles() {
         return roles;

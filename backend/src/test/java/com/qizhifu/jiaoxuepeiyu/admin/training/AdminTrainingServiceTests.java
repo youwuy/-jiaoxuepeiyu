@@ -38,16 +38,30 @@ class AdminTrainingServiceTests {
     }
 
     @Test
-    void rejectsTrainingWithoutBoundClass() {
+    void rejectsTrainingWithoutBoundClassOrStudent() {
         AdminTrainingService service = new AdminTrainingService(new FakeTrainings());
         AdminTrainingCommand command = trainingCommand();
         command.setClassIds(new ArrayList<Long>());
+        command.setStudentIds(new ArrayList<Long>());
 
         BusinessException exception = assertThrows(BusinessException.class, () -> {
             service.createTraining(command, 9L);
         });
 
-        assertEquals("Training classes are required", exception.getMessage());
+        assertEquals("Training classes or students are required", exception.getMessage());
+    }
+
+    @Test
+    void acceptsTrainingBoundToIndividualStudents() {
+        FakeTrainings repository = new FakeTrainings();
+        AdminTrainingService service = new AdminTrainingService(repository);
+        AdminTrainingCommand command = trainingCommand();
+        command.setClassIds(new ArrayList<Long>());
+        command.setStudentIds(Arrays.asList(31L, 31L, 32L));
+
+        service.createTraining(command, 9L);
+
+        assertEquals(Arrays.asList(31L, 32L), repository.savedCommand.getStudentIds());
     }
 
     @Test
@@ -218,6 +232,7 @@ class AdminTrainingServiceTests {
         command.setScoreBasis("HIGHEST");
         command.setTopicIds(Arrays.asList(21L));
         command.setClassIds(Arrays.asList(10L, 11L));
+        command.setStudentIds(new ArrayList<Long>());
         command.setRoles(Arrays.asList(role(21L, "Driver", 1), role(21L, "Dispatcher", 2)));
         return command;
     }
