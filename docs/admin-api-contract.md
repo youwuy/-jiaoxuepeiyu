@@ -755,52 +755,6 @@ Enables a class for future selection.
 
 Disables a class while preserving historical account, course, and score records.
 
-### `GET /api/admin/job-roles`
-
-Response `data`: array of subway job role dictionary rows.
-
-Each item:
-
-- `jobRoleId`
-- `roleName`
-- `sortOrder`
-- `enabled`
-
-### `POST /api/admin/job-roles`
-
-Request body:
-
-```json
-{
-  "roleName": "Driver",
-  "sortOrder": 1
-}
-```
-
-Behavior:
-
-- `roleName` is required, trimmed, and limited to `20` characters.
-- `sortOrder` defaults to `0` when omitted.
-- New job roles are enabled by default.
-- `roleName` is unique.
-
-### `PUT /api/admin/job-roles/{jobRoleId}`
-
-Request body: same as create.
-
-Behavior:
-
-- Updates the subway job role name and sort order.
-- Historical account and training data are preserved.
-
-### `POST /api/admin/job-roles/{jobRoleId}/enable`
-
-Enables a subway job role for future selection.
-
-### `POST /api/admin/job-roles/{jobRoleId}/disable`
-
-Disables a subway job role while preserving historical records.
-
 ## Facility Configuration
 
 ### `GET /api/admin/classrooms`

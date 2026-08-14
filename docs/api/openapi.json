@@ -58,7 +58,7 @@
     },
     {
       "name": "Admin Education Config",
-      "description": "Academic year, semester, major, class, and subway job role configuration APIs."
+      "description": "Academic year, semester, major, and class configuration APIs."
     },
     {
       "name": "Admin Trainings",
@@ -964,49 +964,6 @@
                 "items": {
                   "$ref": "#/components/schemas/AdminOrgSortCommand"
                 }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/job-roles/{jobRoleId}": {
-      "put": {
-        "tags": [
-          "Admin Education Config"
-        ],
-        "summary": "Update subway job role",
-        "description": "Updates a subway job role name and sort order.",
-        "operationId": "updateJobRole",
-        "parameters": [
-          {
-            "name": "jobRoleId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminJobRoleCommand"
               }
             }
           },
@@ -3397,124 +3354,6 @@
         "parameters": [
           {
             "name": "majorId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/job-roles": {
-      "get": {
-        "tags": [
-          "Admin Education Config"
-        ],
-        "summary": "List subway job roles",
-        "description": "Returns all subway job roles with enabled status and sort order.",
-        "operationId": "listJobRoles",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseListAdminJobRole"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Admin Education Config"
-        ],
-        "summary": "Create subway job role",
-        "description": "Creates a subway job role dictionary item and returns the new id.",
-        "operationId": "createJobRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminJobRoleCommand"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseLong"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/job-roles/{jobRoleId}/enable": {
-      "post": {
-        "tags": [
-          "Admin Education Config"
-        ],
-        "summary": "Enable subway job role",
-        "description": "Enables a subway job role for future selection.",
-        "operationId": "enableJobRole",
-        "parameters": [
-          {
-            "name": "jobRoleId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/job-roles/{jobRoleId}/disable": {
-      "post": {
-        "tags": [
-          "Admin Education Config"
-        ],
-        "summary": "Disable subway job role",
-        "description": "Disables a subway job role while preserving historical records.",
-        "operationId": "disableJobRole",
-        "parameters": [
-          {
-            "name": "jobRoleId",
             "in": "path",
             "required": true,
             "schema": {
@@ -6983,21 +6822,6 @@
           "orgId": {
             "type": "integer",
             "format": "int64"
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "AdminJobRoleCommand": {
-        "required": [
-          "roleName"
-        ],
-        "type": "object",
-        "properties": {
-          "roleName": {
-            "type": "string"
           },
           "sortOrder": {
             "type": "integer",
@@ -11428,43 +11252,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AdminMajor"
-            }
-          }
-        }
-      },
-      "AdminJobRole": {
-        "type": "object",
-        "properties": {
-          "jobRoleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "roleName": {
-            "type": "string"
-          },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "enabled": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ApiResponseListAdminJobRole": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminJobRole"
             }
           }
         }

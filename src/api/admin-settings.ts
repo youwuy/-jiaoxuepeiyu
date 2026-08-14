@@ -83,13 +83,6 @@ export interface AdminClassroom {
   cameras?: AdminCamera[];
 }
 
-export interface AdminJobRole {
-  jobRoleId: number;
-  roleName: string;
-  sortOrder?: number;
-  enabled: boolean;
-}
-
 export interface AdminScoreWeight {
   weightId: number;
   semesterId?: number;
@@ -130,11 +123,6 @@ export interface AdminMajorCommand {
 export interface AdminClassCommand {
   majorId?: number;
   className: string;
-}
-
-export interface AdminJobRoleCommand {
-  roleName: string;
-  sortOrder?: number;
 }
 
 export interface AdminCameraCommand {
@@ -181,10 +169,6 @@ export function fetchAdminClasses() {
 
 export function fetchAdminClassrooms() {
   return requestJson<AdminClassroom[]>('/admin/classrooms', { fallbackLabel: '教室配置' });
-}
-
-export function fetchAdminJobRoles() {
-  return requestJson<AdminJobRole[]>('/admin/job-roles', { fallbackLabel: '实训岗位配置' });
 }
 
 export function fetchAdminScoreWeights() {
@@ -255,36 +239,6 @@ export function disableAdminClass(classId: number) {
   return requestJson<void>(`/admin/classes/${classId}/disable`, {
     method: 'POST',
     fallbackLabel: '禁用班级'
-  });
-}
-
-export function createAdminJobRole(command: AdminJobRoleCommand) {
-  return requestJson<number>('/admin/job-roles', {
-    method: 'POST',
-    body: JSON.stringify(command),
-    fallbackLabel: '新增实训岗位'
-  });
-}
-
-export function updateAdminJobRole(jobRoleId: number, command: AdminJobRoleCommand) {
-  return requestJson<void>(`/admin/job-roles/${jobRoleId}`, {
-    method: 'PUT',
-    body: JSON.stringify(command),
-    fallbackLabel: '编辑实训岗位'
-  });
-}
-
-export function enableAdminJobRole(jobRoleId: number) {
-  return requestJson<void>(`/admin/job-roles/${jobRoleId}/enable`, {
-    method: 'POST',
-    fallbackLabel: '启用实训岗位'
-  });
-}
-
-export function disableAdminJobRole(jobRoleId: number) {
-  return requestJson<void>(`/admin/job-roles/${jobRoleId}/disable`, {
-    method: 'POST',
-    fallbackLabel: '禁用实训岗位'
   });
 }
 

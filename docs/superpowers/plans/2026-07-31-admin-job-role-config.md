@@ -1,5 +1,7 @@
 # Admin Job Role Config Implementation Plan
 
+> Historical only: superseded by the 2026-08-15 customer clarification that training roles are fixed by each training topic. The management UI and job-role configuration APIs must not be restored from this plan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add management APIs for the subway job role dictionary required by global business configuration.

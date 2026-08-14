@@ -4,8 +4,6 @@ import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYear;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYearCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClass;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClassCommand;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRole;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajor;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajorCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminSemester;
@@ -45,11 +43,4 @@ public interface AdminEducationConfigRepository {
 
     void updateClassStatus(Long classId, boolean enabled);
 
-    List<AdminJobRole> findJobRoles();
-
-    Long createJobRole(AdminJobRoleCommand command);
-
-    void updateJobRole(Long jobRoleId, AdminJobRoleCommand command);
-
-    void updateJobRoleStatus(Long jobRoleId, boolean enabled);
 }

@@ -4,8 +4,6 @@ import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYear;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYearCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClass;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClassCommand;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRole;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajor;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajorCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminSemester;
@@ -112,32 +110,4 @@ public class MyBatisAdminEducationConfigRepository implements AdminEducationConf
         mapper.updateClassStatus(classId, enabled ? 1 : 0);
     }
 
-    @Override
-    public List<AdminJobRole> findJobRoles() {
-        return mapper.findJobRoles();
-    }
-
-    @Override
-    public Long createJobRole(AdminJobRoleCommand command) {
-        AdminJobRole jobRole = toJobRole(command);
-        mapper.insertJobRole(jobRole);
-        return jobRole.getJobRoleId();
-    }
-
-    @Override
-    public void updateJobRole(Long jobRoleId, AdminJobRoleCommand command) {
-        mapper.updateJobRole(jobRoleId, toJobRole(command));
-    }
-
-    @Override
-    public void updateJobRoleStatus(Long jobRoleId, boolean enabled) {
-        mapper.updateJobRoleStatus(jobRoleId, enabled ? 1 : 0);
-    }
-
-    private AdminJobRole toJobRole(AdminJobRoleCommand command) {
-        AdminJobRole jobRole = new AdminJobRole();
-        jobRole.setRoleName(command.getRoleName());
-        jobRole.setSortOrder(command.getSortOrder());
-        return jobRole;
-    }
 }

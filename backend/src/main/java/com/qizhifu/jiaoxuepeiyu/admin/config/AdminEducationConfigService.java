@@ -4,8 +4,6 @@ import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYear;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminAcademicYearCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClass;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminClassCommand;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRole;
-import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminJobRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajor;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminMajorCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.config.model.AdminSemester;
@@ -109,29 +107,6 @@ public class AdminEducationConfigService {
         repository.updateClassStatus(classId, false);
     }
 
-    public List<AdminJobRole> listJobRoles() {
-        return repository.findJobRoles();
-    }
-
-    public Long createJobRole(AdminJobRoleCommand command) {
-        return repository.createJobRole(normalizedJobRole(command));
-    }
-
-    public void updateJobRole(Long jobRoleId, AdminJobRoleCommand command) {
-        if (jobRoleId == null) {
-            throw new BusinessException(400, "Job role is required");
-        }
-        repository.updateJobRole(jobRoleId, normalizedJobRole(command));
-    }
-
-    public void enableJobRole(Long jobRoleId) {
-        repository.updateJobRoleStatus(jobRoleId, true);
-    }
-
-    public void disableJobRole(Long jobRoleId) {
-        repository.updateJobRoleStatus(jobRoleId, false);
-    }
-
     private AdminAcademicYearCommand normalizedYear(AdminAcademicYearCommand command) {
         if (command == null || isBlank(command.getYearName())) {
             throw new BusinessException(400, "Academic year name is required");
@@ -159,17 +134,6 @@ public class AdminEducationConfigService {
             throw new BusinessException(400, "Class name is required");
         }
         return new AdminClassCommand(command.getMajorId(), command.getClassName().trim());
-    }
-
-    private AdminJobRoleCommand normalizedJobRole(AdminJobRoleCommand command) {
-        if (command == null || isBlank(command.getRoleName())) {
-            throw new BusinessException(400, "Job role name is required");
-        }
-        String roleName = command.getRoleName().trim();
-        if (roleName.length() > 20) {
-            throw new BusinessException(400, "Job role name cannot exceed 20 characters");
-        }
-        return new AdminJobRoleCommand(roleName, command.getSortOrder() == null ? Integer.valueOf(0) : command.getSortOrder());
     }
 
     private boolean isBlank(String value) {
