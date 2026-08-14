@@ -61,7 +61,7 @@
                 <span><i class="tone-complete"></i>实际参训</span>
               </div>
             </header>
-            <div class="class-bar-chart">
+            <div v-if="hasTrainingRecords" class="class-bar-chart">
               <div class="class-bar-axis">
                 <span v-for="tick in classChartTicks" :key="tick">{{ tick }}</span>
               </div>
@@ -79,6 +79,7 @@
                 </div>
               </div>
             </div>
+            <el-empty v-else :description="emptyChartDescription" />
           </article>
 
           <article class="admin-training-statistics-panel panel-donut">
@@ -88,7 +89,7 @@
                 <strong>成绩等级占比</strong>
               </div>
             </header>
-            <div class="score-donut-layout">
+            <div v-if="hasScoreData" class="score-donut-layout">
               <div class="score-donut" :style="{ background: donutGradient }">
                 <div class="score-donut-core">
                   <strong>{{ participantCount }}</strong>
@@ -103,6 +104,7 @@
                 </article>
               </div>
             </div>
+            <el-empty v-else :description="emptyChartDescription" />
           </article>
         </section>
 
@@ -114,14 +116,14 @@
                 <strong>个人成绩分布</strong>
               </div>
             </header>
-            <div v-if="scoreDistribution.length" class="score-range-chart">
+            <div v-if="hasScoreData && scoreDistribution.length" class="score-range-chart">
               <div v-for="item in scoreDistribution" :key="item.name" class="score-range-column">
                 <b>{{ item.count }} 人</b>
                 <i :style="{ height: `${scoreRangeHeight(item.count)}%`, background: item.color }"></i>
                 <span>{{ item.name }}</span>
               </div>
             </div>
-            <el-empty v-else description="暂无成绩分布数据" />
+            <el-empty v-else :description="emptyChartDescription" />
           </article>
 
           <article class="admin-training-statistics-panel panel-compare">
@@ -131,7 +133,7 @@
                 <strong>班级平均分对比分析</strong>
               </div>
             </header>
-            <div class="compare-chart">
+            <div v-if="hasScoreData" class="compare-chart">
               <div v-for="item in classAverageCompare" :key="item.name" class="compare-row">
                 <span>{{ item.name }}</span>
                 <div class="compare-bar-track">
@@ -140,6 +142,7 @@
                 <b>{{ item.score }}</b>
               </div>
             </div>
+            <el-empty v-else :description="emptyChartDescription" />
           </article>
         </section>
 
@@ -151,7 +154,7 @@
                 <strong>成绩排行榜 Top10</strong>
               </div>
             </header>
-            <table class="ranking-table">
+            <table v-if="hasScoreData" class="ranking-table">
               <thead>
                 <tr>
                   <th>排名</th>
@@ -177,6 +180,7 @@
                 </tr>
               </tbody>
             </table>
+            <el-empty v-else :description="emptyChartDescription" />
           </article>
 
           <article class="admin-training-statistics-panel panel-progress">
@@ -200,7 +204,7 @@
                   <i :class="progressTone(item.percent)" :style="{ width: `${item.percent}%` }"></i>
                 </div>
               </article>
-              <el-empty v-if="progressRows.length === 0" description="暂无步骤错误数据" />
+              <el-empty v-if="progressRows.length === 0" :description="emptyChartDescription" />
             </div>
           </article>
         </section>
@@ -346,6 +350,11 @@ const courseMaxScore = computed(() => [...new Map(reviewRows.value.map((item) =>
 const submittedScores = computed(() => submittedStudentRows.value
   .map((item) => Number(item.totalScore))
   .filter((score) => Number.isFinite(score)));
+const hasTrainingRecords = computed(() => submittedStudentRows.value.length > 0);
+const hasScoreData = computed(() => submittedScores.value.length > 0);
+const emptyChartDescription = computed(() => activeClass.value === '全部班级'
+  ? '暂无实训成绩数据'
+  : '该班级无本次实训记录');
 
 const summaryCards = computed<SummaryCard[]>(() => [
   {
@@ -467,9 +476,11 @@ const classParticipationData = computed<ChartClassItem[]>(() => {
 });
 
 const classChartMax = computed(() => {
-  const classCount = Math.max(classLabels.value.length, 1);
-  const largestAverage = Math.ceil(participantCount.value / classCount);
-  return Math.max(50, Math.ceil(largestAverage / 10) * 10);
+  const labels = activeClass.value === '全部班级' ? classLabels.value : [activeClass.value];
+  const largestClass = Math.max(...labels.map((label) =>
+    new Set(filteredReviewRows.value.filter((item) => item.className === label).map((item) => item.studentId)).size
+  ), 0);
+  return Math.max(10, Math.ceil(largestClass / 10) * 10);
 });
 
 const classChartTicks = computed(() =>
