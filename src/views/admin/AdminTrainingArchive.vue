@@ -7,8 +7,8 @@
       </el-breadcrumb>
 
       <section class="admin-training-archive-filter-card">
-        <el-select v-model="draft.className" placeholder="请选择班级" clearable>
-          <el-option v-for="item in classOptions" :key="item" :label="item" :value="item" />
+        <el-select v-model="draft.classId" placeholder="请选择班级" clearable>
+          <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
         </el-select>
         <el-input v-model="draft.studentNo" :prefix-icon="Search" placeholder="学号搜索" clearable @keyup.enter="applyFilters" />
         <el-input v-model="draft.studentName" :prefix-icon="Search" placeholder="姓名搜索" clearable @keyup.enter="applyFilters" />
@@ -17,7 +17,8 @@
       </section>
 
       <section v-loading="loading" class="admin-training-archive-board">
-        <table class="admin-training-archive-table">
+        <div class="admin-training-archive-table-scroll">
+          <table class="admin-training-archive-table">
           <thead>
             <tr>
               <th>序号</th>
@@ -36,6 +37,9 @@
             </tr>
           </thead>
           <tbody>
+            <tr v-if="pagedArchives.length === 0" class="admin-training-archive-list-empty">
+              <td colspan="13">暂无实训档案记录</td>
+            </tr>
             <tr v-for="(row, index) in pagedArchives" :key="row.id">
               <td>{{ (page - 1) * pageSize + index + 1 }}</td>
               <td>{{ row.className }}</td>
@@ -52,7 +56,8 @@
               <td><el-button text class="admin-training-archive-detail-button" @click="openDetail(row)">查看详情</el-button></td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
 
         <footer class="admin-training-archive-footer">
           <span></span>
@@ -157,7 +162,7 @@
             />
             <p>{{ activeStepIndex >= 0 ? `当前步骤：${archiveSteps[activeStepIndex]?.name}` : '拖动进度条可同步定位操作步骤' }}</p>
           </div>
-          <el-empty v-else description="本次实训未上传录屏，无法播放回放" />
+          <el-empty v-else description="本实训未开启操作视频录制，无法播放回放" />
         </aside>
           </section>
         </div>
@@ -173,6 +178,7 @@ import { Back, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { resolvePublicUrl } from '../../api/http';
 import { fetchAdminScoreGradeRules, type AdminScoreGradeRule } from '../../api/admin-settings';
+import { fetchAdminClasses, type AdminClass } from '../../api/admin-settings';
 import {
   fetchAdminTrainingArchiveDetail,
   fetchAdminTrainingArchives,
@@ -221,15 +227,19 @@ const activeArchive = ref<TrainingArchiveRow | null>(null);
 const archiveVideo = ref<HTMLVideoElement>();
 const archiveStepBody = ref<HTMLElement>();
 const activeStepIndex = ref(-1);
-const draft = reactive({ className: '', studentNo: '', studentName: '' });
+const draft = reactive<{ classId: number | ''; studentNo: string; studentName: string }>({
+  classId: '',
+  studentNo: '',
+  studentName: ''
+});
 const applied = ref({ ...draft });
 
 const archives = ref<TrainingArchiveRow[]>([]);
 const studentHistory = ref<TrainingArchiveRow[]>([]);
 const archiveSteps = ref<ArchiveStep[]>([]);
 const gradeRules = ref<AdminScoreGradeRule[]>([]);
+const classOptions = ref<AdminClass[]>([]);
 
-const classOptions = computed(() => Array.from(new Set(archives.value.map((item) => item.className))));
 const pagedArchives = computed(() => archives.value);
 const archiveErrorCount = computed(() => archiveSteps.value.filter((step) => step.isError).length);
 const archiveGrade = computed(() => {
@@ -247,7 +257,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  Object.assign(draft, { className: '', studentNo: '', studentName: '' });
+  Object.assign(draft, { classId: '', studentNo: '', studentName: '' });
   applyFilters();
 }
 
@@ -302,6 +312,15 @@ async function loadGradeRules() {
   }
 }
 
+async function loadClassOptions() {
+  try {
+    classOptions.value = (await fetchAdminClasses()).filter((item) => item.enabled);
+  } catch (error) {
+    classOptions.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '班级列表加载失败');
+  }
+}
+
 function backToList() {
   archiveVideo.value?.pause();
   viewMode.value = 'list';
@@ -353,12 +372,10 @@ function setActiveStep(index: number) {
 async function loadArchives() {
   loading.value = true;
   try {
-    const keyword = [applied.value.className, applied.value.studentNo, applied.value.studentName]
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .join(' ');
     const result = await fetchAdminTrainingArchives({
-      keyword: keyword || undefined,
+      classId: applied.value.classId || undefined,
+      studentNo: applied.value.studentNo.trim() || undefined,
+      studentName: applied.value.studentName.trim() || undefined,
       page: page.value,
       pageSize
     });
@@ -375,6 +392,8 @@ async function loadArchives() {
 
 function mapArchive(item: AdminTrainingArchive): TrainingArchiveRow {
   const title = item.trainingName || '-';
+  const trainingMode = formatTrainingMode(item.trainingMode);
+  const roleName = trainingMode === '多人实训' ? (item.roleName || '-') : '-';
   return {
     id: item.archiveId,
     studentId: Number(item.studentId || 0),
@@ -382,16 +401,37 @@ function mapArchive(item: AdminTrainingArchive): TrainingArchiveRow {
     studentNo: item.studentNo || '-',
     studentName: item.studentName || '-',
     trainingName: title,
-    detailTitle: item.roleName ? `${title}（${item.roleName}）` : title,
-    trainingMode: item.trainingMode || '-',
-    roleName: item.roleName || '-',
+    detailTitle: roleName !== '-' ? `${title}（扮演 ${roleName} 角色）` : title,
+    trainingMode,
+    roleName,
     submittedAt: formatDateTime(item.submittedAt),
-    submitType: item.submitType || '-',
+    submitType: formatSubmitType(item.submitType),
     durationSeconds: Number(item.durationSeconds || 0),
     personalScore: formatScore(item.personalScore),
-    teamScore: item.teamScore === undefined || item.teamScore === null ? '-' : formatScore(item.teamScore),
+    teamScore: trainingMode === '多人实训' && item.teamScore !== undefined && item.teamScore !== null
+      ? formatScore(item.teamScore)
+      : '-',
     recordingUrl: resolvePublicUrl((item as { recordingUrl?: string }).recordingUrl)
   };
+}
+
+function formatTrainingMode(value?: string) {
+  const modes: Record<string, string> = {
+    SINGLE: '单人实训',
+    TEAM: '多人实训'
+  };
+  if (!value) return '-';
+  return modes[value.toUpperCase()] || value;
+}
+
+function formatSubmitType(value?: string) {
+  const submitTypes: Record<string, string> = {
+    NORMAL: '正常提交',
+    ABNORMAL_EXIT: '异常退出',
+    ROOM_DISSOLVED: '房间解散'
+  };
+  if (!value) return '-';
+  return submitTypes[value.toUpperCase()] || value;
 }
 
 function mapStep(step: AdminTrainingArchiveStep): ArchiveStep {
@@ -430,5 +470,6 @@ function formatScore(value?: number | string) {
 onMounted(() => {
   void loadArchives();
   void loadGradeRules();
+  void loadClassOptions();
 });
 </script>

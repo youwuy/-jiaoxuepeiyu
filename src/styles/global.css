@@ -17623,6 +17623,12 @@ a {
   font-weight: 900;
 }
 
+.admin-training-archive-table .admin-training-archive-list-empty td {
+  height: 180px;
+  color: #94a3b8;
+  text-align: center;
+}
+
 .admin-training-archive-detail-button.el-button {
   height: 28px;
   padding: 0 8px;

@@ -27,6 +27,24 @@ class AdminTrainingArchiveServiceTests {
     }
 
     @Test
+    void keepsIndependentStudentFiltersAndNormalizesText() {
+        FakeArchives repository = new FakeArchives();
+        AdminTrainingArchiveService service = new AdminTrainingArchiveService(repository);
+        AdminTrainingArchiveQuery query = new AdminTrainingArchiveQuery();
+        query.setClassId(3L);
+        query.setStudentNo(" 2026001 ");
+        query.setStudentName(" 张三 ");
+        query.setPageSize(500);
+
+        service.listArchives(query);
+
+        assertEquals(3L, repository.lastQuery.getClassId().longValue());
+        assertEquals("2026001", repository.lastQuery.getStudentNo());
+        assertEquals("张三", repository.lastQuery.getStudentName());
+        assertEquals(100, repository.lastQuery.getPageSize());
+    }
+
+    @Test
     void returnsDetailWithSteps() {
         FakeArchives repository = new FakeArchives();
         repository.detail = new AdminTrainingArchiveDetail();

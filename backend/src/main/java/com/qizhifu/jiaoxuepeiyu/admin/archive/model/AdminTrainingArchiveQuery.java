@@ -8,6 +8,8 @@ public class AdminTrainingArchiveQuery {
     private Long trainingId;
     private Long studentId;
     private Long classId;
+    private String studentNo;
+    private String studentName;
     private String trainingMode;
     private String submitType;
     private String keyword;
@@ -40,6 +42,22 @@ public class AdminTrainingArchiveQuery {
 
     public void setClassId(Long classId) {
         this.classId = classId;
+    }
+
+    public String getStudentNo() {
+        return studentNo;
+    }
+
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
+    }
+
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
     }
 
     public String getTrainingMode() {

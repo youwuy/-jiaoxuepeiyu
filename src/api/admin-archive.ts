@@ -47,6 +47,8 @@ export interface AdminTrainingArchiveDetail extends AdminTrainingArchive {
 export interface AdminTrainingArchiveQuery {
   studentId?: number;
   classId?: number;
+  studentNo?: string;
+  studentName?: string;
   trainingId?: number;
   trainingMode?: string;
   submitType?: string;

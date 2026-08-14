@@ -24,11 +24,13 @@ public interface AdminTrainingArchiveMapper {
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
+            + "<if test='studentNo != null'>AND u.username LIKE CONCAT('%', #{studentNo}, '%')</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE CONCAT('%', #{studentName}, '%')</if> "
             + "<if test='trainingMode != null'>AND ta.training_mode = #{trainingMode}</if> "
             + "<if test='submitType != null'>AND ta.submit_type = #{submitType}</if> "
             + "<if test='submittedStartTime != null'>AND ta.submitted_at &gt;= #{submittedStartTime}</if> "
             + "<if test='submittedEndExclusiveTime != null'>AND ta.submitted_at &lt; #{submittedEndExclusiveTime}</if> "
-            + "<if test='keyword != null'>AND (ta.training_name LIKE #{keyword} OR u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
+            + "<if test='keyword != null'>AND (ta.training_name LIKE CONCAT('%', #{keyword}, '%') OR u.real_name LIKE CONCAT('%', #{keyword}, '%') OR u.username LIKE CONCAT('%', #{keyword}, '%'))</if> "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     List<AdminTrainingArchive> findArchives(AdminTrainingArchiveQuery query);
@@ -40,11 +42,13 @@ public interface AdminTrainingArchiveMapper {
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
+            + "<if test='studentNo != null'>AND u.username LIKE CONCAT('%', #{studentNo}, '%')</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE CONCAT('%', #{studentName}, '%')</if> "
             + "<if test='trainingMode != null'>AND ta.training_mode = #{trainingMode}</if> "
             + "<if test='submitType != null'>AND ta.submit_type = #{submitType}</if> "
             + "<if test='submittedStartTime != null'>AND ta.submitted_at &gt;= #{submittedStartTime}</if> "
             + "<if test='submittedEndExclusiveTime != null'>AND ta.submitted_at &lt; #{submittedEndExclusiveTime}</if> "
-            + "<if test='keyword != null'>AND (ta.training_name LIKE #{keyword} OR u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
+            + "<if test='keyword != null'>AND (ta.training_name LIKE CONCAT('%', #{keyword}, '%') OR u.real_name LIKE CONCAT('%', #{keyword}, '%') OR u.username LIKE CONCAT('%', #{keyword}, '%'))</if> "
             + "</script>")
     long countArchives(AdminTrainingArchiveQuery query);
 
@@ -76,11 +80,13 @@ public interface AdminTrainingArchiveMapper {
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
+            + "<if test='studentNo != null'>AND u.username LIKE CONCAT('%', #{studentNo}, '%')</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE CONCAT('%', #{studentName}, '%')</if> "
             + "<if test='trainingMode != null'>AND ta.training_mode = #{trainingMode}</if> "
             + "<if test='submitType != null'>AND ta.submit_type = #{submitType}</if> "
             + "<if test='submittedStartTime != null'>AND ta.submitted_at &gt;= #{submittedStartTime}</if> "
             + "<if test='submittedEndExclusiveTime != null'>AND ta.submitted_at &lt; #{submittedEndExclusiveTime}</if> "
-            + "<if test='keyword != null'>AND (ta.training_name LIKE #{keyword} OR u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
+            + "<if test='keyword != null'>AND (ta.training_name LIKE CONCAT('%', #{keyword}, '%') OR u.real_name LIKE CONCAT('%', #{keyword}, '%') OR u.username LIKE CONCAT('%', #{keyword}, '%'))</if> "
             + "</script>")
     AdminTrainingArchiveStatistics calculateStatistics(AdminTrainingArchiveQuery query);
 }

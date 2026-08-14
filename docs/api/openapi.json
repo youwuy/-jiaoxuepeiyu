@@ -12657,6 +12657,14 @@
             "type": "integer",
             "format": "int64"
           },
+          "studentNo": {
+            "type": "string",
+            "description": "Fuzzy student number filter"
+          },
+          "studentName": {
+            "type": "string",
+            "description": "Fuzzy student name filter"
+          },
           "trainingMode": {
             "type": "string"
           },

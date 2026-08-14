@@ -67,6 +67,8 @@ public class AdminTrainingArchiveService {
             normalized.setTrainingId(query.getTrainingId());
             normalized.setStudentId(query.getStudentId());
             normalized.setClassId(query.getClassId());
+            normalized.setStudentNo(trimToNull(query.getStudentNo()));
+            normalized.setStudentName(trimToNull(query.getStudentName()));
             normalized.setTrainingMode(upper(trimToNull(query.getTrainingMode())));
             normalized.setSubmitType(upper(trimToNull(query.getSubmitType())));
             normalized.setKeyword(trimToNull(query.getKeyword()));
