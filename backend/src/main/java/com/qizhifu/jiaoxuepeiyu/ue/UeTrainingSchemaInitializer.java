@@ -25,31 +25,51 @@ public class UeTrainingSchemaInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!exists("information_schema.TABLES", "TABLE_NAME", TABLE_NAME)) {
+        if (!tableExists()) {
             return;
         }
-        if (!exists("information_schema.COLUMNS", "COLUMN_NAME", COLUMN_NAME)) {
+        if (!columnExists(COLUMN_NAME)) {
             jdbcTemplate.execute("ALTER TABLE `training_attempt` ADD COLUMN `client_attempt_id` VARCHAR(64) NULL AFTER `training_id`");
         }
-        if (!exists("information_schema.STATISTICS", "INDEX_NAME", INDEX_NAME)) {
+        if (!indexExists(INDEX_NAME)) {
             jdbcTemplate.execute("CREATE UNIQUE INDEX `uk_training_attempt_client` "
                     + "ON `training_attempt` (`student_id`, `training_id`, `client_attempt_id`)");
         }
-        if (!exists("information_schema.COLUMNS", "COLUMN_NAME", DELETED_COLUMN_NAME)) {
+        if (!columnExists(DELETED_COLUMN_NAME)) {
             jdbcTemplate.execute("ALTER TABLE `training_attempt` ADD COLUMN `deleted_flag` TINYINT NOT NULL DEFAULT 0 AFTER `recording_url`");
         }
-        if (!exists("information_schema.STATISTICS", "INDEX_NAME", DELETED_INDEX_NAME)) {
+        if (!indexExists(DELETED_INDEX_NAME)) {
             jdbcTemplate.execute("CREATE INDEX `idx_training_attempt_active_topic` "
                     + "ON `training_attempt` (`training_id`, `topic_id`, `deleted_flag`, `student_id`, `submitted_at`)");
         }
     }
 
-    private boolean exists(String metadataTable, String fieldName, String value) {
+    private boolean columnExists(String columnName) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM " + metadataTable
-                        + " WHERE TABLE_SCHEMA = DATABASE() AND " + fieldName + " = ?",
+                "SELECT COUNT(*) FROM information_schema.COLUMNS"
+                        + " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
                 Integer.class,
-                value);
+                TABLE_NAME,
+                columnName);
+        return count != null && count.intValue() > 0;
+    }
+
+    private boolean tableExists() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.TABLES"
+                        + " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+                Integer.class,
+                TABLE_NAME);
+        return count != null && count.intValue() > 0;
+    }
+
+    private boolean indexExists(String indexName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS"
+                        + " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?",
+                Integer.class,
+                TABLE_NAME,
+                indexName);
         return count != null && count.intValue() > 0;
     }
 }
