@@ -195,6 +195,11 @@ public interface AdminTrainingMapper {
             + "AND FIND_IN_SET(REPLACE(#{roleName}, ' ', ''), REPLACE(role_names, ' ', '')) > 0")
     int countTopicRole(@Param("topicId") Long topicId, @Param("roleName") String roleName);
 
+    @Select("<script>SELECT training_mode FROM training_topic WHERE enabled_flag = 1 AND deleted_flag = 0 AND id IN "
+            + "<foreach collection='topicIds' item='topicId' open='(' separator=',' close=')'>#{topicId}</foreach> "
+            + "ORDER BY id ASC</script>")
+    List<String> findTopicModes(@Param("topicIds") List<Long> topicIds);
+
     @Insert("INSERT INTO training_course "
             + "(training_name, academic_year_id, semester_id, major_id, cover_url, training_type, training_mode, "
             + "paper_mode, paper_id, publish_status, open_start_time, open_end_time, team_size, app_required, recording_enabled, classroom_id, score_basis, "
@@ -212,6 +217,17 @@ public interface AdminTrainingMapper {
             + "team_size = #{teamSize}, app_required = #{appRequired}, recording_enabled = #{recordingEnabled}, classroom_id = #{classroomId}, score_basis = #{scoreBasis}, class_names = #{classNames}, updated_at = NOW() "
             + "WHERE id = #{trainingId} AND deleted_flag = 0")
     void updateTraining(AdminTraining training);
+
+    @Select("SELECT student_id FROM training_participant WHERE training_id = #{trainingId} ORDER BY student_id ASC")
+    List<Long> findParticipantIds(@Param("trainingId") Long trainingId);
+
+    @Update("<script>UPDATE training_attempt SET deleted_flag = 1, updated_at = NOW() "
+            + "WHERE training_id = #{trainingId} AND deleted_flag = 0 AND (topic_id IN "
+            + "<foreach collection='topicIds' item='topicId' open='(' separator=',' close=')'>#{topicId}</foreach> "
+            + "OR (topic_id IS NULL AND (SELECT COUNT(*) FROM training_topic_binding "
+            + "WHERE training_id = #{trainingId}) = 1))</script>")
+    void softDeleteAttemptsForTopics(@Param("trainingId") Long trainingId,
+                                     @Param("topicIds") List<Long> topicIds);
 
     @Delete("DELETE FROM training_class WHERE training_id = #{trainingId}")
     void deleteClasses(@Param("trainingId") Long trainingId);
@@ -308,27 +324,34 @@ public interface AdminTrainingMapper {
             + "WHERE training_id = #{trainingId}")
     void notifyParticipants(@Param("trainingId") Long trainingId, @Param("notificationId") Long notificationId);
 
+    @Insert("<script>INSERT IGNORE INTO msg_user_notification "
+            + "(notification_id, user_id, read_flag, created_at) VALUES "
+            + "<foreach collection='studentIds' item='studentId' separator=','>"
+            + "(#{notificationId}, #{studentId}, 0, NOW())</foreach></script>")
+    void notifySelectedParticipants(@Param("notificationId") Long notificationId,
+                                    @Param("studentIds") List<Long> studentIds);
+
     @Select("SELECT #{trainingId} AS training_id, "
             + "(SELECT COUNT(*) FROM training_participant WHERE training_id = #{trainingId}) AS participant_count, "
             + "(SELECT COUNT(*) FROM training_team_room WHERE training_id = #{trainingId} AND room_status = 'WAITING') AS waiting_room_count, "
             + "(SELECT COUNT(*) FROM training_team_room WHERE training_id = #{trainingId} AND room_status = 'STARTED') AS started_room_count, "
             + "(SELECT COUNT(*) FROM training_team_room WHERE training_id = #{trainingId} AND room_status = 'DISSOLVED') AS dissolved_room_count, "
             + "(SELECT COUNT(DISTINCT ta.student_id) FROM training_attempt ta JOIN training_course tc ON tc.id = ta.training_id "
-            + "WHERE ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL) AS submitted_attempt_count, "
+            + "WHERE ta.training_id = #{trainingId} AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL) AS submitted_attempt_count, "
             + "(SELECT AVG(final_score) FROM (SELECT tp.student_id, "
             + "(SELECT COALESCE(ta.manual_score, ta.personal_score) FROM training_attempt ta "
-            + "WHERE ta.training_id = tp.training_id AND ta.student_id = tp.student_id AND ta.submitted_at IS NOT NULL "
+            + "WHERE ta.training_id = tp.training_id AND ta.student_id = tp.student_id AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL "
             + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ta.manual_score, ta.personal_score) END DESC, "
             + "ta.submitted_at DESC, ta.id DESC LIMIT 1) AS final_score "
             + "FROM training_participant tp JOIN training_course tc ON tc.id = tp.training_id "
             + "WHERE tp.training_id = #{trainingId}) final_scores WHERE final_score IS NOT NULL) AS average_score, "
             + "(SELECT MAX(final_score) FROM (SELECT tp.student_id, "
             + "(SELECT COALESCE(ta.manual_score, ta.personal_score) FROM training_attempt ta WHERE ta.training_id = tp.training_id "
-            + "AND ta.student_id = tp.student_id AND ta.submitted_at IS NOT NULL ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ta.manual_score, ta.personal_score) END DESC, ta.submitted_at DESC, ta.id DESC LIMIT 1) AS final_score "
+            + "AND ta.student_id = tp.student_id AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ta.manual_score, ta.personal_score) END DESC, ta.submitted_at DESC, ta.id DESC LIMIT 1) AS final_score "
             + "FROM training_participant tp JOIN training_course tc ON tc.id = tp.training_id WHERE tp.training_id = #{trainingId}) final_scores WHERE final_score IS NOT NULL) AS max_score, "
             + "(SELECT MIN(final_score) FROM (SELECT tp.student_id, "
             + "(SELECT COALESCE(ta.manual_score, ta.personal_score) FROM training_attempt ta WHERE ta.training_id = tp.training_id "
-            + "AND ta.student_id = tp.student_id AND ta.submitted_at IS NOT NULL ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ta.manual_score, ta.personal_score) END DESC, ta.submitted_at DESC, ta.id DESC LIMIT 1) AS final_score "
+            + "AND ta.student_id = tp.student_id AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ta.manual_score, ta.personal_score) END DESC, ta.submitted_at DESC, ta.id DESC LIMIT 1) AS final_score "
             + "FROM training_participant tp JOIN training_course tc ON tc.id = tp.training_id WHERE tp.training_id = #{trainingId}) final_scores WHERE final_score IS NOT NULL) AS min_score")
     AdminTrainingStatistics calculateStatistics(@Param("trainingId") Long trainingId);
 
@@ -340,7 +363,7 @@ public interface AdminTrainingMapper {
             + "LEFT JOIN training_topic tt ON tt.id = ta.topic_id "
             + "LEFT JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
-            + "WHERE ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL "
+            + "WHERE ta.training_id = #{trainingId} AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL "
             + "AND tas.score IS NOT NULL AND tas.max_score IS NOT NULL AND tas.max_score &gt; 0 "
             + "<if test='className != null'>AND c.class_name = #{className}</if> "
             + "GROUP BY tt.topic_name, tas.step_name ORDER BY error_rate DESC, total_count DESC, tas.step_name ASC LIMIT 10"
@@ -366,7 +389,7 @@ public interface AdminTrainingMapper {
             + "JOIN training_topic_binding tb ON tb.training_id = tp.training_id "
             + "JOIN training_topic tt ON tt.id = tb.topic_id JOIN training_course tc ON tc.id = tp.training_id "
             + "JOIN training_attempt ta ON ta.id = (SELECT tx.id FROM training_attempt tx "
-            + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id "
+            + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id AND tx.deleted_flag = 0 "
             + "AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1)) "
             + "AND tx.submitted_at IS NOT NULL "
@@ -380,7 +403,7 @@ public interface AdminTrainingMapper {
             + "JOIN training_topic tt ON tt.id = ots.topic_id "
             + "WHERE os.training_id = #{trainingId} "
             + "AND NOT EXISTS (SELECT 1 FROM training_attempt ta WHERE ta.training_id = os.training_id "
-            + "AND ta.student_id = os.student_id AND ta.submitted_at IS NOT NULL) "
+            + "AND ta.student_id = os.student_id AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL) "
             + "<if test='className != null'>AND os.class_name = #{className}</if> "
             + ") result GROUP BY result.topic_id, result.topic_name "
             + "ORDER BY error_student_count DESC, correct_rate ASC, result.topic_name ASC LIMIT 10</script>")
@@ -444,7 +467,7 @@ public interface AdminTrainingMapper {
             + "ta.personal_score AS systemScore, ta.team_score AS teamScore, ta.manual_score AS manualScore, "
             + "ta.review_comment AS reviewComment, ta.reviewed_at AS reviewedAt, ta.role_name AS roleName, "
             + "ta.duration_seconds AS durationSeconds, "
-            + "(SELECT COUNT(*) FROM training_attempt tx WHERE tx.training_id = tp.training_id "
+            + "(SELECT COUNT(*) FROM training_attempt tx WHERE tx.training_id = tp.training_id AND tx.deleted_flag = 0 "
             + "AND tx.student_id = tp.student_id AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1))) AS submitCount, "
             + "(SELECT GROUP_CONCAT(CONCAT(u2.real_name, ' ', COALESCE(a2.manual_score, a2.personal_score, 0)) "
@@ -452,7 +475,7 @@ public interface AdminTrainingMapper {
             + "JOIN training_team_room_member rm2 ON rm2.room_id = rm1.room_id AND rm2.member_status = 'ACTIVE' "
             + "JOIN sys_user u2 ON u2.id = rm2.student_id "
             + "LEFT JOIN training_attempt a2 ON a2.id = (SELECT ax.id FROM training_attempt ax "
-            + "WHERE ax.student_id = rm2.student_id AND ax.training_id = tp.training_id "
+            + "WHERE ax.student_id = rm2.student_id AND ax.training_id = tp.training_id AND ax.deleted_flag = 0 "
             + "AND (ax.topic_id = tt.id OR (ax.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding team_tb WHERE team_tb.training_id = tp.training_id) = 1)) "
             + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(ax.manual_score, ax.personal_score) END DESC, "
@@ -465,7 +488,7 @@ public interface AdminTrainingMapper {
             + "JOIN training_topic tt ON tt.id = tb.topic_id "
             + "JOIN training_course tc ON tc.id = tp.training_id "
             + "LEFT JOIN training_attempt ta ON ta.id = (SELECT tx.id FROM training_attempt tx "
-            + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id "
+            + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id AND tx.deleted_flag = 0 "
             + "AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1)) "
             + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(tx.manual_score, tx.personal_score) END DESC, "
@@ -481,7 +504,7 @@ public interface AdminTrainingMapper {
             + "JOIN training_topic_binding tb ON tb.training_id = ta.training_id AND (tb.topic_id = ta.topic_id OR "
             + "(ta.topic_id IS NULL AND (SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = ta.training_id) = 1)) "
             + "JOIN training_topic tt ON tt.id = tb.topic_id "
-            + "WHERE ta.training_id = #{trainingId} AND ta.student_id = #{studentId} "
+            + "WHERE ta.training_id = #{trainingId} AND ta.student_id = #{studentId} AND ta.deleted_flag = 0 "
             + "AND (ta.topic_id = #{topicId} OR (ta.topic_id IS NULL AND "
             + "(SELECT COUNT(*) FROM training_topic_binding tb WHERE tb.training_id = #{trainingId}) = 1)) "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC")
@@ -493,12 +516,12 @@ public interface AdminTrainingMapper {
             + "JOIN training_topic_binding tb ON tb.training_id = ta.training_id AND (tb.topic_id = ta.topic_id OR "
             + "(ta.topic_id IS NULL AND (SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = ta.training_id) = 1)) "
             + "JOIN training_topic tt ON tt.id = tb.topic_id "
-            + "WHERE ta.id = #{attemptId} AND ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL")
+            + "WHERE ta.id = #{attemptId} AND ta.training_id = #{trainingId} AND ta.deleted_flag = 0 AND ta.submitted_at IS NOT NULL")
     Double findAttemptMaxScore(@Param("trainingId") Long trainingId, @Param("attemptId") Long attemptId);
 
     @Update("UPDATE training_attempt SET manual_score = #{manualScore}, review_comment = #{comment}, "
             + "reviewer_id = #{reviewerId}, reviewed_at = NOW(), updated_at = NOW() "
-            + "WHERE id = #{attemptId} AND training_id = #{trainingId}")
+            + "WHERE id = #{attemptId} AND training_id = #{trainingId} AND deleted_flag = 0")
     int reviewAttempt(@Param("trainingId") Long trainingId,
                       @Param("attemptId") Long attemptId,
                       @Param("manualScore") Double manualScore,

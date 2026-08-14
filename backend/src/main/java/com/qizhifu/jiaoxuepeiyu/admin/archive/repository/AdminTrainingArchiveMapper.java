@@ -20,7 +20,7 @@ public interface AdminTrainingArchiveMapper {
             + "FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
-            + "WHERE 1 = 1 "
+            + "WHERE ta.deleted_flag = 0 "
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
@@ -38,7 +38,7 @@ public interface AdminTrainingArchiveMapper {
     @Select("<script>"
             + "SELECT COUNT(*) FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
-            + "WHERE 1 = 1 "
+            + "WHERE ta.deleted_flag = 0 "
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
@@ -59,7 +59,7 @@ public interface AdminTrainingArchiveMapper {
             + "FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
-            + "WHERE ta.id = #{archiveId} LIMIT 1")
+            + "WHERE ta.id = #{archiveId} AND ta.deleted_flag = 0 LIMIT 1")
     AdminTrainingArchiveDetail findArchiveDetail(@Param("archiveId") Long archiveId);
 
     @Select("SELECT id AS step_id, step_name, standard_operation, actual_operation, "
@@ -76,7 +76,7 @@ public interface AdminTrainingArchiveMapper {
             + "AVG(ta.personal_score) AS average_personal_score, AVG(ta.duration_seconds) AS average_duration_seconds "
             + "FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
-            + "WHERE 1 = 1 "
+            + "WHERE ta.deleted_flag = 0 "
             + "<if test='trainingId != null'>AND ta.training_id = #{trainingId}</if> "
             + "<if test='studentId != null'>AND ta.student_id = #{studentId}</if> "
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "

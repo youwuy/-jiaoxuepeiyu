@@ -36,7 +36,8 @@ public interface UeTrainingCallbackMapper {
                                 @Param("topicId") Long topicId);
 
     @Select("SELECT id FROM training_attempt WHERE student_id = #{studentId} "
-            + "AND training_id = #{trainingId} AND client_attempt_id = #{clientAttemptId} LIMIT 1")
+            + "AND training_id = #{trainingId} AND client_attempt_id = #{clientAttemptId} "
+            + "AND deleted_flag = 0 LIMIT 1")
     Long findAttemptId(@Param("studentId") Long studentId,
                        @Param("trainingId") Long trainingId,
                        @Param("clientAttemptId") String clientAttemptId);
@@ -64,9 +65,9 @@ public interface UeTrainingCallbackMapper {
 
     @Insert("INSERT INTO training_attempt "
             + "(student_id, training_id, topic_id, client_attempt_id, training_name, training_mode, role_name, submitted_at, submit_type, "
-            + "duration_seconds, personal_score, team_score, recording_url, created_at, updated_at) "
+            + "duration_seconds, personal_score, team_score, recording_url, deleted_flag, created_at, updated_at) "
             + "VALUES (#{studentId}, #{trainingId}, #{topicId}, #{clientAttemptId}, #{trainingName}, #{trainingMode}, #{roleName}, #{submittedAt}, "
-            + "#{submitType}, #{durationSeconds}, #{personalScore}, #{teamScore}, #{recordingUrl}, NOW(), NOW())")
+            + "#{submitType}, #{durationSeconds}, #{personalScore}, #{teamScore}, #{recordingUrl}, 0, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "attemptId")
     void insertAttempt(TrainingAttemptSubmission submission);
 

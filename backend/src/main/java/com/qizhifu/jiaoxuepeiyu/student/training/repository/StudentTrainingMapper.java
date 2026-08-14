@@ -22,7 +22,7 @@ public interface StudentTrainingMapper {
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
             + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
-            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id "
+            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id AND ta.deleted_flag = 0 "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1) AS latest_attempt_id "
             + "FROM training_course t "
             + "JOIN training_participant p ON p.training_id = t.id "
@@ -40,7 +40,7 @@ public interface StudentTrainingMapper {
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
             + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
-            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id "
+            + "(SELECT ta.id FROM training_attempt ta WHERE ta.student_id = #{studentId} AND ta.training_id = t.id AND ta.deleted_flag = 0 "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1) AS latest_attempt_id "
             + "FROM training_course t "
             + "JOIN training_participant p ON p.training_id = t.id "
@@ -51,7 +51,7 @@ public interface StudentTrainingMapper {
                                        @Param("trainingId") Long trainingId);
 
     @Select("SELECT ta.id FROM training_attempt ta "
-            + "WHERE ta.student_id = #{studentId} AND ta.training_id = #{trainingId} "
+            + "WHERE ta.student_id = #{studentId} AND ta.training_id = #{trainingId} AND ta.deleted_flag = 0 "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC LIMIT 1")
     Long findLatestAttemptId(@Param("studentId") Long studentId, @Param("trainingId") Long trainingId);
 

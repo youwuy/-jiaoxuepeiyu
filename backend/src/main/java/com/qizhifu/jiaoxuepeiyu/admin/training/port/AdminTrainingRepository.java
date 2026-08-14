@@ -21,9 +21,15 @@ public interface AdminTrainingRepository {
 
     boolean roleBelongsToTopic(Long topicId, String roleName);
 
+    List<String> findTopicModes(List<Long> topicIds);
+
     Long createTraining(AdminTrainingCommand command, Long creatorId);
 
     void updateTraining(Long trainingId, AdminTrainingCommand command);
+
+    List<Long> findParticipantIds(Long trainingId);
+
+    void softDeleteAttemptsForTopics(Long trainingId, List<Long> topicIds);
 
     int countEnabledStudentsByTrainingClasses(Long trainingId);
 
@@ -36,6 +42,8 @@ public interface AdminTrainingRepository {
     void deleteTraining(Long trainingId);
 
     void notifyParticipants(Long trainingId, String title, String content);
+
+    void notifyParticipants(Long trainingId, List<Long> studentIds, String title, String content);
 
     AdminTrainingStatistics calculateStatistics(Long trainingId);
 

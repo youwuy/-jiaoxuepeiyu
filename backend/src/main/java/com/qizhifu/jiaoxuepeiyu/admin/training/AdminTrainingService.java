@@ -81,8 +81,21 @@ public class AdminTrainingService {
     @Transactional
     public void updateTraining(Long trainingId, AdminTrainingCommand command, Long operatorId) {
         requireOperator(operatorId);
-        getTraining(trainingId);
-        repository.updateTraining(trainingId, normalizedTraining(command));
+        AdminTraining existing = getTraining(trainingId);
+        AdminTrainingCommand normalized = normalizedTraining(command);
+        List<Long> removedTopicIds = removedIds(existing.getTopicIds(), normalized.getTopicIds());
+        List<Long> previousParticipantIds = "PUBLISHED".equals(existing.getPublishStatus())
+                ? repository.findParticipantIds(trainingId)
+                : new ArrayList<Long>();
+        repository.softDeleteAttemptsForTopics(trainingId, removedTopicIds);
+        repository.updateTraining(trainingId, normalized);
+        if ("PUBLISHED".equals(existing.getPublishStatus())) {
+            repository.syncParticipants(trainingId);
+            List<Long> addedParticipantIds = removedIds(repository.findParticipantIds(trainingId), previousParticipantIds);
+            repository.notifyParticipants(trainingId, addedParticipantIds,
+                    "实训课程更新通知",
+                    "实训课程「" + normalized.getTrainingName() + "」已上线，请按时参加实训。");
+        }
         repository.appendTrainingLog(trainingId, operatorId, "UPDATE", "Update training");
     }
 
@@ -98,8 +111,8 @@ public class AdminTrainingService {
         repository.syncParticipants(trainingId);
         repository.updatePublishStatus(trainingId, "PUBLISHED");
         repository.notifyParticipants(trainingId,
-                "New training published",
-                "Training \"" + training.getTrainingName() + "\" is now available.");
+                "新实训课程通知",
+                "实训课程「" + training.getTrainingName() + "」已上线，请按时参加实训。");
         repository.appendTrainingLog(trainingId, operatorId, "PUBLISH", "Publish training");
     }
 
@@ -265,6 +278,7 @@ public class AdminTrainingService {
         normalized.setTeacherIds(normalizedIds(command.getTeacherIds(), "Training invigilators are required"));
         normalized.setScoreBasis("LAST_SUBMIT".equals(command.getScoreBasis()) ? "LAST_SUBMIT" : "HIGHEST");
         normalized.setTopicIds(normalizedIds(command.getTopicIds(), "Training topics are required"));
+        validateTopicComposition(normalized);
         normalized.setClassIds(normalizedOptionalIds(command.getClassIds()));
         normalized.setStudentIds(normalizedOptionalIds(command.getStudentIds()));
         if (normalized.getClassIds().isEmpty() && normalized.getStudentIds().isEmpty()) {
@@ -302,6 +316,30 @@ public class AdminTrainingService {
         }
         if (command.getRoles() == null || command.getRoles().isEmpty()) {
             throw new BusinessException(400, "Team training roles are required");
+        }
+    }
+
+    private void validateTopicComposition(AdminTrainingCommand command) {
+        List<String> topicModes = repository.findTopicModes(command.getTopicIds());
+        if (topicModes.size() != command.getTopicIds().size()) {
+            throw new BusinessException(400, "Training topic is invalid or disabled");
+        }
+        int teamTopicCount = 0;
+        for (String mode : topicModes) {
+            if ("TEAM".equals(mode)) {
+                teamTopicCount++;
+            } else if (!"SINGLE".equals(mode)) {
+                throw new BusinessException(400, "Training topic mode is invalid");
+            }
+        }
+        String actualMode = teamTopicCount > 0 ? "TEAM" : "SINGLE";
+        if (!actualMode.equals(command.getTrainingMode())) {
+            throw new BusinessException(400, "Training mode does not match selected topics");
+        }
+        if ("EXAM".equals(command.getTrainingType())
+                && (teamTopicCount > 1 || (teamTopicCount == 1 && topicModes.size() > 1))) {
+            throw new BusinessException(400,
+                    "Exam can contain one team topic or multiple single topics, but cannot mix them");
         }
     }
 
@@ -345,6 +383,20 @@ public class AdminTrainingService {
             throw new BusinessException(400, "Team training size cannot exceed 20");
         }
         return Integer.valueOf(value);
+    }
+
+    private List<Long> removedIds(List<Long> source, List<Long> retained) {
+        List<Long> result = new ArrayList<Long>();
+        if (source == null) {
+            return result;
+        }
+        Set<Long> retainedSet = new HashSet<Long>(retained == null ? new ArrayList<Long>() : retained);
+        for (Long id : source) {
+            if (id != null && !retainedSet.contains(id)) {
+                result.add(id);
+            }
+        }
+        return result;
     }
 
     private AdminTrainingQuery normalizedQuery(AdminTrainingQuery query) {

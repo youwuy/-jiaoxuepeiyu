@@ -48,6 +48,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     }
 
     @Override
+    public List<String> findTopicModes(List<Long> topicIds) {
+        return mapper.findTopicModes(topicIds);
+    }
+
+    @Override
     public Long createTraining(AdminTrainingCommand command, Long creatorId) {
         AdminTraining training = toTraining(null, command, creatorId);
         mapper.insertTraining(training);
@@ -61,6 +66,18 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         Long creatorId = existing == null ? null : existing.getCreatedBy();
         mapper.updateTraining(toTraining(trainingId, command, creatorId));
         replaceBindings(trainingId, command);
+    }
+
+    @Override
+    public List<Long> findParticipantIds(Long trainingId) {
+        return mapper.findParticipantIds(trainingId);
+    }
+
+    @Override
+    public void softDeleteAttemptsForTopics(Long trainingId, List<Long> topicIds) {
+        if (topicIds != null && !topicIds.isEmpty()) {
+            mapper.softDeleteAttemptsForTopics(trainingId, topicIds);
+        }
     }
 
     @Override
@@ -99,6 +116,19 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
         notification.setSourceId(trainingId);
         mapper.insertNotification(notification);
         mapper.notifyParticipants(trainingId, notification.getNotificationId());
+    }
+
+    @Override
+    public void notifyParticipants(Long trainingId, List<Long> studentIds, String title, String content) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return;
+        }
+        AdminTrainingNotification notification = new AdminTrainingNotification();
+        notification.setTitle(title);
+        notification.setContent(content);
+        notification.setSourceId(trainingId);
+        mapper.insertNotification(notification);
+        mapper.notifySelectedParticipants(notification.getNotificationId(), studentIds);
     }
 
     @Override

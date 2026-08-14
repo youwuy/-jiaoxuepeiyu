@@ -113,6 +113,38 @@ class AdminTrainingServiceTests {
     }
 
     @Test
+    void rejectsExamThatMixesTeamAndSingleTopics() {
+        AdminTrainingService service = new AdminTrainingService(new FakeTrainings());
+        AdminTrainingCommand command = trainingCommand();
+        command.setTrainingType("EXAM");
+        command.setTopicIds(Arrays.asList(21L, 22L));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createTraining(command, 9L));
+
+        assertEquals("Exam can contain one team topic or multiple single topics, but cannot mix them",
+                exception.getMessage());
+    }
+
+    @Test
+    void updatesPublishedTrainingWithNewParticipantNotificationAndRemovedTopicSoftDelete() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        repository.training.setPublishStatus("PUBLISHED");
+        repository.training.setTopicIds(Arrays.asList(21L, 22L));
+        repository.participantIds = Arrays.asList(31L, 32L);
+        repository.participantIdsAfterSync = Arrays.asList(31L, 32L, 33L);
+        AdminTrainingService service = new AdminTrainingService(repository);
+
+        service.updateTraining(71L, trainingCommand(), 9L);
+
+        assertEquals(Arrays.asList(22L), repository.softDeletedTopicIds);
+        assertEquals(71L, repository.syncedTrainingId.longValue());
+        assertEquals(Arrays.asList(33L), repository.notifiedStudentIds);
+        assertEquals("UPDATE", repository.lastLogAction);
+    }
+
+    @Test
     void publishesTrainingAndSyncsParticipantsAndNotifications() {
         FakeTrainings repository = new FakeTrainings();
         repository.training = existingTraining(71L);
@@ -323,6 +355,10 @@ class AdminTrainingServiceTests {
         private boolean reviewUpdated;
         private int reviewUpdateCount;
         private String weakTopicClassName;
+        private List<Long> participantIds = new ArrayList<Long>();
+        private List<Long> participantIdsAfterSync = new ArrayList<Long>();
+        private List<Long> softDeletedTopicIds = new ArrayList<Long>();
+        private List<Long> notifiedStudentIds = new ArrayList<Long>();
 
         @Override
         public List<AdminTraining> findTrainings(AdminTrainingQuery query) {
@@ -350,6 +386,15 @@ class AdminTrainingServiceTests {
         }
 
         @Override
+        public List<String> findTopicModes(List<Long> topicIds) {
+            List<String> modes = new ArrayList<String>();
+            for (Long topicId : topicIds) {
+                modes.add(Long.valueOf(21L).equals(topicId) ? "TEAM" : "SINGLE");
+            }
+            return modes;
+        }
+
+        @Override
         public Long createTraining(AdminTrainingCommand command, Long creatorId) {
             this.savedCommand = command;
             return 71L;
@@ -358,6 +403,16 @@ class AdminTrainingServiceTests {
         @Override
         public void updateTraining(Long trainingId, AdminTrainingCommand command) {
             this.savedCommand = command;
+        }
+
+        @Override
+        public List<Long> findParticipantIds(Long trainingId) {
+            return syncedTrainingId == null ? participantIds : participantIdsAfterSync;
+        }
+
+        @Override
+        public void softDeleteAttemptsForTopics(Long trainingId, List<Long> topicIds) {
+            this.softDeletedTopicIds = new ArrayList<Long>(topicIds);
         }
 
         @Override
@@ -387,6 +442,12 @@ class AdminTrainingServiceTests {
         @Override
         public void notifyParticipants(Long trainingId, String title, String content) {
             this.notificationTrainingId = trainingId;
+        }
+
+        @Override
+        public void notifyParticipants(Long trainingId, List<Long> studentIds, String title, String content) {
+            this.notificationTrainingId = trainingId;
+            this.notifiedStudentIds = new ArrayList<Long>(studentIds);
         }
 
         @Override

@@ -15,7 +15,7 @@ public interface StudentArchiveMapper {
             + "SELECT ta.id AS archive_id, ta.training_name, ta.training_mode, ta.role_name, "
             + "ta.submitted_at, ta.submit_type, ta.duration_seconds, COALESCE(ta.manual_score, ta.personal_score) AS personal_score, ta.team_score "
             + "FROM training_attempt ta "
-            + "WHERE ta.student_id = #{studentId} "
+            + "WHERE ta.student_id = #{studentId} AND ta.deleted_flag = 0 "
             + "<if test='mode != null'>AND ta.training_mode = #{mode}</if> "
             + "<if test='keyword != null'>AND ta.training_name LIKE #{keyword}</if> "
             + "ORDER BY ta.submitted_at DESC, ta.id DESC "
@@ -32,7 +32,7 @@ public interface StudentArchiveMapper {
             + "FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
-            + "WHERE ta.student_id = #{studentId} AND ta.id = #{archiveId} LIMIT 1")
+            + "WHERE ta.student_id = #{studentId} AND ta.id = #{archiveId} AND ta.deleted_flag = 0 LIMIT 1")
     StudentTrainingArchiveDetail findArchiveDetail(@Param("studentId") Long studentId,
                                                    @Param("archiveId") Long archiveId);
 

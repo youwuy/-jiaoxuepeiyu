@@ -6,11 +6,11 @@
           <el-button class="admin-training-form-back" :icon="ArrowLeft" @click="goBack" />
           <el-breadcrumb class="admin-training-form-breadcrumb" separator="/">
             <el-breadcrumb-item>教学实训</el-breadcrumb-item>
-            <el-breadcrumb-item>实训组课</el-breadcrumb-item>
-            <el-breadcrumb-item>{{ formMode === 'create' ? '新增实训课' : '编辑实训课' }}</el-breadcrumb-item>
+            <el-breadcrumb-item>实训课程</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ pageTitle }}</el-breadcrumb-item>
           </el-breadcrumb>
         </div>
-        <h1>{{ formMode === 'create' ? '新增实训课' : '编辑实训课' }}</h1>
+        <h1>{{ pageTitle }}</h1>
         <span></span>
       </header>
 
@@ -27,9 +27,10 @@
           </header>
 
           <div class="admin-training-base-grid">
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.name }" data-field="name">
               <span><b>*</b> 实训课程名</span>
-              <el-input v-model="form.name" maxlength="20" show-word-limit placeholder="请输入实训课程名称" />
+              <el-input v-model="form.name" maxlength="20" show-word-limit placeholder="请输入实训课程名称" @input="clearFieldError('name')" />
+              <small v-if="fieldErrors.name" class="admin-training-field-error">不能为空</small>
             </label>
             <label class="admin-training-form-item">
               <span><b>*</b> 类型</span>
@@ -38,21 +39,23 @@
                 <el-radio label="考试">考试</el-radio>
               </el-radio-group>
             </label>
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.range }" data-field="range">
               <span><b>*</b> 起止时间</span>
               <div class="admin-training-date-range">
-                <el-date-picker v-model="form.range[0]" type="datetime" placeholder="开始时间" />
+                <el-date-picker v-model="form.range[0]" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" placeholder="开始时间" @change="clearFieldError('range')" />
                 <em>至</em>
-                <el-date-picker v-model="form.range[1]" type="datetime" placeholder="结束时间" />
+                <el-date-picker v-model="form.range[1]" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" placeholder="结束时间" @change="clearFieldError('range')" />
               </div>
+              <small v-if="fieldErrors.range" class="admin-training-field-error">不能为空</small>
             </label>
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.semester }" data-field="semester">
               <span><b>*</b> 所属学年学期</span>
-              <el-select v-model="form.semester" placeholder="请选择学年学期">
+              <el-select v-model="form.semester" placeholder="请选择学年学期" @change="clearFieldError('semester')">
                 <el-option v-for="item in semesterOptions" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
+              <small v-if="fieldErrors.semester" class="admin-training-field-error">不能为空</small>
             </label>
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.target }" data-field="target">
               <span><b>*</b> 参训班级/学员</span>
               <el-cascader
                 v-model="selectedTargetKeys"
@@ -64,22 +67,26 @@
                 filterable
                 clearable
                 placeholder="请选择参训班级/学员（可多选）"
+                @change="clearFieldError('target')"
               />
+              <small v-if="fieldErrors.target" class="admin-training-field-error">不能为空</small>
             </label>
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.teachers }" data-field="teachers">
               <span><b>*</b> 监考教师</span>
-              <el-select v-model="selectedTeacherIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择监考教师（可多选）">
+              <el-select v-model="selectedTeacherIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择监考教师（可多选）" @change="clearFieldError('teachers')">
                 <el-option v-for="item in teacherOptions" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
+              <small v-if="fieldErrors.teachers" class="admin-training-field-error">不能为空</small>
             </label>
-            <label class="admin-training-form-item">
+            <label class="admin-training-form-item" :class="{ 'is-error': fieldErrors.room }" data-field="room">
               <span><b>*</b> 教室</span>
-              <el-select v-model="selectedRoomId" placeholder="请选择教室">
+              <el-select v-model="selectedRoomId" placeholder="请选择教室" @change="clearFieldError('room')">
                 <el-option v-for="item in roomOptions" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
+              <small v-if="fieldErrors.room" class="admin-training-field-error">不能为空</small>
             </label>
             <label class="admin-training-form-item">
-              <span><b>*</b> 学生实训时是否自动录屏</span>
+              <span><b>*</b> 学员实训时是否自动录屏</span>
               <el-radio-group v-model="form.recordingEnabled" class="admin-training-radio-line">
                 <el-radio :label="false">否</el-radio>
                 <el-radio :label="true">是</el-radio>
@@ -117,7 +124,7 @@
                   <th>序号</th>
                   <th>实训题名称</th>
                   <th>实训模式</th>
-                  <th>训练角色 <el-icon><QuestionFilled /></el-icon></th>
+                  <th>训练角色 <el-icon title="可勾选部分角色让学员专门训练"><QuestionFilled /></el-icon></th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -160,7 +167,7 @@
 
         <footer class="admin-training-form-footer">
           <el-button @click="goBack">取消</el-button>
-          <el-button type="primary" :icon="Check" @click="saveDraft">保存草稿</el-button>
+          <el-button type="primary" :icon="Check" @click="saveDraft">保存</el-button>
         </footer>
       </main>
     </section>
@@ -174,8 +181,9 @@
       </template>
       <section class="admin-training-topic-picker">
           <div class="admin-training-topic-toolbar">
-          <el-input v-model="topicKeyword" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名搜索" clearable />
-          <el-select v-model="topicMode" class="admin-training-topic-select" placeholder="实训模式" clearable>
+          <el-input v-model="topicKeywordDraft" class="admin-training-topic-search" :prefix-icon="Search" placeholder="请输入实训题名搜索" clearable @keyup.enter="queryTopics" />
+          <el-select v-model="topicModeDraft" class="admin-training-topic-select" placeholder="请选择">
+            <el-option label="全部" value="" />
             <el-option label="单人实训" value="单人实训" />
             <el-option label="多人实训" value="多人实训" />
           </el-select>
@@ -255,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Check, Close, Delete, Document, InfoFilled, Plus, QuestionFilled, Search } from '@element-plus/icons-vue';
@@ -308,15 +316,27 @@ const route = useRoute();
 const router = useRouter();
 const trainingId = computed(() => Number(route.params.id));
 const formMode = computed(() => (route.name === 'admin-training-edit' ? 'edit' : 'create'));
+const pageTitle = computed(() => (formMode.value === 'create' ? '添加实训课程' : '编辑实训课程'));
 const loading = ref(false);
 const topicPickerVisible = ref(false);
 const previewVisible = ref(false);
 const topicKeyword = ref('');
 const topicMode = ref('');
+const topicKeywordDraft = ref('');
+const topicModeDraft = ref('');
 const topicPage = ref(1);
 const topicPageSize = 10;
 const selectedTopicRoles = ref<Record<number, string[]>>({});
 const draggingTopicIndex = ref<number | null>(null);
+type RequiredField = 'name' | 'range' | 'semester' | 'target' | 'teachers' | 'room';
+const fieldErrors = reactive<Record<RequiredField, boolean>>({
+  name: false,
+  range: false,
+  semester: false,
+  target: false,
+  teachers: false,
+  room: false
+});
 
 const academicYears = ref<Array<{ academicYearId: number; yearName: string; semesters?: Array<{ semesterId: number; semesterName: string; current?: boolean }> }>>([]);
 const classOptions = ref<SelectableItem[]>([]);
@@ -454,6 +474,9 @@ function resetForm() {
   selectedTargetKeys.value = [];
   selectedTeacherIds.value = [];
   selectedRoomId.value = 0;
+  (Object.keys(fieldErrors) as RequiredField[]).forEach((field) => {
+    fieldErrors[field] = false;
+  });
 }
 
 async function loadDetail() {
@@ -593,32 +616,58 @@ function isBoundTopic(id: number) {
 }
 
 function openTopicPicker() {
+  boundTopicIds.value = [...selectedTopicIds.value];
   topicPickerIds.value = [...selectedTopicIds.value];
   topicKeyword.value = '';
   topicMode.value = '';
+  topicKeywordDraft.value = '';
+  topicModeDraft.value = '';
   topicPage.value = 1;
   topicPickerVisible.value = true;
 }
 
 function queryTopics() {
-  topicKeyword.value = topicKeyword.value.trim();
+  topicKeyword.value = topicKeywordDraft.value.trim();
+  topicMode.value = topicModeDraft.value;
   topicPage.value = 1;
 }
 
 function resetTopicQuery() {
   topicKeyword.value = '';
   topicMode.value = '';
+  topicKeywordDraft.value = '';
+  topicModeDraft.value = '';
   topicPage.value = 1;
 }
 
 function confirmTopicSelection() {
   const added = topicPickerIds.value.filter((id) => !boundTopicIds.value.includes(id));
-  if (!added.length && !selectedTopicIds.value.length) {
+  if (!added.length) {
     ElMessage.warning('请选择需要添加的实训题');
     return;
   }
   selectedTopicIds.value = [...new Set([...boundTopicIds.value, ...added])];
   topicPickerVisible.value = false;
+}
+
+function clearFieldError(field: RequiredField) {
+  fieldErrors[field] = false;
+}
+
+async function validateRequiredFields() {
+  fieldErrors.name = !form.name.trim();
+  fieldErrors.range = form.range.length !== 2 || !form.range[0] || !form.range[1];
+  fieldErrors.semester = !semesterOptions.value.some((item) => item.value === form.semester);
+  fieldErrors.target = !selectedClassIds.value.length && !selectedStudentIds.value.length;
+  fieldErrors.teachers = !selectedTeacherIds.value.length;
+  fieldErrors.room = !selectedRoomId.value;
+  const firstInvalid = (Object.keys(fieldErrors) as RequiredField[]).find((field) => fieldErrors[field]);
+  if (!firstInvalid) {
+    return true;
+  }
+  await nextTick();
+  document.querySelector(`[data-field="${firstInvalid}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return false;
 }
 
 function buildTrainingCommand(publishStatus: string) {
@@ -664,32 +713,18 @@ function buildTrainingCommand(publishStatus: string) {
 }
 
 async function saveDraft() {
-  if (!form.name.trim()) {
-    ElMessage.warning('请输入实训课名称');
+  if (!(await validateRequiredFields())) {
     return;
   }
-  if (form.range.length !== 2 || !form.range[0] || !form.range[1]) {
-    ElMessage.warning('请选择实训起止时间');
-    return;
-  }
-  if (!semesterOptions.value.some((item) => item.value === form.semester)) {
-    ElMessage.warning('请选择所属学年学期');
-    return;
-  }
-  if (!selectedClassIds.value.length && !selectedStudentIds.value.length) {
-    ElMessage.warning('请选择参训班级或学员');
-    return;
-  }
-  if (!selectedTeacherIds.value.length) {
-    ElMessage.warning('请选择监考教师');
-    return;
-  }
-  if (!selectedRoomId.value) {
-    ElMessage.warning('请选择教室');
+  if (new Date(form.range[0]).getTime() > new Date(form.range[1]).getTime()) {
+    await ElMessageBox.alert('开始时间不能晚于结束时间', '时间逻辑错误', {
+      type: 'warning',
+      confirmButtonText: '知道了'
+    });
     return;
   }
   if (!selectedTopicIds.value.length) {
-    ElMessage.warning('请至少添加一道实训题');
+    ElMessage.warning('请至少添加一道实训题目');
     return;
   }
   const teamTopics = selectedTopics.value.filter((item) => item.mode === '多人实训');
@@ -709,11 +744,11 @@ async function saveDraft() {
     } else {
       await createAdminTraining(command);
     }
-    ElMessage.success('草稿已保存');
+    ElMessage.success('保存成功');
     resetForm();
     await router.push('/admin/training');
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '发布失败');
+    ElMessage.error(error instanceof Error ? error.message : '保存失败');
   }
 }
 
@@ -1514,6 +1549,17 @@ onMounted(async () => {
   border-radius: 8px;
   background: #f8fafc;
   box-shadow: 0 0 0 1px #dfe7f1 inset;
+}
+
+.admin-training-form-item.is-error :deep(.el-input__wrapper),
+.admin-training-form-item.is-error :deep(.el-select__wrapper) {
+  box-shadow: 0 0 0 1px #ef4444 inset;
+}
+
+.admin-training-field-error {
+  color: #ef4444;
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .admin-training-form-item :deep(.el-input__inner),
