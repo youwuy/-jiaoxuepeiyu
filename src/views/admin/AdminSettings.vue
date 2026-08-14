@@ -122,8 +122,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in displayClasses" :key="item.classId">
-                <td>{{ index + 1 }}</td>
+              <tr v-for="(item, index) in pagedClasses" :key="item.classId">
+                <td>{{ (classPage - 1) * configPageSize + index + 1 }}</td>
                 <td>{{ item.className }}</td>
                 <td class="admin-settings-class-status-cell">
                   <span class="admin-settings-pill-status" :class="{ disabled: !item.enabled }">
@@ -142,7 +142,7 @@
           </table>
           <footer class="admin-settings-modal-pagination">
             <span>共 {{ displayClasses.length }} 条记录</span>
-            <el-pagination :current-page="1" :page-size="10" :total="displayClasses.length" layout="prev, pager, next" background />
+            <el-pagination v-model:current-page="classPage" :page-size="configPageSize" :total="displayClasses.length" layout="prev, pager, next" background />
           </footer>
         </section>
 
@@ -371,8 +371,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(log, index) in visibleLogs" :key="`${log.time}-${index}`">
-                <td>{{ index + 1 }}</td>
+              <tr v-for="(log, index) in pagedLogs" :key="`${log.time}-${index}`">
+                <td>{{ (logPage - 1) * configPageSize + index + 1 }}</td>
                 <td v-if="activeSetting?.key === 'grades'">{{ log.after }}</td>
                 <template v-else>
                   <td>{{ log.before }}</td>
@@ -385,7 +385,7 @@
           </table>
           <footer class="admin-settings-modal-pagination">
             <span>共 {{ visibleLogs.length }} 条记录</span>
-            <el-pagination :current-page="1" :page-size="10" :total="visibleLogs.length" layout="prev, pager, next" background />
+            <el-pagination v-model:current-page="logPage" :page-size="configPageSize" :total="visibleLogs.length" layout="prev, pager, next" background />
           </footer>
         </template>
         <el-empty v-else description="暂无操作日志" />
@@ -486,6 +486,9 @@ const loading = ref(false);
 const configVisible = ref(false);
 const addVisible = ref(false);
 const logVisible = ref(false);
+const configPageSize = 10;
+const classPage = ref(1);
+const logPage = ref(1);
 const activeConfig = ref<ConfigKey>('semester');
 const activeSetting = ref<SettingRow | null>(null);
 const addKind = ref<AddKind>('year');
@@ -572,6 +575,11 @@ const enabledMajors = computed(() => majors.value.filter((item) => item.enabled)
 
 const displayClasses = computed(() => classes.value);
 
+const pagedClasses = computed(() => {
+  const start = (classPage.value - 1) * configPageSize;
+  return displayClasses.value.slice(start, start + configPageSize);
+});
+
 const displayGradeRules = computed(() => gradeRules.value);
 
 const sortedGradeRules = computed(() => [...displayGradeRules.value].sort(compareGradeRows));
@@ -623,6 +631,11 @@ const visibleLogs = computed<SettingLog[]>(() => {
       after: formatWeightContent(current)
     };
   });
+});
+
+const pagedLogs = computed(() => {
+  const start = (logPage.value - 1) * configPageSize;
+  return visibleLogs.value.slice(start, start + configPageSize);
 });
 
 function enabledNames<T extends { enabled?: boolean }>(items: T[], pick: (item: T) => string) {
@@ -742,6 +755,8 @@ async function loadSettings() {
 
 function openConfig(key: ConfigKey) {
   activeConfig.value = key;
+  classPage.value = 1;
+  logPage.value = 1;
   if (key === 'semester') {
     selectedSemesterId.value = semesterRows.value.find((row) => row.current)?.semesterId ?? null;
   }
@@ -773,6 +788,7 @@ async function openLogs(item: SettingRow) {
     return;
   }
   activeSetting.value = item;
+  logPage.value = 1;
   if (item.key === 'grades') {
     gradeRuleLogs.value = await safeLoad('成绩等级日志', fetchAdminScoreGradeRuleLogs);
   } else {

@@ -16,14 +16,14 @@
         <el-badge is-dot>
           <el-button :icon="Bell" circle aria-label="消息通知" />
         </el-badge>
-        <el-dropdown>
+        <el-dropdown @command="handleUserCommand">
           <button class="user-trigger">
             {{ displayName }}
             <el-icon><ArrowDown /></el-icon>
           </button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item>退出登录</el-dropdown-item>
+              <el-dropdown-item command="logout" :disabled="loggingOut">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -37,9 +37,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ArrowDown, Bell, Collection, DataAnalysis, Files, Monitor } from '@element-plus/icons-vue';
 import { getAuthUser } from '../../api/http';
+import { logout } from '../../api/auth';
 
 interface StoredStudentUser {
   realName?: string;
@@ -50,6 +52,9 @@ defineProps<{
   eyebrow: string;
   title: string;
 }>();
+
+const router = useRouter();
+const loggingOut = ref(false);
 
 const navItems = [
   { label: '课程学习', path: '/student/courses', icon: Collection },
@@ -62,4 +67,19 @@ const displayName = computed(() => {
   const user = getAuthUser<StoredStudentUser>('student');
   return user?.realName || user?.username || '学员';
 });
+
+async function handleUserCommand(command: string) {
+  if (command !== 'logout' || loggingOut.value) {
+    return;
+  }
+  loggingOut.value = true;
+  try {
+    await logout('student');
+  } catch {
+    // Local session is cleared even when the server session has already expired.
+  } finally {
+    loggingOut.value = false;
+    await router.replace('/student/login');
+  }
+}
 </script>

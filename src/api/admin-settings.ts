@@ -167,50 +167,50 @@ export interface AdminScoreGradeRuleCommand {
 }
 
 export async function fetchAdminAcademicYears() {
-  const years = await requestJson<AdminAcademicYear[]>('/admin/academic-years', { fallbackLabel: 'academic years' });
+  const years = await requestJson<AdminAcademicYear[]>('/admin/academic-years', { fallbackLabel: '学年学期配置' });
   return normalizeAdminAcademicYears(years);
 }
 
 export function fetchAdminMajors() {
-  return requestJson<AdminMajor[]>('/admin/majors', { fallbackLabel: 'majors' });
+  return requestJson<AdminMajor[]>('/admin/majors', { fallbackLabel: '专业目录配置' });
 }
 
 export function fetchAdminClasses() {
-  return requestJson<AdminClass[]>('/admin/classes', { fallbackLabel: 'classes' });
+  return requestJson<AdminClass[]>('/admin/classes', { fallbackLabel: '班级配置' });
 }
 
 export function fetchAdminClassrooms() {
-  return requestJson<AdminClassroom[]>('/admin/classrooms', { fallbackLabel: 'classrooms' });
+  return requestJson<AdminClassroom[]>('/admin/classrooms', { fallbackLabel: '教室配置' });
 }
 
 export function fetchAdminJobRoles() {
-  return requestJson<AdminJobRole[]>('/admin/job-roles', { fallbackLabel: 'job roles' });
+  return requestJson<AdminJobRole[]>('/admin/job-roles', { fallbackLabel: '实训岗位配置' });
 }
 
 export function fetchAdminScoreWeights() {
-  return requestJson<AdminScoreWeight[]>('/admin/score-weights', { fallbackLabel: 'score weights' });
+  return requestJson<AdminScoreWeight[]>('/admin/score-weights', { fallbackLabel: '综合成绩权重配置' });
 }
 
 export function fetchAdminScoreGradeRules() {
-  return requestJson<AdminScoreGradeRule[]>('/admin/score-grade-rules', { fallbackLabel: 'score grade rules' });
+  return requestJson<AdminScoreGradeRule[]>('/admin/score-grade-rules', { fallbackLabel: '成绩等级配置' });
 }
 
 export function fetchAdminScoreGradeRuleLogs() {
-  return requestJson<AdminScoreGradeRuleLog[]>('/admin/score-grade-rules/logs', { fallbackLabel: 'score grade rule logs' });
+  return requestJson<AdminScoreGradeRuleLog[]>('/admin/score-grade-rules/logs', { fallbackLabel: '成绩等级操作日志' });
 }
 
 export function createAdminAcademicYear(command: AdminAcademicYearCommand) {
   return requestJson<number>('/admin/academic-years', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'add academic year'
+    fallbackLabel: '添加学年'
   });
 }
 
 export function setAdminCurrentSemester(semesterId: number) {
   return requestJson<void>(`/admin/semesters/${semesterId}/current`, {
     method: 'POST',
-    fallbackLabel: 'set current semester'
+    fallbackLabel: '设置当前学期'
   });
 }
 
@@ -218,21 +218,21 @@ export function createAdminMajor(command: AdminMajorCommand) {
   return requestJson<number>('/admin/majors', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'add major'
+    fallbackLabel: '添加专业'
   });
 }
 
 export function enableAdminMajor(majorId: number) {
   return requestJson<void>(`/admin/majors/${majorId}/enable`, {
     method: 'POST',
-    fallbackLabel: 'enable major'
+    fallbackLabel: '启用专业'
   });
 }
 
 export function disableAdminMajor(majorId: number) {
   return requestJson<void>(`/admin/majors/${majorId}/disable`, {
     method: 'POST',
-    fallbackLabel: 'disable major'
+    fallbackLabel: '禁用专业'
   });
 }
 
@@ -240,21 +240,21 @@ export function createAdminClass(command: AdminClassCommand) {
   return requestJson<number>('/admin/classes', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'add class'
+    fallbackLabel: '新增班级'
   });
 }
 
 export function enableAdminClass(classId: number) {
   return requestJson<void>(`/admin/classes/${classId}/enable`, {
     method: 'POST',
-    fallbackLabel: 'enable class'
+    fallbackLabel: '启用班级'
   });
 }
 
 export function disableAdminClass(classId: number) {
   return requestJson<void>(`/admin/classes/${classId}/disable`, {
     method: 'POST',
-    fallbackLabel: 'disable class'
+    fallbackLabel: '禁用班级'
   });
 }
 
@@ -262,7 +262,7 @@ export function createAdminJobRole(command: AdminJobRoleCommand) {
   return requestJson<number>('/admin/job-roles', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'add job role'
+    fallbackLabel: '新增实训岗位'
   });
 }
 
@@ -270,21 +270,21 @@ export function updateAdminJobRole(jobRoleId: number, command: AdminJobRoleComma
   return requestJson<void>(`/admin/job-roles/${jobRoleId}`, {
     method: 'PUT',
     body: JSON.stringify(command),
-    fallbackLabel: 'update job role'
+    fallbackLabel: '编辑实训岗位'
   });
 }
 
 export function enableAdminJobRole(jobRoleId: number) {
   return requestJson<void>(`/admin/job-roles/${jobRoleId}/enable`, {
     method: 'POST',
-    fallbackLabel: 'enable job role'
+    fallbackLabel: '启用实训岗位'
   });
 }
 
 export function disableAdminJobRole(jobRoleId: number) {
   return requestJson<void>(`/admin/job-roles/${jobRoleId}/disable`, {
     method: 'POST',
-    fallbackLabel: 'disable job role'
+    fallbackLabel: '禁用实训岗位'
   });
 }
 
@@ -292,7 +292,7 @@ export function createAdminClassroom(command: AdminClassroomCommand) {
   return requestJson<number>('/admin/classrooms', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'add classroom'
+    fallbackLabel: '添加教室'
   });
 }
 
@@ -300,14 +300,14 @@ export function updateAdminClassroom(classroomId: number, command: AdminClassroo
   return requestJson<void>(`/admin/classrooms/${classroomId}`, {
     method: 'PUT',
     body: JSON.stringify(command),
-    fallbackLabel: 'update classroom'
+    fallbackLabel: '编辑教室'
   });
 }
 
 export function deleteAdminClassroom(classroomId: number) {
   return requestJson<void>(`/admin/classrooms/${classroomId}`, {
     method: 'DELETE',
-    fallbackLabel: 'delete classroom'
+    fallbackLabel: '删除教室'
   });
 }
 
@@ -315,7 +315,7 @@ export function createAdminScoreWeight(command: AdminScoreWeightCommand) {
   return requestJson<number>('/admin/score-weights', {
     method: 'POST',
     body: JSON.stringify(command),
-    fallbackLabel: 'score weight'
+    fallbackLabel: '保存综合成绩权重'
   });
 }
 
@@ -323,6 +323,6 @@ export function replaceAdminScoreGradeRules(command: AdminScoreGradeRuleCommand[
   return requestJson<void>('/admin/score-grade-rules', {
     method: 'PUT',
     body: JSON.stringify(command),
-    fallbackLabel: 'score grade rules'
+    fallbackLabel: '保存成绩等级配置'
   });
 }

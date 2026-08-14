@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loginAdmin, loginStudent } from '../src/api/auth';
+import { loginAdmin, loginStudent, logout } from '../src/api/auth';
 import {
   cancelPublishAdminCourse,
   exportAdminCourseStudentStatistics,
@@ -188,6 +188,25 @@ describe('api http client', () => {
     const headers = requestInit?.headers as Headers | undefined;
     expect(headers?.get('Authorization')).toBeNull();
     expect(headers?.get('X-User-Id')).toBeNull();
+  });
+
+  it('logs out through the documented endpoint and clears only the selected portal session', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({ code: 200, data: null }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await logout('admin');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.any(Headers)
+      })
+    );
+    const [, request] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((request.headers as Headers).get('Authorization')).toBe('Bearer admin-test-token');
+    expect(globalThis.localStorage.getItem('jiaoxuepeiyu_admin_token')).toBeNull();
+    expect(globalThis.localStorage.getItem('jiaoxuepeiyu_student_token')).toBe('student-test-token');
   });
 
   it('keeps admin and student auth headers isolated after both portals login', async () => {

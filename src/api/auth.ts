@@ -1,4 +1,4 @@
-import { requestJson, saveAuthSession, type AuthPortal } from './http';
+import { clearAuthSession, requestJson, saveAuthSession, type AuthPortal } from './http';
 import type { AdminLoginForm, StudentLoginForm, StudentLoginMode } from '../features/auth/validation';
 
 export interface LoginResult {
@@ -53,4 +53,16 @@ export function sendOnlineHeartbeat(portal: AuthPortal) {
       fallbackLabel: '在线状态上报'
     }
   );
+}
+
+export async function logout(portal: AuthPortal): Promise<void> {
+  try {
+    await requestJson<void>('/auth/logout', {
+      method: 'POST',
+      authPortal: portal,
+      fallbackLabel: '退出登录'
+    });
+  } finally {
+    clearAuthSession(portal);
+  }
 }

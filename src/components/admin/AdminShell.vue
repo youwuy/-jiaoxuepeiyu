@@ -27,7 +27,7 @@
 
       <div class="admin-sidebar-footer">
         <button type="button" class="admin-sidebar-user" @click="goTo('/admin/profile')">{{ currentUserName }}</button>
-        <el-button class="admin-logout-button" text circle aria-label="退出登录">
+        <el-button class="admin-logout-button" text circle aria-label="退出登录" :loading="loggingOut" @click="handleLogout">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
       </div>
@@ -59,6 +59,7 @@ import {
 } from '@element-plus/icons-vue';
 import { fetchMyAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 import { fetchAdminProfile } from '../../api/admin-profile';
+import { logout } from '../../api/auth';
 import RoleShieldIcon from '../icons/RoleShieldIcon.vue';
 
 defineProps<{
@@ -68,6 +69,7 @@ defineProps<{
 const router = useRouter();
 const permissionTree = ref<AdminPermissionNode[]>([]);
 const permissionsLoaded = ref(false);
+const loggingOut = ref(false);
 const currentUserName = ref(storedAdminName() || '教师');
 const adminPermissionsChangedEvent = 'admin-permissions-changed';
 
@@ -218,6 +220,21 @@ async function loadCurrentUserName() {
     if (!cachedName) {
       currentUserName.value = '教师';
     }
+  }
+}
+
+async function handleLogout() {
+  if (loggingOut.value) {
+    return;
+  }
+  loggingOut.value = true;
+  try {
+    await logout('admin');
+  } catch {
+    // Local session is cleared even when the server session has already expired.
+  } finally {
+    loggingOut.value = false;
+    await router.replace('/admin/login');
   }
 }
 
