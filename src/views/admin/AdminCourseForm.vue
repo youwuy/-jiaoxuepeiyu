@@ -193,8 +193,19 @@
             <el-empty description="暂无教学内容，请先新增章节" />
           </div>
           <article v-else v-for="chapter in chapters" :key="chapter.id" class="admin-course-outline-chapter">
-            <div class="admin-course-outline-row admin-course-outline-chapter-row">
+            <div
+              class="admin-course-outline-row admin-course-outline-chapter-row"
+              @dragover.prevent
+              @drop="dropChapter(chapters.indexOf(chapter))"
+            >
               <span class="admin-course-outline-left">
+                <span
+                  class="admin-course-outline-drag"
+                  draggable="true"
+                  title="拖动排序"
+                  @dragstart="startChapterDrag(chapters.indexOf(chapter))"
+                  @click.stop
+                >::</span>
                 <el-icon><ArrowDown /></el-icon>
                 <el-icon class="folder"><Folder /></el-icon>
                 <strong>{{ chapter.title }}</strong>
@@ -209,11 +220,19 @@
             </div>
 
             <div
-              v-for="item in chapter.items"
+                v-for="item in chapter.items"
               :key="item.id"
-              class="admin-course-outline-row admin-course-outline-resource-row level-one-content"
-            >
-              <span class="admin-course-outline-drag">::</span>
+                class="admin-course-outline-row admin-course-outline-resource-row level-one-content"
+                @dragover.prevent
+                @drop="dropItem(chapter, chapter.items.indexOf(item))"
+              >
+              <span
+                class="admin-course-outline-drag"
+                draggable="true"
+                title="拖动排序"
+                @dragstart="startItemDrag(chapter, chapter.items.indexOf(item))"
+                @click.stop
+              >::</span>
               <span class="admin-course-outline-icon" :class="item.type">
                 <el-icon><component :is="item.type === 'homework' ? Checked : Document" /></el-icon>
               </span>
@@ -225,8 +244,19 @@
             </div>
 
             <template v-for="section in chapter.sections" :key="section.id">
-              <div class="admin-course-outline-row admin-course-outline-section-row">
+              <div
+                class="admin-course-outline-row admin-course-outline-section-row"
+                @dragover.prevent
+                @drop="dropSection(chapter, chapter.sections.indexOf(section))"
+              >
                 <span class="admin-course-outline-left">
+                  <span
+                    class="admin-course-outline-drag"
+                    draggable="true"
+                    title="拖动排序"
+                    @dragstart="startSectionDrag(chapter, chapter.sections.indexOf(section))"
+                    @click.stop
+                  >::</span>
                   <el-icon><ArrowDown /></el-icon>
                   <strong>{{ section.title }}</strong>
                 </span>
@@ -243,8 +273,16 @@
                 v-for="item in section.items"
                 :key="item.id"
                 class="admin-course-outline-row admin-course-outline-resource-row"
+                @dragover.prevent
+                @drop="dropItem(section, section.items.indexOf(item))"
               >
-                <span class="admin-course-outline-drag">::</span>
+                <span
+                  class="admin-course-outline-drag"
+                  draggable="true"
+                  title="拖动排序"
+                  @dragstart="startItemDrag(section, section.items.indexOf(item))"
+                  @click.stop
+                >::</span>
                 <span class="admin-course-outline-icon" :class="item.type">
                   <el-icon><component :is="item.type === 'homework' ? Checked : Document" /></el-icon>
                 </span>
@@ -259,8 +297,19 @@
               </div>
 
               <template v-for="subsection in section.children" :key="subsection.id">
-                <div class="admin-course-outline-row admin-course-outline-section-row level-three">
+                <div
+                  class="admin-course-outline-row admin-course-outline-section-row level-three"
+                  @dragover.prevent
+                  @drop="dropSection(section, section.children.indexOf(subsection))"
+                >
                   <span class="admin-course-outline-left">
+                    <span
+                      class="admin-course-outline-drag"
+                      draggable="true"
+                      title="拖动排序"
+                      @dragstart="startSectionDrag(section, section.children.indexOf(subsection))"
+                      @click.stop
+                    >::</span>
                     <el-icon><ArrowDown /></el-icon>
                     <strong>{{ subsection.title }}</strong>
                   </span>
@@ -275,8 +324,16 @@
                   v-for="item in subsection.items"
                   :key="item.id"
                   class="admin-course-outline-row admin-course-outline-resource-row level-three-content"
+                  @dragover.prevent
+                  @drop="dropItem(subsection, subsection.items.indexOf(item))"
                 >
-                  <span class="admin-course-outline-drag">::</span>
+                  <span
+                    class="admin-course-outline-drag"
+                    draggable="true"
+                    title="拖动排序"
+                    @dragstart="startItemDrag(subsection, subsection.items.indexOf(item))"
+                    @click.stop
+                  >::</span>
                   <span class="admin-course-outline-icon" :class="item.type">
                     <el-icon><component :is="item.type === 'homework' ? Checked : Document" /></el-icon>
                   </span>
@@ -842,6 +899,11 @@ interface HomeworkQuestionDetail extends HomeworkQuestion {
 
 const chapters = ref<OutlineChapter[]>([]);
 let outlineIdSeed = 1;
+type OutlineDragState =
+  | { type: 'chapter'; source: null; index: number }
+  | { type: 'section'; source: OutlineContentContainer; index: number }
+  | { type: 'item'; source: OutlineContentContainer; index: number };
+const outlineDragState = ref<OutlineDragState | null>(null);
 const outlineDialogVisible = ref(false);
 const outlineDialogKind = ref<OutlineDialogKind>('chapter');
 const outlineDialogMode = ref<OutlineDialogMode>('create');
@@ -1021,6 +1083,53 @@ function openOutlineDialog(kind: OutlineDialogKind, mode: OutlineDialogMode) {
 function addChapter() {
   resetOutlineDialog();
   openOutlineDialog('chapter', 'create');
+}
+
+function startChapterDrag(index: number) {
+  outlineDragState.value = { type: 'chapter', source: null, index };
+}
+
+function startSectionDrag(source: OutlineContentContainer, index: number) {
+  outlineDragState.value = { type: 'section', source, index };
+}
+
+function startItemDrag(source: OutlineContentContainer, index: number) {
+  outlineDragState.value = { type: 'item', source, index };
+}
+
+function clearOutlineDrag() {
+  outlineDragState.value = null;
+}
+
+function dropChapter(targetIndex: number) {
+  const drag = outlineDragState.value;
+  clearOutlineDrag();
+  if (!drag || drag.type !== 'chapter' || drag.index === targetIndex) {
+    return;
+  }
+  const [moved] = chapters.value.splice(drag.index, 1);
+  chapters.value.splice(targetIndex, 0, moved);
+}
+
+function dropSection(parent: OutlineContentContainer, targetIndex: number) {
+  const drag = outlineDragState.value;
+  clearOutlineDrag();
+  if (!drag || drag.type !== 'section' || drag.source !== parent || drag.index === targetIndex) {
+    return;
+  }
+  const sections = childSections(parent);
+  const [moved] = sections.splice(drag.index, 1);
+  sections.splice(targetIndex, 0, moved);
+}
+
+function dropItem(parent: OutlineContentContainer, targetIndex: number) {
+  const drag = outlineDragState.value;
+  clearOutlineDrag();
+  if (!drag || drag.type !== 'item' || drag.source !== parent || drag.index === targetIndex) {
+    return;
+  }
+  const [moved] = parent.items.splice(drag.index, 1);
+  parent.items.splice(targetIndex, 0, moved);
 }
 
 function editChapter(chapter: OutlineChapter) {

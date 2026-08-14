@@ -2250,10 +2250,18 @@ a {
 }
 
 .admin-course-outline-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 14px;
   color: #9badc4;
+  cursor: grab;
   font-size: 12px;
   letter-spacing: 0;
+}
+
+.admin-course-outline-drag:active {
+  cursor: grabbing;
 }
 
 .admin-course-outline-icon {
