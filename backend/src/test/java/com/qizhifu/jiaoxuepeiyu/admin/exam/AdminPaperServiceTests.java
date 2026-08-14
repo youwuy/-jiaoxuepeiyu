@@ -9,6 +9,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportRow;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuestionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestion;
@@ -80,6 +81,37 @@ class AdminPaperServiceTests {
         assertEquals(21L, paperId.longValue());
         assertEquals(2, repository.savedCommand.getQuestions().size());
         assertEquals(10, repository.savedTotalScore.intValue());
+    }
+
+    @Test
+    void previewsAutoPaperAndReusesTheSameQuestionsOnCreate() {
+        FakePapers repository = new FakePapers();
+        AdminQuestion first = question(1L, "SINGLE", true);
+        first.setTitle("Question 1");
+        AdminQuestion second = question(2L, "SINGLE", true);
+        second.setTitle("Question 2");
+        repository.autoQuestions = Arrays.asList(first, second);
+        repository.availableQuestions = Arrays.asList(first, second);
+        AdminPaperService service = new AdminPaperService(repository);
+        AdminPaperCommand command = new AdminPaperCommand();
+        command.setPaperName("Auto Paper");
+        command.setComposeMode("AUTO");
+        AdminPaperAutoRule rule = new AdminPaperAutoRule();
+        rule.setQuestionType("SINGLE");
+        rule.setQuestionCount(2);
+        rule.setScorePerQuestion(5);
+        command.setAutoRules(Arrays.asList(rule));
+
+        AdminPaperPreview preview = service.previewPaper(command);
+        command.setQuestions(Arrays.asList(
+                questionCommand(preview.getQuestions().get(0).getQuestionId(), preview.getQuestions().get(0).getScore()),
+                questionCommand(preview.getQuestions().get(1).getQuestionId(), preview.getQuestions().get(1).getScore())));
+        service.createPaper(command, 9L);
+
+        assertEquals(2, preview.getQuestions().size());
+        assertEquals(10, preview.getTotalScore().intValue());
+        assertEquals(preview.getQuestions().get(0).getQuestionId(), repository.savedCommand.getQuestions().get(0).getQuestionId());
+        assertEquals(preview.getQuestions().get(1).getQuestionId(), repository.savedCommand.getQuestions().get(1).getQuestionId());
     }
 
     @Test

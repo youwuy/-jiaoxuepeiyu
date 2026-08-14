@@ -8,6 +8,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperLog;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuestionImportCommand;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
@@ -54,6 +55,12 @@ public class AdminPaperController {
     @Operation(summary = "Create paper", description = "Creates a manual or automatic paper and stores question snapshots for historical consistency.")
     public ApiResponse<Long> createPaper(@RequestBody AdminPaperCommand body, HttpServletRequest request) {
         return ApiResponse.ok(service.createPaper(body, AdminContext.requireAdminId(request)));
+    }
+
+    @PostMapping("/preview")
+    @Operation(summary = "Preview paper", description = "Builds a stable manual or automatic paper preview without persisting it.")
+    public ApiResponse<AdminPaperPreview> previewPaper(@RequestBody AdminPaperCommand body) {
+        return ApiResponse.ok(service.previewPaper(body));
     }
 
     @PutMapping("/{paperId}")

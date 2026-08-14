@@ -29,6 +29,7 @@ export interface AdminPaper {
 export interface AdminPaperAutoRule { questionType: string; questionCount: number; scorePerQuestion: number; }
 export interface AdminPaperQuestionCommand { questionId: number; score: number; }
 export interface AdminPaperCommand { paperName: string; courseName?: string; composeMode: string; questions?: AdminPaperQuestionCommand[]; autoRules?: AdminPaperAutoRule[]; }
+export interface AdminPaperPreview { paperName: string; courseName?: string; composeMode: string; totalScore: number; questions: AdminPaperQuestion[]; }
 export interface AdminPaperLog { logId: number; paperId: number; operatorName?: string; action?: string; content?: string; createdAt?: string; }
 export interface AdminPaperImportRow { rowNumber?: number; paperName?: string; composeMode?: string; questions?: AdminPaperQuestionCommand[]; autoRules?: AdminPaperAutoRule[]; }
 export interface AdminPaperImportPreview { validCount?: number; invalidCount?: number; errors?: Array<{ rowNumber?: number; message?: string }>; rows?: AdminPaperImportRow[]; }
@@ -51,6 +52,7 @@ export async function fetchAdminPapers(params: { keyword?: string; courseName?: 
 
 export function fetchAdminPaper(paperId: number) { return requestJson<AdminPaper>(`/admin/papers/${paperId}`, { fallbackLabel: '试卷详情' }); }
 export function createAdminPaper(command: AdminPaperCommand) { return requestJson<number>('/admin/papers', { method: 'POST', body: JSON.stringify(command), fallbackLabel: '新增试卷' }); }
+export function previewAdminPaper(command: AdminPaperCommand) { return requestJson<AdminPaperPreview>('/admin/papers/preview', { method: 'POST', body: JSON.stringify(command), fallbackLabel: '试卷预览' }); }
 export function updateAdminPaper(paperId: number, command: AdminPaperCommand) { return requestJson<void>(`/admin/papers/${paperId}`, { method: 'PUT', body: JSON.stringify(command), fallbackLabel: '编辑试卷' }); }
 export function publishAdminPaper(paperId: number) { return requestJson<void>(`/admin/papers/${paperId}/publish`, { method: 'POST', fallbackLabel: '发布试卷' }); }
 export function cancelPublishAdminPaper(paperId: number) { return requestJson<void>(`/admin/papers/${paperId}/cancel-publish`, { method: 'POST', fallbackLabel: '撤回试卷' }); }

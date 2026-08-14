@@ -353,7 +353,7 @@
           <tbody>
             <tr v-for="(item, index) in selectedQuestions" :key="item.id">
               <td>{{ index + 1 }}</td><td>{{ item.title }}</td><td>{{ item.type }}</td>
-              <td><el-input-number v-model="item.score" :min="1" :max="20" controls-position="right" /></td>
+              <td><el-input-number v-model="item.score" :min="1" :max="100" :controls="false" /></td>
               <td><el-button text class="warn" @click="removeQuestion(item.id)">删除</el-button></td>
             </tr>
           </tbody>
@@ -410,7 +410,7 @@
                 <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
                 <article v-for="question in group.questions" :key="question.index">
                   <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
-                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="20" :controls="false" @change="updatePreviewScore(question.id, $event)" /></label>
+                  <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="100" :controls="false" @change="updatePreviewScore(question.id, $event)" /></label>
                 </article>
               </section>
             </div>
@@ -420,16 +420,24 @@
       </section>
     </el-dialog>
 
-    <el-drawer v-model="logsVisible" class="admin-theory-paper-log-drawer" direction="rtl" size="520px" :with-header="false">
-      <div class="admin-theory-paper-dialog-head"><strong>操作日志</strong><el-button text circle :icon="Close" @click="logsVisible = false" /></div>
-      <article v-for="item in logRows" :key="item.time" class="admin-theory-paper-log-row"><header><strong>{{ item.action }}</strong><span>{{ item.time }}</span></header><p>{{ item.content }}</p></article>
-    </el-drawer>
+    <el-dialog v-model="logsVisible" class="admin-theory-paper-log-dialog" width="760px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-theory-paper-dialog-head"><strong>操作日志</strong><el-button text circle :icon="Close" @click="logsVisible = false" /></div>
+      </template>
+      <el-table :data="logRows" max-height="460">
+        <el-table-column type="index" label="序号" width="70" />
+        <el-table-column prop="operator" label="操作人" min-width="120" />
+        <el-table-column prop="time" label="操作时间" min-width="170" />
+        <el-table-column prop="action" label="操作内容" min-width="140" />
+      </el-table>
+      <el-empty v-if="logRows.length === 0" description="暂无操作日志" />
+    </el-dialog>
   </AdminShell>
 </template>
 
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
 import { ArrowLeft, Close, Plus, Search, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
@@ -441,6 +449,7 @@ import {
   fetchAdminPaperLogs,
   fetchAdminPapers,
   importAdminPaperQuestions,
+  previewAdminPaper,
   publishAdminPaper,
   updateAdminPaper,
   type AdminPaper,
@@ -714,7 +723,8 @@ const answerCardGroups = computed(() => {
 });
 const logRows = computed(() => [
   ...paperLogs.value.map((item) => ({
-    action: item.action || '操作',
+    operator: item.operatorName || '-',
+    action: paperLogActionLabel(item.action),
     time: formatDateTime(item.createdAt),
     content: item.content || '-'
   }))
@@ -730,6 +740,12 @@ watch(managePage, () => {
 });
 
 function formatDateTime(value?: string) { return value ? value.replace('T', ' ').slice(0, 19) : '-'; }
+function paperLogActionLabel(action?: string) {
+  const labels: Record<string, string> = {
+    CREATE: '新增', UPDATE: '编辑', PUBLISH: '发布', CANCEL_PUBLISH: '取消发布', ENABLE: '启用', DISABLE: '禁用'
+  };
+  return labels[String(action || '').toUpperCase()] || action || '操作';
+}
 function publishStatus(enabled?: boolean) { return enabled === undefined ? undefined : enabled ? 'PUBLISHED' : 'OFFLINE'; }
 function typeCode(label: string) {
   if (label.includes('多')) return 'MULTIPLE';
@@ -768,7 +784,8 @@ function mapQuestion(item: AdminQuestion | AdminPaperQuestion): QuestionItem {
     title: item.title || '-',
     type: typeLabel(item.questionType),
     score: Number(item.score || 1),
-    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-'
+    courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-',
+    options: item.options?.map((option) => `${option.optionKey || ''}. ${option.optionText || ''}`)
   };
 }
 function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
@@ -777,6 +794,12 @@ function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
   if (!paperName) {
     throw new Error('请输入试卷名称');
   }
+  if (paperName.length > 30) {
+    throw new Error('试卷名称不能超过 30 个字符');
+  }
+  if (courseName && courseName.length > 30) {
+    throw new Error('所属课程不能超过 30 个字符');
+  }
   if (mode === 'auto') {
     const autoRules = builder.rules
       .filter((rule) => rule.selected && Number(rule.count) > 0)
@@ -784,7 +807,10 @@ function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
     if (autoRules.length === 0) {
       throw new Error('请至少设置一种题型');
     }
-    return { paperName, courseName, composeMode: 'AUTO', autoRules };
+    const questions = selectedQuestions.value.length
+      ? selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }))
+      : undefined;
+    return { paperName, courseName, composeMode: 'AUTO', autoRules, questions };
   }
 
   const questions = selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }));
@@ -834,7 +860,7 @@ function applyFilters() { applied.value = { ...draft }; page.value = 1; selected
 function resetFilters() { Object.assign(draft, { keyword: '', courseName: '', creatorId: undefined, enabled: undefined }); applyFilters(); }
 function toggleOne(id: number) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter((item) => item !== id) : [...selectedIds.value, id]; }
 function toggleAll(value: string | number | boolean) { selectedIds.value = value ? Array.from(new Set([...selectedIds.value, ...papers.value.map((item) => item.paperId)])) : selectedIds.value.filter((id) => !papers.value.some((item) => item.paperId === id)); }
-function openCreate() { resetBuilder(); void loadQuestionBank(); viewMode.value = 'auto'; }
+function openCreate() { resetBuilder(); selectedQuestions.value = []; selectedQuestionIds.value = []; void loadQuestionBank(); viewMode.value = 'auto'; }
 function switchCreateMode(value: string | number | boolean) { viewMode.value = value === 'manual' ? 'manual' : 'auto'; }
 async function openManage(row: TheoryPaper) {
   activePaper.value = row;
@@ -906,12 +932,23 @@ function openImport() {
 function handlePaperFileChange(file: UploadFile) {
   paperImportFile.value = file.raw ?? null;
 }
-function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') {
+async function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') {
   if (source === 'upload') {
     void prepareUploadPreview();
     return;
   }
   uploadPreviewActive.value = false;
+  try {
+    const mode = source === 'auto' ? 'auto' : source === 'manage' ? 'manage' : 'manual';
+    const command = paperCommand(mode);
+    if (source === 'auto') {
+      const preview = await previewAdminPaper({ ...command, questions: undefined });
+      selectedQuestions.value = preview.questions.map(mapQuestion).filter((item) => item.id > 0);
+    }
+  } catch (error) {
+    ElMessage.warning(error instanceof Error ? error.message : '请完善试卷信息');
+    return;
+  }
   previewPaper.paperName = source === 'manage' ? manageForm.paperName : builder.paperName || '-';
   previewPaper.courseName = source === 'manage' ? manageForm.courseName : builder.courseName || '-';
   importVisible.value = false;
@@ -981,6 +1018,19 @@ function paperRowsForSubmission() {
   return paperImportRows.value.map((row) => ({ ...row, score: scores.get(row.rowNumber) ?? row.score }));
 }
 async function submitImport() {
+  if (selectedQuestions.value.some((item) => !Number.isInteger(Number(item.score)) || Number(item.score) < 1 || Number(item.score) > 100)) {
+    ElMessage.warning('所有试题分值必须为 1-100 的正整数');
+    return;
+  }
+  if (uploadPreviewActive.value) {
+    try {
+      await ElMessageBox.confirm('确认提交该试卷至题库？提交后将生成正式试卷，可在试卷管理列表查看。', '提交试卷', {
+        type: 'warning'
+      });
+    } catch {
+      return;
+    }
+  }
   saving.value = true;
   try {
     if (uploadPreviewActive.value) {
@@ -1008,6 +1058,15 @@ async function submitImport() {
 }
 async function setEnabled(row: TheoryPaper) {
   try {
+    await ElMessageBox.confirm(
+      `确定要${row.enabled ? '禁用' : '启用'}【${row.paperName}】吗？`,
+      row.enabled ? '禁用试卷' : '启用试卷',
+      { type: 'warning' }
+    );
+  } catch {
+    return;
+  }
+  try {
     if (row.enabled) {
       await cancelPublishAdminPaper(row.paperId);
     } else {
@@ -1020,6 +1079,15 @@ async function setEnabled(row: TheoryPaper) {
   }
 }
 async function batchSetEnabled(enabled: boolean) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要批量${enabled ? '启用' : '禁用'}选中的 ${selectedIds.value.length} 套试卷吗？`,
+      enabled ? '批量启用' : '批量禁用',
+      { type: 'warning' }
+    );
+  } catch {
+    return;
+  }
   try {
     await Promise.all(selectedIds.value.map((id) => enabled ? publishAdminPaper(id) : cancelPublishAdminPaper(id)));
     selectedIds.value = [];

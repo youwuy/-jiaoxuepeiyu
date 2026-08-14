@@ -130,7 +130,7 @@
           </div>
 
           <footer class="admin-resource-footer design">
-            <p>显示 <b>{{ (page - 1) * pageSize + 1 }}</b> 到 <b>{{ Math.min(page * pageSize, totalCount) }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
+            <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ totalCount }}</b> 条记录</p>
             <el-pagination
               v-model:current-page="page"
               v-model:page-size="pageSize"
@@ -431,6 +431,8 @@ const batchForm = reactive({
 });
 
 const totalCount = ref(0);
+const pageStart = computed(() => (totalCount.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
+const pageEnd = computed(() => Math.min(page.value * pageSize.value, totalCount.value));
 const pagedResources = computed(() => resources.value);
 const allCurrentSelected = computed(() => pagedResources.value.length > 0 && pagedResources.value.every((item) => selectedIds.value.includes(item.resourceId)));
 const partCurrentSelected = computed(() => selectedIds.value.length > 0 && !allCurrentSelected.value);

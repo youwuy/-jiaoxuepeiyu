@@ -201,8 +201,26 @@
               </span>
               <span class="admin-course-outline-actions">
                 <el-button text type="success" @click="addSection(chapter)">新增小节</el-button>
+                <el-button text type="success" @click="addOutlineItem(chapter, 'resource')">添加课件资源</el-button>
+                <el-button text type="success" @click="addOutlineItem(chapter, 'homework')">添加作业</el-button>
                 <el-button text type="primary" @click="editChapter(chapter)">编辑</el-button>
                 <el-button text type="danger" @click="removeChapter(chapters.indexOf(chapter))">删除</el-button>
+              </span>
+            </div>
+
+            <div
+              v-for="item in chapter.items"
+              :key="item.id"
+              class="admin-course-outline-row admin-course-outline-resource-row level-one-content"
+            >
+              <span class="admin-course-outline-drag">::</span>
+              <span class="admin-course-outline-icon" :class="item.type">
+                <el-icon><component :is="item.type === 'homework' ? Checked : Document" /></el-icon>
+              </span>
+              <span class="admin-course-outline-info"><strong>{{ item.title }}</strong><small>{{ item.desc }}</small></span>
+              <span class="admin-course-outline-actions compact-actions">
+                <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
+                <el-button text type="danger" @click="removeOutlineItem(chapter, chapter.items.indexOf(item))">删除</el-button>
               </span>
             </div>
 
@@ -213,6 +231,7 @@
                   <strong>{{ section.title }}</strong>
                 </span>
                 <span class="admin-course-outline-actions">
+                  <el-button text type="success" @click="addSection(section)">新增下级</el-button>
                   <el-button text type="success" @click="addOutlineItem(section, 'resource')">添加课件资源</el-button>
                   <el-button text type="success" @click="addOutlineItem(section, 'homework')">添加作业</el-button>
                   <el-button text type="primary" @click="editSection(section)">编辑</el-button>
@@ -238,6 +257,36 @@
                   <el-button text type="danger" @click="removeOutlineItem(section, section.items.indexOf(item))">删除</el-button>
                 </span>
               </div>
+
+              <template v-for="subsection in section.children" :key="subsection.id">
+                <div class="admin-course-outline-row admin-course-outline-section-row level-three">
+                  <span class="admin-course-outline-left">
+                    <el-icon><ArrowDown /></el-icon>
+                    <strong>{{ subsection.title }}</strong>
+                  </span>
+                  <span class="admin-course-outline-actions">
+                    <el-button text type="success" @click="addOutlineItem(subsection, 'resource')">添加课件资源</el-button>
+                    <el-button text type="success" @click="addOutlineItem(subsection, 'homework')">添加作业</el-button>
+                    <el-button text type="primary" @click="editSection(subsection)">编辑</el-button>
+                    <el-button text type="danger" @click="removeSection(section, section.children.indexOf(subsection))">删除</el-button>
+                  </span>
+                </div>
+                <div
+                  v-for="item in subsection.items"
+                  :key="item.id"
+                  class="admin-course-outline-row admin-course-outline-resource-row level-three-content"
+                >
+                  <span class="admin-course-outline-drag">::</span>
+                  <span class="admin-course-outline-icon" :class="item.type">
+                    <el-icon><component :is="item.type === 'homework' ? Checked : Document" /></el-icon>
+                  </span>
+                  <span class="admin-course-outline-info"><strong>{{ item.title }}</strong><small>{{ item.desc }}</small></span>
+                  <span class="admin-course-outline-actions compact-actions">
+                    <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
+                    <el-button text type="danger" @click="removeOutlineItem(subsection, subsection.items.indexOf(item))">删除</el-button>
+                  </span>
+                </div>
+              </template>
             </template>
           </article>
         </div>
@@ -279,6 +328,34 @@
             placeholder="请输入作业说明"
           />
         </label>
+        <div v-if="outlineDialogKind === 'homework'" class="admin-course-homework-settings">
+          <label class="admin-course-outline-dialog-field">
+            <span>学员完成标准 <b>*</b></span>
+            <el-radio-group v-model="outlineForm.completionRule">
+              <el-radio label="SUBMIT">提交即完成</el-radio>
+              <el-radio label="PASS_SCORE">达到合格分数</el-radio>
+            </el-radio-group>
+          </label>
+          <label v-if="outlineForm.completionRule === 'PASS_SCORE'" class="admin-course-outline-dialog-field">
+            <span>合格分数 <b>*</b></span>
+            <el-input-number v-model="outlineForm.passScore" :min="1" :max="100" :controls="false" />
+          </label>
+          <label class="admin-course-outline-dialog-field">
+            <span>作业发布模式 <b>*</b></span>
+            <el-radio-group v-model="outlineForm.publishMode">
+              <el-radio label="PRACTICE">练习模式</el-radio>
+              <el-radio label="EXAM">考试模式</el-radio>
+            </el-radio-group>
+          </label>
+          <label class="admin-course-outline-dialog-field full">
+            <span>作业答题时段 <b>*</b></span>
+            <div class="admin-course-resource-date-range">
+              <el-date-picker v-model="outlineForm.answerStartTime" type="datetime" placeholder="开始答题时间" />
+              <i>至</i>
+              <el-date-picker v-model="outlineForm.answerEndTime" type="datetime" placeholder="结束答题时间" />
+            </div>
+          </label>
+        </div>
         <section v-if="outlineDialogKind === 'homework'" class="admin-course-homework-question-section">
           <div class="admin-course-homework-question-head">
             <div>
@@ -569,12 +646,13 @@
               v-for="(item, index) in resourceRows"
               :key="item.resourceId"
               class="admin-course-resource-row"
-              :class="{ active: isResourceSelected(item) }"
-              @click="toggleResourceSelection(item, !isResourceSelected(item))"
+              :class="{ active: isResourceSelected(item), disabled: isResourceBound(item) }"
+              @click="!isResourceBound(item) && toggleResourceSelection(item, !isResourceSelected(item))"
             >
               <span class="check-cell" @click.stop>
                 <el-checkbox
                   :model-value="isResourceSelected(item)"
+                  :disabled="isResourceBound(item)"
                   @change="handleResourceCheckboxChange(item, $event)"
                 />
               </span>
@@ -641,11 +719,13 @@ import {
   fetchAdminMajors,
   fetchAdminTeachers,
   updateAdminCourse,
+  type AdminCourseCommand,
   type AdminAcademicYearOption,
   type AdminClassOption,
   type AdminMajorOption,
   type AdminTeacherOption
 } from '../../api/admin-course';
+import type { AdminCourseChapter, AdminCourseContent } from '../../features/admin/courses';
 import {
   fetchAdminQuestion,
   fetchAdminQuestions,
@@ -709,19 +789,28 @@ interface OutlineItem {
   requiredDurationSeconds?: number;
   learningStartTime?: string;
   learningEndTime?: string;
+  assignmentCompletionRule?: 'SUBMIT' | 'PASS_SCORE';
+  passScore?: number;
+  assignmentPublishMode?: 'PRACTICE' | 'EXAM';
+  answerStartTime?: string;
+  answerEndTime?: string;
 }
 
 interface OutlineSection {
   id: number;
   title: string;
   items: OutlineItem[];
+  children: OutlineSection[];
 }
 
 interface OutlineChapter {
   id: number;
   title: string;
+  items: OutlineItem[];
   sections: OutlineSection[];
 }
+
+type OutlineContentContainer = OutlineChapter | OutlineSection;
 
 type OutlineDialogKind = 'chapter' | 'section' | 'homework';
 type OutlineDialogMode = 'create' | 'edit';
@@ -756,10 +845,16 @@ const outlineDialogMode = ref<OutlineDialogMode>('create');
 const outlineForm = reactive({
   title: '',
   desc: '',
-  questions: [] as HomeworkQuestion[]
+  questions: [] as HomeworkQuestion[],
+  completionRule: 'SUBMIT' as 'SUBMIT' | 'PASS_SCORE',
+  passScore: 60,
+  publishMode: 'PRACTICE' as 'PRACTICE' | 'EXAM',
+  answerStartTime: undefined as Date | undefined,
+  answerEndTime: undefined as Date | undefined
 });
 const outlineTargetChapter = ref<OutlineChapter | null>(null);
-const outlineTargetSection = ref<OutlineSection | null>(null);
+const outlineTargetParent = ref<OutlineContentContainer | null>(null);
+const outlineTargetSection = ref<OutlineContentContainer | null>(null);
 const outlineTargetItem = ref<OutlineItem | null>(null);
 const homeworkQuestionTab = ref<HomeworkQuestionKind>('practice');
 const questionTabs: Array<{ label: string; name: HomeworkQuestionKind }> = [
@@ -791,7 +886,7 @@ const resourceOpenStartTime = ref<Date>();
 const resourceOpenEndTime = ref<Date>();
 const resourceStudyMinutes = ref(0);
 const resourceStudySeconds = ref(0);
-const resourceTargetSection = ref<OutlineSection | null>(null);
+const resourceTargetSection = ref<OutlineContentContainer | null>(null);
 const resourceTypeTabs = [
   { label: '全部资源', value: '' },
   { label: '文本文件', value: 'DOCUMENT' },
@@ -802,12 +897,22 @@ const resourceTypeTabs = [
 ];
 
 const resourceSelectedCount = computed(() => resourceSelectedIds.value.length);
+const boundResourceIds = computed(() =>
+  new Set(
+    flattenOutlineItems()
+      .filter((item) => item.type === 'resource' && item.resourceId)
+      .map((item) => item.resourceId as number)
+  )
+);
 const resourcePageStart = computed(() =>
   resourceTotal.value === 0 ? 0 : (resourcePage.value - 1) * resourcePageSize + 1
 );
 const resourcePageEnd = computed(() => Math.min(resourcePage.value * resourcePageSize, resourceTotal.value));
 const resourcePageSelected = computed(
-  () => resourceRows.value.length > 0 && resourceRows.value.every((item) => resourceSelectedIds.value.includes(item.resourceId))
+  () => {
+    const selectableRows = resourceRows.value.filter((item) => !isResourceBound(item));
+    return selectableRows.length > 0 && selectableRows.every((item) => resourceSelectedIds.value.includes(item.resourceId));
+  }
 );
 const resourcePageIndeterminate = computed(
   () =>
@@ -845,6 +950,18 @@ function nextOutlineId() {
   return outlineIdSeed;
 }
 
+function childSections(parent: OutlineContentContainer) {
+  return 'sections' in parent ? parent.sections : parent.children;
+}
+
+function flattenSectionItems(sections: OutlineSection[]): OutlineItem[] {
+  return sections.flatMap((section) => [...section.items, ...flattenSectionItems(section.children)]);
+}
+
+function flattenOutlineItems(): OutlineItem[] {
+  return chapters.value.flatMap((chapter) => [...chapter.items, ...flattenSectionItems(chapter.sections)]);
+}
+
 async function promptOutlineText(message: string, title: string, initialValue = '') {
   try {
     const result = await ElMessageBox.prompt(message, title, {
@@ -868,7 +985,13 @@ function resetOutlineDialog() {
   outlineForm.title = '';
   outlineForm.desc = '';
   outlineForm.questions = [];
+  outlineForm.completionRule = 'SUBMIT';
+  outlineForm.passScore = 60;
+  outlineForm.publishMode = 'PRACTICE';
+  outlineForm.answerStartTime = undefined;
+  outlineForm.answerEndTime = undefined;
   outlineTargetChapter.value = null;
+  outlineTargetParent.value = null;
   outlineTargetSection.value = null;
   outlineTargetItem.value = null;
 }
@@ -913,9 +1036,9 @@ async function removeChapter(index: number) {
   }
 }
 
-function addSection(chapter: OutlineChapter) {
+function addSection(parent: OutlineContentContainer) {
   resetOutlineDialog();
-  outlineTargetChapter.value = chapter;
+  outlineTargetParent.value = parent;
   openOutlineDialog('section', 'create');
 }
 
@@ -926,16 +1049,16 @@ function editSection(section: OutlineSection) {
   openOutlineDialog('section', 'edit');
 }
 
-async function removeSection(chapter: OutlineChapter, index: number) {
+async function removeSection(parent: OutlineContentContainer, index: number) {
   try {
     await ElMessageBox.confirm('确认删除该小节？', '删除小节', { type: 'warning' });
-    chapter.sections.splice(index, 1);
+    childSections(parent).splice(index, 1);
   } catch {
     return;
   }
 }
 
-async function addOutlineItem(section: OutlineSection, type: OutlineItem['type']) {
+async function addOutlineItem(section: OutlineContentContainer, type: OutlineItem['type']) {
   if (type === 'resource') {
     openResourceDialog(section);
     return;
@@ -1037,6 +1160,10 @@ function toggleQuestionSelection(item: HomeworkQuestion) {
   if (selectedIndex >= 0) {
     outlineForm.questions.splice(selectedIndex, 1);
   } else {
+    if (outlineForm.questions.some((question) => question.kind !== item.kind)) {
+      ElMessage.warning('同一作业只能选择实训题或理论题中的一种');
+      return;
+    }
     outlineForm.questions.push({ ...item });
   }
 }
@@ -1097,7 +1224,7 @@ async function openQuestionDetail(item: HomeworkQuestion) {
   }
 }
 
-function openResourceDialog(section: OutlineSection) {
+function openResourceDialog(section: OutlineContentContainer) {
   resourceTargetSection.value = section;
   resourceSelectedIds.value = [];
   resourceSelectedMap.value = {};
@@ -1138,8 +1265,6 @@ async function loadResourceRows() {
 
 function handleResourceSearch() {
   resourcePage.value = 1;
-  resourceSelectedIds.value = [];
-  resourceSelectedMap.value = {};
   void loadResourceRows();
 }
 
@@ -1160,7 +1285,14 @@ function isResourceSelected(item: AdminResource) {
   return resourceSelectedIds.value.includes(item.resourceId);
 }
 
+function isResourceBound(item: AdminResource) {
+  return boundResourceIds.value.has(item.resourceId);
+}
+
 function toggleResourceSelection(item: AdminResource, checked: boolean) {
+  if (isResourceBound(item)) {
+    return;
+  }
   const nextIds = new Set(resourceSelectedIds.value);
   if (checked) {
     nextIds.add(item.resourceId);
@@ -1174,7 +1306,7 @@ function toggleResourceSelection(item: AdminResource, checked: boolean) {
 
 function toggleResourcePageSelection(value: boolean | string | number) {
   const checked = Boolean(value);
-  resourceRows.value.forEach((item) => toggleResourceSelection(item, checked));
+  resourceRows.value.filter((item) => !isResourceBound(item)).forEach((item) => toggleResourceSelection(item, checked));
 }
 
 function handleResourceCheckboxChange(item: AdminResource, value: boolean | string | number) {
@@ -1214,6 +1346,11 @@ function confirmAddResource() {
   const requiredDurationSeconds = resourceStudyMinutes.value * 60 + resourceStudySeconds.value;
   const learningStartTime = formatLocalDateTime(resourceOpenStartTime.value);
   const learningEndTime = formatLocalDateTime(resourceOpenEndTime.value);
+  if (resourceOpenStartTime.value && resourceOpenEndTime.value && resourceOpenEndTime.value <= resourceOpenStartTime.value) {
+    ElMessage.warning('资源开放结束时间必须晚于开始时间');
+    return;
+  }
+  const selectedCount = resourceSelectedCount.value;
   resourceSelectedIds.value
     .map((resourceId) => resourceSelectedMap.value[resourceId])
     .filter((resource): resource is AdminResource => Boolean(resource))
@@ -1230,15 +1367,29 @@ function confirmAddResource() {
       });
     });
   resourceDialogVisible.value = false;
-  ElMessage.success(`已添加 ${resourceSelectedCount.value} 条教学资源`);
+  ElMessage.success(`已添加 ${selectedCount} 条教学资源`);
 }
 
 async function editOutlineItem(item: OutlineItem) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要编辑【${item.title}】吗？编辑后对应的学习数据将无法恢复，请谨慎操作。`,
+      '编辑确认',
+      { type: 'warning' }
+    );
+  } catch {
+    return;
+  }
   if (item.type === 'homework') {
     resetOutlineDialog();
     outlineForm.title = item.title;
     outlineForm.desc = item.desc === '-' ? '' : item.desc;
     outlineForm.questions = item.questions ? item.questions.map((question) => ({ ...question })) : [];
+    outlineForm.completionRule = item.assignmentCompletionRule || 'SUBMIT';
+    outlineForm.passScore = item.passScore || 60;
+    outlineForm.publishMode = item.assignmentPublishMode || 'PRACTICE';
+    outlineForm.answerStartTime = parseDateTime(item.answerStartTime);
+    outlineForm.answerEndTime = parseDateTime(item.answerEndTime);
     outlineTargetItem.value = item;
     openOutlineDialog('homework', 'edit');
     return;
@@ -1260,7 +1411,7 @@ function confirmOutlineDialog() {
     if (outlineDialogMode.value === 'edit' && outlineTargetChapter.value) {
       outlineTargetChapter.value.title = title;
     } else {
-      chapters.value.push({ id: nextOutlineId(), title, sections: [] });
+      chapters.value.push({ id: nextOutlineId(), title, items: [], sections: [] });
     }
     closeOutlineDialog();
     return;
@@ -1269,8 +1420,8 @@ function confirmOutlineDialog() {
   if (outlineDialogKind.value === 'section') {
     if (outlineDialogMode.value === 'edit' && outlineTargetSection.value) {
       outlineTargetSection.value.title = title;
-    } else if (outlineTargetChapter.value) {
-      outlineTargetChapter.value.sections.push({ id: nextOutlineId(), title, items: [] });
+    } else if (outlineTargetParent.value) {
+      childSections(outlineTargetParent.value).push({ id: nextOutlineId(), title, items: [], children: [] });
     }
     closeOutlineDialog();
     return;
@@ -1278,26 +1429,56 @@ function confirmOutlineDialog() {
 
   if (outlineDialogKind.value === 'homework') {
     const desc = outlineForm.desc.trim() || '-';
+    if (!outlineForm.answerStartTime || !outlineForm.answerEndTime) {
+      ElMessage.warning('请选择作业答题起止时间');
+      return;
+    }
+    if (outlineForm.answerEndTime <= outlineForm.answerStartTime) {
+      ElMessage.warning('作业答题结束时间必须晚于开始时间');
+      return;
+    }
+    if (!outlineForm.questions.length) {
+      ElMessage.warning('请至少选择一道有效题目');
+      return;
+    }
+    if (outlineForm.completionRule === 'PASS_SCORE' && (!Number.isInteger(outlineForm.passScore) || outlineForm.passScore <= 0)) {
+      ElMessage.warning('请输入有效的合格分数');
+      return;
+    }
+    const assignmentSettings = {
+      assignmentCompletionRule: outlineForm.completionRule,
+      passScore: outlineForm.completionRule === 'PASS_SCORE' ? outlineForm.passScore : undefined,
+      assignmentPublishMode: outlineForm.publishMode,
+      answerStartTime: formatLocalDateTime(outlineForm.answerStartTime),
+      answerEndTime: formatLocalDateTime(outlineForm.answerEndTime)
+    };
     if (outlineDialogMode.value === 'edit' && outlineTargetItem.value) {
       outlineTargetItem.value.title = title;
       outlineTargetItem.value.desc = desc;
       outlineTargetItem.value.questions = outlineForm.questions.map((question) => ({ ...question }));
+      Object.assign(outlineTargetItem.value, assignmentSettings);
     } else if (outlineTargetSection.value) {
       outlineTargetSection.value.items.push({
         id: nextOutlineId(),
         type: 'homework',
         title,
         desc,
-        questions: outlineForm.questions.map((question) => ({ ...question }))
+        questions: outlineForm.questions.map((question) => ({ ...question })),
+        ...assignmentSettings
       });
     }
     closeOutlineDialog();
   }
 }
 
-async function removeOutlineItem(section: OutlineSection, index: number) {
+async function removeOutlineItem(section: OutlineContentContainer, index: number) {
+  const item = section.items[index];
   try {
-    await ElMessageBox.confirm('确认删除该内容？', '删除内容', { type: 'warning' });
+    await ElMessageBox.confirm(
+      `确定要删除【${item?.title || '该内容'}】吗？删除后对应的学习数据将无法恢复，请谨慎操作。`,
+      '删除内容',
+      { type: 'warning' }
+    );
     section.items.splice(index, 1);
   } catch {
     return;
@@ -1339,8 +1520,14 @@ function validateForm() {
   if (!form.courseName.trim()) {
     throw new Error('请输入课程名称');
   }
+  if (form.courseName.trim().length > 20) {
+    throw new Error('课程名称不能超过 20 个字符');
+  }
   if (!form.startTime || !form.endTime) {
     throw new Error('请选择教学起止时间');
+  }
+  if (form.endTime <= form.startTime) {
+    throw new Error('教学结束时间必须晚于开始时间');
   }
   if (!semester) {
     throw new Error('请选择学年学期');
@@ -1356,11 +1543,44 @@ function validateForm() {
   }
 
   const scoreCap = Number(form.coursewareScore);
-  if (!Number.isFinite(scoreCap) || scoreCap <= 0 || scoreCap > 100) {
-    throw new Error('课件完成度满分需为 1-100');
+  if (!Number.isInteger(scoreCap) || scoreCap <= 0 || scoreCap > 100) {
+    throw new Error('课件完成度满分需为 1-100 的整数');
   }
 
   return { semester, scoreCap };
+}
+
+type CourseChapterCommand = NonNullable<AdminCourseCommand['chapters']>[number];
+
+function serializeOutlineItems(items: OutlineItem[]): NonNullable<CourseChapterCommand['contents']> {
+  return items.map((item, itemIndex) => ({
+    itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
+    title: item.title.slice(0, 30),
+    sortOrder: itemIndex + 1,
+    resourceId: item.resourceId,
+    assignmentId: item.assignmentId,
+    questionIds: item.questions?.filter((question) => question.kind === 'theory').map((question) => question.id),
+    assignmentTotalScore: item.questions
+      ?.filter((question) => question.kind === 'theory')
+      .reduce((total, question) => total + Number(question.score || 0), 0),
+    assignmentCompletionRule: item.assignmentCompletionRule,
+    passScore: item.passScore,
+    assignmentPublishMode: item.assignmentPublishMode,
+    answerStartTime: item.answerStartTime,
+    answerEndTime: item.answerEndTime,
+    requiredDurationSeconds: item.requiredDurationSeconds,
+    learningStartTime: item.learningStartTime,
+    learningEndTime: item.learningEndTime
+  }));
+}
+
+function serializeOutlineSection(section: OutlineSection, index: number): CourseChapterCommand {
+  return {
+    chapterTitle: section.title.slice(0, 20),
+    sortOrder: index + 1,
+    contents: serializeOutlineItems(section.items),
+    children: section.children.map(serializeOutlineSection)
+  };
 }
 
 async function saveCourse() {
@@ -1390,24 +1610,8 @@ async function saveCourse() {
       chapters: chapters.value.map((chapter, index) => ({
         chapterTitle: chapter.title.slice(0, 20),
         sortOrder: index + 1,
-        children: chapter.sections.map((section, sectionIndex) => ({
-          chapterTitle: section.title.slice(0, 20),
-          sortOrder: sectionIndex + 1,
-          contents: section.items.map((item, itemIndex) => ({
-            itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
-            title: item.title.slice(0, 30),
-            sortOrder: itemIndex + 1,
-            resourceId: item.resourceId,
-            assignmentId: item.assignmentId,
-            questionIds: item.questions?.filter((question) => question.kind === 'theory').map((question) => question.id),
-            assignmentTotalScore: item.questions
-              ?.filter((question) => question.kind === 'theory')
-              .reduce((total, question) => total + Number(question.score || 0), 0),
-            requiredDurationSeconds: item.requiredDurationSeconds,
-            learningStartTime: item.learningStartTime,
-            learningEndTime: item.learningEndTime
-          }))
-        }))
+        contents: serializeOutlineItems(chapter.items),
+        children: chapter.sections.map(serializeOutlineSection)
       }))
     };
     if (isEditMode.value && courseId.value) {
@@ -1453,42 +1657,57 @@ function parseDateTime(value?: string) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+function mapOutlineItems(contents?: AdminCourseContent[]): OutlineItem[] {
+  return (contents ?? []).map((item) => ({
+    id: item.contentId ?? nextOutlineId(),
+    type: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? 'homework' : 'resource',
+    title: item.title || '未命名内容',
+    desc: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? '课程作业' : '教学资源',
+    resourceId: item.resourceId,
+    assignmentId: item.assignmentId,
+    requiredDurationSeconds: item.requiredDurationSeconds,
+    learningStartTime: item.learningStartTime,
+    learningEndTime: item.learningEndTime,
+    assignmentCompletionRule: item.assignmentCompletionRule as 'SUBMIT' | 'PASS_SCORE' | undefined,
+    passScore: item.passScore,
+    assignmentPublishMode: item.assignmentPublishMode as 'PRACTICE' | 'EXAM' | undefined,
+    answerStartTime: item.answerStartTime,
+    answerEndTime: item.answerEndTime,
+    questions: []
+  }));
+}
+
+function mapOutlineSection(section: AdminCourseChapter): OutlineSection {
+  return {
+    id: section.chapterId ?? nextOutlineId(),
+    title: section.chapterTitle || '未命名小节',
+    items: mapOutlineItems(section.contents),
+    children: (section.children ?? []).map(mapOutlineSection)
+  };
+}
+
+function outlineSectionIds(sections: OutlineSection[]): number[] {
+  return sections.flatMap((section) => [section.id, ...section.items.map((item) => item.id), ...outlineSectionIds(section.children)]);
+}
+
+function flattenApiContents(chapters: AdminCourseChapter[]): AdminCourseContent[] {
+  return chapters.flatMap((chapter) => [...(chapter.contents ?? []), ...flattenApiContents(chapter.children ?? [])]);
+}
+
 async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
   chapters.value = (detail.chapters ?? []).map((chapter) => ({
     id: chapter.chapterId ?? nextOutlineId(),
     title: chapter.chapterTitle || '未命名章节',
-    sections: (chapter.children ?? []).map((section) => ({
-      id: section.chapterId ?? nextOutlineId(),
-      title: section.chapterTitle || '未命名小节',
-      items: (section.contents ?? []).map((item) => ({
-        id: item.contentId ?? nextOutlineId(),
-        type: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? 'homework' : 'resource',
-        title: item.title || '未命名内容',
-        desc: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? '课程作业' : '教学资源',
-        resourceId: item.resourceId,
-        assignmentId: item.assignmentId,
-        requiredDurationSeconds: item.requiredDurationSeconds,
-        learningStartTime: item.learningStartTime,
-        learningEndTime: item.learningEndTime,
-        questions: []
-      }))
-    }))
+    items: mapOutlineItems(chapter.contents),
+    sections: (chapter.children ?? []).map(mapOutlineSection)
   }));
-  const outlineIds = chapters.value.flatMap((chapter) => [
-    chapter.id,
-    ...chapter.sections.flatMap((section) => [section.id, ...section.items.map((item) => item.id)])
-  ]);
+  const outlineIds = chapters.value.flatMap((chapter) => [chapter.id, ...outlineSectionIds(chapter.sections), ...chapter.items.map((item) => item.id)]);
   outlineIdSeed = Math.max(outlineIdSeed, ...outlineIds);
 
-  const homeworkItems = chapters.value
-    .flatMap((chapter) => chapter.sections)
-    .flatMap((section) => section.items)
-    .filter((item) => item.type === 'homework');
+  const homeworkItems = flattenOutlineItems().filter((item) => item.type === 'homework');
+  const sourceContents = flattenApiContents(detail.chapters ?? []);
   await Promise.all(homeworkItems.map(async (item) => {
-    const source = detail.chapters
-      ?.flatMap((chapter) => chapter.children ?? [])
-      .flatMap((section) => section.contents ?? [])
-      .find((content) => content.contentId === item.id);
+    const source = sourceContents.find((content) => content.contentId === item.id);
     const questions = await Promise.allSettled(
       (source?.questionIds ?? []).map((questionId) => fetchAdminQuestion(questionId))
     );

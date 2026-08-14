@@ -8,6 +8,12 @@ export interface AdminCourseContent {
   resourceId?: number;
   assignmentId?: number;
   questionIds?: number[];
+  assignmentCompletionRule?: string;
+  passScore?: number;
+  assignmentPublishMode?: string;
+  answerStartTime?: string;
+  answerEndTime?: string;
+  assignmentTotalScore?: number;
   requiredDurationSeconds?: number;
   learningStartTime?: string;
   learningEndTime?: string;

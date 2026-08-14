@@ -8,6 +8,8 @@ import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportError;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportPreview;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperImportRow;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperLog;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperPreview;
+import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuestion;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuestionCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminPaperQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.exam.model.AdminQuestion;
@@ -19,7 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +56,42 @@ public class AdminPaperService {
             throw new BusinessException(404, "Paper not found");
         }
         return paper;
+    }
+
+    public AdminPaperPreview previewPaper(AdminPaperCommand command) {
+        AdminPaperCommand normalized = normalizedPaper(command);
+        List<Long> questionIds = new ArrayList<Long>();
+        for (AdminPaperQuestionCommand question : normalized.getQuestions()) {
+            questionIds.add(question.getQuestionId());
+        }
+        Map<Long, AdminQuestion> sources = new LinkedHashMap<Long, AdminQuestion>();
+        for (AdminQuestion question : repository.findQuestionsByIds(questionIds)) {
+            sources.put(question.getQuestionId(), question);
+        }
+        List<AdminPaperQuestion> questions = new ArrayList<AdminPaperQuestion>();
+        int sortOrder = 1;
+        for (AdminPaperQuestionCommand commandQuestion : normalized.getQuestions()) {
+            AdminQuestion source = sources.get(commandQuestion.getQuestionId());
+            if (source == null) {
+                throw new BusinessException(400, "Paper contains disabled or missing questions");
+            }
+            AdminPaperQuestion question = new AdminPaperQuestion();
+            question.setQuestionId(source.getQuestionId());
+            question.setQuestionType(source.getQuestionType());
+            question.setTitle(source.getTitle());
+            question.setStandardAnswer(source.getStandardAnswer());
+            question.setOptions(source.getOptions());
+            question.setScore(commandQuestion.getScore());
+            question.setSortOrder(Integer.valueOf(sortOrder++));
+            questions.add(question);
+        }
+        AdminPaperPreview preview = new AdminPaperPreview();
+        preview.setPaperName(normalized.getPaperName());
+        preview.setCourseName(normalized.getCourseName());
+        preview.setComposeMode(normalized.getComposeMode());
+        preview.setTotalScore(Integer.valueOf(totalScore(normalized.getQuestions())));
+        preview.setQuestions(questions);
+        return preview;
     }
 
     @Transactional
@@ -128,17 +168,27 @@ public class AdminPaperService {
         if (paperName == null) {
             throw new BusinessException(400, "Paper name is required");
         }
+        if (paperName.length() > 30) {
+            throw new BusinessException(400, "Paper name cannot exceed 30 characters");
+        }
+        String courseName = trimToNull(command.getCourseName());
+        if (courseName != null && courseName.length() > 30) {
+            throw new BusinessException(400, "Paper course name cannot exceed 30 characters");
+        }
         String composeMode = upper(trimToNull(command.getComposeMode()));
         if (!"MANUAL".equals(composeMode) && !"AUTO".equals(composeMode)) {
             throw new BusinessException(400, "Paper compose mode is invalid");
         }
         AdminPaperCommand normalized = new AdminPaperCommand();
         normalized.setPaperName(paperName);
-        normalized.setCourseName(trimToNull(command.getCourseName()));
+        normalized.setCourseName(courseName);
         normalized.setComposeMode(composeMode);
         if ("AUTO".equals(composeMode)) {
-            normalized.setAutoRules(command.getAutoRules());
-            normalized.setQuestions(buildAutoQuestions(command.getAutoRules()));
+            List<AdminPaperAutoRule> autoRules = validatedAutoRules(command.getAutoRules());
+            normalized.setAutoRules(autoRules);
+            normalized.setQuestions(command.getQuestions() == null || command.getQuestions().isEmpty()
+                    ? buildAutoQuestions(autoRules)
+                    : normalizedManualQuestions(command.getQuestions()));
         } else {
             normalized.setQuestions(normalizedManualQuestions(command.getQuestions()));
         }
@@ -170,22 +220,10 @@ public class AdminPaperService {
     }
 
     private List<AdminPaperQuestionCommand> buildAutoQuestions(List<AdminPaperAutoRule> rules) {
-        if (rules == null || rules.isEmpty()) {
-            throw new BusinessException(400, "Auto paper rules are required");
-        }
         List<AdminPaperQuestionCommand> questions = new ArrayList<AdminPaperQuestionCommand>();
         Set<Long> selectedIds = new HashSet<Long>();
         for (AdminPaperAutoRule rule : rules) {
-            String questionType = upper(trimToNull(rule == null ? null : rule.getQuestionType()));
-            if (!QUESTION_TYPES.contains(questionType)) {
-                throw new BusinessException(400, "Auto rule question type is invalid");
-            }
-            if (rule.getQuestionCount() == null || rule.getQuestionCount().intValue() <= 0) {
-                throw new BusinessException(400, "Auto rule question count must be greater than 0");
-            }
-            if (rule.getScorePerQuestion() == null || rule.getScorePerQuestion().intValue() <= 0) {
-                throw new BusinessException(400, "Auto rule score must be greater than 0");
-            }
+            String questionType = upper(trimToNull(rule.getQuestionType()));
             List<AdminQuestion> pool = repository.findEnabledQuestionsByType(questionType, rule.getQuestionCount().intValue());
             List<AdminQuestion> selected = selectUniqueEnabled(pool, selectedIds, rule.getQuestionCount().intValue());
             if (selected.size() < rule.getQuestionCount().intValue()) {
@@ -199,6 +237,31 @@ public class AdminPaperService {
             }
         }
         return questions;
+    }
+
+    private List<AdminPaperAutoRule> validatedAutoRules(List<AdminPaperAutoRule> rules) {
+        if (rules == null || rules.isEmpty()) {
+            throw new BusinessException(400, "Auto paper rules are required");
+        }
+        List<AdminPaperAutoRule> normalized = new ArrayList<AdminPaperAutoRule>();
+        for (AdminPaperAutoRule rule : rules) {
+            String questionType = upper(trimToNull(rule == null ? null : rule.getQuestionType()));
+            if (!QUESTION_TYPES.contains(questionType)) {
+                throw new BusinessException(400, "Auto rule question type is invalid");
+            }
+            if (rule.getQuestionCount() == null || rule.getQuestionCount().intValue() <= 0) {
+                throw new BusinessException(400, "Auto rule question count must be greater than 0");
+            }
+            if (rule.getScorePerQuestion() == null || rule.getScorePerQuestion().intValue() <= 0) {
+                throw new BusinessException(400, "Auto rule score must be greater than 0");
+            }
+            AdminPaperAutoRule normalizedRule = new AdminPaperAutoRule();
+            normalizedRule.setQuestionType(questionType);
+            normalizedRule.setQuestionCount(rule.getQuestionCount());
+            normalizedRule.setScorePerQuestion(rule.getScorePerQuestion());
+            normalized.add(normalizedRule);
+        }
+        return normalized;
     }
 
     private List<AdminQuestion> selectUniqueEnabled(List<AdminQuestion> pool, Set<Long> selectedIds, int count) {
