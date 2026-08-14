@@ -122,12 +122,13 @@
                   <el-button
                     v-else-if="item.reviewed"
                     class="admin-course-reviews-action view"
+                    :disabled="!can('list')"
                     @click="openReview(item)"
                   >
                     <el-icon><View /></el-icon>
                     查看批阅
                   </el-button>
-                  <el-button v-else class="admin-course-reviews-action edit" @click="openReview(item)">
+                  <el-button v-else class="admin-course-reviews-action edit" :disabled="!can('update')" @click="openReview(item)">
                     <el-icon><EditPen /></el-icon>
                     批阅
                   </el-button>
@@ -207,7 +208,7 @@
             <el-input v-else v-model="reviewComment" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="请输入本次实训作业整体评语（选填，最多500字）" />
           </label>
         </div>
-        <template #footer><el-button @click="reviewVisible = false">关闭</el-button><el-button v-if="!reviewReadonly" type="primary" @click="saveReview">保存批阅结果</el-button></template>
+        <template #footer><el-button @click="reviewVisible = false">关闭</el-button><el-button v-if="!reviewReadonly" type="primary" :disabled="!can('update')" @click="saveReview">保存批阅结果</el-button></template>
       </el-dialog>
     </section>
   </AdminShell>
@@ -239,6 +240,7 @@ import {
   type AdminTrainingReviewAttempt,
   type AdminTrainingReviewRow
 } from '../../api/admin-training';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 type ReviewTabKey = 'all' | 'pending' | 'reviewed' | 'notSubmitted';
 
@@ -263,6 +265,7 @@ interface ReviewTopic { id: number; name: string; mode: string }
 
 const route = useRoute();
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:training');
 const trainingId = computed(() => Number(route.params.id));
 const trainingTitle = ref(String(route.query.title || '实训组课'));
 const page = ref(1);

@@ -9,7 +9,7 @@
             <p>请等待全部学员进入指定实训试题、自动被分配随机角色，确认人员全部就绪后，点击开始考试。</p>
           </div>
         </div>
-        <el-button class="admin-training-exam-start" type="primary" :loading="starting" :disabled="examStarted" @click="startExam">
+        <el-button class="admin-training-exam-start" type="primary" :loading="starting" :disabled="examStarted || !can('enable')" @click="startExam">
           {{ examStarted ? '考试已开始' : '开始考试' }}
         </el-button>
       </header>
@@ -69,6 +69,7 @@ import {
   startAdminTrainingExam,
   type AdminTrainingStudentState
 } from '../../api/admin-training';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface ExamStudentRow {
   id: number;
@@ -81,6 +82,7 @@ interface ExamStudentRow {
 
 const route = useRoute();
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:training');
 const trainingId = computed(() => Number(route.params.id));
 const trainingTitle = ref(String(route.query.title || '期末考试'));
 const trainingTime = ref(String(route.query.time || ''));

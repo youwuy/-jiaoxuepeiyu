@@ -122,7 +122,7 @@
             placeholder="请输入本次作业整体评语（选填）"
           />
         </div>
-        <el-button class="admin-theory-review-save" type="primary" :loading="saving" :disabled="questionSections.length === 0" @click="saveReview">
+        <el-button class="admin-theory-review-save" type="primary" :loading="saving" :disabled="questionSections.length === 0 || !can('update')" @click="saveReview">
           <el-icon><Check /></el-icon>
           保存阅卷结果
         </el-button>
@@ -143,6 +143,7 @@ import {
   type AdminAssignmentAttempt,
   type AdminAssignmentAttemptAnswer
 } from '../../api/admin-course';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 type QuestionType = 'choice' | 'judge' | 'blank' | 'essay';
 
@@ -170,6 +171,7 @@ interface ReviewSection {
 
 const route = useRoute();
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:course');
 const courseId = computed(() => Number(route.params.id));
 const attemptId = computed(() => Number(route.params.reviewId));
 const attempt = ref<AdminAssignmentAttempt | null>(null);

@@ -113,7 +113,7 @@
                 <p>选择本次实训包含的题目，可拖拽排序；考试类型只能添加一道多人实训题，或全部使用单人实训题</p>
               </div>
             </div>
-            <el-button type="primary" class="admin-training-add-topic" :icon="Plus" @click="openTopicPicker">添加实训题</el-button>
+            <el-button type="primary" class="admin-training-add-topic" :icon="Plus" :disabled="!canModifyTraining" @click="openTopicPicker">添加实训题</el-button>
           </header>
 
           <div v-if="selectedTopicRows.length" class="admin-training-topic-table-scroll">
@@ -133,7 +133,7 @@
                   <td>
                     <span
                       class="admin-training-drag-handle"
-                      draggable="true"
+                      :draggable="canModifyTraining"
                       title="拖动排序"
                       @dragstart="startTopicDrag(index)"
                       @dragover.prevent
@@ -150,12 +150,13 @@
                         :key="role"
                         v-model="selectedTopicRoles[item.id]"
                         :label="role"
+                        :disabled="!canModifyTraining"
                       >{{ role }}</el-checkbox>
                     </div>
                     <span v-else>-</span>
                   </td>
                   <td>
-                    <el-button class="admin-training-delete-topic" text type="danger" :icon="Delete" @click="removeSelected(item.id)">删除</el-button>
+                    <el-button class="admin-training-delete-topic" text type="danger" :icon="Delete" :disabled="!canModifyTraining" @click="removeSelected(item.id)">删除</el-button>
                   </td>
                 </tr>
               </tbody>
@@ -167,7 +168,7 @@
 
         <footer class="admin-training-form-footer">
           <el-button @click="goBack">取消</el-button>
-          <el-button type="primary" :icon="Check" @click="saveDraft">保存</el-button>
+          <el-button type="primary" :icon="Check" :disabled="!canModifyTraining" @click="saveDraft">保存</el-button>
         </footer>
       </main>
     </section>
@@ -237,7 +238,7 @@
       <template #footer>
         <div class="admin-training-dialog-footer">
           <el-button @click="topicPickerVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmTopicSelection">确定添加</el-button>
+          <el-button type="primary" :disabled="!canModifyTraining" @click="confirmTopicSelection">确定添加</el-button>
         </div>
       </template>
     </el-dialog>
@@ -279,6 +280,7 @@ import { fetchAdminTeachers, type AdminTeacherOption } from '../../api/admin-cou
 import { fetchAdminAccounts, type AdminAccount } from '../../api/admin-account';
 import type { AdminClass } from '../../api/admin-settings';
 import trainingCoverUrl from '../../assets/course-station-preview.png';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface TopicItem {
   id: number;
@@ -316,6 +318,8 @@ const route = useRoute();
 const router = useRouter();
 const trainingId = computed(() => Number(route.params.id));
 const formMode = computed(() => (route.name === 'admin-training-edit' ? 'edit' : 'create'));
+const { can } = useAdminPermissions('teaching:training');
+const canModifyTraining = computed(() => can(formMode.value === 'edit' ? 'update' : 'create'));
 const pageTitle = computed(() => (formMode.value === 'create' ? '添加实训课程' : '编辑实训课程'));
 const loading = ref(false);
 const topicPickerVisible = ref(false);

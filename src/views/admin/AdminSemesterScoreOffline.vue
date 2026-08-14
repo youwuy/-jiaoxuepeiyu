@@ -18,7 +18,7 @@
         </el-breadcrumb>
       </header>
 
-      <el-button class="admin-semester-score-upload" :loading="importing" @click="openImportDialog">
+      <el-button class="admin-semester-score-upload" :loading="importing" :disabled="!can('create')" @click="openImportDialog">
         <el-icon><UploadFilled /></el-icon>
         上传线下考试成绩
       </el-button>
@@ -47,7 +47,7 @@
               <td>{{ item.uploader }}</td>
               <td>{{ item.uploadedAt }}</td>
               <td>
-                <el-button class="admin-semester-score-edit-link" @click="openEditDialog(item)">
+                <el-button class="admin-semester-score-edit-link" :disabled="!can('update')" @click="openEditDialog(item)">
                   编辑成绩
                 </el-button>
               </td>
@@ -169,7 +169,7 @@
       <template #footer>
         <div class="admin-semester-score-dialog-footer">
           <el-button @click="closeImportDialog">取消</el-button>
-          <el-button type="primary" :loading="importing" @click="confirmImport">确定</el-button>
+          <el-button type="primary" :loading="importing" :disabled="!can('create')" @click="confirmImport">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -209,7 +209,7 @@
               <td>{{ (editPage - 1) * editPageSize + index + 1 }}</td>
               <td>{{ row.studentNo }}</td>
               <td><strong>{{ row.studentName }}</strong></td>
-              <td><el-input v-model="row.score" /></td>
+              <td><el-input v-model="row.score" :disabled="!can('update')" /></td>
             </tr>
           </tbody>
         </table>
@@ -228,7 +228,7 @@
       <template #footer>
         <div class="admin-semester-score-dialog-footer">
           <el-button @click="editVisible = false">取消</el-button>
-          <el-button type="primary" :loading="savingEdit" @click="saveEditScores">确定</el-button>
+          <el-button type="primary" :loading="savingEdit" :disabled="!can('update')" @click="saveEditScores">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -254,6 +254,7 @@ import {
   type AdminAcademicYear,
   type AdminScoreWeight
 } from '../../api/admin-settings';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface TermOption {
   semesterId: number;
@@ -295,6 +296,7 @@ interface EditableScore {
 }
 
 const router = useRouter();
+const { can } = useAdminPermissions('score:semester');
 const fileInput = ref<HTMLInputElement | null>(null);
 const termOptions = ref<TermOption[]>([]);
 const scoreWeights = ref<AdminScoreWeight[]>([]);

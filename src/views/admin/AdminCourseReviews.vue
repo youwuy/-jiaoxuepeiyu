@@ -113,12 +113,13 @@
                   <el-button
                     v-else-if="item.reviewed"
                     class="admin-course-reviews-action view"
+                    :disabled="!can('list')"
                     @click="openReview(item)"
                   >
                     <el-icon><View /></el-icon>
                     查看批阅
                   </el-button>
-                  <el-button v-else class="admin-course-reviews-action edit" @click="openReview(item)">
+                  <el-button v-else class="admin-course-reviews-action edit" :disabled="!can('update')" @click="openReview(item)">
                     <el-icon><EditPen /></el-icon>
                     批阅
                   </el-button>
@@ -179,6 +180,7 @@ import {
   type AdminAssignmentAttempt,
   type AdminClassOption
 } from '../../api/admin-course';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 type ReviewTabKey = 'all' | 'pending' | 'reviewed' | 'notSubmitted';
 
@@ -196,6 +198,7 @@ interface AssignmentReviewRow {
 
 const route = useRoute();
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:course');
 const courseId = computed(() => Number(route.params.id));
 const courseTitle = ref((route.query.title as string) || '教学课程');
 

@@ -94,8 +94,8 @@
                   </td>
                   <td>{{ student.teamScore }}</td>
                   <td class="student-actions">
-                    <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
-                    <el-button v-if="student.mode === '多人实训' && student.roomId" link type="danger" @click="dissolveRoom(student)">解散房间</el-button>
+                    <el-button link type="primary" :disabled="!can('list')" @click="openStudentMonitor(student)">查看监控</el-button>
+                    <el-button v-if="student.mode === '多人实训' && student.roomId" link type="danger" :disabled="!can('update')" @click="dissolveRoom(student)">解散房间</el-button>
                   </td>
                 </tr>
               </tbody>
@@ -192,6 +192,7 @@ import {
   type AdminTrainingCameraState,
   type AdminTrainingStudentState
 } from '../../api/admin-training';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface MonitorCamera {
   id: string;
@@ -222,6 +223,7 @@ interface MonitorStudent {
 
 const route = useRoute();
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:training');
 const trainingId = computed(() => Number(route.params.id));
 const trainingTitle = ref(String(route.query.title || '实时监考'));
 const monitorRange = ref(String(route.query.time || '未配置开放时间').replace(/\n/g, ' '));

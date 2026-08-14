@@ -91,7 +91,7 @@
           <el-tag
             v-for="item in selectedTeachers"
             :key="item.userId"
-            closable
+            :closable="canModifyCourse"
             class="admin-course-chip teacher"
             @close="removeTeacher(item.userId)"
           >
@@ -99,13 +99,14 @@
           </el-tag>
           <el-popover placement="bottom-start" trigger="click" width="320" popper-class="admin-course-picker-popover">
             <template #reference>
-              <el-button class="admin-course-add-chip">
+              <el-button class="admin-course-add-chip" :disabled="!canModifyCourse">
                 <el-icon><Plus /></el-icon>
                 添加教师
               </el-button>
             </template>
             <el-select
               v-model="form.teacherIds"
+              :disabled="!canModifyCourse"
               class="admin-course-form-picker"
               multiple
               filterable
@@ -138,7 +139,7 @@
           <el-tag
             v-for="item in selectedClasses"
             :key="item.classId"
-            closable
+            :closable="canModifyCourse"
             class="admin-course-chip class"
             @close="removeClass(item.classId)"
           >
@@ -146,13 +147,14 @@
           </el-tag>
           <el-popover placement="bottom-start" trigger="click" width="320" popper-class="admin-course-picker-popover">
             <template #reference>
-              <el-button class="admin-course-add-chip">
+              <el-button class="admin-course-add-chip" :disabled="!canModifyCourse">
                 <el-icon><Plus /></el-icon>
                 添加班级
               </el-button>
             </template>
             <el-select
               v-model="form.classIds"
+              :disabled="!canModifyCourse"
               class="admin-course-form-picker"
               multiple
               filterable
@@ -182,7 +184,7 @@
             <el-icon><Menu /></el-icon>
             <strong>教学内容</strong>
           </span>
-          <el-button type="primary" class="admin-course-form-primary" @click="addChapter">
+          <el-button type="primary" class="admin-course-form-primary" :disabled="!canModifyCourse" @click="addChapter">
             <el-icon><Plus /></el-icon>
             新增章节
           </el-button>
@@ -201,7 +203,7 @@
               <span class="admin-course-outline-left">
                 <span
                   class="admin-course-outline-drag"
-                  draggable="true"
+                  :draggable="canModifyCourse"
                   title="拖动排序"
                   @dragstart="startChapterDrag(chapters.indexOf(chapter))"
                   @click.stop
@@ -211,11 +213,11 @@
                 <strong>{{ chapter.title }}</strong>
               </span>
               <span class="admin-course-outline-actions">
-                <el-button text type="success" @click="addSection(chapter)">新增小节</el-button>
-                <el-button text type="success" @click="addOutlineItem(chapter, 'resource')">添加课件资源</el-button>
-                <el-button text type="success" @click="addOutlineItem(chapter, 'homework')">添加作业</el-button>
-                <el-button text type="primary" @click="editChapter(chapter)">编辑</el-button>
-                <el-button text type="danger" @click="removeChapter(chapters.indexOf(chapter))">删除</el-button>
+                <el-button text type="success" :disabled="!canModifyCourse" @click="addSection(chapter)">新增小节</el-button>
+                <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(chapter, 'resource')">添加课件资源</el-button>
+                <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(chapter, 'homework')">添加作业</el-button>
+                <el-button text type="primary" :disabled="!canModifyCourse" @click="editChapter(chapter)">编辑</el-button>
+                <el-button text type="danger" :disabled="!canModifyCourse" @click="removeChapter(chapters.indexOf(chapter))">删除</el-button>
               </span>
             </div>
 
@@ -228,7 +230,7 @@
               >
               <span
                 class="admin-course-outline-drag"
-                draggable="true"
+                :draggable="canModifyCourse"
                 title="拖动排序"
                 @dragstart="startItemDrag(chapter, chapter.items.indexOf(item))"
                 @click.stop
@@ -238,8 +240,8 @@
               </span>
               <span class="admin-course-outline-info"><strong>{{ item.title }}</strong><small>{{ item.desc }}</small></span>
               <span class="admin-course-outline-actions compact-actions">
-                <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
-                <el-button text type="danger" @click="removeOutlineItem(chapter, chapter.items.indexOf(item))">删除</el-button>
+                <el-button text type="primary" :disabled="!canModifyCourse" @click="editOutlineItem(item)">编辑</el-button>
+                <el-button text type="danger" :disabled="!canModifyCourse" @click="removeOutlineItem(chapter, chapter.items.indexOf(item))">删除</el-button>
               </span>
             </div>
 
@@ -252,7 +254,7 @@
                 <span class="admin-course-outline-left">
                   <span
                     class="admin-course-outline-drag"
-                    draggable="true"
+                    :draggable="canModifyCourse"
                     title="拖动排序"
                     @dragstart="startSectionDrag(chapter, chapter.sections.indexOf(section))"
                     @click.stop
@@ -261,11 +263,11 @@
                   <strong>{{ section.title }}</strong>
                 </span>
                 <span class="admin-course-outline-actions">
-                  <el-button text type="success" @click="addSection(section)">新增下级</el-button>
-                  <el-button text type="success" @click="addOutlineItem(section, 'resource')">添加课件资源</el-button>
-                  <el-button text type="success" @click="addOutlineItem(section, 'homework')">添加作业</el-button>
-                  <el-button text type="primary" @click="editSection(section)">编辑</el-button>
-                  <el-button text type="danger" @click="removeSection(chapter, chapter.sections.indexOf(section))">删除</el-button>
+                  <el-button text type="success" :disabled="!canModifyCourse" @click="addSection(section)">新增下级</el-button>
+                  <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(section, 'resource')">添加课件资源</el-button>
+                  <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(section, 'homework')">添加作业</el-button>
+                  <el-button text type="primary" :disabled="!canModifyCourse" @click="editSection(section)">编辑</el-button>
+                  <el-button text type="danger" :disabled="!canModifyCourse" @click="removeSection(chapter, chapter.sections.indexOf(section))">删除</el-button>
                 </span>
               </div>
 
@@ -278,7 +280,7 @@
               >
                 <span
                   class="admin-course-outline-drag"
-                  draggable="true"
+                  :draggable="canModifyCourse"
                   title="拖动排序"
                   @dragstart="startItemDrag(section, section.items.indexOf(item))"
                   @click.stop
@@ -291,8 +293,8 @@
                   <small>{{ item.desc }}</small>
                 </span>
                 <span class="admin-course-outline-actions compact-actions">
-                  <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
-                  <el-button text type="danger" @click="removeOutlineItem(section, section.items.indexOf(item))">删除</el-button>
+                  <el-button text type="primary" :disabled="!canModifyCourse" @click="editOutlineItem(item)">编辑</el-button>
+                  <el-button text type="danger" :disabled="!canModifyCourse" @click="removeOutlineItem(section, section.items.indexOf(item))">删除</el-button>
                 </span>
               </div>
 
@@ -305,7 +307,7 @@
                   <span class="admin-course-outline-left">
                     <span
                       class="admin-course-outline-drag"
-                      draggable="true"
+                      :draggable="canModifyCourse"
                       title="拖动排序"
                       @dragstart="startSectionDrag(section, section.children.indexOf(subsection))"
                       @click.stop
@@ -314,10 +316,10 @@
                     <strong>{{ subsection.title }}</strong>
                   </span>
                   <span class="admin-course-outline-actions">
-                    <el-button text type="success" @click="addOutlineItem(subsection, 'resource')">添加课件资源</el-button>
-                    <el-button text type="success" @click="addOutlineItem(subsection, 'homework')">添加作业</el-button>
-                    <el-button text type="primary" @click="editSection(subsection)">编辑</el-button>
-                    <el-button text type="danger" @click="removeSection(section, section.children.indexOf(subsection))">删除</el-button>
+                    <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(subsection, 'resource')">添加课件资源</el-button>
+                    <el-button text type="success" :disabled="!canModifyCourse" @click="addOutlineItem(subsection, 'homework')">添加作业</el-button>
+                    <el-button text type="primary" :disabled="!canModifyCourse" @click="editSection(subsection)">编辑</el-button>
+                    <el-button text type="danger" :disabled="!canModifyCourse" @click="removeSection(section, section.children.indexOf(subsection))">删除</el-button>
                   </span>
                 </div>
                 <div
@@ -329,7 +331,7 @@
                 >
                   <span
                     class="admin-course-outline-drag"
-                    draggable="true"
+                    :draggable="canModifyCourse"
                     title="拖动排序"
                     @dragstart="startItemDrag(subsection, subsection.items.indexOf(item))"
                     @click.stop
@@ -339,8 +341,8 @@
                   </span>
                   <span class="admin-course-outline-info"><strong>{{ item.title }}</strong><small>{{ item.desc }}</small></span>
                   <span class="admin-course-outline-actions compact-actions">
-                    <el-button text type="primary" @click="editOutlineItem(item)">编辑</el-button>
-                    <el-button text type="danger" @click="removeOutlineItem(subsection, subsection.items.indexOf(item))">删除</el-button>
+                    <el-button text type="primary" :disabled="!canModifyCourse" @click="editOutlineItem(item)">编辑</el-button>
+                    <el-button text type="danger" :disabled="!canModifyCourse" @click="removeOutlineItem(subsection, subsection.items.indexOf(item))">删除</el-button>
                   </span>
                 </div>
               </template>
@@ -351,7 +353,7 @@
 
       <footer class="admin-course-form-footer">
         <el-button @click="goBack">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveCourse">保存</el-button>
+        <el-button type="primary" :loading="saving" :disabled="!canModifyCourse" @click="saveCourse">保存</el-button>
       </footer>
     </section>
 
@@ -488,7 +490,7 @@
                 <small>{{ item.typeLabel }} · {{ item.score ? `${item.score} 分` : item.meta }}</small>
               </div>
               <el-button text type="primary" @click="openQuestionDetail(item)">查看详情</el-button>
-              <el-button text type="danger" @click="removeHomeworkQuestion(item)">移除</el-button>
+              <el-button text type="danger" :disabled="!canModifyCourse" @click="removeHomeworkQuestion(item)">移除</el-button>
             </article>
           </div>
           <div v-else class="admin-course-homework-question-empty">
@@ -501,7 +503,7 @@
       <template #footer>
         <div class="admin-course-outline-dialog-footer">
           <el-button @click="closeOutlineDialog">取消</el-button>
-          <el-button type="primary" @click="confirmOutlineDialog">确定</el-button>
+          <el-button type="primary" :disabled="!canModifyCourse" @click="confirmOutlineDialog">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -742,7 +744,7 @@
       <template #footer>
         <div class="admin-course-resource-dialog-footer">
           <el-button @click="resourceDialogVisible = false">取消</el-button>
-          <el-button type="primary" :disabled="!resourceSelectedCount" @click="confirmAddResource">确定添加</el-button>
+          <el-button type="primary" :disabled="!canModifyCourse || !resourceSelectedCount" @click="confirmAddResource">确定添加</el-button>
         </div>
       </template>
     </el-dialog>
@@ -794,11 +796,14 @@ import {
   type AdminTraining
 } from '../../api/admin-training';
 import { fetchAdminResources, type AdminResource } from '../../api/admin-resource';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
 const isEditMode = computed(() => route.name === 'admin-course-edit');
+const { can } = useAdminPermissions('teaching:course');
+const canModifyCourse = computed(() => can(isEditMode.value ? 'update' : 'create'));
 const pageTitle = computed(() => (isEditMode.value ? '编辑课程' : '新增课程'));
 
 const form = reactive({
