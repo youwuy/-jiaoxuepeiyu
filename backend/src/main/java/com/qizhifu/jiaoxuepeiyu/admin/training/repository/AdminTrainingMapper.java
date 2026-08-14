@@ -515,6 +515,8 @@ public interface AdminTrainingMapper {
     @Select("SELECT l.id AS log_id, l.training_id, l.operator_id, u.real_name AS operator_name, "
             + "l.action, l.content, l.created_at "
             + "FROM training_course_log l LEFT JOIN sys_user u ON u.id = l.operator_id "
-            + "WHERE l.training_id = #{trainingId} ORDER BY l.created_at DESC, l.id DESC")
+            + "WHERE l.training_id = #{trainingId} "
+            + "AND l.action IN ('CREATE', 'UPDATE', 'PUBLISH', 'CANCEL_PUBLISH', 'START_EXAM') "
+            + "ORDER BY l.created_at DESC, l.id DESC")
     List<AdminTrainingLog> findTrainingLogs(@Param("trainingId") Long trainingId);
 }

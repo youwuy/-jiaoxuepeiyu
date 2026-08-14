@@ -333,8 +333,7 @@
         <template #header><div class="admin-training-dialog-head"><strong>发布确认</strong><el-button text circle :icon="Close" @click="publishVisible = false" /></div></template>
         <div class="admin-training-publish-confirm">
           <strong>{{ publishTarget?.name || form.name || '新增实训课' }}</strong>
-          <p>发布后学员端将看到该实训课，参训对象会进入实训任务列表。</p>
-          <label><el-checkbox v-model="publishNotify" /> 发布后通知参训学员和监考教师</label>
+          <p>确定要发布吗？发布后学员可以看到该实训。</p>
         </div>
         <template #footer><div class="admin-training-dialog-footer"><el-button @click="publishVisible = false">取消</el-button><el-button type="primary" @click="confirmPublish">确认发布</el-button></div></template>
       </el-dialog>
@@ -375,12 +374,27 @@
           <div><span>操作日志</span><h3>{{ selectedCourse?.name || '实训课记录' }}</h3></div>
           <el-button text circle :icon="Close" @click="logVisible = false" />
         </div>
-        <article v-for="item in logs" :key="item.time" class="admin-training-log-row">
-          <header><strong>{{ item.action }}</strong><span>{{ item.time }}</span></header>
-          <p>{{ item.content }}</p>
-          <small>{{ item.operator }}</small>
-        </article>
-        <el-empty v-if="logs.length === 0" description="暂无操作日志" />
+        <div v-if="logs.length" class="admin-training-log-table-scroll">
+          <table class="admin-training-log-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>操作人</th>
+                <th>操作时间</th>
+                <th>操作内容</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in logs" :key="`${item.time}-${index}`">
+                <td>{{ index + 1 }}</td>
+                <td>{{ item.operator }}</td>
+                <td>{{ item.time }}</td>
+                <td>{{ item.action }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <el-empty v-else description="暂无操作日志" />
       </el-drawer>
 
     </section>
@@ -486,7 +500,6 @@ const roleVisible = ref(false);
 const previewVisible = ref(false);
 const publishVisible = ref(false);
 const publishTarget = ref<CourseRow>();
-const publishNotify = ref(true);
 const importVisible = ref(false);
 const importInput = ref<HTMLInputElement>();
 const importLoading = ref(false);
@@ -728,7 +741,7 @@ async function confirmPublish() {
       formVisible.value = false;
     }
     publishVisible.value = false;
-    ElMessage.success(publishNotify.value ? '已发布并发送通知' : '已发布');
+    ElMessage.success('已发布并通知参训学员');
     await loadCourses();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '发布失败');
@@ -1465,8 +1478,7 @@ onMounted(() => {
 .admin-training-resource-grid article,
 .admin-training-role-grid article,
 .admin-training-flow article,
-.admin-training-selector-list article,
-.admin-training-log-row {
+.admin-training-selector-list article {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1749,29 +1761,47 @@ onMounted(() => {
   line-height: 20px;
 }
 
-.admin-training-log-row {
-  align-items: stretch;
-  flex-direction: column;
-  margin-bottom: 10px;
+.admin-training-log-table-scroll {
+  overflow-x: auto;
 }
 
-.admin-training-log-row header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.admin-training-log-table {
+  width: 100%;
+  min-width: 460px;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
 
-.admin-training-log-row p {
-  margin: 0;
-  color: #334155;
+.admin-training-log-table th,
+.admin-training-log-table td {
+  height: 48px;
+  border-bottom: 1px solid #e5ebf3;
+  padding: 0 12px;
+  color: #53657d;
   font-size: 13px;
-  line-height: 20px;
+  text-align: left;
 }
 
-.admin-training-log-row span,
-.admin-training-log-row small {
-  color: #64748b;
-  font-size: 12px;
+.admin-training-log-table th {
+  background: #f7f9fc;
+  color: #8390a3;
+  font-weight: 800;
+}
+
+.admin-training-log-table th:first-child,
+.admin-training-log-table td:first-child {
+  width: 56px;
+  text-align: center;
+}
+
+.admin-training-log-table th:nth-child(2),
+.admin-training-log-table td:nth-child(2) {
+  width: 90px;
+}
+
+.admin-training-log-table th:nth-child(3),
+.admin-training-log-table td:nth-child(3) {
+  width: 150px;
 }
 
 .admin-training-stats-grid {
