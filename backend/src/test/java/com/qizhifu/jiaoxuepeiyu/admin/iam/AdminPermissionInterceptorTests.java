@@ -49,6 +49,58 @@ class AdminPermissionInterceptorTests {
         assertEquals(403, exception.getCode());
     }
 
+    @Test
+    void courseUpdateUsesTeachingCourseUpdatePermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("teaching:course:update");
+        MockHttpServletRequest request = request("PUT", "/api/admin/courses/7");
+
+        assertDoesNotThrow(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void assignmentReviewUsesTeachingCourseUpdatePermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("teaching:course:update");
+        MockHttpServletRequest request = request("POST", "/api/admin/assignment-attempts/12/review");
+
+        assertDoesNotThrow(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void trainingExamStartUsesTeachingTrainingEnablePermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("teaching:training:enable");
+        MockHttpServletRequest request = request("POST", "/api/admin/trainings/7/start-exam");
+
+        assertDoesNotThrow(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void trainingReviewUsesTeachingTrainingUpdatePermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("teaching:training:update");
+        MockHttpServletRequest request = request("POST", "/api/admin/trainings/7/attempts/8/review");
+
+        assertDoesNotThrow(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void scoreArchiveAndDeviceQueriesUseTheirOwnListPermissions() {
+        assertDoesNotThrow(() -> interceptorWith("score:semester:list").preHandle(
+                request("GET", "/api/admin/scores/semester"), new MockHttpServletResponse(), new Object()));
+        assertDoesNotThrow(() -> interceptorWith("score:archive:list").preHandle(
+                request("GET", "/api/admin/archives"), new MockHttpServletResponse(), new Object()));
+        assertDoesNotThrow(() -> interceptorWith("score:device:list").preHandle(
+                request("GET", "/api/admin/devices/efficiency"), new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void semesterScoreQueryRejectsArchivePermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("score:archive:list");
+        MockHttpServletRequest request = request("GET", "/api/admin/scores/semester");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+        assertEquals(403, exception.getCode());
+    }
+
     private AdminPermissionInterceptor interceptorWith(String... permissionCodes) {
         AdminIamService service = mock(AdminIamService.class);
         AdminUserAccess access = new AdminUserAccess();

@@ -31,7 +31,7 @@
         </div>
 
         <div class="admin-course-actions-row">
-          <el-button class="admin-course-add-button" type="primary" @click="handleCreateCourse">
+          <el-button class="admin-course-add-button" type="primary" :disabled="!can('create')" @click="handleCreateCourse">
             <el-icon><Plus /></el-icon>
             新增课程
           </el-button>
@@ -80,13 +80,13 @@
                   <td>{{ course.createdAtLabel }}</td>
                   <td class="admin-course-ops">
                     <template v-if="course.statusTone === 'published'">
-                      <el-button class="admin-op-button warning" :loading="busyId === course.id" @click="cancelPublish(course)">
+                      <el-button class="admin-op-button warning" :disabled="!can('disable')" :loading="busyId === course.id" @click="cancelPublish(course)">
                         取消发布
                       </el-button>
-                      <el-button class="admin-op-button primary" @click="openDetail(course)">查看</el-button>
-                      <el-button class="admin-op-button primary" @click="handleReview(course)">批改作业</el-button>
-                      <el-button class="admin-op-button primary" @click="openStatistics(course)">成绩统计</el-button>
-                      <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
+                      <el-button class="admin-op-button primary" :disabled="!can('list')" @click="openDetail(course)">查看</el-button>
+                      <el-button class="admin-op-button primary" :disabled="!can('update')" @click="handleReview(course)">批改作业</el-button>
+                      <el-button class="admin-op-button primary" :disabled="!can('list')" @click="openStatistics(course)">成绩统计</el-button>
+                      <el-button class="admin-op-button gray" :disabled="!can('create')" @click="copyCourse(course)">复制</el-button>
                       <el-dropdown trigger="click">
                         <el-button class="admin-op-button more">
                           更多
@@ -94,23 +94,23 @@
                         </el-button>
                         <template #dropdown>
                           <el-dropdown-menu>
-                            <el-dropdown-item @click="openLogs(course)">操作日志</el-dropdown-item>
-                            <el-dropdown-item @click="openDetail(course)">课程详情</el-dropdown-item>
+                            <el-dropdown-item :disabled="!can('list')" @click="openLogs(course)">操作日志</el-dropdown-item>
+                            <el-dropdown-item :disabled="!can('list')" @click="openDetail(course)">课程详情</el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
                     </template>
 
                     <template v-else>
-                      <el-button class="admin-op-button light" @click="handleEditCourse(course)">编辑</el-button>
-                      <el-button class="admin-op-button danger" :loading="busyId === course.id" @click="deleteCourse(course)">
+                      <el-button class="admin-op-button light" :disabled="!can('update')" @click="handleEditCourse(course)">编辑</el-button>
+                      <el-button class="admin-op-button danger" :disabled="!can('delete')" :loading="busyId === course.id" @click="deleteCourse(course)">
                         删除
                       </el-button>
-                      <el-button class="admin-op-button success" :loading="busyId === course.id" @click="publishCourse(course)">
+                      <el-button class="admin-op-button success" :disabled="!can('enable')" :loading="busyId === course.id" @click="publishCourse(course)">
                         发布
                       </el-button>
-                      <el-button class="admin-op-button gray" @click="copyCourse(course)">复制</el-button>
-                      <el-button class="admin-op-button muted" @click="openLogs(course)">操作日志</el-button>
+                      <el-button class="admin-op-button gray" :disabled="!can('create')" @click="copyCourse(course)">复制</el-button>
+                      <el-button class="admin-op-button muted" :disabled="!can('list')" @click="openLogs(course)">操作日志</el-button>
                     </template>
                   </td>
                 </tr>
@@ -262,9 +262,11 @@ import {
   type AdminCourseView
 } from '../../features/admin/courses';
 import type { AdminAcademicYearOption, AdminClassOption } from '../../api/admin-course';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 const pageSize = 5;
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:course');
 const page = ref(1);
 const total = ref(0);
 const busyId = ref<number | null>(null);

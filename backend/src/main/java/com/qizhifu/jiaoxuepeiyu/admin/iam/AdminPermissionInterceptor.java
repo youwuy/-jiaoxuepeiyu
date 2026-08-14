@@ -56,10 +56,13 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         List<String> pages = pagesFor(path);
         if (pages.isEmpty()) return pages;
         if ("GET".equals(request.getMethod())) return withAction(pages, "list", true);
-        if (path.endsWith("/approve") || path.endsWith("/reject")) {
+        if (path.endsWith("/approve") || path.endsWith("/reject")
+                || path.endsWith("/review") || path.endsWith("/dissolve")) {
             return withAction(pages, "update", false);
         }
-        if (path.endsWith("/publish")) return withAction(pages, "enable", false);
+        if (path.endsWith("/publish") || path.endsWith("/start-exam")) {
+            return withAction(pages, "enable", false);
+        }
         if (path.endsWith("/cancel-publish")) return withAction(pages, "disable", false);
         if (path.endsWith("/enable") || path.endsWith("/current")) return withAction(pages, "enable", false);
         if (path.endsWith("/disable")) return withAction(pages, "disable", false);
@@ -92,6 +95,15 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
         if (path.startsWith("/api/admin/papers")) {
             return Arrays.asList("resource:theory-paper", "exam:paper");
         }
+        if (path.startsWith("/api/admin/courses") || path.startsWith("/api/admin/assignment-attempts")) {
+            return Arrays.asList("teaching:course");
+        }
+        if (path.startsWith("/api/admin/trainings") || path.startsWith("/api/admin/training-topics")) {
+            return Arrays.asList("teaching:training");
+        }
+        if (path.startsWith("/api/admin/scores/semester")) return Arrays.asList("score:semester");
+        if (path.startsWith("/api/admin/archives")) return Arrays.asList("score:archive");
+        if (path.startsWith("/api/admin/devices/efficiency")) return Arrays.asList("score:device");
         return new ArrayList<String>();
     }
 

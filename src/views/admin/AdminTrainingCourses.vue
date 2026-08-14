@@ -26,8 +26,8 @@
           <el-button class="admin-training-ghost" @click="resetFilters">重置</el-button>
         </div>
         <div class="admin-training-action-row">
-          <el-button class="admin-training-primary" type="primary" :icon="Plus" @click="openCreate">新增实训课</el-button>
-          <el-button class="admin-training-ghost" :icon="Upload" @click="openOfflineImport">导入线下成绩</el-button>
+          <el-button class="admin-training-primary" type="primary" :icon="Plus" :disabled="!can('create')" @click="openCreate">新增实训课</el-button>
+          <el-button class="admin-training-ghost" :icon="Upload" :disabled="!can('create')" @click="openOfflineImport">导入线下成绩</el-button>
         </div>
       </div>
 
@@ -84,29 +84,29 @@
                 <td class="admin-training-operation-cell">
                   <div class="admin-row-actions">
                     <template v-if="course.status === '未发布'">
-                      <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
-                      <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
-                      <el-button class="publish-action" link @click="openPublish(course)">发布</el-button>
-                      <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
+                      <el-button link type="primary" :disabled="!can('update')" @click="openEdit(course)">编辑</el-button>
+                      <el-button link type="danger" :disabled="!can('delete')" @click="confirmDelete(course)">删除</el-button>
+                      <el-button class="publish-action" link :disabled="!can('enable')" @click="openPublish(course)">发布</el-button>
+                      <el-button class="log-action" link :disabled="!can('list')" @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else-if="course.exam">
-                      <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
-                      <el-button v-else class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
-                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
-                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
-                      <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
-                      <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
-                      <el-button link @click="withdrawCourse(course)">取消发布</el-button>
-                      <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
+                      <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link :disabled="!can('enable')" @click="openExamStart(course)">开始考试</el-button>
+                      <el-button v-else class="primary-action" link :disabled="!isTrainingOpen(course) || !can('list')" @click="openMonitor(course)">监考</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link :disabled="!can('update')" @click="openMarking(course)">阅卷</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link :disabled="!can('list')" @click="openStats(course)">成绩统计</el-button>
+                      <el-button link type="primary" :disabled="!can('update')" @click="openEdit(course)">编辑</el-button>
+                      <el-button link type="danger" :disabled="!can('delete')" @click="confirmDelete(course)">删除</el-button>
+                      <el-button link :disabled="!can('disable')" @click="withdrawCourse(course)">取消发布</el-button>
+                      <el-button class="log-action" link :disabled="!can('list')" @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else>
-                      <el-button class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
-                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
-                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
-                      <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
-                      <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
-                      <el-button link @click="withdrawCourse(course)">取消发布</el-button>
-                      <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
+                      <el-button class="primary-action" link :disabled="!isTrainingOpen(course) || !can('list')" @click="openMonitor(course)">监考</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link :disabled="!can('update')" @click="openMarking(course)">阅卷</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link :disabled="!can('list')" @click="openStats(course)">成绩统计</el-button>
+                      <el-button link type="primary" :disabled="!can('update')" @click="openEdit(course)">编辑</el-button>
+                      <el-button link type="danger" :disabled="!can('delete')" @click="confirmDelete(course)">删除</el-button>
+                      <el-button link :disabled="!can('disable')" @click="withdrawCourse(course)">取消发布</el-button>
+                      <el-button class="log-action" link :disabled="!can('list')" @click="openLogs(course)">操作日志</el-button>
                     </template>
                   </div>
                 </td>
@@ -158,7 +158,7 @@
             <el-button v-if="offlineImportResult?.failureCount" link type="primary" @click="downloadOfflineErrors">下载错误日志</el-button>
           </div>
         </div>
-        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :loading="importLoading" :disabled="!offlineTrainingId || !offlineImportRows.length" @click="confirmImport">确认导入</el-button></div></template>
+        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :loading="importLoading" :disabled="!can('create') || !offlineTrainingId || !offlineImportRows.length" @click="confirmImport">确认导入</el-button></div></template>
       </el-dialog>
 
       <el-drawer v-model="logVisible" class="admin-training-log-drawer" direction="rtl" size="520px" :with-header="false">
@@ -215,8 +215,10 @@ import {
   type AdminTrainingOfflineScoreImportRow,
   type AdminTrainingTopic
 } from '../../api/admin-training';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 const router = useRouter();
+const { can } = useAdminPermissions('teaching:training');
 
 type CourseStatus = '已发布' | '未发布';
 
