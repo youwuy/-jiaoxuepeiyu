@@ -36,6 +36,20 @@ class AdminSemesterScoreServiceTests {
     }
 
     @Test
+    void normalizesStudentNameAsFuzzyAndStudentNumberAsExact() {
+        FakeScores repository = new FakeScores();
+        AdminSemesterScoreService service = new AdminSemesterScoreService(repository);
+        AdminSemesterScoreQuery query = new AdminSemesterScoreQuery();
+        query.setStudentName(" 张三 ");
+        query.setStudentNo(" S001 ");
+
+        service.listScores(query);
+
+        assertEquals("%张三%", repository.lastQuery.getStudentName());
+        assertEquals("S001", repository.lastQuery.getStudentNo());
+    }
+
+    @Test
     void exportsScoresFromFilteredScoreRowsNotRanking() {
         FakeScores repository = new FakeScores();
         repository.scores = Arrays.asList(score(null));

@@ -264,6 +264,8 @@ public class AdminSemesterScoreService {
             normalized.setClassId(query.getClassId());
             normalized.setMajorId(query.getMajorId());
             normalized.setStudentId(query.getStudentId());
+            normalized.setStudentName(like(trimToNull(query.getStudentName())));
+            normalized.setStudentNo(trimToNull(query.getStudentNo()));
             normalized.setKeyword(trimToNull(query.getKeyword()));
             normalized.setPage(query.getPage());
             normalized.setPageSize(query.getPageSize());
@@ -278,6 +280,10 @@ public class AdminSemesterScoreService {
             normalized.setPageSize(MAX_PAGE_SIZE);
         }
         return normalized;
+    }
+
+    private String like(String value) {
+        return value == null ? null : "%" + value + "%";
     }
 
     private Integer defaultInteger(Integer value) {

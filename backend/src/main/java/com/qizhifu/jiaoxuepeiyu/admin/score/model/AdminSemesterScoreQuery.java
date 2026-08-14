@@ -6,6 +6,8 @@ public class AdminSemesterScoreQuery {
     private Long classId;
     private Long majorId;
     private Long studentId;
+    private String studentName;
+    private String studentNo;
     private String keyword;
     private int page = 1;
     private int pageSize = 20;
@@ -40,6 +42,22 @@ public class AdminSemesterScoreQuery {
 
     public void setStudentId(Long studentId) {
         this.studentId = studentId;
+    }
+
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
+    }
+
+    public String getStudentNo() {
+        return studentNo;
+    }
+
+    public void setStudentNo(String studentNo) {
+        this.studentNo = studentNo;
     }
 
     public String getKeyword() {

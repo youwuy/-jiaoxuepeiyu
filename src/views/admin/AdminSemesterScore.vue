@@ -21,10 +21,6 @@
             </el-select>
           </label>
           <label class="admin-semester-score-field">
-            <span>课程名称</span>
-            <el-input v-model="draft.courseName" placeholder="请输入课程名称" clearable @keyup.enter="applyFilters" />
-          </label>
-          <label class="admin-semester-score-field">
             <span>学员姓名</span>
             <el-input v-model="draft.studentName" placeholder="请输入学员姓名" clearable @keyup.enter="applyFilters" />
           </label>
@@ -35,6 +31,7 @@
           <div class="admin-semester-score-actions-inline">
             <el-button class="admin-semester-score-query" @click="applyFilters">查询</el-button>
             <el-button class="admin-semester-score-reset" @click="resetFilters">重置</el-button>
+            <el-button class="admin-semester-score-reset" :loading="loading" @click="loadPageData">刷新</el-button>
           </div>
         </div>
       </section>
@@ -62,7 +59,6 @@
                 <th>学号</th>
                 <th>所属班级</th>
                 <th>学年学期</th>
-                <th>课程名称</th>
                 <th>课件学习</th>
                 <th>实训练习</th>
                 <th>课程作业</th>
@@ -79,7 +75,6 @@
                 <td>{{ row.studentNo }}</td>
                 <td>{{ row.className }}</td>
                 <td>{{ row.term }}</td>
-                <td>{{ row.courseName }}</td>
                 <td>{{ row.coursewareScore }}</td>
                 <td>{{ row.trainingScore }}</td>
                 <td>{{ row.assignmentScore }}</td>
@@ -98,7 +93,7 @@
         </div>
         <footer class="admin-semester-score-footer">
           <p>显示 <b>{{ pageStart }}</b> 到 <b>{{ pageEnd }}</b> 条，共 <b>{{ total }}</b> 条记录</p>
-          <el-pagination v-model:current-page="page" :page-size="pageSize" :total="total" layout="prev, pager, next" background @current-change="loadScores" />
+          <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]" :total="total" layout="sizes, prev, pager, next" background @current-change="loadScores" @size-change="handlePageSizeChange" />
         </footer>
       </section>
     </section>
@@ -172,8 +167,10 @@ import {
   createAdminScoreWeight,
   fetchAdminAcademicYears,
   fetchAdminClasses,
+  fetchAdminScoreGradeRules,
   fetchAdminScoreWeights,
   type AdminClass,
+  type AdminScoreGradeRule,
   type AdminScoreWeight
 } from '../../api/admin-settings';
 
@@ -186,7 +183,6 @@ interface SemesterScoreRow {
   studentNo: string;
   className: string;
   term: string;
-  courseName: string;
   coursewareScore: number;
   trainingScore: number;
   assignmentScore: number;
@@ -208,14 +204,13 @@ interface SemesterOption {
 interface ScoreFilters {
   semesterId: number | null;
   classId: number | null;
-  courseName: string;
   studentName: string;
   studentNo: string;
 }
 
 const router = useRouter();
 const page = ref(1);
-const pageSize = 10;
+const pageSize = ref(10);
 const total = ref(0);
 const loading = ref(false);
 const exporting = ref(false);
@@ -224,11 +219,12 @@ const detailVisible = ref(false);
 const exportVisible = ref(false);
 const weightVisible = ref(false);
 const currentScore = ref<SemesterScoreRow | null>(null);
-const draft = reactive<ScoreFilters>({ semesterId: null, classId: null, courseName: '', studentName: '', studentNo: '' });
+const draft = reactive<ScoreFilters>({ semesterId: null, classId: null, studentName: '', studentNo: '' });
 const applied = ref<ScoreFilters>({ ...draft });
 const exportForm = reactive({ scope: 'current', format: 'xlsx' });
 const semesterOptions = ref<SemesterOption[]>([]);
 const classOptions = ref<AdminClass[]>([]);
+const gradeRules = ref<AdminScoreGradeRule[]>([]);
 const weights = reactive([
   { name: '课件学习', value: 0 },
   { name: '实训练习', value: 0 },
@@ -246,22 +242,18 @@ const statistics = reactive<AdminSemesterScoreStatistics>({
 
 const scores = ref<SemesterScoreRow[]>([]);
 
-const pageStart = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0);
-const pageEnd = computed(() => Math.min(page.value * pageSize, total.value));
+const pageStart = computed(() => total.value ? (page.value - 1) * pageSize.value + 1 : 0);
+const pageEnd = computed(() => Math.min(page.value * pageSize.value, total.value));
 const weightTotal = computed(() => weights.reduce((sum, item) => sum + Number(item.value || 0), 0));
 
 function currentQuery(includePage = true): AdminSemesterScoreQuery {
-  const keyword = [applied.value.courseName, applied.value.studentName, applied.value.studentNo]
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .join(' ');
-
   return {
     semesterId: applied.value.semesterId,
     classId: applied.value.classId,
-    keyword: keyword || undefined,
+    studentName: applied.value.studentName.trim() || undefined,
+    studentNo: applied.value.studentNo.trim() || undefined,
     page: includePage ? page.value : undefined,
-    pageSize: includePage ? pageSize : undefined
+    pageSize: includePage ? pageSize.value : undefined
   };
 }
 
@@ -276,7 +268,6 @@ function mapScore(score: AdminSemesterScore): SemesterScoreRow {
     studentNo: score.studentNo || '-',
     className: score.className || '-',
     term: score.academicTerm || '-',
-    courseName: '综合成绩',
     coursewareScore: numberValue(score.coursewareLearningScore),
     trainingScore: numberValue(score.trainingPracticeScore),
     assignmentScore: numberValue(score.courseAssignmentScore),
@@ -296,10 +287,7 @@ function numberValue(value: number | string | undefined | null): number {
 }
 
 function gradeForScore(score: number) {
-  if (score >= 90) return '优秀';
-  if (score >= 80) return '良好';
-  if (score >= 60) return '及格';
-  return '不及格';
+  return gradeRules.value.find((rule) => score >= rule.minScore && score <= rule.maxScore)?.gradeName || '-';
 }
 
 async function loadOptions() {
@@ -330,6 +318,15 @@ async function loadWeights() {
     applyWeightRow(latest);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '成绩权重加载失败');
+  }
+}
+
+async function loadGradeRules() {
+  try {
+    gradeRules.value = await fetchAdminScoreGradeRules();
+  } catch (error) {
+    gradeRules.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '成绩等级加载失败');
   }
 }
 
@@ -377,10 +374,15 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  Object.assign(draft, { semesterId: null, classId: null, courseName: '', studentName: '', studentNo: '' });
+  Object.assign(draft, { semesterId: null, classId: null, studentName: '', studentNo: '' });
   const currentSemester = semesterOptions.value.find((item) => item.current);
   draft.semesterId = currentSemester?.semesterId ?? null;
   applyFilters();
+}
+
+function handlePageSizeChange() {
+  page.value = 1;
+  void loadScores();
 }
 
 function scoreTone(score: number) { if (score >= 85) return 'excellent'; if (score >= 75) return 'good'; if (score >= 60) return 'normal'; return 'bad'; }
@@ -452,24 +454,24 @@ function scoreParts(row: SemesterScoreRow) {
       index: 1,
       name: '课件学习',
       weight: row.coursewareWeight,
-      contents: ['课件学习汇总'],
+      contents: ['本学期课件学习汇总'],
       scores: [row.coursewareScore]
     },
-    { index: 2, name: '实训练习', weight: row.trainingPracticeWeight, contents: ['行车组织方案实训练习'], scores: [row.trainingScore] },
-    { index: 3, name: '课程作业', weight: row.assignmentWeight, contents: ['行车组织方案设计作业'], scores: [row.assignmentScore] },
-    { index: 4, name: '考试', weight: row.examWeight, contents: ['城市轨道交通运营安全期末考试'], scores: [row.examScore] }
+    { index: 2, name: '实训练习', weight: row.trainingPracticeWeight, contents: ['本学期实训练习汇总'], scores: [row.trainingScore] },
+    { index: 3, name: '课程作业', weight: row.assignmentWeight, contents: ['本学期课程作业汇总'], scores: [row.assignmentScore] },
+    { index: 4, name: '考试', weight: row.examWeight, contents: ['本学期考试成绩汇总'], scores: [row.examScore] }
   ];
 }
 
 onMounted(async () => {
-  await Promise.all([loadOptions(), loadWeights()]);
+  await Promise.all([loadOptions(), loadWeights(), loadGradeRules()]);
   await loadPageData();
 });
 </script>
 
 <style scoped>
 .admin-semester-score-filter-row {
-  grid-template-columns: 160px 150px minmax(220px, 1fr) minmax(220px, 1fr) 150px auto;
+  grid-template-columns: 160px 150px minmax(220px, 1fr) 150px auto;
   column-gap: 14px;
   align-items: end;
 }

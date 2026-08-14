@@ -9630,6 +9630,12 @@
             "type": "integer",
             "format": "int64"
           },
+          "studentName": {
+            "type": "string"
+          },
+          "studentNo": {
+            "type": "string"
+          },
           "keyword": {
             "type": "string"
           },

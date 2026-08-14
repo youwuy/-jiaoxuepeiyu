@@ -1868,6 +1868,8 @@ Query:
 - `majorId` optional.
 - `classId` optional.
 - `studentId` optional.
+- `studentName` optional fuzzy student name.
+- `studentNo` optional exact student number.
 - `keyword` optional fuzzy student name or student number.
 - `page` default `1`.
 - `pageSize` default `20`, maximum `100`.

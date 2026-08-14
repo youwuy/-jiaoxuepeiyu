@@ -37,6 +37,8 @@ public interface AdminSemesterScoreMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
             + "<if test='studentId != null'>AND ss.student_id = #{studentId}</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE #{studentName}</if> "
+            + "<if test='studentNo != null'>AND u.username = #{studentNo}</if> "
             + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
             + "ORDER BY ss.semester_id DESC, " + SCORE_EXPR + " DESC, ss.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
@@ -51,6 +53,8 @@ public interface AdminSemesterScoreMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
             + "<if test='studentId != null'>AND ss.student_id = #{studentId}</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE #{studentName}</if> "
+            + "<if test='studentNo != null'>AND u.username = #{studentNo}</if> "
             + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
             + "</script>")
     long countScores(AdminSemesterScoreQuery query);
@@ -68,6 +72,8 @@ public interface AdminSemesterScoreMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
             + "<if test='studentId != null'>AND ss.student_id = #{studentId}</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE #{studentName}</if> "
+            + "<if test='studentNo != null'>AND u.username = #{studentNo}</if> "
             + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
             + "</script>")
     AdminSemesterScoreStatistics calculateStatistics(AdminSemesterScoreQuery query);
@@ -90,6 +96,8 @@ public interface AdminSemesterScoreMapper {
             + "<if test='classId != null'>AND u.class_id = #{classId}</if> "
             + "<if test='majorId != null'>AND c.major_id = #{majorId}</if> "
             + "<if test='studentId != null'>AND ss.student_id = #{studentId}</if> "
+            + "<if test='studentName != null'>AND u.real_name LIKE #{studentName}</if> "
+            + "<if test='studentNo != null'>AND u.username = #{studentNo}</if> "
             + "<if test='keyword != null'>AND (u.real_name LIKE #{keyword} OR u.username LIKE #{keyword})</if> "
             + "ORDER BY " + SCORE_EXPR + " DESC, ss.id ASC LIMIT #{pageSize} "
             + "</script>")

@@ -6,6 +6,8 @@ export interface AdminSemesterScoreQuery {
   classId?: number | null;
   majorId?: number | null;
   studentId?: number | null;
+  studentName?: string;
+  studentNo?: string;
   keyword?: string;
   page?: number;
   pageSize?: number;
