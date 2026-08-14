@@ -142,6 +142,16 @@ class AdminAccountServiceTests {
     }
 
     @Test
+    void rejectsResetWhenConfiguredInitialPasswordViolatesPolicy() {
+        AdminAccountService service = new AdminAccountService(new FakeAccounts(), new PrefixHasher(), "12345678");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.resetPasswords(Arrays.asList(1L)));
+
+        assertEquals("Password must contain letters and digits", exception.getMessage());
+    }
+
+    @Test
     void rejectsAccountDetailOutsidePersonalDataScope() {
         FakeAccounts repository = new FakeAccounts();
         repository.detailAccount = account(10L, "teacher001", "Teacher One", "13812345678", "110101199001011234");
@@ -151,26 +161,6 @@ class AdminAccountServiceTests {
                 () -> service.get(10L, 9L, "SELF", new ArrayList<Long>()));
 
         assertEquals("Account is outside your data scope", exception.getMessage());
-    }
-
-    @Test
-    void batchResetPasswordUsesSubmittedPassword() {
-        FakeAccounts repository = new FakeAccounts();
-        AdminAccountService service = new AdminAccountService(repository, new PrefixHasher(), "InitPass123");
-
-        service.resetPasswords(Arrays.asList(1L), "Abc@12345");
-
-        assertEquals(Arrays.asList(1L), repository.resetUserIds);
-        assertEquals("hashed:Abc@12345", repository.resetPasswordHash);
-    }
-
-    @Test
-    void rejectsInvalidResetPassword() {
-        AdminAccountService service = new AdminAccountService(new FakeAccounts(), new PrefixHasher(), "InitPass123");
-
-        BusinessException exception = assertThrows(BusinessException.class, () -> service.resetPasswords(Arrays.asList(1L), "12345678"));
-
-        assertEquals("Password must contain letters and digits", exception.getMessage());
     }
 
     @Test

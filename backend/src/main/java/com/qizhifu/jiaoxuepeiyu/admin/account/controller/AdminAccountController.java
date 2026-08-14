@@ -160,9 +160,9 @@ public class AdminAccountController {
     }
 
     @PostMapping("/batch/reset-password")
-    @Operation(summary = "Batch reset passwords", description = "Resets selected accounts to the submitted password hash without returning plaintext passwords.")
+    @Operation(summary = "Batch reset passwords", description = "Resets selected accounts to the configured system initial password without returning plaintext passwords.")
     public ApiResponse<Void> resetPasswords(@RequestBody AccountIdsCommand body) {
-        service.resetPasswords(body.getUserIds(), body.getPassword());
+        service.resetPasswords(body.getUserIds());
         return ApiResponse.ok(null);
     }
 

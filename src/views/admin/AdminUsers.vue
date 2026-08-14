@@ -65,7 +65,7 @@
         <div class="admin-user-teacher-bio-row">
           <div class="admin-user-bio-item">
             <span>人脸信息录入</span>
-            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('face')">
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null || !can(formMode === 'create' ? 'create' : 'update')" @click="triggerBioUpload('face')">
               <el-icon><Camera /></el-icon>
               <strong>{{ uploadingBio === 'face' ? '人脸信息上传中...' : bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
             </button>
@@ -74,7 +74,7 @@
           </div>
           <div class="admin-user-bio-item">
             <span>指纹信息录入</span>
-            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('fingerprint')">
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null || !can(formMode === 'create' ? 'create' : 'update')" @click="triggerBioUpload('fingerprint')">
               <el-icon><Pointer /></el-icon>
               <strong>{{ uploadingBio === 'fingerprint' ? '指纹信息上传中...' : bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
             </button>
@@ -86,7 +86,7 @@
 
       <footer class="admin-user-teacher-actions">
         <el-button class="admin-user-teacher-cancel" @click="cancelTeacherForm">取消</el-button>
-        <el-button class="admin-user-teacher-confirm" type="primary" :loading="saving" @click="saveAccount">确定</el-button>
+        <el-button class="admin-user-teacher-confirm" type="primary" :disabled="!can(formMode === 'create' ? 'create' : 'update')" :loading="saving" @click="saveAccount">确定</el-button>
       </footer>
     </section>
 
@@ -137,7 +137,7 @@
           <div class="admin-user-student-bio-row">
             <div class="admin-user-student-bio-item">
               <span>人脸信息录入</span>
-              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('face')">
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null || !can(formMode === 'create' ? 'create' : 'update')" @click="triggerBioUpload('face')">
                 <el-icon><Camera /></el-icon>
                 <strong>{{ uploadingBio === 'face' ? '人脸信息上传中...' : bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
               </button>
@@ -146,7 +146,7 @@
             </div>
             <div class="admin-user-student-bio-item">
               <span>指纹信息录入</span>
-              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('fingerprint')">
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null || !can(formMode === 'create' ? 'create' : 'update')" @click="triggerBioUpload('fingerprint')">
                 <el-icon><Pointer /></el-icon>
                 <strong>{{ uploadingBio === 'fingerprint' ? '指纹信息上传中...' : bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
               </button>
@@ -158,7 +158,7 @@
 
         <footer class="admin-user-student-actions">
           <el-button class="admin-user-student-cancel" @click="cancelStudentForm">取消</el-button>
-          <el-button class="admin-user-student-confirm" type="primary" :loading="saving" @click="saveAccount">确定</el-button>
+          <el-button class="admin-user-student-confirm" type="primary" :disabled="!can(formMode === 'create' ? 'create' : 'update')" :loading="saving" @click="saveAccount">确定</el-button>
         </footer>
       </main>
     </section>
@@ -274,15 +274,15 @@
               </div>
             </div>
             <div class="admin-users-head-actions">
-              <el-button class="admin-users-primary-button" type="primary" @click="openCreate">
+              <el-button class="admin-users-primary-button" type="primary" :disabled="!can('create')" @click="openCreate">
                 <el-icon><Plus /></el-icon>
                 新增{{ activeKindLabel }}
               </el-button>
-              <el-button class="admin-users-lite-button" @click="openImport">批量导入</el-button>
+              <el-button class="admin-users-lite-button" :disabled="!can('create')" @click="openImport">批量导入</el-button>
               <el-button class="admin-users-lite-button" @click="exportRows">批量导出</el-button>
-              <el-button class="admin-users-lite-button" @click="openBatchReset">批量重置密码</el-button>
-              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchOrg">批量设置所属组织</el-button>
-              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" @click="openBatchRole">批量修改角色</el-button>
+              <el-button class="admin-users-lite-button" :disabled="selectedIds.length === 0 || !can('update')" @click="openBatchReset">批量重置密码</el-button>
+              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" :disabled="selectedIds.length === 0 || !can('update')" @click="openBatchOrg">批量设置所属组织</el-button>
+              <el-button v-if="activeKind === 'teacher'" class="admin-users-lite-button" :disabled="selectedIds.length === 0 || !can('update')" @click="openBatchRole">批量修改角色</el-button>
             </div>
           </section>
 
@@ -331,12 +331,12 @@
                       <td>{{ formatAccountTime(row.createdAt) }}</td>
                       <td>
                         <div class="admin-users-row-actions">
-                          <el-button class="edit" @click="openEdit(row)">编辑</el-button>
-                          <el-button v-if="activeKind === 'teacher'" class="edit" @click="openRole(row)">设置角色</el-button>
-                          <el-button :class="row.enabled ? 'warn' : 'enable'" :loading="busyId === row.userId" @click="toggleEnabled(row)">
+                          <el-button class="edit" :disabled="!can('update')" @click="openEdit(row)">编辑</el-button>
+                          <el-button v-if="activeKind === 'teacher'" class="edit" :disabled="!can('update')" @click="openRole(row)">设置角色</el-button>
+                          <el-button :class="row.enabled ? 'warn' : 'enable'" :disabled="!can(row.enabled ? 'disable' : 'enable')" :loading="busyId === row.userId" @click="toggleEnabled(row)">
                             {{ row.enabled ? '禁用' : '启用' }}
                           </el-button>
-                          <el-button class="plain" @click="openReset(row)">重置密码</el-button>
+                          <el-button class="plain" :disabled="!can('update')" @click="openReset(row)">重置密码</el-button>
                           <el-button class="plain" @click="openDetail(row)">查看</el-button>
                         </div>
                       </td>
@@ -368,73 +368,6 @@
       </section>
     </section>
 
-    <el-dialog v-model="formVisible" class="admin-users-dialog" width="720px" :show-close="false" append-to-body>
-      <template #header>
-        <div class="admin-users-dialog-head">
-          <strong>{{ formMode === 'create' ? `新增${activeKindLabel}` : `编辑${activeKindLabel}` }}</strong>
-          <el-button text circle :icon="Close" @click="formVisible = false" />
-        </div>
-      </template>
-
-      <div class="admin-users-form-grid">
-        <label>
-          <span>姓名 <b>*</b></span>
-          <el-input v-model="form.realName" placeholder="请输入姓名" />
-        </label>
-        <label>
-          <span>{{ activeKind === 'teacher' ? '工号' : '学号' }} <b>*</b></span>
-          <el-input v-model="form.accountNo" :disabled="formMode === 'edit'" placeholder="请输入账号" />
-        </label>
-        <label>
-          <span>手机号</span>
-          <el-input v-model="form.phone" placeholder="请输入手机号" />
-        </label>
-        <label>
-          <span>身份证号</span>
-          <el-input v-model="form.idCard" placeholder="请输入身份证号" />
-        </label>
-        <label v-if="activeKind === 'teacher'">
-          <span>岗位</span>
-          <el-input v-model="form.jobTitle" placeholder="请输入岗位" />
-        </label>
-        <label>
-          <span>所属组织 <b>*</b></span>
-          <el-select v-model="form.orgId" placeholder="请选择组织" filterable>
-            <el-option v-for="org in orgOptions" :key="org.orgId" :label="org.label" :value="org.orgId" />
-          </el-select>
-        </label>
-        <label v-if="activeKind === 'student'">
-          <span>班级 <b>*</b></span>
-          <el-select v-model="form.classId" placeholder="请选择班级" filterable>
-            <el-option v-for="item in classOptions" :key="item.classId" :label="`${item.majorName || ''} ${item.className}`" :value="item.classId" />
-          </el-select>
-        </label>
-        <label v-if="activeKind === 'student' && formMode === 'create'">
-          <span>初始密码 <b>*</b></span>
-          <el-input v-model="form.initialPassword" placeholder="请输入初始密码" show-password />
-        </label>
-        <label v-if="activeKind === 'teacher'">
-          <span>授课班级</span>
-          <el-select v-model="form.teachingClassIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择班级">
-            <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
-          </el-select>
-        </label>
-        <label v-if="activeKind === 'teacher'" class="wide">
-          <span>角色</span>
-          <el-select v-model="form.roleIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择角色">
-            <el-option v-for="role in roleOptions" :key="role.roleId" :label="role.roleName" :value="role.roleId" />
-          </el-select>
-        </label>
-      </div>
-
-      <template #footer>
-        <div class="admin-users-dialog-footer">
-          <el-button @click="formVisible = false">取消</el-button>
-          <el-button type="primary" :loading="saving" @click="saveAccount">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
     <el-dialog v-model="resetVisible" class="admin-users-mini-dialog" width="480px" :show-close="false" append-to-body>
       <template #header>
         <div class="admin-users-dialog-head">
@@ -442,14 +375,13 @@
           <el-button text circle :icon="Close" @click="resetVisible = false" />
         </div>
       </template>
-      <label class="admin-users-mini-field">
-        <span>重置后的密码</span>
-        <el-input v-model="resetPassword" placeholder="请输入重置后的密码" />
-      </label>
+      <p class="admin-users-reset-confirm">
+        确认将所选 {{ resetIds.length }} 个账号的密码重置为系统初始密码吗？
+      </p>
       <template #footer>
         <div class="admin-users-dialog-footer">
-          <el-button @click="resetVisible = false">关闭</el-button>
-          <el-button type="primary" :loading="saving" @click="saveResetPassword">确定</el-button>
+          <el-button @click="resetVisible = false">取消</el-button>
+          <el-button type="primary" :disabled="!can('update')" :loading="saving" @click="saveResetPassword">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -531,6 +463,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Camera, Close, Plus, Pointer, Search, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import {
   createAdminAccount,
   disableAdminAccount,
@@ -569,6 +502,7 @@ import {
 type FormMode = 'create' | 'edit';
 
 const activeKind = ref<AdminAccountKind>('teacher');
+const { can } = useAdminPermissions('system:user');
 const loading = ref(false);
 const saving = ref(false);
 const busyId = ref<number | null>(null);
@@ -593,7 +527,6 @@ const bioFingerprintRecorded = ref(false);
 const uploadingBio = ref<'face' | 'fingerprint' | null>(null);
 const faceFileInput = ref<HTMLInputElement | null>(null);
 const fingerprintFileInput = ref<HTMLInputElement | null>(null);
-const formVisible = ref(false);
 const formMode = ref<FormMode>('create');
 const editingId = ref<number | null>(null);
 const detailAccount = ref<AdminAccount | null>(null);
@@ -605,8 +538,6 @@ const batchOrgVisible = ref(false);
 const batchOrgId = ref<number | null>(null);
 const resetVisible = ref(false);
 const resetIds = ref<number[]>([]);
-const defaultAccountPassword = 'admin123';
-const resetPassword = ref(defaultAccountPassword);
 const importVisible = ref(false);
 const importText = ref('');
 const importFileName = ref('');
@@ -623,7 +554,7 @@ const emptyForm = (): AdminAccountCommand => ({
   classId: null,
   faceFileId: null,
   fingerprintFileId: null,
-  initialPassword: defaultAccountPassword,
+  initialPassword: undefined,
   roleIds: [],
   managedOrgIds: [],
   teachingClassIds: []
@@ -948,7 +879,6 @@ async function saveAccount() {
       await updateAdminAccount(activeKind.value, editingId.value, form);
       ElMessage.success(`编辑${activeKindLabel.value}成功`);
     }
-    formVisible.value = false;
     teacherFormPageVisible.value = false;
     studentFormPageVisible.value = false;
     await loadAccounts();
@@ -1041,7 +971,6 @@ async function openBatchReset() {
     return;
   }
   resetIds.value = [...selectedIds.value];
-  resetPassword.value = defaultAccountPassword;
   resetVisible.value = true;
 }
 
@@ -1072,39 +1001,23 @@ function classNames(ids?: number[]) {
 
 function openReset(row: AdminAccount) {
   resetIds.value = [row.userId];
-  resetPassword.value = defaultAccountPassword;
   resetVisible.value = true;
 }
 
 async function saveResetPassword() {
-  try {
-    validateAccountPassword(resetPassword.value);
-  } catch (error) {
-    ElMessage.warning(error instanceof Error ? error.message : '请输入有效密码');
+  if (resetIds.value.length === 0) {
+    ElMessage.warning('请先选择用户');
     return;
   }
   saving.value = true;
   try {
-    await resetAdminAccountPasswords(resetIds.value, resetPassword.value.trim());
+    await resetAdminAccountPasswords(resetIds.value);
     ElMessage.success(resetIds.value.length > 1 ? '密码已批量重置' : '密码已重置');
     resetVisible.value = false;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '重置密码失败');
   } finally {
     saving.value = false;
-  }
-}
-
-function validateAccountPassword(password: string) {
-  const normalized = password.trim();
-  if (!normalized) {
-    throw new Error('请输入初始密码');
-  }
-  if (normalized.length < 8 || normalized.length > 20) {
-    throw new Error('密码长度需为8-20位');
-  }
-  if (!/[A-Za-z]/.test(normalized) || !/\d/.test(normalized)) {
-    throw new Error('密码需同时包含字母和数字');
   }
 }
 

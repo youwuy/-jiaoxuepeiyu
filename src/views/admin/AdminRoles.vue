@@ -97,7 +97,13 @@
 
       <footer class="admin-role-form-actions">
         <el-button class="admin-role-form-cancel" @click="cancelRoleForm">取消</el-button>
-        <el-button class="admin-role-form-confirm" type="primary" :loading="saving" @click="saveRole">确定</el-button>
+        <el-button
+          class="admin-role-form-confirm"
+          type="primary"
+          :disabled="!can(formMode === 'create' ? 'create' : 'update')"
+          :loading="saving"
+          @click="saveRole"
+        >确定</el-button>
       </footer>
       </section>
     </el-dialog>
@@ -109,7 +115,7 @@
       </el-breadcrumb>
 
       <section class="admin-roles-toolbar">
-        <el-button class="admin-roles-primary-button" type="primary" @click="openCreate">
+        <el-button class="admin-roles-primary-button" type="primary" :disabled="!can('create')" @click="openCreate">
           <el-icon><Plus /></el-icon>
           新增角色
         </el-button>
@@ -144,11 +150,11 @@
                     <div class="admin-roles-actions">
                       <el-button class="plain" @click="openDetail(role)">查看</el-button>
                       <template v-if="!isBuiltInRole(role)">
-                        <el-button class="plain" @click="openEdit(role)">编辑</el-button>
-                        <el-button class="warn" :loading="busyId === role.roleId" @click="toggleRole(role)">
+                        <el-button class="plain" :disabled="!can('update')" @click="openEdit(role)">编辑</el-button>
+                        <el-button class="warn" :disabled="!can(role.enabled === false ? 'enable' : 'disable')" :loading="busyId === role.roleId" @click="toggleRole(role)">
                           {{ role.enabled === false ? '启用' : '禁用' }}
                         </el-button>
-                        <el-button class="danger" :disabled="Boolean(role.userCount)" :loading="busyId === role.roleId" @click="removeRole(role)">
+                        <el-button class="danger" :disabled="Boolean(role.userCount) || !can('delete')" :loading="busyId === role.roleId" @click="removeRole(role)">
                           删除
                         </el-button>
                       </template>
@@ -199,6 +205,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import { fetchAdminPermissionTree, type AdminPermissionNode } from '../../api/admin-permission';
 import {
   createAdminRole,
@@ -238,6 +245,7 @@ const detailVisible = ref(false);
 const detailRole = ref<AdminRole | null>(null);
 const page = reactive({ page: 1, pageSize: 20, total: 0 });
 const query = reactive<AdminRoleQuery>({});
+const { can } = useAdminPermissions('role:list');
 
 const emptyForm = (): AdminRoleCommand => ({
   roleName: '',

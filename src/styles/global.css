@@ -9136,6 +9136,14 @@ a {
   width: 100%;
 }
 
+.admin-users-reset-confirm {
+  margin: 0;
+  padding: 8px 0 12px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 24px;
+}
+
 .admin-users-mini-field {
   display: grid;
   gap: 10px;

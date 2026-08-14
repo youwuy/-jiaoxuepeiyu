@@ -128,15 +128,11 @@ public class AdminAccountService {
     }
 
     public void resetPasswords(List<Long> userIds) {
-        resetPasswords(userIds, requireInitialPassword());
-    }
-
-    public void resetPasswords(List<Long> userIds, String password) {
         List<Long> normalizedUserIds = unique(userIds);
         if (normalizedUserIds.isEmpty()) {
             throw new BusinessException(400, "Accounts are required");
         }
-        String normalizedPassword = normalizedResetPassword(password);
+        String normalizedPassword = normalizedResetPassword(requireInitialPassword());
         repository.resetPasswords(normalizedUserIds, passwordHasher.hash(normalizedPassword));
     }
 

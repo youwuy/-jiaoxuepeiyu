@@ -12,7 +12,7 @@
         <section class="admin-permission-board">
           <header class="admin-permission-board-head">
             <strong>菜单权限树</strong>
-            <el-button class="admin-permission-primary-button" type="primary" @click="openCreateRoot">
+            <el-button class="admin-permission-primary-button" type="primary" :disabled="!can('create')" @click="openCreateRoot">
               <el-icon><Plus /></el-icon>
               新增菜单
             </el-button>
@@ -52,7 +52,7 @@
                           draggable="true"
                           title="拖动调整同级菜单顺序"
                           aria-label="拖动调整同级菜单顺序"
-                          :disabled="sorting"
+                          :disabled="sorting || !can('update')"
                           @dragstart.stop="startPermissionDrag(row, $event)"
                           @dragend="finishPermissionDrag"
                         >
@@ -93,16 +93,17 @@
                       </td>
                       <td>
                         <div class="admin-permission-actions">
-                          <el-button class="admin-permission-action edit" @click="openEdit(row)">编辑</el-button>
+                          <el-button class="admin-permission-action edit" :disabled="!can('update')" @click="openEdit(row)">编辑</el-button>
                           <el-button
                             class="admin-permission-action"
                             :class="row.visible ? 'hide' : 'show'"
+                            :disabled="!can(row.visible ? 'disable' : 'enable')"
                             :loading="busyId === row.permissionId"
                             @click="toggleVisible(row)"
                           >
                             {{ row.visible ? '隐藏' : '显示' }}
                           </el-button>
-                          <el-button class="admin-permission-action danger" :loading="busyId === row.permissionId" @click="removePermission(row)">
+                          <el-button class="admin-permission-action danger" :disabled="!can('delete')" :loading="busyId === row.permissionId" @click="removePermission(row)">
                             删除
                           </el-button>
                         </div>
@@ -186,7 +187,13 @@
         <template #footer>
           <div class="admin-permission-panel-footer">
             <el-button class="admin-permission-dialog-cancel" @click="closeDrawer">取消</el-button>
-            <el-button class="admin-permission-dialog-confirm" type="primary" :loading="saving" @click="savePermission">确定</el-button>
+            <el-button
+              class="admin-permission-dialog-confirm"
+              type="primary"
+              :disabled="!can(drawerMode === 'edit' ? 'update' : 'create')"
+              :loading="saving"
+              @click="savePermission"
+            >确定</el-button>
           </div>
         </template>
       </el-dialog>
@@ -199,6 +206,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, ArrowRight, Close, Files, Menu, Mouse, Plus, Rank } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import {
   createAdminPermission,
   deleteAdminPermission,
@@ -238,6 +246,7 @@ const editingPermission = ref<AdminPermissionRow | null>(null);
 const permissionTree = ref<AdminPermissionNode[]>([]);
 const expandedIds = ref(new Set<number>([1, 2, 12, 13]));
 const adminPermissionsChangedEvent = 'admin-permissions-changed';
+const { can } = useAdminPermissions('system:permission');
 
 const form = reactive<AdminPermissionCommand>({
   parentId: null,

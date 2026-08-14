@@ -665,7 +665,7 @@ describe('api http client', () => {
     await updateAdminAccount('teacher', 101, command);
     await disableAdminAccount(101);
     await enableAdminAccount(101);
-    await resetAdminAccountPasswords([101, 102], 'Abc@12345');
+    await resetAdminAccountPasswords([101, 102]);
     await updateAdminAccountOrg([101, 102], 11);
     await updateAdminTeacherRoles(101, [1, 3]);
 
@@ -689,7 +689,7 @@ describe('api http client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       6,
       '/api/admin/accounts/batch/reset-password',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102], password: 'Abc@12345' }) })
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ userIds: [101, 102] }) })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       7,
