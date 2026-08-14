@@ -259,7 +259,7 @@
           <header>
             <strong>{{ group.type }}</strong>
             <span>{{ group.questions.length }}题</span>
-            <el-button text>批量修改分值</el-button>
+            <el-button text @click="openBatchQuestionScore(group.type)">批量修改分值</el-button>
           </header>
           <article v-for="question in group.questions" :key="question.rowNumber">
             <div>
@@ -843,6 +843,31 @@ function rowsForSubmission() {
   const scores = new Map<number, number>();
   previewGroups.forEach((group) => group.questions.forEach((question) => scores.set(question.rowNumber, question.score)));
   return importRows.value.map((row) => ({ ...row, score: scores.get(row.rowNumber ?? -1) ?? row.score }));
+}
+
+async function openBatchQuestionScore(type: string) {
+  const group = previewGroups.find((item) => item.type === type);
+  if (!group || group.questions.length === 0) {
+    return;
+  }
+
+  try {
+    const result = await ElMessageBox.prompt(`请输入${type}统一分值（1-100的正整数）`, '批量修改分值', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: String(group.questions[0].score || 1),
+      inputPattern: /^[1-9]\d*$/,
+      inputErrorMessage: '请输入1-100的正整数'
+    });
+    const score = Number(result.value);
+    if (!Number.isInteger(score) || score < 1 || score > 100) {
+      ElMessage.warning('分值必须是1-100的正整数');
+      return;
+    }
+    group.questions.forEach((question) => { question.score = score; });
+  } catch {
+    // 用户取消时保留当前预览数据。
+  }
 }
 
 function translateImportError(message?: string) {
