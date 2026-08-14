@@ -44,6 +44,7 @@ export interface TrainingArchiveStep {
   expected: string;
   actual: string;
   score: number;
+  maxScore: number;
   durationSeconds: number;
   videoStartSecond?: number;
 }

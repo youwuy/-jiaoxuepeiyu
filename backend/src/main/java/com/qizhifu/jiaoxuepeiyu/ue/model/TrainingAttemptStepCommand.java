@@ -9,6 +9,7 @@ public class TrainingAttemptStepCommand {
     private String standardOperation;
     private String actualOperation;
     private BigDecimal score;
+    private BigDecimal maxScore;
     private Integer durationSeconds;
     private Integer videoStartSecond;
     private Integer sortOrder;
@@ -51,6 +52,14 @@ public class TrainingAttemptStepCommand {
 
     public void setScore(BigDecimal score) {
         this.score = score;
+    }
+
+    public BigDecimal getMaxScore() {
+        return maxScore;
+    }
+
+    public void setMaxScore(BigDecimal maxScore) {
+        this.maxScore = maxScore;
     }
 
     public Integer getDurationSeconds() {

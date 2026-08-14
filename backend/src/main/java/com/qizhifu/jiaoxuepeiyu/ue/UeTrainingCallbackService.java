@@ -166,7 +166,17 @@ public class UeTrainingCallbackService {
             if (step == null || !InputValidator.hasText(step.getStepName())) {
                 throw new BusinessException(400, "Step name is required");
             }
+            if (step.getScore() == null) {
+                throw new BusinessException(400, "Step score is required");
+            }
+            if (step.getMaxScore() == null || step.getMaxScore().compareTo(MIN_SCORE) <= 0) {
+                throw new BusinessException(400, "Step max score is required");
+            }
             assertScore(step.getScore(), "Step score is invalid");
+            assertScore(step.getMaxScore(), "Step max score is invalid");
+            if (step.getScore().compareTo(step.getMaxScore()) > 0) {
+                throw new BusinessException(400, "Step score cannot exceed max score");
+            }
             assertNonNegative(step.getDurationSeconds(), "Step duration seconds is invalid");
             assertNonNegative(step.getVideoStartSecond(), "Step video start second is invalid");
         }

@@ -36,7 +36,7 @@ public interface StudentArchiveMapper {
                                                    @Param("archiveId") Long archiveId);
 
     @Select("SELECT id AS step_id, step_name, standard_operation, actual_operation, "
-            + "score, duration_seconds, video_start_second "
+            + "score, max_score, duration_seconds, video_start_second "
             + "FROM training_attempt_step "
             + "WHERE attempt_id = #{archiveId} "
             + "ORDER BY sort_order ASC, id ASC")

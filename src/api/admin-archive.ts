@@ -31,6 +31,7 @@ export interface AdminTrainingArchiveStep {
   standardOperation?: string;
   actualOperation?: string;
   score?: number;
+  maxScore?: number;
   durationSeconds?: number;
   videoStartSecond?: number;
 }

@@ -176,6 +176,7 @@ Request body:
       "standardOperation": "Turn on the simulator",
       "actualOperation": "Completed",
       "score": 10,
+      "maxScore": 10,
       "durationSeconds": 40,
       "videoStartSecond": 5
     }
@@ -196,8 +197,9 @@ Behavior:
 - Defaults `submitType` to `NORMAL`.
 - `clientAttemptId` is optional but strongly recommended. Repeating the same value for the same student and training returns the original archive id without creating duplicate scores.
 - Defaults missing duration fields to `0`.
-- Scores must be between `0` and `100` when present.
+- Each step requires `score` and `maxScore`; both must be between `0` and `100`, `maxScore` must be greater than `0`, and `score` cannot exceed `maxScore`.
 - Inserts one immutable `training_attempt` row and ordered `training_attempt_step` rows.
+- Step score and maximum score are used by management statistics to calculate the weak-step error rate as `1 - sum(score) / sum(maxScore)`.
 - Updates `training_monitor_snapshot` to `SUBMITTED` for `NORMAL`, otherwise `ABNORMAL`.
 - Synchronizes `personalScore` to `score_semester_summary.training_practice_score` for the current semester, so admin and student comprehensive scores use the UE-submitted training score.
 - Recording files can be uploaded with `POST /api/files` first, then passed as `recordingUrl`.

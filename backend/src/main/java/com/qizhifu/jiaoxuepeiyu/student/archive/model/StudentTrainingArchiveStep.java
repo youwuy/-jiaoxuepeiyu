@@ -9,6 +9,7 @@ public class StudentTrainingArchiveStep {
     private String standardOperation;
     private String actualOperation;
     private BigDecimal score;
+    private BigDecimal maxScore;
     private int durationSeconds;
     private int videoStartSecond;
 
@@ -51,6 +52,9 @@ public class StudentTrainingArchiveStep {
     public void setScore(BigDecimal score) {
         this.score = score;
     }
+
+    public BigDecimal getMaxScore() { return maxScore; }
+    public void setMaxScore(BigDecimal maxScore) { this.maxScore = maxScore; }
 
     public int getDurationSeconds() {
         return durationSeconds;

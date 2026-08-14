@@ -39,6 +39,7 @@ class StudentTrainingAttemptServiceTests {
         TrainingAttemptStepCommand step = new TrainingAttemptStepCommand();
         step.setStepName("Power on");
         step.setScore(new BigDecimal("10"));
+        step.setMaxScore(new BigDecimal("10"));
         request.setSteps(Arrays.asList(step));
 
         Long attemptId = service.submitAttempt(7L, request);

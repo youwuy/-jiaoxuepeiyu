@@ -238,6 +238,7 @@ Each `questions[]` item:
 - `questionType`: `SINGLE`, `MULTIPLE`, `JUDGE`, `FILL`, or `SHORT`
 - `title`
 - `score`
+- `maxScore`
 - `options`
 - `answerContent`
 

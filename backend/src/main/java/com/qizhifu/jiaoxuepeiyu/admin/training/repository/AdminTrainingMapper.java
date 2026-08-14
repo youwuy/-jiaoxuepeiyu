@@ -324,16 +324,15 @@ public interface AdminTrainingMapper {
     AdminTrainingStatistics calculateStatistics(@Param("trainingId") Long trainingId);
 
     @Select("<script>SELECT tt.topic_name, tas.step_name, "
-            + "SUM(CASE WHEN tas.actual_operation IS NULL OR tas.standard_operation IS NULL "
-            + "OR tas.actual_operation &lt;&gt; tas.standard_operation THEN 1 ELSE 0 END) AS error_count, "
+            + "SUM(CASE WHEN tas.score &lt; tas.max_score THEN 1 ELSE 0 END) AS error_count, "
             + "COUNT(*) AS total_count, "
-            + "ROUND(SUM(CASE WHEN tas.actual_operation IS NULL OR tas.standard_operation IS NULL "
-            + "OR tas.actual_operation &lt;&gt; tas.standard_operation THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS error_rate "
+            + "ROUND((1 - SUM(tas.score) / SUM(tas.max_score)) * 100.0, 1) AS error_rate "
             + "FROM training_attempt_step tas JOIN training_attempt ta ON ta.id = tas.attempt_id "
             + "LEFT JOIN training_topic tt ON tt.id = ta.topic_id "
             + "LEFT JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "
             + "WHERE ta.training_id = #{trainingId} AND ta.submitted_at IS NOT NULL "
+            + "AND tas.score IS NOT NULL AND tas.max_score IS NOT NULL AND tas.max_score &gt; 0 "
             + "<if test='className != null'>AND c.class_name = #{className}</if> "
             + "GROUP BY tt.topic_name, tas.step_name ORDER BY error_rate DESC, total_count DESC, tas.step_name ASC LIMIT 10"
             + "</script>")

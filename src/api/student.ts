@@ -218,6 +218,7 @@ interface BackendArchiveStep {
   standardOperation?: string;
   actualOperation?: string;
   score?: number;
+  maxScore?: number;
   durationSeconds?: number;
   videoStartSecond?: number;
 }
@@ -507,6 +508,7 @@ function mapArchiveStep(step: BackendArchiveStep): TrainingArchiveStep {
     expected: step.standardOperation || '',
     actual: step.actualOperation || '',
     score: Number(step.score ?? 0),
+    maxScore: Number(step.maxScore ?? 0),
     durationSeconds: step.durationSeconds ?? 0,
     videoStartSecond: step.videoStartSecond
   };

@@ -70,10 +70,10 @@ public interface UeTrainingCallbackMapper {
     void insertAttempt(TrainingAttemptSubmission submission);
 
     @Insert("INSERT INTO training_attempt_step "
-            + "(attempt_id, step_name, standard_operation, actual_operation, score, duration_seconds, "
+            + "(attempt_id, step_name, standard_operation, actual_operation, score, max_score, duration_seconds, "
             + "video_start_second, sort_order, created_at) "
             + "VALUES (#{attemptId}, #{step.stepName}, #{step.standardOperation}, #{step.actualOperation}, "
-            + "#{step.score}, #{durationSeconds}, #{videoStartSecond}, #{sortOrder}, NOW())")
+            + "#{step.score}, #{step.maxScore}, #{durationSeconds}, #{videoStartSecond}, #{sortOrder}, NOW())")
     void insertAttemptStep(@Param("attemptId") Long attemptId,
                            @Param("step") TrainingAttemptStepCommand step,
                            @Param("durationSeconds") int durationSeconds,

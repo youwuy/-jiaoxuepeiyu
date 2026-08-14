@@ -1705,6 +1705,12 @@ Response `data`:
 - `maxScore`
 - `minScore`
 
+### `GET /api/admin/trainings/{trainingId}/statistics/weak-steps`
+
+Optional query: `className`.
+
+Returns up to ten topic-step rows ordered by score-based error rate. The rate is calculated from UE step submissions as `1 - sum(score) / sum(maxScore)`; legacy rows without a recorded step maximum are excluded instead of inferring a denominator.
+
 ### `POST /api/admin/trainings/offline-scores/import`
 
 Imports parsed `.xlsx` rows for one ended, published training. The request contains:

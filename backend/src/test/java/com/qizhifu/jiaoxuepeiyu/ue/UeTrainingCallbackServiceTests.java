@@ -78,6 +78,7 @@ class UeTrainingCallbackServiceTests {
         firstStep.setStandardOperation("Turn on the simulator");
         firstStep.setActualOperation("Completed");
         firstStep.setScore(new BigDecimal("10"));
+        firstStep.setMaxScore(new BigDecimal("10"));
         firstStep.setDurationSeconds(40);
         firstStep.setVideoStartSecond(5);
         command.setSteps(Arrays.asList(firstStep));
@@ -92,11 +93,29 @@ class UeTrainingCallbackServiceTests {
         assertEquals(1, repository.steps.size());
         assertEquals(Long.valueOf(101L), repository.steps.get(0).getAttemptId());
         assertEquals("Power on", repository.steps.get(0).getStepName());
+        assertEquals(new BigDecimal("10"), repository.steps.get(0).getMaxScore());
         assertEquals("SUBMITTED", repository.snapshot.getProgressStatus());
         assertEquals(new BigDecimal("92.5"), repository.snapshot.getScore());
         assertEquals(new BigDecimal("88.0"), repository.snapshot.getTeamScore());
         assertEquals(Long.valueOf(202601L), repository.syncedSemesterId);
         assertEquals(new BigDecimal("92.5"), repository.syncedTrainingPracticeScore);
+    }
+
+    @Test
+    void rejectsAttemptStepWithoutMaxScore() {
+        FakeCallbacks repository = new FakeCallbacks();
+        repository.task = task();
+        UeTrainingCallbackService service = new UeTrainingCallbackService(repository, CLOCK);
+        TrainingAttemptCommand command = new TrainingAttemptCommand();
+        TrainingAttemptStepCommand step = new TrainingAttemptStepCommand();
+        step.setStepName("Power on");
+        step.setScore(new BigDecimal("8"));
+        command.setSteps(Arrays.asList(step));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.submitAttempt(7L, 15L, 31L, command));
+
+        assertEquals("Step max score is required", exception.getMessage());
     }
 
     @Test
