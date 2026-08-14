@@ -20,29 +20,44 @@
             <h2>{{ trainingTitle }}</h2>
             <p>{{ monitorRange }} / {{ monitorRoom }} / {{ monitorClass }}</p>
           </div>
-          <el-tag type="success" effect="dark">实训中</el-tag>
+          <div class="monitor-refresh-actions">
+            <span>每 5 秒自动刷新</span>
+            <el-button :icon="Refresh" @click="loadMonitor()">刷新</el-button>
+            <el-tag type="success" effect="dark">实训中</el-tag>
+          </div>
         </header>
 
-        <div class="panel-heading camera-heading"><h3>教室全景监控 <small>LIVE 实时直播</small></h3></div>
-        <div v-if="!loading && cameras.length" class="monitor-grid">
-          <article v-for="camera in cameras" :key="camera.id" class="camera-card" @click="openCamera(camera)">
-            <div class="camera-screen">
-              <span class="live-dot">{{ camera.online ? '在线' : '离线' }}</span>
-              <span class="camera-channel">NVR {{ camera.channel }}</span>
-              <strong>{{ camera.name }}</strong>
-              <p>{{ camera.online ? '实时视频流已接入' : '设备离线，暂无实时视频流' }}</p>
-            </div>
-            <footer>
-              <span>{{ camera.location }}</span>
-              <time>{{ snapshotTime }}</time>
-            </footer>
-          </article>
-        </div>
-        <div v-else-if="!loading" class="admin-training-monitor-empty">
-          <el-empty description="暂无监控摄像头信息" />
+        <div class="monitor-tabs" role="tablist">
+          <button type="button" :class="{ active: activeTab === 'monitor' }" @click="activeTab = 'monitor'">查看监控</button>
+          <button type="button" :class="{ active: activeTab === 'progress' }" @click="activeTab = 'progress'">实时进度成绩</button>
         </div>
 
-        <section class="monitor-student-panel">
+        <section v-if="activeTab === 'monitor'" class="monitor-camera-panel">
+          <div class="panel-heading camera-heading"><h3>教室全景监控 <small>LIVE 实时直播</small></h3></div>
+          <div v-if="!loading && cameras.length" class="monitor-grid">
+            <article v-for="camera in cameras" :key="camera.id" class="camera-card" @click="openCamera(camera)">
+              <div class="camera-screen">
+                <span class="live-dot">{{ camera.online ? '在线' : '离线' }}</span>
+                <span class="camera-channel">NVR {{ camera.channel }}</span>
+                <strong>{{ camera.name }}</strong>
+                <p>{{ camera.online ? '实时视频流已接入' : '设备离线，暂无实时视频流' }}</p>
+              </div>
+              <footer><span>{{ camera.location }}</span><time>{{ snapshotTime }}</time></footer>
+            </article>
+          </div>
+          <el-empty v-else-if="!loading" description="暂无监控摄像头信息" />
+          <div class="panel-heading"><h3>学员桌面监控</h3></div>
+          <div v-if="students.length" class="student-monitor-grid">
+            <article v-for="student in students" :key="student.id">
+              <div><strong>{{ student.name }}</strong><span>{{ student.studentNo }} / {{ student.className }}</span></div>
+              <el-tag size="small" :type="student.online ? 'success' : 'info'">{{ student.online ? '在线' : '离线' }}</el-tag>
+              <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
+            </article>
+          </div>
+          <el-empty v-else description="暂无参训学员信息" />
+        </section>
+
+        <section v-else class="monitor-student-panel">
           <div class="panel-heading">
             <h3>学员实训实况</h3>
           </div>
@@ -167,7 +182,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowLeft, Close, Monitor } from '@element-plus/icons-vue';
+import { ArrowLeft, Close, Monitor, Refresh } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   dissolveAdminTrainingRoom,
@@ -213,6 +228,7 @@ const monitorRange = ref(String(route.query.time || '未配置开放时间').rep
 const monitorClass = ref(String(route.query.className || '未配置班级'));
 const monitorRoom = ref(String(route.query.room || '未配置教室'));
 const loading = ref(false);
+const activeTab = ref<'monitor' | 'progress'>('monitor');
 const cameras = ref<MonitorCamera[]>([]);
 const students = ref<MonitorStudent[]>([]);
 const studentMonitorVisible = ref(false);
@@ -423,6 +439,83 @@ onBeforeUnmount(() => {
   margin: 8px 0 0;
   color: #647895;
   font-size: 16px;
+}
+
+.monitor-refresh-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #7b8da7;
+  font-size: 13px;
+}
+
+.monitor-tabs {
+  display: flex;
+  gap: 28px;
+  margin: 8px 0 22px;
+  border-bottom: 1px solid #e6edf5;
+}
+
+.monitor-tabs button {
+  position: relative;
+  border: 0;
+  padding: 0 2px 13px;
+  background: transparent;
+  color: #7b8da7;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.monitor-tabs button.active {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.monitor-tabs button.active::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: #2563eb;
+  content: '';
+}
+
+.student-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.student-monitor-grid article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.student-monitor-grid article > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.student-monitor-grid strong,
+.student-monitor-grid span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-monitor-grid span {
+  color: #8494aa;
+  font-size: 12px;
 }
 
 .admin-training-monitor-back-list.el-button {
@@ -867,6 +960,7 @@ onBeforeUnmount(() => {
     padding: 22px;
   }
 
+  .student-monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .student-monitor-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -877,6 +971,14 @@ onBeforeUnmount(() => {
 
   .admin-training-monitor-heading {
     flex-direction: column;
+  }
+
+  .monitor-refresh-actions {
+    flex-wrap: wrap;
+  }
+
+  .student-monitor-grid {
+    grid-template-columns: 1fr;
   }
 
   .admin-training-monitor-content {
