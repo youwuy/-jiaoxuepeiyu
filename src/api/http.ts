@@ -321,6 +321,8 @@ const apiMessageMap: Record<string, string> = {
   'Training major is required': '请选择实训所属专业',
   'Training mode is invalid': '实训模式不正确',
   'Training paper mode is invalid': '实训试卷模式不正确',
+  'Training review is available only after the training has ended': '实训结束后才可进入阅卷',
+  'Training statistics are available only after the training has ended': '实训结束后才可查看成绩统计',
   'Training name cannot exceed 128 characters': '实训名称不能超过 128 个字符',
   'Training open end time must be after start time': '实训结束时间必须晚于开始时间',
   'Training role has been claimed': '该实训角色已被认领',

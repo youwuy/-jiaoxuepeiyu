@@ -13,6 +13,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingOfflineScore;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakTopic;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.export.CsvExporter;
@@ -161,7 +162,7 @@ public class AdminTrainingController {
     }
 
     @GetMapping("/{trainingId}/statistics")
-    @Operation(summary = "Get training statistics", description = "Returns participant count, room counts, submitted monitor score count, and score aggregates.")
+    @Operation(summary = "Get training statistics", description = "Returns attendance and score aggregates for an ended training course.")
     public ApiResponse<AdminTrainingStatistics> getStatistics(@PathVariable Long trainingId) {
         return ApiResponse.ok(service.getStatistics(trainingId));
     }
@@ -171,6 +172,13 @@ public class AdminTrainingController {
     public ApiResponse<List<AdminTrainingWeakStep>> getWeakSteps(@PathVariable Long trainingId,
                                                                   @org.springframework.web.bind.annotation.RequestParam(required = false) String className) {
         return ApiResponse.ok(service.getWeakSteps(trainingId, className));
+    }
+
+    @GetMapping("/{trainingId}/statistics/weak-topics")
+    @Operation(summary = "Get training weak topics", description = "Returns the top ten training topics by final-result error count, including online results and offline results without an online submission.")
+    public ApiResponse<List<AdminTrainingWeakTopic>> getWeakTopics(@PathVariable Long trainingId,
+                                                                    @org.springframework.web.bind.annotation.RequestParam(required = false) String className) {
+        return ApiResponse.ok(service.getWeakTopics(trainingId, className));
     }
 
     @GetMapping("/{trainingId}/monitor")

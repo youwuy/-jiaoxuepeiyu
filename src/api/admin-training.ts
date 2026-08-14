@@ -123,6 +123,14 @@ export interface AdminTrainingWeakStep {
   errorRate?: number;
 }
 
+export interface AdminTrainingWeakTopic {
+  topicId?: number;
+  topicName?: string;
+  errorStudentCount?: number;
+  submittedStudentCount?: number;
+  correctRate?: number;
+}
+
 export interface AdminTrainingCameraState {
   cameraId?: number;
   classroomName?: string;
@@ -340,6 +348,13 @@ export function fetchAdminTrainingWeakSteps(trainingId: number, className?: stri
   const query = className ? `?className=${encodeURIComponent(className)}` : '';
   return requestJson<AdminTrainingWeakStep[]>(`/admin/trainings/${trainingId}/statistics/weak-steps${query}`, {
     fallbackLabel: '实训薄弱环节'
+  });
+}
+
+export function fetchAdminTrainingWeakTopics(trainingId: number, className?: string) {
+  const query = className ? `?className=${encodeURIComponent(className)}` : '';
+  return requestJson<AdminTrainingWeakTopic[]>(`/admin/trainings/${trainingId}/statistics/weak-topics${query}`, {
+    fallbackLabel: '易错实训题统计'
   });
 }
 

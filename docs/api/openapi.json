@@ -4919,7 +4919,7 @@
           "Admin Trainings"
         ],
         "summary": "Get training statistics",
-        "description": "Returns participant count, room counts, submitted monitor score count, and score aggregates.",
+        "description": "Returns attendance and score aggregates for an ended training course.",
         "operationId": "getStatistics",
         "parameters": [
           {
@@ -4939,6 +4939,47 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAdminTrainingStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/statistics/weak-topics": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Get training weak topics",
+        "description": "Returns the top ten training topics by final-result error count, including online results and offline results without an online submission.",
+        "operationId": "getWeakTopics",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminTrainingWeakTopic"
                 }
               }
             }
@@ -9626,6 +9667,48 @@
           },
           "data": {
             "$ref": "#/components/schemas/AdminTrainingStatistics"
+          }
+        }
+      },
+      "AdminTrainingWeakTopic": {
+        "type": "object",
+        "properties": {
+          "topicId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "topicName": {
+            "type": "string"
+          },
+          "errorStudentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedStudentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "correctRate": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ApiResponseListAdminTrainingWeakTopic": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminTrainingWeakTopic"
+            }
           }
         }
       },

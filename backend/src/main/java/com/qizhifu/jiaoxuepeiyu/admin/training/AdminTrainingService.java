@@ -8,6 +8,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakTopic;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import com.qizhifu.jiaoxuepeiyu.common.api.PageResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
@@ -136,7 +137,7 @@ public class AdminTrainingService {
     }
 
     public AdminTrainingStatistics getStatistics(Long trainingId) {
-        getTraining(trainingId);
+        assertTrainingEnded(getTraining(trainingId), "Training statistics are available only after the training has ended");
         AdminTrainingStatistics statistics = repository.calculateStatistics(trainingId);
         if (statistics == null) {
             statistics = new AdminTrainingStatistics();
@@ -145,9 +146,14 @@ public class AdminTrainingService {
     }
 
     public List<AdminTrainingWeakStep> getWeakSteps(Long trainingId, String className) {
-        getTraining(trainingId);
+        assertTrainingEnded(getTraining(trainingId), "Training statistics are available only after the training has ended");
         String normalizedClassName = trimToNull(className);
         return repository.findWeakSteps(trainingId, normalizedClassName);
+    }
+
+    public List<AdminTrainingWeakTopic> getWeakTopics(Long trainingId, String className) {
+        assertTrainingEnded(getTraining(trainingId), "Training statistics are available only after the training has ended");
+        return repository.findWeakTopics(trainingId, trimToNull(className));
     }
 
     public AdminTrainingMonitorSnapshot getMonitorSnapshot(Long trainingId) {
@@ -174,12 +180,12 @@ public class AdminTrainingService {
     }
 
     public List<Map<String, Object>> listReviewRows(Long trainingId) {
-        assertTrainingEnded(getTraining(trainingId));
+        assertTrainingEnded(getTraining(trainingId), "Training review is available only after the training has ended");
         return repository.findReviewRows(trainingId);
     }
 
     public List<Map<String, Object>> listReviewAttempts(Long trainingId, Long studentId, Long topicId) {
-        assertTrainingEnded(getTraining(trainingId));
+        assertTrainingEnded(getTraining(trainingId), "Training review is available only after the training has ended");
         if (studentId == null || topicId == null) {
             throw new BusinessException(400, "Student and training topic are required");
         }
@@ -189,7 +195,7 @@ public class AdminTrainingService {
     @Transactional
     public void reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
         requireOperator(reviewerId);
-        assertTrainingEnded(getTraining(trainingId));
+        assertTrainingEnded(getTraining(trainingId), "Training review is available only after the training has ended");
         Double maxScore = repository.findAttemptMaxScore(trainingId, attemptId);
         if (maxScore == null) {
             throw new BusinessException(404, "Training attempt not found");
@@ -207,9 +213,9 @@ public class AdminTrainingService {
         repository.appendTrainingLog(trainingId, reviewerId, "REVIEW", "Review training attempt " + attemptId);
     }
 
-    private void assertTrainingEnded(AdminTraining training) {
+    private void assertTrainingEnded(AdminTraining training, String message) {
         if (training.getOpenEndTime() == null || LocalDateTime.now(clock).isBefore(training.getOpenEndTime())) {
-            throw new BusinessException(400, "Training review is available only after the training has ended");
+            throw new BusinessException(400, message);
         }
     }
 

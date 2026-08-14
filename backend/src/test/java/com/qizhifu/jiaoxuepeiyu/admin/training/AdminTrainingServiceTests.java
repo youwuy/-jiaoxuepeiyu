@@ -11,6 +11,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakTopic;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.time.Clock;
@@ -226,6 +227,17 @@ class AdminTrainingServiceTests {
     }
 
     @Test
+    void normalizesClassFilterForWeakTopicStatistics() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        AdminTrainingService service = new AdminTrainingService(repository, FIXED_CLOCK);
+
+        service.getWeakTopics(71L, " Class 1 ");
+
+        assertEquals("Class 1", repository.weakTopicClassName);
+    }
+
+    @Test
     void exportsTrainingsWithFilterAndMaximumPageSize() {
         FakeTrainings repository = new FakeTrainings();
         repository.trainings = Arrays.asList(existingTraining(71L));
@@ -287,6 +299,7 @@ class AdminTrainingServiceTests {
         training.setTrainingMode("TEAM");
         training.setPaperId(5L);
         training.setTeamSize(2);
+        training.setOpenEndTime(LocalDateTime.of(2026, 1, 1, 0, 0));
         training.setClassIds(Arrays.asList(10L, 11L));
         training.setRoles(Arrays.asList(role(21L, "Driver", 1).toRole(), role(21L, "Dispatcher", 2).toRole()));
         return training;
@@ -307,6 +320,7 @@ class AdminTrainingServiceTests {
         private int countTrainingsCalls;
         private boolean reviewUpdated;
         private int reviewUpdateCount;
+        private String weakTopicClassName;
 
         @Override
         public List<AdminTraining> findTrainings(AdminTrainingQuery query) {
@@ -381,6 +395,12 @@ class AdminTrainingServiceTests {
         @Override
         public List<AdminTrainingWeakStep> findWeakSteps(Long trainingId, String className) {
             return new ArrayList<AdminTrainingWeakStep>();
+        }
+
+        @Override
+        public List<AdminTrainingWeakTopic> findWeakTopics(Long trainingId, String className) {
+            weakTopicClassName = className;
+            return new ArrayList<AdminTrainingWeakTopic>();
         }
 
         @Override

@@ -111,33 +111,17 @@
             <header class="panel-head">
               <div>
                 <el-icon><TrendCharts /></el-icon>
-                <strong>成绩区间分布</strong>
-              </div>
-              <div class="panel-legend">
-                <span><i class="tone-excellent"></i>优秀</span>
-                <span><i class="tone-good"></i>良好</span>
-                <span><i class="tone-normal"></i>中等</span>
-                <span><i class="tone-pass"></i>及格</span>
-                <span><i class="tone-bad"></i>不及格</span>
+                <strong>个人成绩分布</strong>
               </div>
             </header>
-            <div class="stack-chart">
-              <div class="stack-chart-axis">
-                <span v-for="tick in [25, 20, 15, 10, 5, 0]" :key="tick">{{ tick }}</span>
-              </div>
-              <div class="stack-chart-plot">
-                <div v-for="item in stackedDistribution" :key="item.name" class="stack-column">
-                  <div class="stack-bars">
-                    <i class="tone-excellent" :style="{ height: `${item.excellentHeight}%` }"></i>
-                    <i class="tone-good" :style="{ height: `${item.goodHeight}%` }"></i>
-                    <i class="tone-normal" :style="{ height: `${item.normalHeight}%` }"></i>
-                    <i class="tone-pass" :style="{ height: `${item.passHeight}%` }"></i>
-                    <i class="tone-bad" :style="{ height: `${item.badHeight}%` }"></i>
-                  </div>
-                  <span>{{ item.name }}</span>
-                </div>
+            <div v-if="scoreDistribution.length" class="score-range-chart">
+              <div v-for="item in scoreDistribution" :key="item.name" class="score-range-column">
+                <b>{{ item.count }} 人</b>
+                <i :style="{ height: `${scoreRangeHeight(item.count)}%`, background: item.color }"></i>
+                <span>{{ item.name }}</span>
               </div>
             </div>
+            <el-empty v-else description="暂无成绩分布数据" />
           </article>
 
           <article class="admin-training-statistics-panel panel-compare">
@@ -199,7 +183,7 @@
             <header class="panel-head">
               <div>
                 <el-icon class="weakness-title-icon"><Warning /></el-icon>
-                <strong>学生薄弱环节</strong>
+                <strong>易错题目 TOP10</strong>
               </div>
             </header>
             <div class="progress-list">
@@ -208,7 +192,7 @@
                   <span class="progress-index" :class="progressTone(item.percent)">{{ item.index }}</span>
                   <div>
                     <strong>{{ item.title }}</strong>
-                    <p>{{ item.subtitle }}</p>
+                  <p>{{ item.subtitle }}，错误人数 {{ item.errorCount }}，正确率 {{ item.correctRate }}%</p>
                   </div>
                   <b :class="progressTone(item.percent)">错误率 {{ item.percent }}%</b>
                 </div>
@@ -236,12 +220,14 @@ import {
   fetchAdminTrainingOfflineScores,
   fetchAdminTrainingReviews,
   fetchAdminTrainingStatistics,
-  fetchAdminTrainingWeakSteps,
+  fetchAdminTrainingWeakTopics,
+  type AdminTraining,
   type AdminTrainingReviewRow,
   type AdminTrainingOfflineScore,
-  type AdminTrainingWeakStep,
+  type AdminTrainingWeakTopic,
   type AdminTrainingStatistics as TrainingStatistics
 } from '../../api/admin-training';
+import { fetchAdminScoreGradeRules, type AdminScoreGradeRule } from '../../api/admin-settings';
 
 interface SummaryCard {
   label: string;
@@ -266,20 +252,6 @@ interface ChartClassItem {
   completedHeight: number;
 }
 
-interface StackItem {
-  name: string;
-  excellent: number;
-  good: number;
-  normal: number;
-  pass: number;
-  bad: number;
-  excellentHeight: number;
-  goodHeight: number;
-  normalHeight: number;
-  passHeight: number;
-  badHeight: number;
-}
-
 interface CompareItem {
   name: string;
   score: string;
@@ -302,6 +274,8 @@ interface ProgressRow {
   title: string;
   subtitle: string;
   percent: number;
+  errorCount: number;
+  correctRate: number;
 }
 
 const route = useRoute();
@@ -313,9 +287,11 @@ const classText = ref(String(route.query.target || ''));
 const timeText = ref(String(route.query.time || ''));
 const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
+const trainingDetail = ref<AdminTraining>();
 const reviewRows = ref<AdminTrainingReviewRow[]>([]);
 const offlineScores = ref<AdminTrainingOfflineScore[]>([]);
-const weakSteps = ref<AdminTrainingWeakStep[]>([]);
+const weakTopics = ref<AdminTrainingWeakTopic[]>([]);
+const gradeRules = ref<AdminScoreGradeRule[]>([]);
 
 const participantCount = computed(() => activeClass.value === '全部班级'
   ? numberValue(statistics.value.participantCount)
@@ -375,9 +351,30 @@ const summaryCards = computed<SummaryCard[]>(() => [
   {
     label: '实训课程名',
     value: trainingTitle.value || '-',
-    desc: '课程考试',
+    desc: trainingDetail.value?.trainingType === 'EXAM' ? '实训考试' : '实训练习',
     icon: Document,
     tone: 'calendar'
+  },
+  {
+    label: '组卷方式',
+    value: paperModeText(trainingDetail.value?.paperMode),
+    desc: trainingDetail.value?.paperName || '未关联理论试卷',
+    icon: Document,
+    tone: 'purple'
+  },
+  {
+    label: '参与班级',
+    value: classText.value || '-',
+    desc: `${classLabels.value.length} 个班级`,
+    icon: User,
+    tone: 'green'
+  },
+  {
+    label: '实训题目总数',
+    value: `${trainingDetail.value?.topicCount || 0} 题`,
+    desc: trainingDetail.value?.trainingMode === 'TEAM' ? '协同实训' : '单人实训',
+    icon: Document,
+    tone: 'blue'
   },
   {
     label: '实训课程起止时间',
@@ -417,13 +414,15 @@ const summaryCards = computed<SummaryCard[]>(() => [
 ]);
 
 const scoreDistribution = computed<ScoreBucket[]>(() => {
-  const base = [
-    { name: `优秀 (${formatScore(courseMaxScore.value * 0.9)}-${courseMaxScore.value})`, color: '#ef4444', match: (score: number) => score / courseMaxScore.value >= 0.9 },
-    { name: `良好 (${formatScore(courseMaxScore.value * 0.8)}-${formatScore(courseMaxScore.value * 0.9)})`, color: '#f59e0b', match: (score: number) => score / courseMaxScore.value >= 0.8 && score / courseMaxScore.value < 0.9 },
-    { name: `中等 (${formatScore(courseMaxScore.value * 0.7)}-${formatScore(courseMaxScore.value * 0.8)})`, color: '#3b82f6', match: (score: number) => score / courseMaxScore.value >= 0.7 && score / courseMaxScore.value < 0.8 },
-    { name: `及格 (${formatScore(courseMaxScore.value * 0.6)}-${formatScore(courseMaxScore.value * 0.7)})`, color: '#f97316', match: (score: number) => score / courseMaxScore.value >= 0.6 && score / courseMaxScore.value < 0.7 },
-    { name: `不及格 (0-${formatScore(courseMaxScore.value * 0.6)})`, color: '#8b5cf6', match: (score: number) => score / courseMaxScore.value < 0.6 }
-  ];
+  const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#64748b'];
+  const base = gradeRules.value.map((rule, index) => ({
+    name: `${rule.gradeName} (${formatScore(rule.minScore)}%-${formatScore(rule.maxScore)}%)`,
+    color: colors[index % colors.length],
+    match: (score: number) => {
+      const percent = courseMaxScore.value ? score * 100 / courseMaxScore.value : 0;
+      return percent >= rule.minScore && percent <= rule.maxScore;
+    }
+  }));
   const total = submittedScores.value.length;
   return base.map((item) => {
     const count = submittedScores.value.filter(item.match).length;
@@ -438,6 +437,7 @@ const scoreDistribution = computed<ScoreBucket[]>(() => {
 
 const donutGradient = computed(() => {
   const values = scoreDistribution.value;
+  if (!values.length || !submittedScores.value.length) return '#e5e7eb';
   const total = values.reduce((sum, item) => sum + item.percent, 0) || 100;
   let start = 0;
   const segments = values.map((item) => {
@@ -476,31 +476,6 @@ const classChartTicks = computed(() =>
   Array.from({ length: 6 }, (_, index) => Math.round(classChartMax.value - (classChartMax.value / 5) * index))
 );
 
-const stackedDistribution = computed<StackItem[]>(() =>
-  (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label) => {
-    const scores = submittedStudentRows.value.filter((item) => item.className === label).map((item) => Number(item.totalScore));
-    const excellent = scores.filter((score) => score / courseMaxScore.value >= 0.9).length;
-    const good = scores.filter((score) => score / courseMaxScore.value >= 0.8 && score / courseMaxScore.value < 0.9).length;
-    const normal = scores.filter((score) => score / courseMaxScore.value >= 0.7 && score / courseMaxScore.value < 0.8).length;
-    const pass = scores.filter((score) => score / courseMaxScore.value >= 0.6 && score / courseMaxScore.value < 0.7).length;
-    const bad = scores.filter((score) => score / courseMaxScore.value < 0.6).length;
-    const maxCount = Math.max(excellent, good, normal, pass, bad, 1);
-    return {
-      name: label,
-      excellent,
-      good,
-      normal,
-      pass,
-      bad,
-      excellentHeight: (excellent / maxCount) * 100,
-      goodHeight: (good / maxCount) * 100,
-      normalHeight: (normal / maxCount) * 100,
-      passHeight: (pass / maxCount) * 100,
-      badHeight: (bad / maxCount) * 100
-    };
-  })
-);
-
 const classAverageCompare = computed<CompareItem[]>(() =>
   (activeClass.value === '全部班级' ? classLabels.value : [activeClass.value]).map((label, index) => {
     const colors = ['#6d5efc', '#3b82f6', '#37c793', '#f59e0b', '#ef4444'];
@@ -520,15 +495,16 @@ const rankingRows = computed<RankingRow[]>(() => [...submittedStudentRows.value]
   return scoreDiff || Number(a.totalDuration ?? Number.MAX_SAFE_INTEGER) - Number(b.totalDuration ?? Number.MAX_SAFE_INTEGER);
 }).slice(0, 10).map((item, index) => {
   const score = Number(item.totalScore);
-  const ratio = score / courseMaxScore.value;
-  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: ratio >= 0.9 ? '优秀' : ratio >= 0.8 ? '良好' : ratio >= 0.7 ? '中等' : ratio >= 0.6 ? '及格' : '不及格', duration: formatDuration(item.totalDuration) };
+  return { rank: index + 1, studentNo: item.studentNo || '-', name: item.studentName || '-', className: item.className || '-', score, grade: gradeName(score), duration: formatDuration(item.totalDuration) };
 }));
 
-const progressRows = computed<ProgressRow[]>(() => weakSteps.value.map((item, index) => ({
+const progressRows = computed<ProgressRow[]>(() => weakTopics.value.map((item, index) => ({
   index: index + 1,
-  title: item.stepName || '未命名步骤',
-  subtitle: item.topicName || trainingTitle.value,
-  percent: numberValue(item.errorRate)
+  title: item.topicName || '未命名实训题',
+  subtitle: `共 ${numberValue(item.submittedStudentCount)} 人提交`,
+  percent: Number((100 - numberValue(item.correctRate)).toFixed(1)),
+  errorCount: numberValue(item.errorStudentCount),
+  correctRate: numberValue(item.correctRate)
 })));
 
 function numberValue(value: number | string | undefined | null) {
@@ -538,6 +514,22 @@ function numberValue(value: number | string | undefined | null) {
 
 function formatScore(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function paperModeText(value?: string) {
+  if (value === 'MANUAL') return '手动组卷';
+  if (value === 'AUTO') return '自动组卷';
+  return '不组卷';
+}
+
+function scoreRangeHeight(count: number) {
+  const maximum = Math.max(...scoreDistribution.value.map((item) => item.count), 1);
+  return Math.max(count > 0 ? 8 : 0, count * 100 / maximum);
+}
+
+function gradeName(score: number) {
+  const percent = courseMaxScore.value ? score * 100 / courseMaxScore.value : 0;
+  return gradeRules.value.find((rule) => percent >= rule.minScore && percent <= rule.maxScore)?.gradeName || '-';
 }
 
 function goBack() {
@@ -567,11 +559,12 @@ function formatDuration(seconds?: number) {
 }
 
 function gradeTone(score: number) {
-  const ratio = score / courseMaxScore.value;
-  if (ratio >= 0.9) return 'excellent';
-  if (ratio >= 0.8) return 'good';
-  if (ratio >= 0.7) return 'normal';
-  if (ratio >= 0.6) return 'pass';
+  const name = gradeName(score);
+  if (name.includes('优秀')) return 'excellent';
+  if (name.includes('良好')) return 'good';
+  if (name.includes('不及格')) return 'bad';
+  if (name.includes('及格')) return 'pass';
+  if (name !== '-') return 'normal';
   return 'bad';
 }
 
@@ -595,22 +588,28 @@ async function loadStatistics() {
 
   loading.value = true;
   try {
-    const [detail, result] = await Promise.all([
-      fetchAdminTraining(trainingId.value),
-      fetchAdminTrainingStatistics(trainingId.value)
+    const detail = await fetchAdminTraining(trainingId.value);
+    if (!detail.openEndTime || Date.now() < new Date(detail.openEndTime).getTime()) {
+      ElMessage.warning('实训结束后才可查看成绩统计');
+      await router.replace('/admin/training');
+      return;
+    }
+    const [result, rules, reviews, offline, topics] = await Promise.all([
+      fetchAdminTrainingStatistics(trainingId.value),
+      fetchAdminScoreGradeRules(),
+      fetchAdminTrainingReviews(trainingId.value),
+      fetchAdminTrainingOfflineScores(trainingId.value),
+      fetchAdminTrainingWeakTopics(trainingId.value, activeClass.value === '全部班级' ? undefined : activeClass.value)
     ]);
+    trainingDetail.value = detail;
     trainingTitle.value = detail.trainingName || trainingTitle.value;
     classText.value = detail.classNames || classText.value;
     timeText.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`.trim();
     statistics.value = result;
-    [reviewRows.value, offlineScores.value] = await Promise.all([
-      fetchAdminTrainingReviews(trainingId.value),
-      fetchAdminTrainingOfflineScores(trainingId.value)
-    ]);
-    weakSteps.value = await fetchAdminTrainingWeakSteps(
-      trainingId.value,
-      activeClass.value === '全部班级' ? undefined : activeClass.value
-    );
+    gradeRules.value = [...rules].sort((left, right) => right.maxScore - left.maxScore || right.minScore - left.minScore);
+    reviewRows.value = reviews;
+    offlineScores.value = offline;
+    weakTopics.value = topics;
   } catch (error) {
     statistics.value = {};
     ElMessage.error(error instanceof Error ? error.message : '成绩统计加载失败');
@@ -635,10 +634,10 @@ onBeforeUnmount(() => {
 watch(activeClass, async (value) => {
   if (!trainingId.value) return;
   try {
-    weakSteps.value = await fetchAdminTrainingWeakSteps(trainingId.value, value === '全部班级' ? undefined : value);
+    weakTopics.value = await fetchAdminTrainingWeakTopics(trainingId.value, value === '全部班级' ? undefined : value);
   } catch (error) {
-    weakSteps.value = [];
-    ElMessage.error(error instanceof Error ? error.message : '薄弱环节加载失败');
+    weakTopics.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '易错题目加载失败');
   }
 });
 </script>
@@ -697,7 +696,7 @@ watch(activeClass, async (value) => {
 
 .admin-training-statistics-summary {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
   padding: 14px 16px;
 }
@@ -1041,6 +1040,45 @@ watch(activeClass, async (value) => {
   height: 188px;
   border-radius: 4px 4px 0 0;
   overflow: hidden;
+}
+
+.score-range-chart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  align-items: end;
+  gap: 18px;
+  min-height: 236px;
+  padding: 20px 28px 22px;
+  border-bottom: 1px solid #cbd5e1;
+  background-image: repeating-linear-gradient(to bottom, #edf1f6 0, #edf1f6 1px, transparent 1px, transparent 20%);
+}
+
+.score-range-column {
+  display: grid;
+  grid-template-rows: 20px 170px auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+.score-range-column b {
+  color: #475569;
+  font-size: 12px;
+}
+
+.score-range-column i {
+  width: min(56px, 75%);
+  min-height: 0;
+  margin: 0 auto;
+  border-radius: 3px 3px 0 0;
+}
+
+.score-range-column span {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .stack-bars i {

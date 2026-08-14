@@ -7,6 +7,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRole;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakTopic;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStudentState;
 import java.util.List;
 import java.util.Map;
@@ -349,6 +350,45 @@ public interface AdminTrainingMapper {
     })
     List<AdminTrainingWeakStep> findWeakSteps(@Param("trainingId") Long trainingId,
                                               @Param("className") String className);
+
+    @Select("<script>SELECT result.topic_id, result.topic_name, "
+            + "SUM(CASE WHEN result.score &lt; result.max_score THEN 1 ELSE 0 END) AS error_student_count, "
+            + "COUNT(*) AS submitted_student_count, "
+            + "ROUND(SUM(CASE WHEN result.score &gt;= result.max_score THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS correct_rate "
+            + "FROM ("
+            + "SELECT tt.id AS topic_id, tt.topic_name, COALESCE(ta.manual_score, ta.personal_score) AS score, tt.score AS max_score "
+            + "FROM training_participant tp "
+            + "JOIN sys_user u ON u.id = tp.student_id LEFT JOIN edu_class c ON c.id = u.class_id "
+            + "JOIN training_topic_binding tb ON tb.training_id = tp.training_id "
+            + "JOIN training_topic tt ON tt.id = tb.topic_id JOIN training_course tc ON tc.id = tp.training_id "
+            + "JOIN training_attempt ta ON ta.id = (SELECT tx.id FROM training_attempt tx "
+            + "WHERE tx.training_id = tp.training_id AND tx.student_id = tp.student_id "
+            + "AND (tx.topic_id = tt.id OR (tx.topic_id IS NULL AND "
+            + "(SELECT COUNT(*) FROM training_topic_binding one_tb WHERE one_tb.training_id = tp.training_id) = 1)) "
+            + "AND tx.submitted_at IS NOT NULL "
+            + "ORDER BY CASE WHEN tc.score_basis = 'HIGHEST' THEN COALESCE(tx.manual_score, tx.personal_score) END DESC, "
+            + "tx.submitted_at DESC, tx.id DESC LIMIT 1) "
+            + "WHERE tp.training_id = #{trainingId} "
+            + "<if test='className != null'>AND c.class_name = #{className}</if> "
+            + "UNION ALL "
+            + "SELECT tt.id AS topic_id, tt.topic_name, ots.score, tt.score AS max_score "
+            + "FROM training_offline_score os JOIN training_offline_topic_score ots ON ots.offline_score_id = os.id "
+            + "JOIN training_topic tt ON tt.id = ots.topic_id "
+            + "WHERE os.training_id = #{trainingId} "
+            + "AND NOT EXISTS (SELECT 1 FROM training_attempt ta WHERE ta.training_id = os.training_id "
+            + "AND ta.student_id = os.student_id AND ta.submitted_at IS NOT NULL) "
+            + "<if test='className != null'>AND os.class_name = #{className}</if> "
+            + ") result GROUP BY result.topic_id, result.topic_name "
+            + "ORDER BY error_student_count DESC, correct_rate ASC, result.topic_name ASC LIMIT 10</script>")
+    @Results(id = "weakTopicMap", value = {
+            @Result(column = "topic_id", property = "topicId"),
+            @Result(column = "topic_name", property = "topicName"),
+            @Result(column = "error_student_count", property = "errorStudentCount"),
+            @Result(column = "submitted_student_count", property = "submittedStudentCount"),
+            @Result(column = "correct_rate", property = "correctRate")
+    })
+    List<AdminTrainingWeakTopic> findWeakTopics(@Param("trainingId") Long trainingId,
+                                                @Param("className") String className);
 
     @Select("SELECT rc.id AS camera_id, tr.id AS classroom_id, tr.room_name AS classroom_name, "
             + "rc.camera_name, CAST(rc.nvr_channel AS CHAR) AS nvr_channel, rc.rtsp_url AS stream_url, "

@@ -70,6 +70,7 @@ import {
 import { uploadAdminFile } from '../src/api/admin-resource';
 import { fetchAdminDeviceEfficiencyReport } from '../src/api/admin-device';
 import { fetchAdminTrainingArchiveDetail, fetchAdminTrainingArchives } from '../src/api/admin-archive';
+import { fetchAdminTrainingWeakTopics } from '../src/api/admin-training';
 import { clearAuthSession, requestJson, tryRequestJson } from '../src/api/http';
 import {
   createTrainingRoom,
@@ -428,6 +429,21 @@ describe('api http client', () => {
     });
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/admin/archives?keyword=0012&page=1&pageSize=10', expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/admin/archives/9', expect.any(Object));
+  });
+
+  it('loads class-filtered weak training topics from the documented statistics endpoint', async () => {
+    const fetchMock = vi.fn(() => mockJsonResponse({
+      data: [{ topicId: 7, topicName: '屏蔽门故障处置', errorStudentCount: 3, submittedStudentCount: 20, correctRate: 85 }]
+    }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(fetchAdminTrainingWeakTopics(9, '城轨 1 班')).resolves.toMatchObject([
+      { topicId: 7, errorStudentCount: 3, correctRate: 85 }
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/trainings/9/statistics/weak-topics?className=%E5%9F%8E%E8%BD%A8%201%20%E7%8F%AD',
+      expect.any(Object)
+    );
   });
 
   it('uses the documented admin paper endpoints', async () => {

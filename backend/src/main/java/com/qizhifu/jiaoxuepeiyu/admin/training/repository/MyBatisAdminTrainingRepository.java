@@ -10,6 +10,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRole;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingRoleCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakTopic;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStudentState;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import java.time.LocalDateTime;
@@ -108,6 +109,11 @@ public class MyBatisAdminTrainingRepository implements AdminTrainingRepository {
     @Override
     public List<AdminTrainingWeakStep> findWeakSteps(Long trainingId, String className) {
         return mapper.findWeakSteps(trainingId, className);
+    }
+
+    @Override
+    public List<AdminTrainingWeakTopic> findWeakTopics(Long trainingId, String className) {
+        return mapper.findWeakTopics(trainingId, className);
     }
 
     @Override
