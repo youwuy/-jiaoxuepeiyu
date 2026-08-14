@@ -890,12 +890,45 @@ function addCamera() {
   roomForm.cameras.push(newCamera(roomForm.cameras.length + 1));
 }
 
-function removeRoomCamera(id: number) {
+async function removeRoomCamera(id: number) {
   if (roomForm.cameras.length <= 1) {
     ElMessage.warning('至少保留一组摄像头配置');
     return;
   }
+  try {
+    await ElMessageBox.confirm('确认删除这组摄像头配置？', '删除摄像头', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
   roomForm.cameras = roomForm.cameras.filter((item) => item.id !== id);
+}
+
+function isValidIpv4(value: string) {
+  const parts = value.trim().split('.');
+  return parts.length === 4 && parts.every((part) => /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255);
+}
+
+function validateCamera(camera: CameraRow, index: number) {
+  if (!isValidIpv4(camera.host)) {
+    throw new Error(`第${index + 1}组摄像头的 NVR 主机 IP 格式不正确`);
+  }
+  const port = Number(camera.port);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`第${index + 1}组摄像头的端口必须是1-65535的整数`);
+  }
+  if (!camera.account.trim()) {
+    throw new Error(`请输入第${index + 1}组摄像头的管理员账号`);
+  }
+  if (!camera.password) {
+    throw new Error(`请输入第${index + 1}组摄像头的管理员密码`);
+  }
+  if (!camera.channel.trim()) {
+    throw new Error(`请输入第${index + 1}组摄像头的通道编号`);
+  }
 }
 
 async function saveAdd() {
@@ -916,6 +949,7 @@ async function saveAdd() {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
       if (!Number.isInteger(roomForm.fixedDeviceCount) || Number(roomForm.fixedDeviceCount) <= 0) return ElMessage.warning('请输入有效的固定设备数量');
       if (!roomForm.cameras.length) return ElMessage.warning('请至少添加一个摄像头');
+      roomForm.cameras.forEach(validateCamera);
       const command = toClassroomCommand(roomForm.roomName, roomForm.cameras, Number(roomForm.fixedDeviceCount));
       if (editingClassroomId.value) {
         await updateAdminClassroom(editingClassroomId.value, command);
