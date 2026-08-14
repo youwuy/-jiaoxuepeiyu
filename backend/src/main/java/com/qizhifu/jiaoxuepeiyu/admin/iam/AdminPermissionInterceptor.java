@@ -74,7 +74,10 @@ public class AdminPermissionInterceptor implements HandlerInterceptor {
     }
 
     private List<String> pagesFor(String path) {
-        if (path.startsWith("/api/admin/orgs")) return Arrays.asList("system:org");
+        if (path.equals("/api/admin/org") || path.startsWith("/api/admin/org/")
+                || path.equals("/api/admin/orgs") || path.startsWith("/api/admin/orgs/")) {
+            return Arrays.asList("system:org");
+        }
         if (path.startsWith("/api/admin/accounts")) return Arrays.asList("system:user");
         if (path.startsWith("/api/admin/permissions")) return Arrays.asList("system:permission");
         if (path.startsWith("/api/admin/roles")) return Arrays.asList("role:list");

@@ -50,6 +50,24 @@ class AdminPermissionInterceptorTests {
     }
 
     @Test
+    void organizationTreeUsesSingularControllerPathAndListPermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("system:org:list");
+        MockHttpServletRequest request = request("GET", "/api/admin/org/tree");
+
+        assertDoesNotThrow(() -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+    }
+
+    @Test
+    void organizationCreateRejectsListOnlyPermission() {
+        AdminPermissionInterceptor interceptor = interceptorWith("system:org:list");
+        MockHttpServletRequest request = request("POST", "/api/admin/org");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+        assertEquals(403, exception.getCode());
+    }
+
+    @Test
     void courseUpdateUsesTeachingCourseUpdatePermission() {
         AdminPermissionInterceptor interceptor = interceptorWith("teaching:course:update");
         MockHttpServletRequest request = request("PUT", "/api/admin/courses/7");
