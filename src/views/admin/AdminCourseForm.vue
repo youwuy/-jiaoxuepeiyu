@@ -360,9 +360,9 @@
           <div class="admin-course-homework-question-head">
             <div>
               <strong>作业题目</strong>
-              <small>可从实训题库和理论题库中选择题目</small>
+              <small>可从实训题库或理论试卷中选择作业内容</small>
             </div>
-            <span>已选 {{ outlineForm.questions.length }} 题</span>
+            <span>已选 {{ outlineForm.questions.length }}{{ homeworkQuestionTab === 'theory' ? ' 套试卷' : ' 道实训题' }}</span>
           </div>
           <el-tabs
             v-model="homeworkQuestionTab"
@@ -404,7 +404,7 @@
                   <el-empty v-if="!questionPickerLoading && questionRows.length === 0" description="暂无可添加题目" />
                 </div>
                 <div class="admin-course-question-picker-footer">
-                  <span>已选 {{ selectedQuestionCount(tab.name) }} 题</span>
+                  <span>已选 {{ selectedQuestionCount(tab.name) }}{{ tab.name === 'theory' ? ' 套试卷' : ' 道实训题' }}</span>
                   <el-pagination
                     layout="prev, pager, next"
                     :current-page="questionPage"
@@ -424,7 +424,7 @@
             </div>
             <article v-for="item in outlineForm.questions" :key="`${item.kind}-${item.id}`">
               <span class="admin-course-homework-question-type" :class="item.kind">
-                {{ item.kind === 'practice' ? '实训题' : '理论题' }}
+                {{ item.kind === 'practice' ? '实训题' : '理论试卷' }}
               </span>
               <div>
                 <strong>{{ item.title }}</strong>
@@ -436,7 +436,7 @@
           </div>
           <div v-else class="admin-course-homework-question-empty">
             <el-icon><Document /></el-icon>
-            <span>暂未添加题目，请在上方选择实训题或理论题</span>
+            <span>暂未添加题目，请在上方选择实训题或理论试卷</span>
           </div>
         </section>
       </div>
@@ -459,7 +459,7 @@
       <template #header>
         <div class="admin-course-question-dialog-head">
           <div>
-            <strong>{{ questionDetail?.kind === 'practice' ? '实训题详情' : '理论题详情' }}</strong>
+            <strong>{{ questionDetail?.kind === 'practice' ? '实训题详情' : '理论试卷详情' }}</strong>
             <span>{{ questionDetail?.typeLabel || '题目详情' }}</span>
           </div>
           <el-button text circle :icon="Close" @click="questionDetailVisible = false" />
@@ -470,7 +470,7 @@
       <div v-else-if="questionDetail" class="admin-course-question-detail-body">
         <div class="admin-course-question-detail-meta">
           <span class="admin-course-homework-question-type" :class="questionDetail.kind">
-            {{ questionDetail.kind === 'practice' ? '实训题' : '理论题' }}
+            {{ questionDetail.kind === 'practice' ? '实训题' : '理论试卷' }}
           </span>
           <span>{{ questionDetail.typeLabel }}</span>
           <span v-if="questionDetail.score">{{ questionDetail.score }} 分</span>
@@ -728,9 +728,9 @@ import {
 import type { AdminCourseChapter, AdminCourseContent } from '../../features/admin/courses';
 import {
   fetchAdminQuestion,
-  fetchAdminQuestions,
   type AdminQuestion
 } from '../../api/admin-question';
+import { fetchAdminPaper, fetchAdminPapers, type AdminPaper } from '../../api/admin-paper';
 import {
   fetchAdminTraining,
   fetchAdminTrainings,
@@ -824,6 +824,8 @@ interface HomeworkQuestion {
   score: number;
   meta: string;
   coverUrl?: string;
+  paperId?: number;
+  questionIds?: number[];
 }
 
 interface HomeworkQuestionOption {
@@ -859,7 +861,7 @@ const outlineTargetItem = ref<OutlineItem | null>(null);
 const homeworkQuestionTab = ref<HomeworkQuestionKind>('practice');
 const questionTabs: Array<{ label: string; name: HomeworkQuestionKind }> = [
   { label: '实训题', name: 'practice' },
-  { label: '理论题', name: 'theory' }
+  { label: '理论试卷', name: 'theory' }
 ];
 const questionPickerLoading = ref(false);
 const questionKeyword = ref('');
@@ -1081,7 +1083,7 @@ function questionTypeLabel(type?: string) {
     FILL_BLANK: '填空题',
     SHORT_ANSWER: '简答题'
   };
-  return type ? labels[type.toUpperCase()] || type : '理论题';
+  return type ? labels[type.toUpperCase()] || type : '理论试题';
 }
 
 function mapTheoryQuestion(item: AdminQuestion): HomeworkQuestion {
@@ -1092,6 +1094,18 @@ function mapTheoryQuestion(item: AdminQuestion): HomeworkQuestion {
     typeLabel: questionTypeLabel(item.questionType),
     score: Number(item.score || 0),
     meta: item.creatorName ? `添加人：${item.creatorName}` : '理论题库'
+  };
+}
+
+function mapTheoryPaper(item: AdminPaper): HomeworkQuestion {
+  return {
+    id: item.paperId,
+    paperId: item.paperId,
+    kind: 'theory',
+    title: item.paperName,
+    typeLabel: '理论试卷',
+    score: Number(item.totalScore || 0),
+    meta: `${item.questionCount || item.questions?.length || 0} 道题 · ${item.courseName || '未绑定课程'}`
   };
 }
 
@@ -1127,13 +1141,13 @@ async function loadQuestionRows() {
   questionPickerLoading.value = true;
   try {
     if (homeworkQuestionTab.value === 'theory') {
-      const result = await fetchAdminQuestions({
+      const result = await fetchAdminPapers({
         keyword: questionKeyword.value,
-        enabled: true,
+        publishStatus: 'PUBLISHED',
         page: questionPage.value,
         pageSize: questionPageSize
       });
-      questionRows.value = result.records.map(mapTheoryQuestion);
+      questionRows.value = result.records.map(mapTheoryPaper);
       questionTotal.value = result.total;
     } else {
       const result = await fetchAdminTrainings({
@@ -1153,7 +1167,7 @@ async function loadQuestionRows() {
   }
 }
 
-function toggleQuestionSelection(item: HomeworkQuestion) {
+async function toggleQuestionSelection(item: HomeworkQuestion) {
   const selectedIndex = outlineForm.questions.findIndex(
     (question) => questionKey(question) === questionKey(item)
   );
@@ -1161,10 +1175,31 @@ function toggleQuestionSelection(item: HomeworkQuestion) {
     outlineForm.questions.splice(selectedIndex, 1);
   } else {
     if (outlineForm.questions.some((question) => question.kind !== item.kind)) {
-      ElMessage.warning('同一作业只能选择实训题或理论题中的一种');
+      ElMessage.warning('同一作业只能选择实训题或理论试卷中的一种');
       return;
     }
-    outlineForm.questions.push({ ...item });
+    let selected = { ...item };
+    if (item.kind === 'theory' && item.paperId && !item.questionIds?.length) {
+      try {
+        const detail = await fetchAdminPaper(item.paperId);
+        const questionIds = (detail.questions ?? []).map((question) => question.questionId).filter((id): id is number => Number.isFinite(id));
+        if (!questionIds.length) {
+          ElMessage.warning('该理论试卷暂无可用试题');
+          return;
+        }
+        selected = {
+          ...item,
+          title: detail.paperName || item.title,
+          score: Number(detail.totalScore || item.score || 0),
+          questionIds,
+          meta: `${questionIds.length} 道题 · ${detail.courseName || '未绑定课程'}`
+        };
+      } catch (error) {
+        ElMessage.error(error instanceof Error ? error.message : '理论试卷详情加载失败');
+        return;
+      }
+    }
+    outlineForm.questions.push(selected);
   }
 }
 
@@ -1183,28 +1218,45 @@ async function openQuestionDetail(item: HomeworkQuestion) {
   questionDetail.value = { ...item };
   try {
     if (item.kind === 'theory') {
-      const detail = await fetchAdminQuestion(item.id);
-      const standardAnswers = new Set(
-        (detail.standardAnswer ?? '')
-          .split(/[,\s，、;；]+/)
-          .map((answer) => answer.trim().toUpperCase())
-          .filter(Boolean)
-      );
-      questionDetail.value = {
-        ...item,
-        title: detail.title || item.title,
-        typeLabel: questionTypeLabel(detail.questionType),
-        score: Number(detail.score || item.score || 0),
-        options: detail.options?.map((option) => {
-          const optionKey = option.optionKey?.trim().toUpperCase();
-          return {
+      if (item.paperId) {
+        const detail = await fetchAdminPaper(item.paperId);
+        const firstQuestion = detail.questions?.[0];
+        questionDetail.value = {
+          ...item,
+          title: detail.paperName || item.title,
+          typeLabel: '理论试卷',
+          score: Number(detail.totalScore || item.score || 0),
+          answer: `共 ${detail.questionCount || detail.questions?.length || item.questionIds?.length || 0} 道试题`,
+          extra: detail.creatorName ? `添加人：${detail.creatorName}` : '理论试卷',
+          options: firstQuestion?.options?.map((option) => ({
             label: `${option.optionKey || ''} ${option.optionText || ''}`.trim() || '未命名选项',
-            correct: Boolean(option.correct || (optionKey && standardAnswers.has(optionKey)))
-          };
-        }),
-        answer: detail.standardAnswer || '暂未配置标准答案',
-        extra: detail.creatorName ? `添加人：${detail.creatorName}` : '理论题库'
-      };
+            correct: Boolean(option.correct)
+          }))
+        };
+      } else {
+        const detail = await fetchAdminQuestion(item.id);
+        const standardAnswers = new Set(
+          (detail.standardAnswer ?? '')
+            .split(/[,\s，、;；]+/)
+            .map((answer: string) => answer.trim().toUpperCase())
+            .filter(Boolean)
+        );
+        questionDetail.value = {
+          ...item,
+          title: detail.title || item.title,
+          typeLabel: questionTypeLabel(detail.questionType),
+          score: Number(detail.score || item.score || 0),
+          options: detail.options?.map((option) => {
+            const optionKey = option.optionKey?.trim().toUpperCase();
+            return {
+              label: `${option.optionKey || ''} ${option.optionText || ''}`.trim() || '未命名选项',
+              correct: Boolean(option.correct || (optionKey && standardAnswers.has(optionKey)))
+            };
+          }),
+          answer: detail.standardAnswer || '暂未配置标准答案',
+          extra: detail.creatorName ? `添加人：${detail.creatorName}` : '理论试卷'
+        };
+      }
     } else {
       const detail = await fetchAdminTraining(item.id);
       questionDetail.value = {
@@ -1559,7 +1611,9 @@ function serializeOutlineItems(items: OutlineItem[]): NonNullable<CourseChapterC
     sortOrder: itemIndex + 1,
     resourceId: item.resourceId,
     assignmentId: item.assignmentId,
-    questionIds: item.questions?.filter((question) => question.kind === 'theory').map((question) => question.id),
+    questionIds: item.questions
+      ?.filter((question) => question.kind === 'theory')
+      .flatMap((question) => question.questionIds ?? [question.id]),
     assignmentTotalScore: item.questions
       ?.filter((question) => question.kind === 'theory')
       .reduce((total, question) => total + Number(question.score || 0), 0),
@@ -1694,6 +1748,36 @@ function flattenApiContents(chapters: AdminCourseChapter[]): AdminCourseContent[
   return chapters.flatMap((chapter) => [...(chapter.contents ?? []), ...flattenApiContents(chapter.children ?? [])]);
 }
 
+function sameIdSet(left: number[], right: number[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightSet = new Set(right);
+  return new Set(left).size === rightSet.size && left.every((id) => rightSet.has(id));
+}
+
+async function findTheoryPaper(questionIds: number[]) {
+  if (!questionIds.length) {
+    return undefined;
+  }
+  const papers = await fetchAdminPapers({ publishStatus: 'PUBLISHED', page: 1, pageSize: 100 });
+  const details = await Promise.all(
+    papers.records.map(async (paper) => {
+      try {
+        return await fetchAdminPaper(paper.paperId);
+      } catch {
+        return undefined;
+      }
+    })
+  );
+  return details.find((paper) => {
+    const ids = (paper?.questions ?? [])
+      .map((question) => question.questionId)
+      .filter((id): id is number => Number.isFinite(id));
+    return sameIdSet(questionIds, ids);
+  });
+}
+
 async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
   chapters.value = (detail.chapters ?? []).map((chapter) => ({
     id: chapter.chapterId ?? nextOutlineId(),
@@ -1708,9 +1792,22 @@ async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCou
   const sourceContents = flattenApiContents(detail.chapters ?? []);
   await Promise.all(homeworkItems.map(async (item) => {
     const source = sourceContents.find((content) => content.contentId === item.id);
-    const questions = await Promise.allSettled(
-      (source?.questionIds ?? []).map((questionId) => fetchAdminQuestion(questionId))
-    );
+    const questionIds = source?.questionIds ?? [];
+    if (!questionIds.length) {
+      item.questions = [];
+      return;
+    }
+    const paper = await findTheoryPaper(questionIds).catch(() => undefined);
+    if (paper) {
+      item.questions = [
+        {
+          ...mapTheoryPaper(paper),
+          questionIds: questionIds.slice()
+        }
+      ];
+      return;
+    }
+    const questions = await Promise.allSettled(questionIds.map((questionId) => fetchAdminQuestion(questionId)));
     item.questions = questions
       .filter((result): result is PromiseFulfilledResult<AdminQuestion> => result.status === 'fulfilled')
       .map((result) => mapTheoryQuestion(result.value));

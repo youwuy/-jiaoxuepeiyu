@@ -8,7 +8,7 @@ export interface AdminPaperQuestion {
   standardAnswer?: string;
   score?: number;
   sortOrder?: number;
-  options?: Array<{ optionKey?: string; optionText?: string }>;
+  options?: Array<{ optionKey?: string; optionText?: string; correct?: boolean }>;
 }
 
 export interface AdminPaper {
