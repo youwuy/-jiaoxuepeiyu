@@ -387,6 +387,16 @@ function setBusy(courseId: number | null) {
 }
 
 async function publishCourse(course: AdminCourseView) {
+  try {
+    await ElMessageBox.confirm(`确定要发布「${course.title}」吗？发布后学员可以看到该课程`, '发布课程', {
+      confirmButtonText: '确定发布',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
+
   setBusy(course.id);
   try {
     const detail = await fetchAdminCourseDetail(course.id);
@@ -408,6 +418,16 @@ async function publishCourse(course: AdminCourseView) {
 }
 
 async function cancelPublish(course: AdminCourseView) {
+  try {
+    await ElMessageBox.confirm(`确定要取消发布「${course.title}」吗？取消后学员将无法继续访问该课程`, '取消发布', {
+      confirmButtonText: '确定取消发布',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
+
   setBusy(course.id);
   try {
     await cancelPublishAdminCourse(course.id);
@@ -449,21 +469,11 @@ async function copyCourse(course: AdminCourseView) {
   setBusy(course.id);
   try {
     const result = await copyAdminCourse(course.id);
-    const copyId = result.courseId || Date.now();
-    courses.value = [
-      {
-        ...course,
-        courseId: copyId,
-        courseName: `${course.title}（副本）`,
-        publishStatus: 'DRAFT',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      ...courses.value
-    ];
-    total.value += 1;
+    if (!result.courseId) {
+      throw new Error('复制接口未返回新课程编号');
+    }
+    await loadCourses();
     ElMessage.success('课程已复制');
-    page.value = 1;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '复制失败');
   } finally {
