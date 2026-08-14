@@ -6,6 +6,7 @@ import java.util.List;
 public class AdminClassroomCommand {
 
     private String roomName;
+    private Integer fixedDeviceCount;
     private List<AdminCameraCommand> cameras = new ArrayList<AdminCameraCommand>();
 
     public String getRoomName() {
@@ -14,6 +15,14 @@ public class AdminClassroomCommand {
 
     public void setRoomName(String roomName) {
         this.roomName = roomName;
+    }
+
+    public Integer getFixedDeviceCount() {
+        return fixedDeviceCount;
+    }
+
+    public void setFixedDeviceCount(Integer fixedDeviceCount) {
+        this.fixedDeviceCount = fixedDeviceCount;
     }
 
     public List<AdminCameraCommand> getCameras() {

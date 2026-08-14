@@ -106,7 +106,7 @@ const classrooms = ref<AdminClassroom[]>([]);
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 const metrics = computed(() => {
-  const total = classrooms.value.reduce((sum, item) => sum + Number(item.cameraCount || 0), 0);
+  const total = classrooms.value.reduce((sum, item) => sum + Number(item.fixedDeviceCount || 0), 0);
   const online = Number(onlineDashboard.value.onlineCount || 0);
   const idle = Math.max(0, total - online);
   return [
@@ -120,7 +120,7 @@ const metrics = computed(() => {
 const onlineUsers = computed(() => (onlineDashboard.value.users || []).filter((item) => item.online));
 const classroomStats = computed<NamedCount[]>(() => classrooms.value.map((item) => ({
   name: item.roomName,
-  count: Number(item.cameraCount || 0),
+  count: Number(item.fixedDeviceCount || 0),
   icon: OfficeBuilding
 })));
 

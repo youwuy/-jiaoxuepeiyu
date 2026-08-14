@@ -8,6 +8,7 @@ public class AdminClassroom {
 
     private Long classroomId;
     private String roomName;
+    private int fixedDeviceCount;
     private int cameraCount;
     private LocalDateTime createdAt;
     private List<AdminCamera> cameras = new ArrayList<AdminCamera>();
@@ -26,6 +27,14 @@ public class AdminClassroom {
 
     public void setRoomName(String roomName) {
         this.roomName = roomName;
+    }
+
+    public int getFixedDeviceCount() {
+        return fixedDeviceCount;
+    }
+
+    public void setFixedDeviceCount(int fixedDeviceCount) {
+        this.fixedDeviceCount = fixedDeviceCount;
     }
 
     public int getCameraCount() {

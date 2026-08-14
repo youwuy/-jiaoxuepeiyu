@@ -57,6 +57,9 @@ public class AdminFacilityConfigService {
         if (command == null || !InputValidator.hasText(command.getRoomName())) {
             throw new BusinessException(400, "Classroom name is required");
         }
+        if (command.getFixedDeviceCount() == null || command.getFixedDeviceCount().intValue() <= 0) {
+            throw new BusinessException(400, "Classroom fixed device count must be greater than zero");
+        }
         if (command.getCameras() == null || command.getCameras().isEmpty()) {
             throw new BusinessException(400, "At least one camera is required");
         }
@@ -72,6 +75,7 @@ public class AdminFacilityConfigService {
         }
         AdminClassroomCommand normalized = new AdminClassroomCommand();
         normalized.setRoomName(command.getRoomName().trim());
+        normalized.setFixedDeviceCount(command.getFixedDeviceCount());
         normalized.setCameras(cameras);
         return normalized;
     }

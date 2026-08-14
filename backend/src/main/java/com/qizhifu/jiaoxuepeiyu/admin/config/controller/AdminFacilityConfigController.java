@@ -28,25 +28,25 @@ public class AdminFacilityConfigController {
     }
 
     @GetMapping
-    @Operation(summary = "List classrooms", description = "Returns classrooms with configured NVR camera metadata.")
+    @Operation(summary = "List classrooms", description = "Returns each classroom's administrator-maintained fixed device count and configured NVR camera metadata.")
     public ApiResponse<List<AdminClassroom>> list() {
         return ApiResponse.ok(service.listClassrooms());
     }
 
     @GetMapping("/{classroomId}")
-    @Operation(summary = "Get classroom detail", description = "Returns one classroom and its camera list.")
+    @Operation(summary = "Get classroom detail", description = "Returns one classroom, its fixed device count, and its camera list.")
     public ApiResponse<AdminClassroom> get(@PathVariable Long classroomId) {
         return ApiResponse.ok(service.getClassroom(classroomId));
     }
 
     @PostMapping
-    @Operation(summary = "Create classroom", description = "Creates a classroom with at least one NVR camera and returns the new classroom id.")
+    @Operation(summary = "Create classroom", description = "Creates a classroom with a fixed device count and at least one NVR camera, then returns the new classroom id.")
     public ApiResponse<Long> create(@RequestBody AdminClassroomCommand body) {
         return ApiResponse.ok(service.createClassroom(body));
     }
 
     @PutMapping("/{classroomId}")
-    @Operation(summary = "Update classroom", description = "Updates classroom name and replaces the submitted camera list.")
+    @Operation(summary = "Update classroom", description = "Updates classroom name and fixed device count, then replaces the submitted camera list.")
     public ApiResponse<Void> update(@PathVariable Long classroomId, @RequestBody AdminClassroomCommand body) {
         service.updateClassroom(classroomId, body);
         return ApiResponse.ok(null);

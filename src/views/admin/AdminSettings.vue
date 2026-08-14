@@ -157,6 +157,7 @@
                 <tr>
                   <th rowspan="2">序号</th>
                   <th rowspan="2">教室名称</th>
+                  <th rowspan="2">固定设备数</th>
                   <th colspan="6">摄像头参数</th>
                   <th rowspan="2">操作</th>
                 </tr>
@@ -173,6 +174,7 @@
                 <tr v-for="(camera, index) in classroomCameraRows" :key="camera.id">
                   <td>{{ index + 1 }}</td>
                   <td>{{ camera.roomName }}</td>
+                  <td>{{ camera.fixedDeviceCount }}</td>
                   <td>{{ camera.host }}</td>
                   <td>{{ camera.port }}</td>
                   <td>{{ camera.account }}</td>
@@ -303,6 +305,10 @@
             <span>教室名称 <b>*</b></span>
             <el-input v-model="roomForm.roomName" maxlength="20" placeholder="请输入教室名称" />
             <small>最多输入20个字</small>
+          </label>
+          <label class="wide">
+            <span>固定设备数量 <b>*</b></span>
+            <el-input-number v-model="roomForm.fixedDeviceCount" :min="1" :max="9999" controls-position="right" />
           </label>
           <div class="admin-settings-room-title">
             <strong>摄像头参数</strong>
@@ -442,6 +448,7 @@ interface CameraRow {
   classroomId?: number;
   cameraId?: number;
   roomName: string;
+  fixedDeviceCount?: number;
   host: string;
   port: string;
   account: string;
@@ -488,8 +495,9 @@ const weightForm = reactive({
   examWeight: 0
 });
 
-const roomForm = reactive<{ roomName: string; cameras: CameraRow[] }>({
+const roomForm = reactive<{ roomName: string; fixedDeviceCount?: number; cameras: CameraRow[] }>({
   roomName: '',
+  fixedDeviceCount: undefined,
   cameras: []
 });
 
@@ -658,6 +666,7 @@ function toCameraRow(classroom: AdminClassroom, camera: AdminCamera): CameraRow 
     classroomId: classroom.classroomId,
     cameraId: camera.cameraId,
     roomName: classroom.roomName,
+    fixedDeviceCount: classroom.fixedDeviceCount,
     host: camera.nvrHost,
     port: String(camera.nvrPort),
     account: camera.adminUsername,
@@ -725,6 +734,7 @@ function openAdd(kind: AddKind) {
   }
   if (kind === 'room') {
     roomForm.roomName = '';
+    roomForm.fixedDeviceCount = undefined;
     roomForm.cameras = [newCamera(1), newCamera(2)];
   }
   addVisible.value = true;
@@ -778,11 +788,16 @@ async function removeCamera(id: number) {
   }
 
   const remaining = classroomCameraRows.value.filter((item) => item.classroomId === target.classroomId && item.id !== id);
+  const classroom = classrooms.value.find((item) => item.classroomId === target.classroomId);
+  if (!classroom) {
+    ElMessage.error('未找到对应的教室配置');
+    return;
+  }
   try {
     if (remaining.length === 0) {
       await deleteAdminClassroom(target.classroomId);
     } else {
-      await updateAdminClassroom(target.classroomId, toClassroomCommand(target.roomName, remaining));
+      await updateAdminClassroom(target.classroomId, toClassroomCommand(target.roomName, remaining, classroom.fixedDeviceCount));
     }
     await loadSettings();
     ElMessage.success('教室摄像头配置已更新');
@@ -794,18 +809,30 @@ async function removeCamera(id: number) {
 function editRoom(camera: CameraRow) {
   editingClassroomId.value = camera.classroomId ?? null;
   roomForm.roomName = camera.roomName;
+  roomForm.fixedDeviceCount = classrooms.value.find((item) => item.classroomId === camera.classroomId)?.fixedDeviceCount;
   roomForm.cameras = classroomCameraRows.value.filter((item) => item.roomName === camera.roomName).map((item) => ({ ...item }));
   addKind.value = 'room';
   addVisible.value = true;
 }
 
 function newCamera(id: number): CameraRow {
-  return { id: Date.now() + id, roomName: roomForm.roomName.trim(), host: '', port: '', account: '', password: '', channel: '', url: '' };
+  return {
+    id: Date.now() + id,
+    roomName: roomForm.roomName.trim(),
+    fixedDeviceCount: roomForm.fixedDeviceCount,
+    host: '',
+    port: '',
+    account: '',
+    password: '',
+    channel: '',
+    url: ''
+  };
 }
 
-function toClassroomCommand(roomName: string, cameras: CameraRow[]): AdminClassroomCommand {
+function toClassroomCommand(roomName: string, cameras: CameraRow[], fixedDeviceCount: number): AdminClassroomCommand {
   return {
     roomName: roomName.trim(),
+    fixedDeviceCount,
     cameras: cameras.map((camera): AdminCameraCommand => ({
       nvrHost: camera.host.trim(),
       nvrPort: Number(camera.port),
@@ -845,8 +872,9 @@ async function saveAdd() {
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
+      if (!Number.isInteger(roomForm.fixedDeviceCount) || Number(roomForm.fixedDeviceCount) <= 0) return ElMessage.warning('请输入有效的固定设备数量');
       if (!roomForm.cameras.length) return ElMessage.warning('请至少添加一个摄像头');
-      const command = toClassroomCommand(roomForm.roomName, roomForm.cameras);
+      const command = toClassroomCommand(roomForm.roomName, roomForm.cameras, Number(roomForm.fixedDeviceCount));
       if (editingClassroomId.value) {
         await updateAdminClassroom(editingClassroomId.value, command);
       } else {

@@ -1,4 +1,4 @@
-import { requestJson, saveAuthSession } from './http';
+import { requestJson, saveAuthSession, type AuthPortal } from './http';
 import type { AdminLoginForm, StudentLoginForm, StudentLoginMode } from '../features/auth/validation';
 
 export interface LoginResult {
@@ -42,4 +42,15 @@ export async function loginAdmin(form: AdminLoginForm, loginType = 'username'): 
 
   saveAuthSession('admin', normalizeToken(result), result.user);
   return result;
+}
+
+export function sendOnlineHeartbeat(portal: AuthPortal) {
+  return requestJson<{ heartbeatAt?: string; heartbeatIntervalSeconds?: number; offlineTimeoutSeconds?: number }>(
+    '/online/heartbeat',
+    {
+      method: 'POST',
+      authPortal: portal,
+      fallbackLabel: '在线状态上报'
+    }
+  );
 }

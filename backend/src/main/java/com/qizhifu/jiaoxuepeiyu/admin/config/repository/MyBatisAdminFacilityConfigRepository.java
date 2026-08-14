@@ -66,6 +66,7 @@ public class MyBatisAdminFacilityConfigRepository implements AdminFacilityConfig
         AdminClassroom classroom = new AdminClassroom();
         classroom.setClassroomId(classroomId);
         classroom.setRoomName(command.getRoomName());
+        classroom.setFixedDeviceCount(command.getFixedDeviceCount().intValue());
         classroom.setCameraCount(command.getCameras().size());
         return classroom;
     }

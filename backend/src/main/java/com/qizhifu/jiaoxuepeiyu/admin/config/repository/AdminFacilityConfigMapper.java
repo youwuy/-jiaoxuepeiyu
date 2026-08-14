@@ -14,13 +14,14 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface AdminFacilityConfigMapper {
 
-    @Select("SELECT r.id AS classroom_id, r.room_name, "
+    @Select("SELECT r.id AS classroom_id, r.room_name, r.fixed_device_count, "
             + "(SELECT COUNT(*) FROM room_camera c WHERE c.room_id = r.id) AS camera_count, "
             + "r.created_at FROM training_room r ORDER BY r.created_at DESC, r.id DESC")
     List<AdminClassroom> findClassrooms();
 
-    @Select("SELECT id AS classroom_id, room_name, fixed_device_count AS camera_count, created_at "
-            + "FROM training_room WHERE id = #{classroomId} LIMIT 1")
+    @Select("SELECT r.id AS classroom_id, r.room_name, r.fixed_device_count, "
+            + "(SELECT COUNT(*) FROM room_camera c WHERE c.room_id = r.id) AS camera_count, r.created_at "
+            + "FROM training_room r WHERE r.id = #{classroomId} LIMIT 1")
     AdminClassroom findClassroom(@Param("classroomId") Long classroomId);
 
     @Select("SELECT id AS camera_id, room_id AS classroom_id, nvr_host, nvr_port, "
@@ -30,11 +31,11 @@ public interface AdminFacilityConfigMapper {
     List<AdminCamera> findCameras(@Param("classroomId") Long classroomId);
 
     @Insert("INSERT INTO training_room (room_name, fixed_device_count, created_at, updated_at) "
-            + "VALUES (#{roomName}, #{cameraCount}, NOW(), NOW())")
+            + "VALUES (#{roomName}, #{fixedDeviceCount}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "classroomId")
     void insertClassroom(AdminClassroom classroom);
 
-    @Update("UPDATE training_room SET room_name = #{roomName}, fixed_device_count = #{cameraCount}, "
+    @Update("UPDATE training_room SET room_name = #{roomName}, fixed_device_count = #{fixedDeviceCount}, "
             + "updated_at = NOW() WHERE id = #{classroomId}")
     void updateClassroom(AdminClassroom classroom);
 

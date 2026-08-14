@@ -77,6 +77,7 @@ export interface AdminCamera {
 export interface AdminClassroom {
   classroomId: number;
   roomName: string;
+  fixedDeviceCount: number;
   cameraCount: number;
   createdAt?: string;
   cameras?: AdminCamera[];
@@ -147,6 +148,7 @@ export interface AdminCameraCommand {
 
 export interface AdminClassroomCommand {
   roomName: string;
+  fixedDeviceCount: number;
   cameras: AdminCameraCommand[];
 }
 

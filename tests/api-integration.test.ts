@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loginAdmin, loginStudent } from '../src/api/auth';
 import {
   cancelPublishAdminCourse,
@@ -119,6 +119,14 @@ class MemoryStorage {
     this.values.clear();
   }
 }
+
+beforeEach(() => {
+  vi.stubGlobal('localStorage', new MemoryStorage());
+  globalThis.localStorage.setItem('jiaoxuepeiyu_admin_token', 'admin-test-token');
+  globalThis.localStorage.setItem('jiaoxuepeiyu_admin_user', JSON.stringify({ id: 1 }));
+  globalThis.localStorage.setItem('jiaoxuepeiyu_student_token', 'student-test-token');
+  globalThis.localStorage.setItem('jiaoxuepeiyu_student_user', JSON.stringify({ studentId: 88 }));
+});
 
 function mockJsonResponse(payload: unknown, init: ResponseInit = {}) {
   return Promise.resolve(
@@ -899,9 +907,9 @@ describe('api http client', () => {
     globalThis.fetch = fetchMock as typeof fetch;
 
     await expect(fetchStudentTrainingScoreSheet(77)).resolves.toMatchObject({
-      archiveId: 77,
-      trainingName: '站台门故障处置',
-      steps: [{ stepName: '上报故障' }]
+      id: 77,
+      title: '站台门故障处置',
+      steps: [{ name: '上报故障', expected: '立即上报', actual: '立即上报' }]
     });
     expect(fetchMock).toHaveBeenCalledWith('/api/student/training-attempts/77/score-sheet', expect.any(Object));
   });
@@ -1111,6 +1119,7 @@ describe('admin settings API integration', () => {
     await disableAdminClass(5);
     await createAdminClassroom({
       roomName: 'Training Room A',
+      fixedDeviceCount: 48,
       cameras: [
         {
           nvrHost: '10.0.0.1',

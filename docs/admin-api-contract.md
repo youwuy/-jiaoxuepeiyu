@@ -805,7 +805,7 @@ Disables a subway job role while preserving historical records.
 
 ### `GET /api/admin/classrooms`
 
-Response `data`: array of classrooms with cameras.
+Response `data`: array of classrooms with administrator-maintained `fixedDeviceCount`, actual `cameraCount`, and camera metadata. Fixed devices and monitoring cameras are separate quantities.
 
 ### `GET /api/admin/classrooms/{classroomId}`
 
@@ -818,6 +818,7 @@ Request body:
 ```json
 {
   "roomName": "Training Room A",
+  "fixedDeviceCount": 48,
   "cameras": [
     {
       "nvrHost": "10.0.0.1",
@@ -833,6 +834,7 @@ Request body:
 
 Behavior:
 
+- `fixedDeviceCount` is required and must be greater than `0`; administrators maintain this fixed quantity for each classroom.
 - At least one camera is required.
 - `nvrHost` must be IPv4.
 - `nvrPort` must be between `1` and `65535`.
@@ -845,6 +847,7 @@ Request body: same as create.
 Behavior:
 
 - Updates the classroom name.
+- Updates the administrator-maintained fixed device count.
 - Replaces the classroom camera list with the submitted list.
 
 ### `DELETE /api/admin/classrooms/{classroomId}`

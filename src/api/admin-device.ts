@@ -79,7 +79,7 @@ export interface AdminOnlineDashboard {
 }
 
 export function fetchAdminOnlineStudents() {
-  return requestJson<AdminOnlineDashboard>('/admin/online/users?userType=student&limit=1000', {
+  return requestJson<AdminOnlineDashboard>('/admin/online/users?userType=student&onlineOnly=true&limit=500', {
     fallbackLabel: '学员在线信息'
   });
 }

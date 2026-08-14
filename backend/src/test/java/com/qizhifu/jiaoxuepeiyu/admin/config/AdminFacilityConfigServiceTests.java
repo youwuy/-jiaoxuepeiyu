@@ -23,6 +23,7 @@ class AdminFacilityConfigServiceTests {
 
         assertEquals(20L, classroomId.longValue());
         assertEquals("Room A", repository.createdCommand.getRoomName());
+        assertEquals(Integer.valueOf(48), repository.createdCommand.getFixedDeviceCount());
         assertEquals(1, repository.createdCommand.getCameras().size());
     }
 
@@ -34,6 +35,17 @@ class AdminFacilityConfigServiceTests {
         BusinessException exception = assertThrows(BusinessException.class, () -> service.createClassroom(command));
 
         assertEquals("At least one camera is required", exception.getMessage());
+    }
+
+    @Test
+    void rejectsClassroomWithoutFixedDeviceCount() {
+        AdminFacilityConfigService service = new AdminFacilityConfigService(new FakeFacilities());
+        AdminClassroomCommand command = command(camera("10.0.0.1", 554, "CH01"));
+        command.setFixedDeviceCount(0);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.createClassroom(command));
+
+        assertEquals("Classroom fixed device count must be greater than zero", exception.getMessage());
     }
 
     @Test
@@ -63,6 +75,7 @@ class AdminFacilityConfigServiceTests {
     private AdminClassroomCommand command(AdminCameraCommand... cameras) {
         AdminClassroomCommand command = new AdminClassroomCommand();
         command.setRoomName(" Room A ");
+        command.setFixedDeviceCount(48);
         command.setCameras(Arrays.asList(cameras));
         return command;
     }
