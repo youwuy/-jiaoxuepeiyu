@@ -131,6 +131,9 @@ Request body:
   "classroomId": 3,
   "deskStatus": "ONLINE",
   "progressStatus": "RUNNING",
+  "currentTopicName": "站台门故障处置",
+  "submittedTopicCount": 1,
+  "desktopStreamUrl": "/uploads/desktop/student-7.jpg",
   "score": 37.5,
   "teamScore": null,
   "eventTime": "2026-07-30T18:15:30"
@@ -155,6 +158,7 @@ Behavior:
 - Defaults `deskStatus` to `ONLINE`.
 - Defaults `progressStatus` to `RUNNING`.
 - Scores must be between `0` and `100` when present.
+- `desktopStreamUrl` may be a periodically refreshed screenshot URL or a browser-playable desktop stream URL; the management page refreshes the monitor snapshot every 5 seconds.
 - Upserts `training_monitor_snapshot`, which is read by the admin training monitor page.
 
 ## Result Callback

@@ -1749,6 +1749,7 @@ Response `data`:
 - `students`: student desk state, progress state, room state, role, and score.
 
 Monitor rows are read from `training_monitor_snapshot`; UE callbacks update that table through `POST /api/ue/trainings/{trainingId}/status` and `POST /api/ue/trainings/{trainingId}/attempts`.
+Camera configuration may retain the original Hikvision `rtsp://` address, but browsers cannot decode RTSP directly. Deployment must provide a media-gateway-converted HTTP/HTTPS playback URL in `streamUrl` for inline browser playback; the page never substitutes a simulated camera image.
 
 ### `GET /api/admin/trainings/{trainingId}/logs`
 

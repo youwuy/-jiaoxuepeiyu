@@ -37,10 +37,14 @@
           <div v-if="!loading && cameras.length" class="monitor-grid">
             <article v-for="camera in cameras" :key="camera.id" class="camera-card" @click="openCamera(camera)">
               <div class="camera-screen">
+                <video v-if="isCameraPlayable(camera)" :src="camera.streamUrl" autoplay muted playsinline />
                 <span class="live-dot">{{ camera.online ? '在线' : '离线' }}</span>
                 <span class="camera-channel">NVR {{ camera.channel }}</span>
-                <strong>{{ camera.name }}</strong>
-                <p>{{ camera.online ? '实时视频流已接入' : '设备离线，暂无实时视频流' }}</p>
+                <template v-if="!isCameraPlayable(camera)">
+                  <el-icon><Monitor /></el-icon>
+                  <strong>{{ camera.name }}</strong>
+                  <p>{{ camera.online && camera.streamUrl?.toLowerCase().startsWith('rtsp://') ? 'RTSP 流需经流媒体网关转换' : '暂无可播放的实时视频流' }}</p>
+                </template>
               </div>
               <footer><span>{{ camera.location }}</span><time>{{ snapshotTime }}</time></footer>
             </article>
@@ -139,7 +143,7 @@
               </el-tag>
             </header>
             <div class="admin-training-student-desktop-screen">
-              <img v-if="studentMonitorTarget.desktopStreamUrl" :src="studentMonitorTarget.desktopStreamUrl" :alt="`${studentMonitorTarget.name}桌面监控`" />
+              <img v-if="studentMonitorTarget.desktopStreamUrl" :src="desktopImageUrl(studentMonitorTarget)" :alt="`${studentMonitorTarget.name}桌面监控`" />
               <template v-else>
                 <el-icon><Monitor /></el-icon>
                 <strong>{{ studentMonitorTarget.name }} 的桌面画面</strong>
@@ -184,6 +188,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, Close, Monitor, Refresh } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { resolvePublicUrl } from '../../api/http';
 import {
   dissolveAdminTrainingRoom,
   fetchAdminTraining,
@@ -239,7 +244,7 @@ const snapshotTime = ref('-');
 const currentStudentIndex = computed(() => students.value.findIndex((student) => student.id === studentMonitorTarget.value?.id));
 const hasPreviousStudent = computed(() => currentStudentIndex.value > 0);
 const hasNextStudent = computed(() => currentStudentIndex.value >= 0 && currentStudentIndex.value < students.value.length - 1);
-const cameraPlayable = computed(() => Boolean(cameraTarget.value?.streamUrl && !cameraTarget.value.streamUrl.toLowerCase().startsWith('rtsp://')));
+const cameraPlayable = computed(() => Boolean(cameraTarget.value && isCameraPlayable(cameraTarget.value)));
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 function goBack() {
@@ -252,7 +257,7 @@ function mapCamera(item: AdminTrainingCameraState, index: number): MonitorCamera
     name: item.cameraName || `摄像头${item.cameraId || index + 1}`,
     location: item.classroomName || '-',
     online: item.cameraStatus !== 'OFFLINE',
-    streamUrl: item.streamUrl,
+    streamUrl: resolvePublicUrl(item.streamUrl),
     channel: item.nvrChannel || String(index + 1)
   };
 }
@@ -291,6 +296,17 @@ function switchStudent(offset: number) {
 function openCamera(camera: MonitorCamera) {
   cameraTarget.value = camera;
   cameraVisible.value = true;
+}
+
+function isCameraPlayable(camera: MonitorCamera) {
+  return Boolean(camera.online && camera.streamUrl && !camera.streamUrl.toLowerCase().startsWith('rtsp://'));
+}
+
+function desktopImageUrl(student: MonitorStudent) {
+  const url = resolvePublicUrl(student.desktopStreamUrl);
+  if (!url) return '';
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}snapshot=${encodeURIComponent(snapshotTime.value)}`;
 }
 
 async function dissolveRoom(student: MonitorStudent) {
@@ -558,6 +574,20 @@ onBeforeUnmount(() => {
 
 .admin-training-monitor-page .camera-screen {
   min-height: 242px;
+}
+
+.admin-training-monitor-page .camera-screen video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #0f172a;
+}
+
+.admin-training-monitor-page .camera-screen .el-icon {
+  width: 42px;
+  height: 42px;
 }
 
 .admin-training-monitor-page .monitor-student-panel {

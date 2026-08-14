@@ -7061,6 +7061,16 @@
           "progressStatus": {
             "type": "string"
           },
+          "currentTopicName": {
+            "type": "string"
+          },
+          "submittedTopicCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "desktopStreamUrl": {
+            "type": "string"
+          },
           "score": {
             "type": "number"
           },
