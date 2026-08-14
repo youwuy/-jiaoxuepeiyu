@@ -133,6 +133,8 @@ public class StudentCourseService {
         item.setFileUrl(record.getFileUrl());
         item.setPreviewUrl(record.getPreviewUrl());
         item.setAssignmentId(record.getAssignmentId());
+        item.setAssignmentType(record.getAssignmentType());
+        item.setTrainingId(record.getTrainingId());
         item.setRequiredDurationSeconds(record.getRequiredDurationSeconds());
         item.setLearningStartTime(record.getLearningStartTime());
         item.setLearningEndTime(record.getLearningEndTime());

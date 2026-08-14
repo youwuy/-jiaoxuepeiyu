@@ -794,6 +794,7 @@ interface OutlineItem {
   assignmentPublishMode?: 'PRACTICE' | 'EXAM';
   answerStartTime?: string;
   answerEndTime?: string;
+  trainingIds?: number[];
 }
 
 interface OutlineSection {
@@ -1614,6 +1615,9 @@ function serializeOutlineItems(items: OutlineItem[]): NonNullable<CourseChapterC
     questionIds: item.questions
       ?.filter((question) => question.kind === 'theory')
       .flatMap((question) => question.questionIds ?? [question.id]),
+    trainingIds: item.questions
+      ?.filter((question) => question.kind === 'practice')
+      .map((question) => question.id),
     assignmentTotalScore: item.questions
       ?.filter((question) => question.kind === 'theory')
       .reduce((total, question) => total + Number(question.score || 0), 0),
@@ -1793,6 +1797,14 @@ async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCou
   await Promise.all(homeworkItems.map(async (item) => {
     const source = sourceContents.find((content) => content.contentId === item.id);
     const questionIds = source?.questionIds ?? [];
+    const trainingIds = source?.trainingIds ?? [];
+    if (trainingIds.length) {
+      const trainings = await Promise.allSettled(trainingIds.map((trainingId) => fetchAdminTraining(trainingId)));
+      item.questions = trainings
+        .filter((result): result is PromiseFulfilledResult<AdminTraining> => result.status === 'fulfilled')
+        .map((result) => mapPracticeQuestion(result.value));
+      return;
+    }
     if (!questionIds.length) {
       item.questions = [];
       return;

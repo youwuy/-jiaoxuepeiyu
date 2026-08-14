@@ -41,7 +41,8 @@ public interface StudentCourseMapper {
                                             @Param("courseId") Long courseId);
 
     @Select("SELECT ch.id AS chapter_id, ch.chapter_title, ch.sort_order AS chapter_sort_order, "
-            + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, ct.resource_id, "
+            + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, a.assignment_type, "
+            + "(SELECT at.training_id FROM assignment_training at WHERE at.assignment_id = a.id ORDER BY at.sort_order ASC, at.id ASC LIMIT 1) AS training_id, ct.resource_id, "
             + "r.resource_type, r.file_name, r.file_url, r.preview_url, "
             + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
             + "COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
@@ -51,6 +52,7 @@ public interface StudentCourseMapper {
             + "LEFT JOIN course_chapter parent_ch ON parent_ch.id = ch.parent_chapter_id "
             + "LEFT JOIN course_chapter root_ch ON root_ch.id = parent_ch.parent_chapter_id "
             + "JOIN course c ON c.id = ct.course_id "
+            + "LEFT JOIN course_assignment a ON a.id = ct.assignment_id "
             + "LEFT JOIN res_resource r ON r.id = ct.resource_id AND r.deleted_flag = 0 "
             + "LEFT JOIN course_class cc ON cc.course_id = c.id "
             + "JOIN sys_user u ON u.class_id = COALESCE(cc.class_id, c.class_id) "
@@ -67,7 +69,8 @@ public interface StudentCourseMapper {
                                                         @Param("courseId") Long courseId);
 
     @Select("SELECT ch.id AS chapter_id, ch.chapter_title, ch.sort_order AS chapter_sort_order, "
-            + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, ct.resource_id, "
+            + "ct.id AS content_id, ct.item_type, ct.title, ct.assignment_id, a.assignment_type, "
+            + "(SELECT at.training_id FROM assignment_training at WHERE at.assignment_id = a.id ORDER BY at.sort_order ASC, at.id ASC LIMIT 1) AS training_id, ct.resource_id, "
             + "r.resource_type, r.file_name, r.file_url, r.preview_url, "
             + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
             + "COALESCE(cp.studied_seconds, 0) AS studied_seconds, "
@@ -75,6 +78,7 @@ public interface StudentCourseMapper {
             + "FROM course_content ct "
             + "JOIN course_chapter ch ON ch.id = ct.chapter_id "
             + "JOIN course c ON c.id = ct.course_id "
+            + "LEFT JOIN course_assignment a ON a.id = ct.assignment_id "
             + "LEFT JOIN res_resource r ON r.id = ct.resource_id AND r.deleted_flag = 0 "
             + "LEFT JOIN course_class cc ON cc.course_id = c.id "
             + "JOIN sys_user u ON u.class_id = COALESCE(cc.class_id, c.class_id) "

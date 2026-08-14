@@ -294,6 +294,17 @@
 
         <section v-else-if="addKind === 'class'" class="admin-settings-add-form">
           <label>
+            <span>所属专业 <b>*</b></span>
+            <el-select v-model="addClassMajorId" placeholder="请选择所属专业" filterable>
+              <el-option
+                v-for="major in enabledMajors"
+                :key="major.majorId"
+                :label="major.majorName"
+                :value="major.majorId"
+              />
+            </el-select>
+          </label>
+          <label>
             <span>班级名称 <b>*</b></span>
             <el-input v-model="addClassName" maxlength="20" placeholder="请输入班级名称" />
             <small>最多输入20个字</small>
@@ -350,17 +361,23 @@
             <thead>
               <tr>
                 <th>序号</th>
-                <th>修改前内容</th>
-                <th>修改后内容</th>
+                <th v-if="activeSetting?.key === 'grades'">操作内容</th>
+                <template v-else>
+                  <th>修改前内容</th>
+                  <th>修改后内容</th>
+                </template>
                 <th>操作人</th>
                 <th>操作时间</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(log, index) in visibleLogs" :key="log.time">
+              <tr v-for="(log, index) in visibleLogs" :key="`${log.time}-${index}`">
                 <td>{{ index + 1 }}</td>
-                <td>{{ log.before }}</td>
-                <td>{{ log.after }}</td>
+                <td v-if="activeSetting?.key === 'grades'">{{ log.after }}</td>
+                <template v-else>
+                  <td>{{ log.before }}</td>
+                  <td>{{ log.after }}</td>
+                </template>
                 <td>{{ log.operator }}</td>
                 <td>{{ log.time }}</td>
               </tr>
@@ -476,6 +493,7 @@ const addYearValue = ref('');
 const selectedSemesterId = ref<number | null>(null);
 const addMajorName = ref('');
 const addClassName = ref('');
+const addClassMajorId = ref<number>();
 const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
@@ -550,6 +568,8 @@ const semesterRows = computed<SemesterDisplayRow[]>(() => {
 
 const displayMajors = computed(() => majors.value);
 
+const enabledMajors = computed(() => majors.value.filter((item) => item.enabled));
+
 const displayClasses = computed(() => classes.value);
 
 const displayGradeRules = computed(() => gradeRules.value);
@@ -572,10 +592,17 @@ function formatWeightContent(weight?: AdminScoreWeight) {
   return `课件学习进度得分*${weight.coursewareWeight}%+实训练习得分*${weight.trainingPracticeWeight}%+课程作业得分*${weight.assignmentWeight}%+考试得分*${weight.examWeight}%`;
 }
 
+function formatLogTime(value?: string) {
+  if (!value) {
+    return '-';
+  }
+  return value.replace('T', ' ').replace(/\.\d+$/, '').slice(0, 19);
+}
+
 const visibleLogs = computed<SettingLog[]>(() => {
   if (activeSetting.value?.key === 'grades') {
     return gradeRuleLogs.value.map((log) => ({
-      time: log.createdAt ?? '-',
+      time: formatLogTime(log.createdAt),
       operator: log.operatorName || '系统管理员',
       before: log.beforeContent,
       after: log.afterContent
@@ -590,7 +617,7 @@ const visibleLogs = computed<SettingLog[]>(() => {
   return history.map((current, index) => {
     const previous = history.slice(index + 1).find((item) => item.semesterId === current.semesterId);
     return {
-      time: current.createdAt ?? current.effectiveFrom ?? '-',
+      time: formatLogTime(current.createdAt ?? current.effectiveFrom),
       operator: current.operatorName || '系统管理员',
       before: formatWeightContent(previous),
       after: formatWeightContent(current)
@@ -731,6 +758,7 @@ function openAdd(kind: AddKind) {
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
+    addClassMajorId.value = undefined;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -740,11 +768,16 @@ function openAdd(kind: AddKind) {
   addVisible.value = true;
 }
 
-function openLogs(item: SettingRow) {
+async function openLogs(item: SettingRow) {
   if (item.key !== 'weights' && item.key !== 'grades') {
     return;
   }
   activeSetting.value = item;
+  if (item.key === 'grades') {
+    gradeRuleLogs.value = await safeLoad('成绩等级日志', fetchAdminScoreGradeRuleLogs);
+  } else {
+    scoreWeights.value = await safeLoad('成绩权重', fetchAdminScoreWeights);
+  }
   logVisible.value = true;
 }
 
@@ -943,7 +976,8 @@ async function saveAdd() {
     }
     if (addKind.value === 'class') {
       if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
-      await createAdminClass({ className: addClassName.value.trim() });
+      if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
+      await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');

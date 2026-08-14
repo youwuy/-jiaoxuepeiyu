@@ -147,6 +147,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
                     mapper.updateAssignmentContent(content.getAssignmentId(), courseId, content.getContentId(), content);
                 }
                 replaceAssignmentQuestions(content.getAssignmentId(), contentCommand.getQuestionIds());
+                replaceAssignmentTrainings(content.getAssignmentId(), contentCommand.getTrainingIds());
             }
         }
         for (AdminCourseChapterCommand childCommand : chapterCommand.getChildren()) {
@@ -163,6 +164,16 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             }
         }
         mapper.refreshAssignmentTotalScore(assignmentId);
+    }
+
+    private void replaceAssignmentTrainings(Long assignmentId, List<Long> trainingIds) {
+        mapper.deleteAssignmentTrainings(assignmentId);
+        int sortOrder = 1;
+        for (Long trainingId : trainingIds) {
+            if (mapper.insertAssignmentTraining(assignmentId, trainingId, sortOrder++) != 1) {
+                throw new BusinessException(400, "Course assignment contains an invalid training");
+            }
+        }
     }
 
     private AdminCourse toCourse(Long courseId, AdminCourseCommand command, Long creatorId) {
@@ -216,6 +227,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         content.setTitle(command.getTitle());
         content.setResourceId(command.getResourceId());
         content.setAssignmentId(command.getAssignmentId());
+        content.setAssignmentType(command.getTrainingIds().isEmpty() ? "THEORY" : "TRAINING");
         content.setRequiredDurationSeconds(command.getRequiredDurationSeconds());
         content.setLearningStartTime(command.getLearningStartTime());
         content.setLearningEndTime(command.getLearningEndTime());
@@ -226,6 +238,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         content.setAnswerEndTime(command.getAnswerEndTime());
         content.setAssignmentTotalScore(command.getAssignmentTotalScore());
         content.setQuestionIds(command.getQuestionIds());
+        content.setTrainingIds(command.getTrainingIds());
         content.setSortOrder(command.getSortOrder());
         return content;
     }

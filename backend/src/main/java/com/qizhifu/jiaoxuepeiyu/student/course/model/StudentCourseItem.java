@@ -13,6 +13,8 @@ public class StudentCourseItem {
     private String fileUrl;
     private String previewUrl;
     private Long assignmentId;
+    private String assignmentType;
+    private Long trainingId;
     private int requiredDurationSeconds;
     private LocalDateTime learningStartTime;
     private LocalDateTime learningEndTime;
@@ -90,6 +92,22 @@ public class StudentCourseItem {
 
     public void setAssignmentId(Long assignmentId) {
         this.assignmentId = assignmentId;
+    }
+
+    public String getAssignmentType() {
+        return assignmentType;
+    }
+
+    public void setAssignmentType(String assignmentType) {
+        this.assignmentType = assignmentType;
+    }
+
+    public Long getTrainingId() {
+        return trainingId;
+    }
+
+    public void setTrainingId(Long trainingId) {
+        this.trainingId = trainingId;
     }
 
     public int getRequiredDurationSeconds() {

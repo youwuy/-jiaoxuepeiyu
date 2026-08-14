@@ -173,7 +173,7 @@ public interface AdminCourseMapper {
     List<AdminCourseChapter> findChildChapters(@Param("parentChapterId") Long parentChapterId);
 
     @Select("SELECT ct.id AS content_id, ct.chapter_id, ct.item_type, ct.title, ct.resource_id, ct.assignment_id, "
-            + "ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
+            + "a.assignment_type, ct.required_duration_seconds, ct.learning_start_time, ct.learning_end_time, "
             + "a.completion_rule AS assignment_completion_rule, a.pass_score, "
             + "a.publish_mode AS assignment_publish_mode, a.answer_start_time, a.answer_end_time, "
             + "a.total_score AS assignment_total_score, ct.sort_order "
@@ -183,7 +183,8 @@ public interface AdminCourseMapper {
     @Results(id = "courseContentMap", value = {
             @Result(column = "content_id", property = "contentId", id = true),
             @Result(column = "assignment_id", property = "assignmentId"),
-            @Result(column = "assignment_id", property = "questionIds", many = @Many(select = "findAssignmentQuestionIds"))
+            @Result(column = "assignment_id", property = "questionIds", many = @Many(select = "findAssignmentQuestionIds")),
+            @Result(column = "assignment_id", property = "trainingIds", many = @Many(select = "findAssignmentTrainingIds"))
     })
     List<AdminCourseContent> findContents(@Param("chapterId") Long chapterId);
 
@@ -191,6 +192,10 @@ public interface AdminCourseMapper {
             + "WHERE assignment_id = #{assignmentId} AND source_question_id IS NOT NULL "
             + "ORDER BY sort_order ASC, id ASC")
     List<Long> findAssignmentQuestionIds(@Param("assignmentId") Long assignmentId);
+
+    @Select("SELECT training_id FROM assignment_training WHERE assignment_id = #{assignmentId} "
+            + "ORDER BY sort_order ASC, id ASC")
+    List<Long> findAssignmentTrainingIds(@Param("assignmentId") Long assignmentId);
 
     @Insert("INSERT INTO course "
             + "(class_id, course_name, academic_year_id, semester_id, academic_term, major_id, cover_url, "
@@ -253,7 +258,7 @@ public interface AdminCourseMapper {
     @Insert("INSERT INTO course_assignment "
             + "(course_id, content_id, assignment_title, assignment_type, deadline, answer_start_time, answer_end_time, "
             + "completion_rule, pass_score, publish_mode, total_score, publish_status, created_at, updated_at) "
-            + "VALUES (#{courseId}, #{contentId}, #{content.title}, 'THEORY', #{content.answerEndTime}, "
+            + "VALUES (#{courseId}, #{contentId}, #{content.title}, #{content.assignmentType}, #{content.answerEndTime}, "
             + "#{content.answerStartTime}, #{content.answerEndTime}, #{content.assignmentCompletionRule}, "
             + "#{content.passScore}, #{content.assignmentPublishMode}, #{content.assignmentTotalScore}, "
             + "'DRAFT', NOW(), NOW())")
@@ -267,7 +272,7 @@ public interface AdminCourseMapper {
                                    @Param("assignmentId") Long assignmentId);
 
     @Update("UPDATE course_assignment SET course_id = #{courseId}, content_id = #{contentId}, "
-            + "completion_rule = #{content.assignmentCompletionRule}, pass_score = #{content.passScore}, "
+            + "assignment_type = #{content.assignmentType}, completion_rule = #{content.assignmentCompletionRule}, pass_score = #{content.passScore}, "
             + "publish_mode = #{content.assignmentPublishMode}, "
             + "answer_start_time = #{content.answerStartTime}, answer_end_time = #{content.answerEndTime}, "
             + "deadline = #{content.answerEndTime}, updated_at = NOW() "
@@ -279,6 +284,16 @@ public interface AdminCourseMapper {
 
     @Delete("DELETE FROM assignment_question WHERE assignment_id = #{assignmentId}")
     void deleteAssignmentQuestions(@Param("assignmentId") Long assignmentId);
+
+    @Delete("DELETE FROM assignment_training WHERE assignment_id = #{assignmentId}")
+    void deleteAssignmentTrainings(@Param("assignmentId") Long assignmentId);
+
+    @Insert("INSERT INTO assignment_training (assignment_id, training_id, sort_order, created_at, updated_at) "
+            + "SELECT #{assignmentId}, id, #{sortOrder}, NOW(), NOW() FROM training_course "
+            + "WHERE id = #{trainingId} AND deleted_flag = 0")
+    int insertAssignmentTraining(@Param("assignmentId") Long assignmentId,
+                                 @Param("trainingId") Long trainingId,
+                                 @Param("sortOrder") int sortOrder);
 
     @Insert("INSERT INTO assignment_question "
             + "(assignment_id, source_question_id, question_type, title, options_json, standard_answer, score, sort_order, created_at, updated_at) "

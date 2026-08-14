@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-: "${BASE_URL:?Set BASE_URL, for example http://jiaoyu.luoyan.xin/api}"
+: "${BASE_URL:?Set BASE_URL, for example http://jiao.pei.luoyan.xin/api}"
 : "${STUDENT_TOKEN:?Set STUDENT_TOKEN to a logged-in student bearer token}"
 : "${TRAINING_ID:?Set TRAINING_ID to an assigned published training id}"
 

@@ -59,6 +59,8 @@ interface BackendCourseItem {
   fileUrl?: string;
   previewUrl?: string;
   assignmentId?: number;
+  assignmentType?: string;
+  trainingId?: number;
   requiredDurationSeconds?: number;
   studiedSeconds?: number;
   completed?: boolean;
@@ -348,6 +350,8 @@ function mapCourse(card: BackendCourseCard | BackendCourseDetail): StudentCourse
       return {
         id: String(item.contentId),
         assignmentId: item.assignmentId,
+        assignmentType: item.assignmentType,
+        trainingId: item.trainingId,
         type,
         title: item.title,
         status: mapItemStatus(item, detail.lastContentId),
@@ -422,8 +426,8 @@ function mapTraining(item: BackendTraining): StudentTraining {
   };
 }
 
-export async function fetchTrainingRooms(trainingId: number, topicId: number): Promise<TrainingRoom[]> {
-  return requestJson<TrainingRoom[]>(`/student/trainings/${trainingId}/rooms?topicId=${topicId}`, { fallbackLabel: '组队房间列表' });
+export async function fetchTrainingRooms(trainingId: number, topicId?: number): Promise<TrainingRoom[]> {
+  return requestJson<TrainingRoom[]>(`/student/trainings/${trainingId}/rooms${topicId ? `?topicId=${topicId}` : ''}`, { fallbackLabel: '组队房间列表' });
 }
 
 export async function fetchStudentTrainingScoreSheet(attemptId: number): Promise<TrainingArchiveDetail> {
@@ -656,8 +660,8 @@ export async function fetchTrainingAppInstallation(): Promise<TrainingAppInstall
   });
 }
 
-export async function createTrainingRoom(trainingId: number, topicId: number): Promise<TrainingRoom> {
-  return requestJson<TrainingRoom>(`/student/trainings/${trainingId}/rooms?topicId=${topicId}`, {
+export async function createTrainingRoom(trainingId: number, topicId?: number): Promise<TrainingRoom> {
+  return requestJson<TrainingRoom>(`/student/trainings/${trainingId}/rooms${topicId ? `?topicId=${topicId}` : ''}`, {
     method: 'POST',
     fallbackLabel: '创建实训房间'
   });

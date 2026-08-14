@@ -51,7 +51,8 @@ class AdminCourseSchemaInitializerTests {
     }
 
     private static class FakeCourseSchemaOperations implements AdminCourseSchemaOperations {
-        private final Set<String> tables = new LinkedHashSet<String>(Arrays.asList("course_content", "course_assignment"));
+        private final Set<String> tables = new LinkedHashSet<String>(Arrays.asList(
+                "course_content", "course_assignment", "assignment_training"));
         private final List<String> executedSql = new ArrayList<String>();
         private final java.util.Map<String, Set<String>> tableColumns = new java.util.LinkedHashMap<String, Set<String>>();
         private final java.util.Map<String, Set<String>> tableIndexes = new java.util.LinkedHashMap<String, Set<String>>();

@@ -10,6 +10,7 @@ public class AdminCourseContentCommand {
     private String title;
     private Long resourceId;
     private Long assignmentId;
+    private String assignmentType;
     private Integer requiredDurationSeconds;
     private LocalDateTime learningStartTime;
     private LocalDateTime learningEndTime;
@@ -20,6 +21,7 @@ public class AdminCourseContentCommand {
     private LocalDateTime answerEndTime;
     private Integer assignmentTotalScore;
     private List<Long> questionIds = new ArrayList<Long>();
+    private List<Long> trainingIds = new ArrayList<Long>();
     private Integer sortOrder;
 
     public String getItemType() {
@@ -52,6 +54,14 @@ public class AdminCourseContentCommand {
 
     public void setAssignmentId(Long assignmentId) {
         this.assignmentId = assignmentId;
+    }
+
+    public String getAssignmentType() {
+        return assignmentType;
+    }
+
+    public void setAssignmentType(String assignmentType) {
+        this.assignmentType = assignmentType;
     }
 
     public Integer getRequiredDurationSeconds() {
@@ -132,6 +142,14 @@ public class AdminCourseContentCommand {
 
     public void setQuestionIds(List<Long> questionIds) {
         this.questionIds = questionIds == null ? new ArrayList<Long>() : questionIds;
+    }
+
+    public List<Long> getTrainingIds() {
+        return trainingIds;
+    }
+
+    public void setTrainingIds(List<Long> trainingIds) {
+        this.trainingIds = trainingIds == null ? new ArrayList<Long>() : trainingIds;
     }
 
     public Integer getSortOrder() {

@@ -7,7 +7,9 @@ export interface AdminCourseContent {
   title?: string;
   resourceId?: number;
   assignmentId?: number;
+  assignmentType?: string;
   questionIds?: number[];
+  trainingIds?: number[];
   assignmentCompletionRule?: string;
   passScore?: number;
   assignmentPublishMode?: string;

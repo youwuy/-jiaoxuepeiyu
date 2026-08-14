@@ -11,6 +11,8 @@ public class StudentCourseContentRecord {
     private String itemType;
     private String title;
     private Long assignmentId;
+    private String assignmentType;
+    private Long trainingId;
     private Long resourceId;
     private String resourceType;
     private String fileName;
@@ -77,6 +79,22 @@ public class StudentCourseContentRecord {
 
     public void setAssignmentId(Long assignmentId) {
         this.assignmentId = assignmentId;
+    }
+
+    public String getAssignmentType() {
+        return assignmentType;
+    }
+
+    public void setAssignmentType(String assignmentType) {
+        this.assignmentType = assignmentType;
+    }
+
+    public Long getTrainingId() {
+        return trainingId;
+    }
+
+    public void setTrainingId(Long trainingId) {
+        this.trainingId = trainingId;
     }
 
     public Long getResourceId() {

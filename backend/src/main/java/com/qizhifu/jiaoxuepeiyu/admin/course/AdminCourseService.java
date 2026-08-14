@@ -266,8 +266,15 @@ public class AdminCourseService {
                 normalizedContent.setAnswerEndTime(content.getAnswerEndTime());
                 normalizedContent.setAssignmentTotalScore(content.getAssignmentTotalScore() == null
                         ? Integer.valueOf(0) : content.getAssignmentTotalScore());
-                normalizedContent.setQuestionIds(normalizedIds(content.getQuestionIds(),
-                        "Course assignment questions are required"));
+                List<Long> questionIds = normalizedIds(content.getQuestionIds(), null);
+                List<Long> trainingIds = normalizedIds(content.getTrainingIds(), null);
+                if (questionIds.isEmpty() == trainingIds.isEmpty()) {
+                    throw new BusinessException(400,
+                            "Course assignment must contain either theory questions or training topics");
+                }
+                normalizedContent.setQuestionIds(questionIds);
+                normalizedContent.setTrainingIds(trainingIds);
+                normalizedContent.setAssignmentType(trainingIds.isEmpty() ? "THEORY" : "TRAINING");
             }
             normalizedContent.setSortOrder(content.getSortOrder() == null ? Integer.valueOf(defaultSort) : content.getSortOrder());
             normalized.add(normalizedContent);
@@ -339,6 +346,9 @@ public class AdminCourseService {
 
     private List<Long> normalizedIds(List<Long> ids, String message) {
         if (ids == null || ids.isEmpty()) {
+            if (message == null) {
+                return new ArrayList<Long>();
+            }
             throw new BusinessException(400, message);
         }
         List<Long> normalized = new ArrayList<Long>();
@@ -347,7 +357,7 @@ public class AdminCourseService {
                 normalized.add(id);
             }
         }
-        if (normalized.isEmpty()) {
+        if (normalized.isEmpty() && message != null) {
             throw new BusinessException(400, message);
         }
         return normalized;

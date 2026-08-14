@@ -16,6 +16,7 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
     private static final String COURSE_CONTENT = "course_content";
     private static final String COURSE_ASSIGNMENT = "course_assignment";
     private static final String ASSIGNMENT_QUESTION = "assignment_question";
+    private static final String ASSIGNMENT_TRAINING = "assignment_training";
     private static final List<ColumnPatch> CONTENT_COLUMNS = Arrays.asList(
             new ColumnPatch(COURSE_CONTENT, "learning_start_time",
                     "ALTER TABLE `course_content` ADD COLUMN `learning_start_time` DATETIME NULL AFTER `required_duration_seconds`"),
@@ -54,11 +55,28 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
     }
 
     void ensureCourseCompatibility() {
+        ensureAssignmentTrainingTable();
         applyColumns(CONTENT_COLUMNS);
         applyColumns(ASSIGNMENT_COLUMNS);
         applyColumns(ASSIGNMENT_QUESTION_COLUMNS);
         applyIndexes(CONTENT_INDEXES);
         applyIndexes(ASSIGNMENT_INDEXES);
+    }
+
+    private void ensureAssignmentTrainingTable() {
+        if (!operations.tableExists(ASSIGNMENT_TRAINING)) {
+            operations.execute("CREATE TABLE `assignment_training` ("
+                    + "`id` BIGINT NOT NULL AUTO_INCREMENT,"
+                    + "`assignment_id` BIGINT NOT NULL,"
+                    + "`training_id` BIGINT NOT NULL,"
+                    + "`sort_order` INT NOT NULL DEFAULT 0,"
+                    + "`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                    + "`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+                    + "PRIMARY KEY (`id`),"
+                    + "UNIQUE KEY `uk_assignment_training` (`assignment_id`, `training_id`),"
+                    + "KEY `idx_assignment_training_training` (`training_id`)"
+                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='course assignment training bindings'");
+        }
     }
 
     private void applyColumns(List<ColumnPatch> columns) {

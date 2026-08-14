@@ -220,6 +220,14 @@ function selectItem(item: CourseCatalogItem) {
 }
 
 function enterAssignment(item: CourseCatalogItem) {
+  if (item.assignmentType === 'TRAINING' && item.trainingId) {
+    router.push({
+      name: 'student-training-lobby',
+      params: { trainingId: item.trainingId },
+      query: { title: item.title }
+    });
+    return;
+  }
   if (!item.assignmentId) {
     ElMessage.error('当前课程作业缺少作业信息，请联系教师重新发布课程');
     return;

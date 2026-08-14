@@ -79,10 +79,10 @@ const fallbackTitle = ref('实训任务');
 const loading = ref(true);
 const creating = ref(false);
 const joiningRoomId = ref<number>();
+const selectedTopicId = ref<number>();
 let pollTimer: number | undefined;
 
 const trainingId = computed(() => Number(route.params.trainingId));
-const topicId = computed(() => Number(route.query.topicId));
 const activeRoomId = computed(() => Number(route.query.activeRoomId || 0));
 const trainingTitle = computed(() => String(route.query.title || fallbackTitle.value));
 
@@ -115,13 +115,15 @@ function currentStudentId() {
 }
 
 async function loadTrainingTitle() {
-  if (route.query.title || !Number.isFinite(trainingId.value)) {
+  if (route.query.title && route.query.topicId || !Number.isFinite(trainingId.value)) {
     return;
   }
 
   try {
     const list = await fetchStudentTrainings();
-    fallbackTitle.value = list.find((item) => item.id === trainingId.value)?.title || fallbackTitle.value;
+    const training = list.find((item) => item.id === trainingId.value);
+    fallbackTitle.value = training?.title || fallbackTitle.value;
+    selectedTopicId.value = Number(route.query.topicId) || training?.steps?.[0]?.id;
   } catch {}
 }
 
@@ -135,7 +137,7 @@ async function loadRooms(showLoading = false) {
   }
 
   try {
-    rooms.value = await fetchTrainingRooms(trainingId.value, topicId.value);
+    rooms.value = await fetchTrainingRooms(trainingId.value, selectedTopicId.value);
     if (activeRoomId.value && !rooms.value.some((room) => room.roomId === activeRoomId.value)) {
       rooms.value.unshift(await fetchTrainingRoom(activeRoomId.value));
     }
@@ -160,7 +162,7 @@ async function createRoom() {
 
   creating.value = true;
   try {
-    const room = await createTrainingRoom(trainingId.value, topicId.value);
+    const room = await createTrainingRoom(trainingId.value, selectedTopicId.value);
     await router.push({ name: 'student-training-room-roles', params: { roomId: room.roomId } });
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '创建房间失败');
