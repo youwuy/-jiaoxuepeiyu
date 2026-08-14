@@ -19,7 +19,7 @@
           <el-button class="admin-org-ghost-button" @click="applySearch">查询</el-button>
           <el-button class="admin-org-ghost-button" @click="resetSearch">重置</el-button>
         </div>
-        <el-button class="admin-org-primary-button" type="primary" @click="openCreateRoot">
+        <el-button class="admin-org-primary-button" type="primary" :disabled="!can('create')" @click="openCreateRoot">
           <el-icon><Plus /></el-icon>
           新增一级组织
         </el-button>
@@ -61,7 +61,7 @@
                       type="button"
                       class="admin-org-rank"
                       draggable="true"
-                      :disabled="sorting || filtering"
+                      :disabled="sorting || filtering || !can('update')"
                       title="拖动调整同级组织顺序"
                       aria-label="拖动调整同级组织顺序"
                       @dragstart.stop="startOrgDrag(row, $event)"
@@ -99,12 +99,12 @@
                   <td>{{ formatDateTime(row.updatedAt) }}</td>
                   <td>
                     <div class="admin-org-actions">
-                      <el-button v-if="row.enabled" class="admin-org-action edit" @click="openEdit(row)">编辑</el-button>
-                      <el-button v-if="row.enabled" class="admin-org-action child" @click="openCreateChild(row)">新增下级</el-button>
-                      <el-button v-if="row.enabled" class="admin-org-action danger" :loading="busyId === row.orgId" @click="disableOrg(row)">
+                      <el-button v-if="row.enabled" class="admin-org-action edit" :disabled="!can('update')" @click="openEdit(row)">编辑</el-button>
+                      <el-button v-if="row.enabled" class="admin-org-action child" :disabled="!can('create')" @click="openCreateChild(row)">新增下级</el-button>
+                      <el-button v-if="row.enabled" class="admin-org-action danger" :disabled="!can('disable')" :loading="busyId === row.orgId" @click="disableOrg(row)">
                         禁用
                       </el-button>
-                      <el-button v-else class="admin-org-action enable" :loading="busyId === row.orgId" @click="enableOrg(row)">启用</el-button>
+                      <el-button v-else class="admin-org-action enable" :disabled="!can('enable')" :loading="busyId === row.orgId" @click="enableOrg(row)">启用</el-button>
                     </div>
                   </td>
                 </tr>
@@ -159,7 +159,7 @@
       <template #footer>
         <div class="admin-org-dialog-footer">
           <el-button class="admin-org-dialog-cancel" @click="dialogVisible = false">取消</el-button>
-          <el-button class="admin-org-dialog-confirm" type="primary" :loading="saving" @click="saveOrg">确定</el-button>
+          <el-button class="admin-org-dialog-confirm" type="primary" :disabled="!can(dialogMode === 'edit' ? 'update' : 'create')" :loading="saving" @click="saveOrg">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -171,6 +171,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, ArrowRight, Close, OfficeBuilding, Plus, Rank, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import {
   createAdminOrg,
   disableAdminOrg,
@@ -185,6 +186,7 @@ import { collectAdminOrgIds, countAdminOrgs, flattenAdminOrgTree, type AdminOrgR
 
 type DialogMode = 'root' | 'child' | 'edit';
 
+const { can } = useAdminPermissions('system:org');
 const loading = ref(false);
 const saving = ref(false);
 const sorting = ref(false);

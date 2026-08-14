@@ -27,7 +27,7 @@
                 </span>
               </div>
               <div class="admin-settings-actions">
-                <el-button class="admin-settings-edit" @click="openConfig(item.key)">
+                <el-button class="admin-settings-edit" :disabled="!canOpenConfig(item.key)" @click="openConfig(item.key)">
                   <el-icon><Edit /></el-icon>
                   编辑
                 </el-button>
@@ -47,7 +47,7 @@
         </template>
 
         <section v-if="activeConfig === 'semester'" class="admin-settings-panel">
-          <el-button class="admin-settings-add-button" @click="openAdd('year')">
+          <el-button class="admin-settings-add-button" :disabled="!canConfig('semester', 'create')" @click="openAdd('year')">
             <el-icon><Plus /></el-icon>
             添加学年
           </el-button>
@@ -66,7 +66,7 @@
                 <td>{{ row.yearName }}</td>
                 <td>{{ row.semesterName }}</td>
                 <td>
-                  <button type="button" class="admin-settings-radio" :class="{ active: row.semesterId === selectedSemesterId }" @click="selectCurrentSemester(row.semesterId)"></button>
+                  <button type="button" class="admin-settings-radio" :class="{ active: row.semesterId === selectedSemesterId }" :disabled="!canConfig('semester', 'enable')" @click="selectCurrentSemester(row.semesterId)"></button>
                 </td>
               </tr>
             </tbody>
@@ -74,7 +74,7 @@
         </section>
 
         <section v-else-if="activeConfig === 'majors'" class="admin-settings-panel">
-          <el-button class="admin-settings-add-button" @click="openAdd('major')">
+          <el-button class="admin-settings-add-button" :disabled="!canConfig('majors', 'create')" @click="openAdd('major')">
             <el-icon><Plus /></el-icon>
             添加专业
           </el-button>
@@ -93,8 +93,8 @@
                 <td>{{ major.majorName }}</td>
                 <td><span class="admin-settings-status" :class="{ disabled: !major.enabled }">{{ major.enabled ? '已启用' : '已禁用' }}</span></td>
                 <td>
-                  <button class="admin-settings-link" :disabled="major.enabled" @click="setMajorStatus(major.majorId, true)">启用</button>
-                  <button class="admin-settings-link danger" :disabled="!major.enabled" @click="setMajorStatus(major.majorId, false)">禁用</button>
+                  <button class="admin-settings-link" :disabled="major.enabled || !canConfig('majors', 'enable')" @click="setMajorStatus(major.majorId, true)">启用</button>
+                  <button class="admin-settings-link danger" :disabled="!major.enabled || !canConfig('majors', 'disable')" @click="setMajorStatus(major.majorId, false)">禁用</button>
                 </td>
               </tr>
             </tbody>
@@ -102,7 +102,7 @@
         </section>
 
         <section v-else-if="activeConfig === 'classes'" class="admin-settings-panel">
-          <el-button class="admin-settings-add-button" @click="openAdd('class')">
+          <el-button class="admin-settings-add-button" :disabled="!canConfig('classes', 'create')" @click="openAdd('class')">
             <el-icon><Plus /></el-icon>
             新增班级
           </el-button>
@@ -133,8 +133,8 @@
                 </td>
                 <td>
                   <div class="admin-settings-class-actions">
-                    <el-button class="admin-settings-table-action" :disabled="item.enabled" @click="setClassStatus(item.classId, true)">启用</el-button>
-                    <el-button class="admin-settings-table-action danger" :disabled="!item.enabled" @click="setClassStatus(item.classId, false)">禁用</el-button>
+                    <el-button class="admin-settings-table-action" :disabled="item.enabled || !canConfig('classes', 'enable')" @click="setClassStatus(item.classId, true)">启用</el-button>
+                    <el-button class="admin-settings-table-action danger" :disabled="!item.enabled || !canConfig('classes', 'disable')" @click="setClassStatus(item.classId, false)">禁用</el-button>
                   </div>
                 </td>
               </tr>
@@ -147,7 +147,7 @@
         </section>
 
         <section v-else-if="activeConfig === 'classrooms'" class="admin-settings-panel classroom">
-          <el-button class="admin-settings-add-button" @click="openAdd('room')">
+          <el-button class="admin-settings-add-button" :disabled="!canConfig('classrooms', 'create')" @click="openAdd('room')">
             <el-icon><Plus /></el-icon>
             添加教室
           </el-button>
@@ -182,8 +182,8 @@
                   <td>{{ camera.channel }}</td>
                   <td class="wrap">{{ camera.url }}</td>
                   <td>
-                    <button class="admin-settings-link" @click="editRoom(camera)">编辑</button>
-                    <button class="admin-settings-link danger" @click="removeCamera(camera.id)">删除</button>
+                    <button class="admin-settings-link" :disabled="!canConfig('classrooms', 'update')" @click="editRoom(camera)">编辑</button>
+                    <button class="admin-settings-link danger" :disabled="!canConfig('classrooms', 'delete')" @click="removeCamera(camera.id)">删除</button>
                   </td>
                 </tr>
               </tbody>
@@ -193,7 +193,7 @@
         </section>
 
         <section v-else-if="activeConfig === 'grades'" class="admin-settings-grade-form">
-          <el-button class="admin-settings-add-button" @click="addGradeDraft">
+          <el-button class="admin-settings-add-button" :disabled="!canConfig('grades', 'update')" @click="addGradeDraft">
             <el-icon><Plus /></el-icon>
             新增成绩等级
           </el-button>
@@ -223,7 +223,7 @@
                   <el-input v-model.number="row.maxScore" class="admin-settings-grade-score-input" type="number" :min="0" :max="100" />
                 </td>
                 <td>
-                    <el-button class="admin-settings-grade-delete" text circle :icon="Delete" :disabled="gradeDraftRows.length <= 1" @click="removeGradeDraft(row.id)" />
+                    <el-button class="admin-settings-grade-delete" text circle :icon="Delete" :disabled="gradeDraftRows.length <= 1 || !canConfig('grades', 'update')" @click="removeGradeDraft(row.id)" />
                 </td>
               </tr>
             </tbody>
@@ -262,7 +262,7 @@
         <template v-if="activeConfig === 'semester' || activeConfig === 'grades' || activeConfig === 'weights'" #footer>
           <div class="admin-settings-dialog-footer">
             <el-button @click="closeConfig">取消</el-button>
-            <el-button type="primary" @click="saveActiveConfig">确定</el-button>
+            <el-button type="primary" :disabled="!canSaveActiveConfig" @click="saveActiveConfig">确定</el-button>
           </div>
         </template>
       </el-dialog>
@@ -323,13 +323,13 @@
           </label>
           <div class="admin-settings-room-title">
             <strong>摄像头参数</strong>
-            <el-button class="admin-settings-add-camera" @click="addCamera">
+            <el-button class="admin-settings-add-camera" :disabled="!canSaveAddedConfig" @click="addCamera">
               <el-icon><Plus /></el-icon>
               添加摄像头
             </el-button>
           </div>
           <section v-for="(camera, index) in roomForm.cameras" :key="camera.id" class="admin-settings-camera-card">
-            <header><strong>{{ index + 1 }}</strong><span>摄像头</span><button :disabled="roomForm.cameras.length <= 1" @click="removeRoomCamera(camera.id)">删除</button></header>
+            <header><strong>{{ index + 1 }}</strong><span>摄像头</span><button :disabled="roomForm.cameras.length <= 1 || !canSaveAddedConfig" @click="removeRoomCamera(camera.id)">删除</button></header>
             <div class="admin-settings-camera-grid">
               <label class="host"><span>NVR主机IP <b>*</b></span><el-input v-model="camera.host" placeholder="请输入NVR主机IP" /></label>
               <label><span>端口 <b>*</b></span><el-input v-model="camera.port" placeholder="请输入端口" /></label>
@@ -344,7 +344,7 @@
         <template #footer>
           <div class="admin-settings-dialog-footer">
             <el-button @click="addVisible = false">取消</el-button>
-            <el-button type="primary" @click="saveAdd">确定</el-button>
+            <el-button type="primary" :disabled="!canSaveAddedConfig" @click="saveAdd">确定</el-button>
           </div>
         </template>
       </el-dialog>
@@ -399,6 +399,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Close, Delete, Edit, Plus } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 import {
   createAdminAcademicYear,
   createAdminClass,
@@ -483,6 +484,7 @@ interface GradeDraftRow {
 }
 
 const loading = ref(false);
+const { canFor } = useAdminPermissions('system:settings');
 const configVisible = ref(false);
 const addVisible = ref(false);
 const logVisible = ref(false);
@@ -557,6 +559,39 @@ const addTitle = computed(() => ({
   room: '添加教室'
 })[addKind.value]);
 const weightTotal = computed(() => weightForm.coursewareWeight + weightForm.trainingPracticeWeight + weightForm.assignmentWeight + weightForm.examWeight);
+const configPermissionCodes: Record<ConfigKey, string> = {
+  semester: 'config:term',
+  majors: 'config:major',
+  classes: 'config:class',
+  classrooms: 'config:classroom',
+  grades: 'config:score-grade',
+  weights: 'config:score-weight'
+};
+
+function canConfig(key: ConfigKey, action: string) {
+  return canFor(configPermissionCodes[key], action) || canFor('system:settings', action);
+}
+
+function canOpenConfig(key: ConfigKey) {
+  return ['create', 'update', 'enable', 'disable', 'delete'].some((action) => canConfig(key, action));
+}
+
+const canSaveActiveConfig = computed(() => {
+  if (activeConfig.value === 'semester') return canConfig('semester', 'enable');
+  if (activeConfig.value === 'weights') return canConfig('weights', 'create');
+  return canConfig(activeConfig.value, 'update');
+});
+
+const canSaveAddedConfig = computed(() => {
+  if (addKind.value === 'room' && editingClassroomId.value) return canConfig('classrooms', 'update');
+  const keyByKind: Record<AddKind, ConfigKey> = {
+    year: 'semester',
+    major: 'majors',
+    class: 'classes',
+    room: 'classrooms'
+  };
+  return canConfig(keyByKind[addKind.value], 'create');
+});
 
 const semesterRows = computed<SemesterDisplayRow[]>(() => {
   const rows: SemesterDisplayRow[] = [];

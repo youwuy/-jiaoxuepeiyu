@@ -1,12 +1,13 @@
 import { onMounted, ref } from 'vue';
 import { fetchMyAdminPermissionTree } from '../../api/admin-permission';
-import { collectPermissionCodes } from './permission-check';
+import { canAdminAction, collectPermissionCodes } from './permission-check';
 
 export function useAdminPermissions(pageCode: string) {
   const codes = ref<Set<string>>(new Set());
   const loaded = ref(false);
 
-  const can = (action: string) => !loaded.value || codes.value.has(`${pageCode}:${action}`);
+  const canFor = (targetPageCode: string, action: string) => !loaded.value || canAdminAction(codes.value, targetPageCode, action);
+  const can = (action: string) => canFor(pageCode, action);
 
   onMounted(async () => {
     try {
@@ -16,5 +17,5 @@ export function useAdminPermissions(pageCode: string) {
     }
   });
 
-  return { can, permissionsLoaded: loaded };
+  return { can, canFor, permissionsLoaded: loaded };
 }
