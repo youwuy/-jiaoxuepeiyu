@@ -91,7 +91,7 @@
                     </template>
                     <template v-else-if="course.exam">
                       <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
-                      <el-button v-else-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
+                      <el-button v-else class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
                       <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
                       <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
@@ -100,7 +100,7 @@
                       <el-button class="log-action" link @click="openLogs(course)">操作日志</el-button>
                     </template>
                     <template v-else>
-                      <el-button v-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
+                      <el-button class="primary-action" link :disabled="!isTrainingOpen(course)" @click="openMonitor(course)">监考</el-button>
                       <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
                       <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>

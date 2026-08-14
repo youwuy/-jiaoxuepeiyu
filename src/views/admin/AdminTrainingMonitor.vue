@@ -27,12 +27,7 @@
           </div>
         </header>
 
-        <div class="monitor-tabs" role="tablist">
-          <button type="button" :class="{ active: activeTab === 'monitor' }" @click="activeTab = 'monitor'">查看监控</button>
-          <button type="button" :class="{ active: activeTab === 'progress' }" @click="activeTab = 'progress'">实时进度成绩</button>
-        </div>
-
-        <section v-if="activeTab === 'monitor'" class="monitor-camera-panel">
+        <section class="monitor-camera-panel">
           <div class="panel-heading camera-heading"><h3>教室全景监控 <small>LIVE 实时直播</small></h3></div>
           <div
             v-if="!loading && cameras.length"
@@ -55,33 +50,9 @@
             </article>
           </div>
           <el-empty v-else-if="!loading" description="暂无监控摄像头信息" />
-          <div class="panel-heading"><h3>学员桌面监控</h3></div>
-          <div v-if="students.length" class="student-monitor-grid">
-            <article v-for="student in students" :key="student.id">
-              <div><strong>{{ student.name }}</strong><span>{{ student.studentNo }} / {{ student.className }}</span></div>
-              <el-tag size="small" :type="student.online ? 'success' : 'info'">{{ student.online ? '在线' : '离线' }}</el-tag>
-              <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
-            </article>
-          </div>
-          <el-empty v-else description="暂无参训学员信息" />
         </section>
 
-        <section v-else class="monitor-student-panel">
-          <div class="admin-training-monitor-overview">
-            <article>
-              <span>已完成训练人数</span>
-              <strong>{{ completedStudentCount }} / {{ students.length }}</strong>
-            </article>
-            <article>
-              <span>已完成题目占比</span>
-              <strong>{{ completedTopicRatio }}%</strong>
-              <el-progress :percentage="completedTopicRatio" :show-text="false" />
-            </article>
-            <article>
-              <span>当前在线人数</span>
-              <strong>{{ onlineStudentCount }} / {{ students.length }}</strong>
-            </article>
-          </div>
+        <section class="monitor-student-panel">
           <div class="panel-heading">
             <h3>学员实训实况</h3>
           </div>
@@ -105,8 +76,6 @@
                   <th>所在房间</th>
                   <th>队员姓名</th>
                   <th>整队成绩</th>
-                  <th>在线状态</th>
-                  <th>提交状态</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -124,25 +93,15 @@
                     <span class="student-teammates">{{ student.teammates }}</span>
                   </td>
                   <td>{{ student.teamScore }}</td>
-                  <td>
-                    <span class="admin-training-monitor-status" :class="{ offline: !student.online }">
-                      {{ student.online ? '在线' : '离线' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="admin-training-monitor-submit-status" :class="`is-${student.progressStatus.toLowerCase()}`">
-                      {{ student.submitStatus }}
-                    </span>
-                  </td>
                   <td class="student-actions">
                     <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
-                    <el-button v-if="student.roomId" link type="danger" @click="dissolveRoom(student)">解散房间</el-button>
+                    <el-button v-if="student.mode === '多人实训' && student.roomId" link type="danger" @click="dissolveRoom(student)">解散房间</el-button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <el-empty v-else description="暂无在线学员信息" />
+          <el-empty v-else description="暂无参训学员信息" />
         </section>
       </main>
 
@@ -257,10 +216,7 @@ interface MonitorStudent {
   teammates: string;
   teamScore: string;
   className: string;
-  ip: string;
   online: boolean;
-  progressStatus: string;
-  submitStatus: string;
   desktopStreamUrl?: string;
 }
 
@@ -272,7 +228,6 @@ const monitorRange = ref(String(route.query.time || '未配置开放时间').rep
 const monitorClass = ref(String(route.query.className || '未配置班级'));
 const monitorRoom = ref(String(route.query.room || '未配置教室'));
 const loading = ref(false);
-const activeTab = ref<'monitor' | 'progress'>('monitor');
 const cameras = ref<MonitorCamera[]>([]);
 const students = ref<MonitorStudent[]>([]);
 const studentMonitorVisible = ref(false);
@@ -285,20 +240,6 @@ const currentStudentIndex = computed(() => students.value.findIndex((student) =>
 const hasPreviousStudent = computed(() => currentStudentIndex.value > 0);
 const hasNextStudent = computed(() => currentStudentIndex.value >= 0 && currentStudentIndex.value < students.value.length - 1);
 const cameraPlayable = computed(() => Boolean(cameraTarget.value && isCameraPlayable(cameraTarget.value)));
-const completedStudentCount = computed(() => students.value.filter((student) => student.progressStatus === 'SUBMITTED').length);
-const onlineStudentCount = computed(() => students.value.filter((student) => student.online).length);
-const completedTopicRatio = computed(() => {
-  const totals = students.value.reduce(
-    (result, student) => {
-      const [submitted, total] = student.progress.split('/').map((value) => Number(value.trim()) || 0);
-      result.submitted += Math.min(submitted, total);
-      result.total += total;
-      return result;
-    },
-    { submitted: 0, total: 0 }
-  );
-  return totals.total ? Math.round((totals.submitted / totals.total) * 100) : 0;
-});
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 function goBack() {
@@ -317,7 +258,6 @@ function mapCamera(item: AdminTrainingCameraState, index: number): MonitorCamera
 }
 
 function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStudent {
-  const progressStatus = (item.progressStatus || 'NOT_STARTED').toUpperCase();
   return {
     id: item.studentId || index + 1,
     name: item.studentName || '-',
@@ -332,22 +272,9 @@ function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStud
     teammates: item.roomId ? (item.teammateNames || '-') : '-',
     teamScore: item.roomId && item.teamScore != null ? String(item.teamScore) : '-',
     className: item.className || '-',
-    ip: item.clientIp || '-',
     online: item.deskStatus === 'ONLINE',
-    progressStatus,
-    submitStatus: formatProgressStatus(progressStatus),
     desktopStreamUrl: item.desktopStreamUrl
   };
-}
-
-function formatProgressStatus(status: string) {
-  const labels: Record<string, string> = {
-    NOT_STARTED: '未开始',
-    RUNNING: '进行中',
-    SUBMITTED: '已提交',
-    ABNORMAL: '异常退出'
-  };
-  return labels[status] || '-';
 }
 
 function openStudentMonitor(student: MonitorStudent) {
@@ -549,75 +476,6 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-.monitor-tabs {
-  display: flex;
-  gap: 28px;
-  margin: 8px 0 22px;
-  border-bottom: 1px solid #e6edf5;
-}
-
-.monitor-tabs button {
-  position: relative;
-  border: 0;
-  padding: 0 2px 13px;
-  background: transparent;
-  color: #7b8da7;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.monitor-tabs button.active {
-  color: #2563eb;
-  font-weight: 800;
-}
-
-.monitor-tabs button.active::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: #2563eb;
-  content: '';
-}
-
-.student-monitor-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  padding: 16px;
-}
-
-.student-monitor-grid article {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid #e5ebf3;
-  border-radius: 8px;
-  background: #fbfdff;
-}
-
-.student-monitor-grid article > div {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.student-monitor-grid strong,
-.student-monitor-grid span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.student-monitor-grid span {
-  color: #8494aa;
-  font-size: 12px;
-}
-
 .admin-training-monitor-back-list.el-button {
   height: 44px;
   padding: 0 16px;
@@ -733,36 +591,6 @@ onBeforeUnmount(() => {
   overflow-x: auto;
 }
 
-.admin-training-monitor-overview {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  padding: 20px 16px 0;
-}
-
-.admin-training-monitor-overview article {
-  display: grid;
-  align-content: center;
-  min-height: 104px;
-  gap: 8px;
-  border: 1px solid #e1e8f1;
-  border-radius: 8px;
-  padding: 16px 20px;
-  background: #f8fbff;
-}
-
-.admin-training-monitor-overview span {
-  color: #8290a5;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.admin-training-monitor-overview strong {
-  color: #172033;
-  font-size: 24px;
-  font-weight: 900;
-}
-
 .admin-training-monitor-table {
   width: 100%;
   min-width: 1900px;
@@ -809,68 +637,6 @@ onBeforeUnmount(() => {
 
 .admin-training-monitor-col-room {
   width: 12%;
-}
-
-.admin-training-monitor-col-ip {
-  width: 12%;
-}
-
-.admin-training-monitor-col-status {
-  width: 11%;
-}
-
-.admin-training-monitor-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  height: 24px;
-  border: 1px solid #d9edcb;
-  border-radius: 5px;
-  padding: 0 8px;
-  background: #f0f9e9;
-  color: #67c23a;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.admin-training-monitor-status.offline {
-  border-color: #e1e7ef;
-  background: #f5f7fa;
-  color: #909399;
-}
-
-.admin-training-monitor-submit-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 64px;
-  height: 24px;
-  border: 1px solid #dbe4ef;
-  border-radius: 5px;
-  padding: 0 8px;
-  background: #f5f7fa;
-  color: #718096;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.admin-training-monitor-submit-status.is-running {
-  border-color: #bfd7ff;
-  background: #edf5ff;
-  color: #367df5;
-}
-
-.admin-training-monitor-submit-status.is-submitted {
-  border-color: #cbe8d8;
-  background: #effaf4;
-  color: #20a66a;
-}
-
-.admin-training-monitor-submit-status.is-abnormal {
-  border-color: #ffd2d2;
-  background: #fff2f2;
-  color: #e45454;
 }
 
 .admin-training-student-monitor-dialog.el-dialog {
@@ -1143,9 +909,7 @@ onBeforeUnmount(() => {
     padding: 22px;
   }
 
-  .student-monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .student-monitor-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-training-monitor-overview { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -1159,10 +923,6 @@ onBeforeUnmount(() => {
 
   .monitor-refresh-actions {
     flex-wrap: wrap;
-  }
-
-  .student-monitor-grid {
-    grid-template-columns: 1fr;
   }
 
   .admin-training-monitor-page .monitor-grid.is-single {
