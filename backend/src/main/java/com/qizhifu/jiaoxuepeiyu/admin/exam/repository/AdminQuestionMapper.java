@@ -29,7 +29,7 @@ public interface AdminQuestionMapper {
             + "<if test='questionType != null'>AND q.question_type = #{questionType}</if> "
             + "<if test='enabled != null'>AND q.enabled_flag = #{enabled}</if> "
             + "<if test='creatorId != null'>AND q.creator_id = #{creatorId}</if> "
-            + "ORDER BY q.updated_at DESC, q.id DESC LIMIT #{pageSize} OFFSET #{offset} "
+            + "ORDER BY q.created_at DESC, q.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     @Results(id = "questionMap", value = {
             @Result(column = "question_id", property = "questionId", id = true),

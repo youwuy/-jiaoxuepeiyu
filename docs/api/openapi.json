@@ -2783,6 +2783,38 @@
         }
       }
     },
+    "/api/admin/questions/import": {
+      "post": {
+        "tags": [
+          "Admin Questions"
+        ],
+        "summary": "Import questions",
+        "description": "Validates and atomically imports the question rows confirmed on the preview page.",
+        "operationId": "importQuestions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQuestionImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseInteger"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/public-applications/{applicationId}/reject": {
       "post": {
         "tags": [
@@ -7261,6 +7293,22 @@
           "data": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ApiResponseInteger": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

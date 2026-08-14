@@ -120,13 +120,13 @@
         <div class="admin-question-form-grid">
           <label class="admin-question-field">
             <span>题型</span>
-            <el-select v-model="form.questionType">
+            <el-select v-model="form.questionType" @change="handleQuestionTypeChange">
               <el-option v-for="item in questionTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </label>
           <label class="admin-question-field">
             <span>分值 <b>*</b></span>
-            <el-input-number v-model="form.score" :min="1" :max="100" controls-position="right" placeholder="请输入分值" />
+            <el-input-number v-model="form.score" :min="1" :controls="false" placeholder="请输入分值" />
           </label>
           <label class="admin-question-field">
             <span>所属课程 <b>*</b></span>
@@ -143,7 +143,7 @@
           <p>选项 <b>*</b></p>
           <div v-for="(option, index) in form.options" :key="option.optionKey" class="admin-question-option-row">
             <el-radio v-if="form.questionType === 'SINGLE'" v-model="form.standardAnswer" :label="option.optionKey" />
-            <el-checkbox v-else :model-value="form.standardAnswer.includes(option.optionKey)" @change="toggleAnswer(option.optionKey)" />
+            <el-checkbox v-else :model-value="hasAnswer(option.optionKey)" @change="toggleAnswer(option.optionKey)" />
             <span>{{ option.optionKey }}</span>
             <el-input v-model="option.optionText" :placeholder="`请输入选项${option.optionKey}内容`" />
             <el-button text :icon="Delete" :disabled="form.options.length <= 2" @click="removeOption(index)" />
@@ -165,7 +165,7 @@
 
         <label v-else-if="form.questionType === 'FILL_BLANK'" class="admin-question-field">
           <span>答案 <b>*</b></span>
-          <el-input v-model="form.standardAnswer" placeholder="请输入正确答案" />
+          <el-input v-model="form.standardAnswer" placeholder="请输入正确答案，多个答案请用英文逗号分隔" />
         </label>
 
         <label v-else class="admin-question-field">
@@ -210,7 +210,7 @@
             v-model:file-list="importFileList"
             drag
             action="#"
-            accept=".xls,.xlsx"
+            accept=".xls,.xlsx,.excel"
             :auto-upload="false"
             :limit="1"
             :on-change="handleImportFileChange"
@@ -263,32 +263,40 @@
           </header>
           <article v-for="question in group.questions" :key="question.rowNumber">
             <div>
-              <h3>{{ question.index }}、{{ question.title }}</h3>
-              <ol v-if="question.options.length">
+              <h3>{{ question.index }}、{{ question.title }}<small v-if="group.type === '多选题'">（多选）</small></h3>
+              <ul v-if="question.options.length">
                 <li v-for="option in question.options" :key="option">{{ option }}</li>
-              </ol>
+              </ul>
             </div>
             <label>
               <span>分值</span>
-              <el-input-number v-model="question.score" :min="1" :max="20" controls-position="right" />
+              <el-input-number v-model="question.score" :min="1" :controls="false" />
             </label>
           </article>
         </section>
       </section>
     </el-dialog>
 
-    <el-drawer v-model="logsVisible" class="admin-question-log-drawer" direction="rtl" size="520px" :with-header="false">
-      <div class="admin-question-dialog-head">
-        <strong>操作日志</strong>
-        <el-button text circle :icon="Close" @click="logsVisible = false" />
-      </div>
-      <article v-for="item in logs" :key="item.logId" class="admin-question-log-row">
-        <header><strong>{{ item.action || '操作' }}</strong><span>{{ formatDateTime(item.createdAt) }}</span></header>
-        <p>{{ item.content || '-' }}</p>
-        <small>{{ item.operatorName || '-' }}</small>
-      </article>
-      <el-empty v-if="logs.length === 0" description="暂无记录" />
-    </el-drawer>
+    <el-dialog v-model="logsVisible" class="admin-question-log-dialog" width="760px" :show-close="false" append-to-body>
+      <template #header>
+        <div class="admin-question-dialog-head">
+          <strong>操作日志</strong>
+          <el-button text circle :icon="Close" @click="logsVisible = false" />
+        </div>
+      </template>
+      <el-table :data="logs" empty-text="暂无记录" border>
+        <el-table-column type="index" label="序号" width="72" align="center" />
+        <el-table-column prop="operatorName" label="操作人" width="150">
+          <template #default="{ row }">{{ row.operatorName || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作时间" width="190">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作内容" min-width="180">
+          <template #default="{ row }">{{ questionLogActionLabel(row.action) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </AdminShell>
 </template>
 
@@ -329,7 +337,7 @@ interface QuestionForm {
   questionType: QuestionType;
   title: string;
   standardAnswer: string;
-  score: number;
+  score: number | undefined;
   explanation: string;
   courseName: string;
   options: Array<{ optionKey: string; optionText: string }>;
@@ -348,6 +356,13 @@ const typeLabels: Record<QuestionType, string> = {
   JUDGE: '判断',
   FILL_BLANK: '填空',
   SHORT_ANSWER: '简答'
+};
+const fullTypeLabels: Record<QuestionType, string> = {
+  SINGLE: '单选题',
+  MULTIPLE: '多选题',
+  JUDGE: '判断题',
+  FILL_BLANK: '填空题',
+  SHORT_ANSWER: '简答题'
 };
 
 const pageSize = ref(10);
@@ -403,7 +418,7 @@ function emptyForm(type: QuestionType): QuestionForm {
     questionType: type,
     title: '',
     standardAnswer: '',
-    score: 5,
+    score: undefined,
     explanation: '',
     courseName: '',
     options: [
@@ -428,6 +443,23 @@ function formatDateTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
+function formatDateMinute(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '-';
+}
+
+function questionLogActionLabel(action?: string) {
+  const labels: Record<string, string> = {
+    CREATE: '新增',
+    IMPORT: '新增',
+    UPDATE: '编辑',
+    PUBLISH: '发布',
+    UNPUBLISH: '取消发布',
+    ENABLE: '启用',
+    DISABLE: '禁用'
+  };
+  return labels[String(action || '').toUpperCase()] || action || '-';
+}
+
 function mapRow(item: AdminQuestion): QuestionRow {
   const type = normalizeType(item.questionType);
   return {
@@ -435,7 +467,7 @@ function mapRow(item: AdminQuestion): QuestionRow {
     questionTypeNormalized: type,
     typeLabel: typeLabels[type],
     courseName: item.courseName || '',
-    createdAtLabel: formatDateTime(item.createdAt || item.updatedAt),
+    createdAtLabel: formatDateMinute(item.createdAt || item.updatedAt),
     enabled: item.enabled ?? true
   };
 }
@@ -483,15 +515,37 @@ async function openQuestionDetail(row: QuestionRow) {
 
 function toForm(row: QuestionRow): QuestionForm {
   const normalized = row.questionTypeNormalized;
+  const options = row.options?.map((item) => ({ optionKey: item.optionKey || 'A', optionText: item.optionText || '' })) || emptyForm(normalized).options;
   return {
     questionType: normalized,
     title: row.title,
-    standardAnswer: normalized === 'JUDGE' ? normalizeJudgeAnswer(row.standardAnswer) : row.standardAnswer || '',
-    score: Number(row.score || 5),
+    standardAnswer: normalized === 'JUDGE'
+      ? normalizeJudgeAnswer(row.standardAnswer)
+      : (normalized === 'SINGLE' || normalized === 'MULTIPLE')
+        ? normalizeChoiceAnswer(row.standardAnswer, options)
+        : row.standardAnswer || '',
+    score: row.score == null ? undefined : Number(row.score),
     explanation: row.explanation || '',
     courseName: row.courseName,
-    options: row.options?.map((item) => ({ optionKey: item.optionKey || 'A', optionText: item.optionText || '' })) || emptyForm(normalized).options
+    options
   };
+}
+
+function answerKeys(answer = form.standardAnswer, options = form.options) {
+  const value = String(answer || '').trim().toUpperCase();
+  if (!value) return [];
+  const optionKeys = new Set(options.map((option) => option.optionKey));
+  if (optionKeys.has(value)) return [value];
+  const candidates = /[,，\s]/.test(value) ? value.split(/[,，\s]+/) : value.split('');
+  return Array.from(new Set(candidates.filter((key) => optionKeys.has(key))));
+}
+
+function normalizeChoiceAnswer(answer: string | undefined, options: QuestionForm['options']) {
+  return answerKeys(answer, options).join(',');
+}
+
+function hasAnswer(key: string) {
+  return answerKeys().includes(key);
 }
 
 function normalizeJudgeAnswer(answer?: string) {
@@ -505,8 +559,19 @@ function normalizeJudgeAnswer(answer?: string) {
   return '';
 }
 
+function optionKeyAt(index: number) {
+  let value = index + 1;
+  let key = '';
+  while (value > 0) {
+    value--;
+    key = String.fromCharCode(65 + (value % 26)) + key;
+    value = Math.floor(value / 26);
+  }
+  return key;
+}
+
 function addOption() {
-  const next = String.fromCharCode(65 + form.options.length);
+  const next = optionKeyAt(form.options.length);
   form.options.push({ optionKey: next, optionText: '' });
 }
 
@@ -519,29 +584,48 @@ async function removeOption(index: number) {
   } catch {
     return;
   }
-  const removed = form.options.splice(index, 1)[0];
-  form.standardAnswer = form.standardAnswer.split(removed.optionKey).join('');
+  const selected = new Set(answerKeys());
+  const remaining = form.options.filter((_option, optionIndex) => optionIndex !== index);
+  const nextAnswers: string[] = [];
+  form.options = remaining.map((option, optionIndex) => {
+    const nextKey = optionKeyAt(optionIndex);
+    if (selected.has(option.optionKey)) nextAnswers.push(nextKey);
+    return { ...option, optionKey: nextKey };
+  });
+  form.standardAnswer = nextAnswers.join(',');
 }
 
 function toggleAnswer(key: string) {
-  form.standardAnswer = form.standardAnswer.includes(key)
-    ? form.standardAnswer.split(key).join('')
-    : `${form.standardAnswer}${key}`.split('').sort().join('');
+  const selected = new Set(answerKeys());
+  if (selected.has(key)) selected.delete(key);
+  else selected.add(key);
+  form.standardAnswer = form.options.filter((option) => selected.has(option.optionKey)).map((option) => option.optionKey).join(',');
+}
+
+function handleQuestionTypeChange(nextType: QuestionType) {
+  form.standardAnswer = '';
+  if (nextType === 'SINGLE' || nextType === 'MULTIPLE') {
+    form.options = emptyForm(nextType).options;
+  }
 }
 
 function validateForm(): AdminQuestionCommand {
-  if (!form.title.trim()) throw new Error('请输入题干内容');
+  if (!Number.isInteger(Number(form.score)) || Number(form.score) <= 0) throw new Error('请填写有效分值');
   if (!form.courseName.trim()) throw new Error('请输入所属课程名称');
-  if (!form.standardAnswer.trim()) throw new Error('请输入答案');
-  if (!form.explanation.trim()) throw new Error('请输入答案解析');
-  if (!Number.isInteger(Number(form.score)) || Number(form.score) <= 0) throw new Error('分值必须为正整数');
-  if (isChoiceForm.value && form.options.some((item) => !item.optionText.trim())) throw new Error('请完善所有选项');
+  if (!form.title.trim()) throw new Error('请输入题干内容');
+  const emptyOption = isChoiceForm.value ? form.options.find((item) => !item.optionText.trim()) : undefined;
+  if (emptyOption) throw new Error(`请输入选项 ${emptyOption.optionKey} 内容`);
+  const selectedAnswers = answerKeys();
+  if (form.questionType === 'SINGLE' && selectedAnswers.length !== 1) throw new Error('请选择正确答案');
+  if (form.questionType === 'MULTIPLE' && selectedAnswers.length < 2) throw new Error('请至少选择两项正确答案');
+  if (!form.standardAnswer.trim()) throw new Error(form.questionType === 'SHORT_ANSWER' ? '请输入参考答案' : '请输入正确答案');
   if (form.questionType === 'FILL_BLANK') {
-    const blankCount = form.title.match(/[_＿]+/g)?.length ?? 0;
-    if (blankCount === 0) throw new Error('填空题题干必须使用下划线标记填空位置');
+    const blankCount = form.title.match(/[_＿]{3,}/g)?.length ?? 0;
+    if (blankCount === 0) throw new Error('题干必须使用_____标注填空位置');
     const answerCount = form.standardAnswer.split(/[,，;；|]/).filter((item) => item.trim()).length;
-    if (answerCount !== blankCount) throw new Error(`题干有 ${blankCount} 个填空，答案也应填写 ${blankCount} 项`);
+    if (answerCount !== blankCount) throw new Error('答案数量需与题干填空数量匹配');
   }
+  if (!form.explanation.trim()) throw new Error('请填写答案解析');
   return {
     questionType: form.questionType,
     courseName: form.courseName.trim(),
@@ -549,7 +633,7 @@ function validateForm(): AdminQuestionCommand {
     standardAnswer: form.standardAnswer.trim(),
     explanation: form.explanation.trim(),
     score: Number(form.score),
-    options: isChoiceForm.value ? form.options.map((item) => ({ optionKey: item.optionKey, optionText: item.optionText.trim(), correct: form.standardAnswer.includes(item.optionKey) })) : []
+    options: isChoiceForm.value ? form.options.map((item) => ({ optionKey: item.optionKey, optionText: item.optionText.trim(), correct: selectedAnswers.includes(item.optionKey) })) : []
   };
 }
 
@@ -582,13 +666,13 @@ async function saveQuestion() {
 
 async function toggleEnabled(row: QuestionRow) {
   try {
-    await ElMessageBox.confirm(`确定要${row.enabled ? '禁用' : '启用'}该试题吗？`, `${row.enabled ? '禁用' : '启用'}试题`, {
+    await ElMessageBox.confirm(`确定要${row.enabled ? '禁用' : '启用'}【${row.title}】吗？`, `${row.enabled ? '禁用' : '启用'}试题`, {
       confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
     });
     if (row.enabled) await disableAdminQuestion(row.questionId);
     else await enableAdminQuestion(row.questionId);
-    row.enabled = !row.enabled;
-    ElMessage.success(row.enabled ? '试题已启用' : '试题已停用');
+    ElMessage.success(row.enabled ? '试题已禁用' : '试题已启用');
+    await loadQuestions();
   } catch (error) {
     if (error === 'cancel' || error === 'close') return;
     ElMessage.error(error instanceof Error ? error.message : '试题状态更新失败');
@@ -601,11 +685,9 @@ async function batchEnable(enabled: boolean) {
       confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
     });
     await Promise.all(selectedIds.value.map((id) => (enabled ? enableAdminQuestion(id) : disableAdminQuestion(id))));
-    questions.value.forEach((item) => {
-      if (selectedIds.value.includes(item.questionId)) item.enabled = enabled;
-    });
     selectedIds.value = [];
     ElMessage.success(enabled ? '已批量启用' : '已批量禁用');
+    await loadQuestions();
   } catch (error) {
     if (error === 'cancel' || error === 'close') return;
     ElMessage.error(error instanceof Error ? error.message : '批量更新失败');
@@ -624,8 +706,26 @@ function openImport() {
 }
 
 function handleImportFileChange(file: UploadFile, files: UploadFiles) {
-  importFileList.value = files;
-  importFile.value = file.raw ?? null;
+  const raw = file.raw;
+  if (!raw) {
+    importFileList.value = [];
+    importFile.value = null;
+    return;
+  }
+  if (!/\.(xls|xlsx|excel)$/i.test(raw.name)) {
+    ElMessage.warning('仅支持 Excel 文件');
+    importFileList.value = [];
+    importFile.value = null;
+    return;
+  }
+  if (raw.size > 200 * 1024 * 1024) {
+    ElMessage.warning('文件大小不能超过 200MB');
+    importFileList.value = [];
+    importFile.value = null;
+    return;
+  }
+  importFileList.value = files.slice(-1);
+  importFile.value = raw;
 }
 
 function handleImportFileRemove(_file: UploadFile, files: UploadFiles) {
@@ -646,8 +746,8 @@ async function openPreview() {
     return;
   }
   const file = importFile.value;
-  if (!/\.xlsx?$/i.test(file.name)) {
-    ElMessage.warning('仅支持 .xls、.xlsx 格式');
+  if (!/\.(xls|xlsx|excel)$/i.test(file.name)) {
+    ElMessage.warning('仅支持 Excel 文件');
     return;
   }
   if (file.size > 200 * 1024 * 1024) {
@@ -691,6 +791,11 @@ async function submitImport() {
     ElMessage.warning('导入文件已失效，请重新选择');
     return;
   }
+  const invalidScore = previewGroups.flatMap((group) => group.questions).find((question) => !Number.isInteger(Number(question.score)) || Number(question.score) <= 0);
+  if (invalidScore) {
+    ElMessage.warning(`第 ${invalidScore.index} 题分值必须为正整数`);
+    return;
+  }
   importing.value = true;
   try {
     const count = await importAdminQuestions({
@@ -700,7 +805,8 @@ async function submitImport() {
       rows: rowsForSubmission()
     });
     previewVisible.value = false;
-    ElMessage.success(`成功导入 ${count} 道试题`);
+    const typeSummary = previewGroups.map((group) => `${group.type}${group.questions.length}题`).join('，');
+    ElMessage.success(`导入完成：成功 ${count} 道，失败 0 道（${typeSummary}）`);
     await loadQuestions();
     await loadCreatorOptions();
   } catch (error) {
@@ -726,11 +832,11 @@ function downloadTemplate() {
     + '3、判断题答案填写正确或错误。\n4、未填写分值时系统按5分导入，可在预览页调整。';
   const worksheet = XLSX.utils.aoa_to_sheet([
     [instructions, '', '', '', '', '', '', '', '', ''],
-    ['题型*', '题干*', '选项 A', '选项 B', '选项 C', '选项 D', '选项 E', '选项 F', '正确答案*', '题目解析*'],
-    ['单选题', '示例：请选择正确选项', '选项一', '选项二', '选项三', '选项四', '', '', 'A', '示例解析']
+    ['题型*', '题干*', '选项 A', '选项 B', '选项 C', '选项 D', '选项 E', '选项 F', '正确答案*', '题目解析*', '分值'],
+    ['单选题', '示例：请选择正确选项', '选项一', '选项二', '选项三', '选项四', '', '', 'A', '示例解析', 5]
   ]);
-  worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
-  worksheet['!cols'] = [{ wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 36 }];
+  worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
+  worksheet['!cols'] = [{ wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 36 }, { wch: 10 }];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '理论试题');
   XLSX.writeFile(workbook, '理论试题上传模板.xlsx');
@@ -823,6 +929,7 @@ async function parseQuestionWorkbook(file: File): Promise<AdminQuestionImportRow
 
 function buildPreviewGroups(rows: AdminQuestionImportRow[]) {
   previewGroups.splice(0);
+  let globalIndex = 1;
   const order: QuestionType[] = ['SINGLE', 'MULTIPLE', 'JUDGE', 'FILL_BLANK', 'SHORT_ANSWER'];
   const tones: Record<QuestionType, 'single' | 'multiple' | 'judge' | 'blank'> = {
     SINGLE: 'single', MULTIPLE: 'multiple', JUDGE: 'judge', FILL_BLANK: 'blank', SHORT_ANSWER: 'blank'
@@ -830,12 +937,12 @@ function buildPreviewGroups(rows: AdminQuestionImportRow[]) {
   order.forEach((type) => {
     const questions = rows.filter((row) => row.questionType === type).map((row, index) => ({
       rowNumber: row.rowNumber ?? index + 2,
-      index: index + 1,
+      index: globalIndex++,
       title: row.title ?? '',
       score: row.score ?? 0,
       options: (row.options ?? []).map((option) => `${option.optionKey}. ${option.optionText}`)
     }));
-    if (questions.length) previewGroups.push({ type: typeLabels[type], tone: tones[type], questions });
+    if (questions.length) previewGroups.push({ type: fullTypeLabels[type], tone: tones[type], questions });
   });
 }
 
@@ -852,16 +959,16 @@ async function openBatchQuestionScore(type: string) {
   }
 
   try {
-    const result = await ElMessageBox.prompt(`请输入${type}统一分值（1-100的正整数）`, '批量修改分值', {
+    const result = await ElMessageBox.prompt(`请输入${type}统一分值（正整数）`, '批量修改分值', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       inputValue: String(group.questions[0].score || 1),
       inputPattern: /^[1-9]\d*$/,
-      inputErrorMessage: '请输入1-100的正整数'
+      inputErrorMessage: '请输入正整数'
     });
     const score = Number(result.value);
-    if (!Number.isInteger(score) || score < 1 || score > 100) {
-      ElMessage.warning('分值必须是1-100的正整数');
+    if (!Number.isInteger(score) || score < 1) {
+      ElMessage.warning('分值必须是正整数');
       return;
     }
     group.questions.forEach((question) => { question.score = score; });
@@ -924,9 +1031,19 @@ async function loadQuestions() {
 
 async function loadCreatorOptions() {
   try {
-    const result = await fetchAdminQuestions({ page: 1, pageSize: 200 });
+    const records: AdminQuestion[] = [];
+    let currentPage = 1;
+    let total = 0;
+    do {
+      const result = await fetchAdminQuestions({ page: currentPage, pageSize: 100 });
+      const previousLength = records.length;
+      records.push(...result.records);
+      total = result.total;
+      if (records.length === previousLength) break;
+      currentPage++;
+    } while (records.length < total);
     const options = new Map<number, string>();
-    result.records.forEach((item) => {
+    records.forEach((item) => {
       if (item.creatorId && item.creatorName) {
         options.set(item.creatorId, item.creatorName);
       }

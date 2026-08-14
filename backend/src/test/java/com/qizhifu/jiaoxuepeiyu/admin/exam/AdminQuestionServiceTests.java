@@ -151,6 +151,34 @@ class AdminQuestionServiceTests {
         assertEquals("Fill blank answer count must match blank markers", exception.getMessage());
     }
 
+    @Test
+    void rejectsFillBlankWithShortUnderscoreMarker() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionCommand command = new AdminQuestionCommand();
+        command.setQuestionType("FILL_BLANK");
+        command.setCourseName("Operations");
+        command.setTitle("Signal _ route");
+        command.setScore(5);
+        command.setStandardAnswer("red");
+        command.setExplanation("Explanation");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.createQuestion(command, 9L));
+
+        assertEquals("Fill blank title must contain underscore markers", exception.getMessage());
+    }
+
+    @Test
+    void acceptsDocumentedExcelExtensionForImportPreview() {
+        AdminQuestionService service = new AdminQuestionService(new FakeQuestions());
+        AdminQuestionImportCommand command = new AdminQuestionImportCommand();
+        command.setFileName("questions.excel");
+        command.setFileSize(1024L);
+        command.setCourseName("Operations");
+        command.setRows(Arrays.asList(importRow(2, "SINGLE", "Valid title", "A")));
+
+        assertEquals(1, service.previewImport(command).getValidCount());
+    }
+
     private AdminQuestionCommand singleChoice() {
         AdminQuestionCommand command = new AdminQuestionCommand();
         command.setQuestionType("SINGLE");

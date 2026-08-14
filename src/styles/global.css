@@ -16052,13 +16052,13 @@ a {
 }
 
 .admin-question-status.disabled {
-  border: 1px solid #fecaca;
-  background: #fee2e2;
-  color: #ef4444;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 .admin-question-status.disabled i {
-  background: #ef4444;
+  background: #9ca3af;
 }
 
 .admin-question-row-actions {
@@ -16468,14 +16468,21 @@ a {
   font-weight: 900;
 }
 
-.admin-question-preview-card ol {
+.admin-question-preview-card ul {
   display: grid;
   gap: 10px;
   margin: 0;
-  padding-left: 24px;
+  padding: 0;
+  list-style: none;
   color: #475569;
   font-size: 14px;
   line-height: 20px;
+}
+
+.admin-question-preview-card h3 small {
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .admin-question-preview-card label {
@@ -16497,34 +16504,27 @@ a {
   border-radius: 8px;
 }
 
-.admin-question-log-drawer {
-  padding: 20px;
+.admin-question-log-dialog.el-dialog {
+  border-radius: 8px;
 }
 
-.admin-question-log-row {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+.admin-question-log-dialog .el-dialog__header {
+  margin: 0;
+  padding: 22px 24px 16px;
 }
 
-.admin-question-log-row header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: #152238;
+.admin-question-log-dialog .el-dialog__body {
+  padding: 0 24px 24px;
 }
 
-.admin-question-log-row p {
-  margin: 8px 0 0;
-  color: #64748b;
-  font-size: 14px;
+.admin-question-log-dialog .el-table th.el-table__cell {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 900;
 }
 
-.admin-question-log-row small {
-  display: block;
-  margin-top: 8px;
-  color: #94a3b8;
+.admin-question-log-dialog .el-table td.el-table__cell {
+  color: #475569;
 }
 
 .admin-semester-score-page {

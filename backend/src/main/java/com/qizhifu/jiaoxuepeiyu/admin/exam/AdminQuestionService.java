@@ -202,13 +202,20 @@ public class AdminQuestionService {
 
     private void validateFillBlank(String title, String answer) {
         int blankCount = 0;
-        boolean inBlank = false;
+        int underscoreRun = 0;
         for (int i = 0; i < title.length(); i++) {
             boolean underscore = title.charAt(i) == '_' || title.charAt(i) == '＿';
-            if (underscore && !inBlank) {
-                blankCount++;
+            if (underscore) {
+                underscoreRun++;
+            } else {
+                if (underscoreRun >= 3) {
+                    blankCount++;
+                }
+                underscoreRun = 0;
             }
-            inBlank = underscore;
+        }
+        if (underscoreRun >= 3) {
+            blankCount++;
         }
         if (blankCount == 0) {
             throw new BusinessException(400, "Fill blank title must contain underscore markers");
@@ -272,7 +279,8 @@ public class AdminQuestionService {
         }
         String fileName = command.getFileName().trim();
         String lowerFileName = fileName.toLowerCase(Locale.ENGLISH);
-        if (!lowerFileName.endsWith(".xls") && !lowerFileName.endsWith(".xlsx")) {
+        if (!lowerFileName.endsWith(".xls") && !lowerFileName.endsWith(".xlsx")
+                && !lowerFileName.endsWith(".excel")) {
             throw new BusinessException(400, "Import file must be an Excel file");
         }
         if (command.getFileSize() == null || command.getFileSize().longValue() <= 0) {
