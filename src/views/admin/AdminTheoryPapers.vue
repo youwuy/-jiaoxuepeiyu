@@ -401,14 +401,22 @@
               <section v-for="item in answerCardGroups" :key="item.type" :class="item.tone">
                 <p><span>{{ item.short }}</span>{{ item.count }}题 · {{ item.score }}分</p>
                 <div>
-                  <button v-for="num in item.numbers" :key="num" :class="{ active: num === 1 }">{{ num }}</button>
+                  <button
+                    v-for="num in item.numbers"
+                    :key="num"
+                    type="button"
+                    :class="{ active: num === activePreviewQuestionNumber }"
+                    @click="focusPreviewQuestion(num)"
+                  >
+                    {{ num }}
+                  </button>
                 </div>
               </section>
             </aside>
             <div class="admin-theory-paper-preview-stack">
               <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
-                <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text>批量修改得分</el-button></header>
-                <article v-for="question in group.questions" :key="question.index">
+                <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text @click="openBatchScore(group.type)">批量修改得分</el-button></header>
+                <article v-for="question in group.questions" :key="question.id" :ref="(element) => setPreviewQuestionRef(question.index, element)">
                   <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
                   <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="100" :controls="false" @change="updatePreviewScore(question.id, $event)" /></label>
                 </article>
@@ -613,6 +621,8 @@ const selectedIds = ref<number[]>([]);
 const { can } = useAdminPermissions('resource:theory-paper');
 const importVisible = ref(false);
 const previewVisible = ref(false);
+const activePreviewQuestionNumber = ref(1);
+const previewQuestionRefs = new Map<number, HTMLElement>();
 const logsVisible = ref(false);
 const activePaper = ref<TheoryPaper | null>(null);
 const questionKeyword = ref('');
@@ -664,9 +674,9 @@ const previewGroups = computed(() => {
         title: `${'一二三四五'[typeIndex]}、${type}`,
         meta: `${questions.length}题 · 共${questions.reduce((sum, item) => sum + Number(item.score || 0), 0)}分`,
         tone: typeTone(type),
-        questions: questions.map((question, index) => ({
-          id: question.id,
-          index: index + 1,
+          questions: questions.map((question) => ({
+            id: question.id,
+            index: selectedQuestions.value.findIndex((item) => item.id === question.id) + 1,
           title: question.title,
           score: Number(question.score || 0),
           options: question.options ?? []
@@ -1012,6 +1022,43 @@ async function prepareUploadPreview() {
 function updatePreviewScore(questionId: number, value: number | undefined) {
   const question = selectedQuestions.value.find((item) => item.id === questionId);
   if (question && value !== undefined) question.score = Number(value);
+}
+
+function setPreviewQuestionRef(index: number, element: unknown) {
+  if (element instanceof HTMLElement) {
+    previewQuestionRefs.set(index, element);
+  } else {
+    previewQuestionRefs.delete(index);
+  }
+}
+
+function focusPreviewQuestion(index: number) {
+  activePreviewQuestionNumber.value = index;
+  previewQuestionRefs.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function openBatchScore(type: string) {
+  const questions = selectedQuestions.value.filter((item) => item.type === type);
+  if (!questions.length) {
+    return;
+  }
+  try {
+    const result = await ElMessageBox.prompt(`请输入${type}统一得分（1-100的正整数）`, '批量修改得分', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: String(questions[0].score || 1),
+      inputPattern: /^[1-9]\\d*$/,
+      inputErrorMessage: '请输入1-100的正整数'
+    });
+    const score = Number(result.value);
+    if (!Number.isInteger(score) || score < 1 || score > 100) {
+      ElMessage.warning('得分必须是1-100的正整数');
+      return;
+    }
+    questions.forEach((question) => { question.score = score; });
+  } catch {
+    // 用户取消批量修改时保持当前预览内容。
+  }
 }
 function paperRowsForSubmission() {
   const scores = new Map(selectedQuestions.value.map((item) => [item.importRowNumber, item.score]));
