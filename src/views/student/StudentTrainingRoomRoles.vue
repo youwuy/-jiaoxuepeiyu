@@ -21,8 +21,8 @@
         </header>
 
         <div class="role-select-heading">
-          <h2><el-icon><User /></el-icon>选择你的角色</h2>
-          <p>每个角色仅限一人选择，选定后不可更改</p>
+          <h2><el-icon><User /></el-icon>{{ isExam ? '系统分配角色' : '选择你的角色' }}</h2>
+          <p>{{ isExam ? '考试角色由系统随机分配，分配后不可更改' : '每个角色仅限一人选择，选定后不可更改' }}</p>
         </div>
 
         <section class="role-card-grid">
@@ -51,6 +51,9 @@
               <div v-else-if="isOccupiedByOther(role)" class="role-card-occupied-text">
                 已被{{ roleOwnerName(role.claimedByStudentId) }}选择
               </div>
+              <div v-else-if="isExam" class="role-card-occupied-text">
+                {{ role.claimedByStudentId === currentStudentId ? '系统已分配' : '待系统分配' }}
+              </div>
               <el-button
                 v-else
                 :disabled="!canSelectRole(role)"
@@ -68,12 +71,13 @@
         <footer class="role-select-footer">
           <div class="role-select-tip" :class="{ 'is-ready': Boolean(selectedRoleName) }">
             <span><el-icon><WarningFilled /></el-icon></span>
-            <strong>{{ selectedRoleName ? `已选择角色：${selectedRoleName}` : '请先选择一个角色' }}</strong>
+            <strong>{{ selectedRoleName ? `${isExam ? '系统分配角色' : '已选择角色'}：${selectedRoleName}` : (isExam ? '系统正在分配角色' : '请先选择一个角色') }}</strong>
           </div>
           <div class="role-select-actions">
             <el-button @click="returnLobby">返回</el-button>
+            <el-button v-if="isExam" type="primary" disabled>等待教师开始考试</el-button>
             <el-button
-              v-if="isOwner"
+              v-else-if="isOwner"
               type="primary"
               :disabled="!selectedRoleName || room.roomStatus !== 'WAITING'"
               :loading="starting"
@@ -125,6 +129,7 @@ try {
 }
 
 const members = computed(() => room.value?.members || []);
+const isExam = computed(() => room.value?.trainingType === 'EXAM');
 const isOwner = computed(() => room.value?.ownerStudentId === currentStudentId || members.value.some((member) => member.owner && member.studentId === currentStudentId));
 const selectedRoleName = computed(() => room.value?.roles?.find((role) => role.claimedByStudentId === currentStudentId)?.roleName);
 const roomOwnerName = computed(() => members.value.find((member) => member.owner)?.studentName || '学员');
@@ -140,7 +145,7 @@ function isOccupiedByOther(role: TrainingRoomRole) {
 }
 
 function canSelectRole(role: TrainingRoomRole) {
-  if (room.value?.roomStatus !== 'WAITING' || role.aiFillEnabled || isOccupiedByOther(role)) {
+  if (isExam.value || room.value?.roomStatus !== 'WAITING' || role.aiFillEnabled || isOccupiedByOther(role)) {
     return false;
   }
 
@@ -193,7 +198,7 @@ async function selectRole(roleId: number) {
 }
 
 async function startRoom() {
-  if (!room.value || !isOwner.value || !selectedRoleName.value) {
+  if (!room.value || isExam.value || !isOwner.value || !selectedRoleName.value) {
     return;
   }
 

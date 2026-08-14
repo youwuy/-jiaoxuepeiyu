@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class StudentTrainingService {
             StudentTraining training = new StudentTraining();
             training.setTrainingId(record.getTrainingId());
             training.setTrainingName(record.getTrainingName());
+            training.setTrainingType(record.getTrainingType());
             training.setTrainingMode(record.getTrainingMode());
             training.setOpenStartTime(record.getOpenStartTime());
             training.setOpenEndTime(record.getOpenEndTime());
@@ -77,6 +79,7 @@ public class StudentTrainingService {
         assertNoActiveRoom(studentId);
         TrainingRoom room = repository.createRoom(studentId, trainingId, topicId);
         repository.addMember(room.getRoomId(), studentId);
+        assignExamRole(training, room.getRoomId(), studentId);
         return requireRoom(room.getRoomId());
     }
 
@@ -85,12 +88,13 @@ public class StudentTrainingService {
         assertNoActiveRoom(studentId);
         TrainingRoom room = requireRoom(roomId);
         assertExamNotStarted(room.getTrainingId());
-        requireTraining(studentId, room.getTrainingId());
+        StudentTrainingRecord training = requireTraining(studentId, room.getTrainingId());
         assertWaiting(room);
         if (room.getMembers().size() >= room.getTeamSize()) {
             throw new BusinessException(400, "Training room is full");
         }
         repository.addMember(roomId, studentId);
+        assignExamRole(training, roomId, studentId);
         return requireRoom(roomId);
     }
 
@@ -144,6 +148,10 @@ public class StudentTrainingService {
     public TrainingRoom startRoom(Long studentId, Long roomId) {
         TrainingRoom room = requireRoom(roomId);
         assertWaiting(room);
+        StudentTrainingRecord training = requireTraining(studentId, room.getTrainingId());
+        if ("EXAM".equals(training.getTrainingType())) {
+            throw new BusinessException(403, "Training exams are started by the teacher");
+        }
         if (!studentId.equals(room.getOwnerStudentId())) {
             throw new BusinessException(403, "Only room owner can start training");
         }
@@ -176,6 +184,22 @@ public class StudentTrainingService {
             if (topicId.equals(topic.getTopicId()) && "TEAM".equals(topic.getTrainingMode())) return;
         }
         throw new BusinessException(404, "Team training topic not found");
+    }
+
+    private void assignExamRole(StudentTrainingRecord training, Long roomId, Long studentId) {
+        if (!"EXAM".equals(training.getTrainingType())) {
+            return;
+        }
+        List<TrainingRoomRole> availableRoles = new ArrayList<TrainingRoomRole>();
+        for (TrainingRoomRole role : requireRoom(roomId).getRoles()) {
+            if (!role.isAiFillEnabled() && !role.isClaimed()) {
+                availableRoles.add(role);
+            }
+        }
+        if (!availableRoles.isEmpty()) {
+            TrainingRoomRole assigned = availableRoles.get(ThreadLocalRandom.current().nextInt(availableRoles.size()));
+            repository.claimRole(roomId, studentId, assigned.getRoleId());
+        }
     }
 
     private void assertNoActiveRoom(Long studentId) {

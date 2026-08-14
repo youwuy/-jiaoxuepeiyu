@@ -8,6 +8,7 @@ public class StudentTraining {
 
     private Long trainingId;
     private String trainingName;
+    private String trainingType;
     private String trainingMode;
     private String status;
     private LocalDateTime openStartTime;
@@ -34,6 +35,14 @@ public class StudentTraining {
 
     public void setTrainingName(String trainingName) {
         this.trainingName = trainingName;
+    }
+
+    public String getTrainingType() {
+        return trainingType;
+    }
+
+    public void setTrainingType(String trainingType) {
+        this.trainingType = trainingType;
     }
 
     public String getTrainingMode() {

@@ -7427,6 +7427,10 @@
           "trainingName": {
             "type": "string"
           },
+          "trainingType": {
+            "type": "string",
+            "description": "Training type, for example PRACTICE or EXAM"
+          },
           "roomCode": {
             "type": "string"
           },
@@ -8540,6 +8544,10 @@
           },
           "trainingName": {
             "type": "string"
+          },
+          "trainingType": {
+            "type": "string",
+            "description": "Training type, for example PRACTICE or EXAM"
           },
           "trainingMode": {
             "type": "string"

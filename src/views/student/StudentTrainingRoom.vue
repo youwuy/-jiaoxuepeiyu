@@ -93,7 +93,7 @@
             </div>
             <div class="team-room-role-entry">
               <el-button type="primary" :disabled="room.roomStatus !== 'WAITING' || !isCurrentMember" @click="openRoleSelection">
-                进入房间选择角色
+                {{ isExam ? '查看系统分配角色' : '进入房间选择角色' }}
                 <el-icon><Right /></el-icon>
               </el-button>
             </div>
@@ -101,11 +101,11 @@
         </div>
 
         <footer class="team-room-footer">
-          <div class="team-room-hint"><el-icon><InfoFilled /></el-icon>未选择角色的成员将在开始后由 AI 扮演</div>
+          <div class="team-room-hint"><el-icon><InfoFilled /></el-icon>{{ isExam ? '考试角色由系统随机分配，请等待教师开始考试' : '未选择角色的成员将在开始后由 AI 扮演' }}</div>
           <div class="team-room-footer-actions">
             <el-button plain @click="leaveRoom">退出房间</el-button>
-            <el-button type="primary" :disabled="!isOwner || room.roomStatus !== 'WAITING'" @click="openStartDialog">
-              开始实训
+            <el-button type="primary" :disabled="isExam || !isOwner || room.roomStatus !== 'WAITING'" @click="openStartDialog">
+              {{ isExam ? '等待教师开始考试' : '开始实训' }}
               <el-icon><Right /></el-icon>
             </el-button>
           </div>
@@ -211,6 +211,7 @@ try {
 }
 
 const members = computed(() => room.value?.members || []);
+const isExam = computed(() => room.value?.trainingType === 'EXAM');
 const memberSlots = computed<(Partial<TrainingRoomMember> & { key: string; empty?: boolean })[]>(() => {
   const size = Math.max(room.value?.teamSize || 0, members.value.length, 1);
   return Array.from({ length: size }, (_, index) => members.value[index] ? { ...members.value[index], key: `member-${index}` } : { key: `empty-${index}`, empty: true });
@@ -276,7 +277,7 @@ async function startRoom() {
 }
 
 function openStartDialog() {
-  if (!room.value || !isOwner.value || room.value.roomStatus !== 'WAITING') {
+  if (!room.value || isExam.value || !isOwner.value || room.value.roomStatus !== 'WAITING') {
     return;
   }
 

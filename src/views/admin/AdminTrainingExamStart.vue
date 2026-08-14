@@ -29,7 +29,6 @@
                 <col class="col-topic" />
                 <col class="col-mode" />
                 <col class="col-role" />
-                <col class="col-room" />
               </colgroup>
               <thead>
                 <tr>
@@ -38,7 +37,6 @@
                   <th>当前实训题</th>
                   <th>模式</th>
                   <th>系统分配角色</th>
-                  <th>当前所在房间</th>
                 </tr>
               </thead>
               <tbody>
@@ -48,7 +46,6 @@
                   <td>{{ student.topic }}</td>
                   <td>{{ student.mode }}</td>
                   <td>{{ student.role }}</td>
-                  <td>{{ student.room }}</td>
                 </tr>
               </tbody>
             </table>
@@ -80,7 +77,6 @@ interface ExamStudentRow {
   topic: string;
   mode: string;
   role: string;
-  room: string;
 }
 
 const route = useRoute();
@@ -129,9 +125,8 @@ function mapStudent(item: AdminTrainingStudentState, index: number): ExamStudent
     name: item.studentName || '-',
     studentNo: item.studentNo || '-',
     topic: item.currentTopicName || '-',
-    mode: item.currentTopicName ? (item.trainingMode === 'SINGLE' ? '单人实训' : '多人实训') : '-',
-    role: item.roleName || '-',
-    room: item.roomCode || '-'
+    mode: item.currentTopicName ? '多人实训' : '-',
+    role: item.roleName || '-'
   };
 }
 
@@ -316,10 +311,6 @@ onBeforeUnmount(() => {
 
 .admin-training-exam-table .col-role {
   width: 106px;
-}
-
-.admin-training-exam-table .col-room {
-  width: 120px;
 }
 
 @media (max-width: 760px) {

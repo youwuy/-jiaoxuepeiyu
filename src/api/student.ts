@@ -98,6 +98,7 @@ export interface TrainingRoom {
   topicId?: number;
   topicName?: string;
   trainingName?: string;
+  trainingType?: string;
   roomCode?: string;
   roomStatus?: string;
   teamSize?: number;

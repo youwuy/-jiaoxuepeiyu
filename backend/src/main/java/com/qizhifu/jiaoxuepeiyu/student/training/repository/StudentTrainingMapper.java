@@ -18,7 +18,7 @@ import org.apache.ibatis.annotations.Update;
 public interface StudentTrainingMapper {
 
     @Select("<script>"
-            + "SELECT t.id AS training_id, t.training_name, t.training_mode, "
+            + "SELECT t.id AS training_id, t.training_name, t.training_type, t.training_mode, "
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
             + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
@@ -36,7 +36,7 @@ public interface StudentTrainingMapper {
                                               @Param("mode") String mode,
                                               @Param("keyword") String keyword);
 
-    @Select("SELECT t.id AS training_id, t.training_name, t.training_mode, "
+    @Select("SELECT t.id AS training_id, t.training_name, t.training_type, t.training_mode, "
             + "t.open_start_time, t.open_end_time, t.team_size, "
             + "(SELECT COUNT(*) FROM training_role tr WHERE tr.training_id = t.id) AS role_count, "
             + "t.app_required, CASE WHEN ai.installed = 1 THEN TRUE ELSE FALSE END AS app_installed, "
@@ -76,7 +76,7 @@ public interface StudentTrainingMapper {
             + "AND tt.enabled_flag = 1 AND tt.deleted_flag = 0 ORDER BY tb.sort_order ASC, tb.id ASC")
     List<StudentTrainingTopic> findTopics(@Param("trainingId") Long trainingId);
 
-    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, r.room_code, r.room_status, "
+    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, t.training_type, r.room_code, r.room_status, "
             + "r.owner_student_id, t.team_size FROM training_team_room r "
             + "JOIN training_course t ON t.id = r.training_id LEFT JOIN training_topic tt ON tt.id = r.topic_id "
             + "WHERE r.training_id = #{trainingId} AND r.topic_id = #{topicId} "
@@ -100,7 +100,7 @@ public interface StudentTrainingMapper {
             + "ON DUPLICATE KEY UPDATE member_status = 'ACTIVE', role_id = NULL, left_at = NULL, updated_at = NOW()")
     void addMember(@Param("roomId") Long roomId, @Param("studentId") Long studentId);
 
-    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, r.room_code, r.room_status, "
+    @Select("SELECT r.id AS room_id, r.training_id, r.topic_id, tt.topic_name, t.training_name, t.training_type, r.room_code, r.room_status, "
             + "r.owner_student_id, t.team_size "
             + "FROM training_team_room r JOIN training_course t ON t.id = r.training_id "
             + "LEFT JOIN training_topic tt ON tt.id = r.topic_id "

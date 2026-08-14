@@ -68,6 +68,37 @@ class StudentTrainingServiceTests {
     }
 
     @Test
+    void assignsRandomAvailableRoleWhenCreatingExamRoom() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.activeRoomId = null;
+        repository.trainingType = "EXAM";
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        TrainingRoom room = service.createRoom(7L, 21L, 301L);
+
+        assertEquals(repository.claimedRoleId, room.getMembers().get(0).getRoleId());
+        assertEquals(true, Arrays.asList(501L, 502L).contains(repository.claimedRoleId));
+    }
+
+    @Test
+    void assignsAvailableRoleWhenJoiningExamRoom() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.activeRoomId = null;
+        repository.trainingType = "EXAM";
+        repository.room.getRoles().get(0).setClaimed(true);
+        repository.room.getRoles().get(0).setClaimedByStudentId(7L);
+        repository.room.getMembers().get(0).setRoleId(501L);
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        TrainingRoom room = service.joinRoom(8L, 101L);
+
+        assertEquals(502L, repository.claimedRoleId.longValue());
+        assertEquals(502L, room.getMembers().stream()
+                .filter(member -> Long.valueOf(8L).equals(member.getStudentId()))
+                .findFirst().get().getRoleId().longValue());
+    }
+
+    @Test
     void rejectsCreatingRoomAfterTeamExamStarts() {
         FakeTrainings repository = new FakeTrainings();
         repository.activeRoomId = null;
@@ -167,6 +198,19 @@ class StudentTrainingServiceTests {
         assertEquals(101L, repository.startedRoomId.longValue());
     }
 
+    @Test
+    void rejectsStudentStartingExamRoom() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.trainingType = "EXAM";
+        StudentTrainingService service = new StudentTrainingService(repository, CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.startRoom(7L, 101L));
+
+        assertEquals(403, exception.getCode());
+        assertEquals("Training exams are started by the teacher", exception.getMessage());
+    }
+
     private static class FakeTrainings implements StudentTrainingRepository {
         private Long activeRoomId = 99L;
         private Long addedMemberStudentId;
@@ -174,6 +218,7 @@ class StudentTrainingServiceTests {
         private Long releasedRoleId;
         private Long startedRoomId;
         private boolean examStarted;
+        private String trainingType = "PRACTICE";
         private TrainingRoom room = room();
 
         @Override
@@ -241,9 +286,15 @@ class StudentTrainingServiceTests {
         @Override
         public void claimRole(Long roomId, Long studentId, Long roleId) {
             claimedRoleId = roleId;
-            room.getMembers().get(0).setRoleId(roleId);
-            room.getRoles().get(0).setClaimed(true);
-            room.getRoles().get(0).setClaimedByStudentId(studentId);
+            room.getMembers().stream()
+                    .filter(member -> studentId.equals(member.getStudentId()))
+                    .findFirst().get().setRoleId(roleId);
+            room.getRoles().stream()
+                    .filter(role -> roleId.equals(role.getRoleId()))
+                    .findFirst().get().setClaimed(true);
+            room.getRoles().stream()
+                    .filter(role -> roleId.equals(role.getRoleId()))
+                    .findFirst().get().setClaimedByStudentId(studentId);
         }
 
         @Override
@@ -273,6 +324,7 @@ class StudentTrainingServiceTests {
             StudentTrainingRecord record = new StudentTrainingRecord();
             record.setTrainingId(21L);
             record.setTrainingName("dispatch practice");
+            record.setTrainingType(trainingType);
             record.setTrainingMode("TEAM");
             record.setOpenStartTime(LocalDateTime.parse("2026-07-01T00:00:00"));
             record.setOpenEndTime(LocalDateTime.parse("2026-08-31T23:59:59"));

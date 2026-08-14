@@ -10,6 +10,7 @@ public class TrainingRoom {
     private Long topicId;
     private String topicName;
     private String trainingName;
+    private String trainingType;
     private String roomCode;
     private String roomStatus;
     private Long ownerStudentId;
@@ -44,6 +45,14 @@ public class TrainingRoom {
 
     public void setTrainingName(String trainingName) {
         this.trainingName = trainingName;
+    }
+
+    public String getTrainingType() {
+        return trainingType;
+    }
+
+    public void setTrainingType(String trainingType) {
+        this.trainingType = trainingType;
     }
 
     public String getRoomCode() {
