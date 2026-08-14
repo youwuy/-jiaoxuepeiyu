@@ -1,16 +1,22 @@
 <template>
-  <section v-if="roleFormPageVisible" class="admin-role-form-page">
-      <header class="admin-role-form-topbar">
-        <el-breadcrumb class="admin-role-form-breadcrumb" separator="/">
-          <el-breadcrumb-item>系统管理</el-breadcrumb-item>
-          <el-breadcrumb-item>角色管理</el-breadcrumb-item>
-          <el-breadcrumb-item>{{ formMode === 'create' ? '新增角色' : '编辑角色' }}</el-breadcrumb-item>
-        </el-breadcrumb>
-        <div class="admin-role-form-user">
-          <span>管</span>
-          <strong>管理员</strong>
+  <AdminShell activeKey="roles">
+    <el-dialog
+      v-model="roleFormPageVisible"
+      class="admin-role-form-dialog"
+      width="1100px"
+      :show-close="false"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+      append-to-body
+    >
+      <template #header>
+        <div class="admin-roles-dialog-head">
+          <strong>{{ formMode === 'create' ? '新增角色' : '编辑角色' }}</strong>
+          <el-button text circle :icon="Close" aria-label="关闭" @click="cancelRoleForm" />
         </div>
-      </header>
+      </template>
+
+      <section class="admin-role-form-page">
 
       <section class="admin-role-form-card">
         <h3><i></i>基本信息</h3>
@@ -93,9 +99,9 @@
         <el-button class="admin-role-form-cancel" @click="cancelRoleForm">取消</el-button>
         <el-button class="admin-role-form-confirm" type="primary" :loading="saving" @click="saveRole">确定</el-button>
       </footer>
-  </section>
+      </section>
+    </el-dialog>
 
-  <AdminShell v-else activeKey="roles">
     <section class="admin-roles-page">
       <el-breadcrumb class="admin-roles-breadcrumb" separator="/">
         <el-breadcrumb-item>系统基础设置</el-breadcrumb-item>

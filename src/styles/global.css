@@ -10902,6 +10902,40 @@ a {
   font-size: 16px;
 }
 
+.admin-role-form-dialog.el-dialog {
+  max-width: calc(100vw - 32px);
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+.admin-role-form-dialog .el-dialog__header {
+  margin: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.admin-role-form-dialog .el-dialog__body {
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  padding: 0;
+}
+
+.admin-role-form-dialog .admin-role-form-page {
+  min-height: 0;
+  gap: 0;
+  padding: 0 0 12px;
+  background: #f8fafc;
+}
+
+.admin-role-form-dialog .admin-role-form-card {
+  width: auto;
+  margin: 18px 20px 0;
+}
+
+.admin-role-form-dialog .admin-role-form-actions {
+  padding-bottom: 12px;
+}
+
 .admin-roles-detail-remark {
   margin: 16px 0 0;
   padding: 14px;
