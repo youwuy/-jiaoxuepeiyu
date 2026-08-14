@@ -2,10 +2,14 @@ package com.qizhifu.jiaoxuepeiyu.admin.training.controller;
 
 import com.qizhifu.jiaoxuepeiyu.admin.AdminContext;
 import com.qizhifu.jiaoxuepeiyu.admin.training.AdminTrainingService;
+import com.qizhifu.jiaoxuepeiyu.admin.training.AdminTrainingOfflineScoreService;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTraining;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingLog;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingMonitorSnapshot;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingOfflineScoreImportCommand;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingOfflineScoreImportResult;
+import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingOfflineScore;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
@@ -35,9 +39,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminTrainingController {
 
     private final AdminTrainingService service;
+    private final AdminTrainingOfflineScoreService offlineScoreService;
 
-    public AdminTrainingController(AdminTrainingService service) {
+    public AdminTrainingController(AdminTrainingService service,
+                                   AdminTrainingOfflineScoreService offlineScoreService) {
         this.service = service;
+        this.offlineScoreService = offlineScoreService;
     }
 
     @GetMapping
@@ -203,6 +210,20 @@ public class AdminTrainingController {
                                            HttpServletRequest request) {
         service.reviewAttempt(trainingId, attemptId, body.getManualScore(), body.getComment(), AdminContext.requireAdminId(request));
         return ApiResponse.ok(null);
+    }
+
+    @PostMapping("/offline-scores/import")
+    @Operation(summary = "Import ended training offline scores", description = "Validates and persists offline scores without changing UE online attempts. Re-importing replaces only prior offline scores.")
+    public ApiResponse<AdminTrainingOfflineScoreImportResult> importOfflineScores(
+            @RequestBody AdminTrainingOfflineScoreImportCommand body,
+            HttpServletRequest request) {
+        return ApiResponse.ok(offlineScoreService.importScores(body, AdminContext.requireAdminId(request)));
+    }
+
+    @GetMapping("/{trainingId}/offline-scores")
+    @Operation(summary = "List training offline scores", description = "Returns the latest imported offline score for each participant without modifying UE attempts.")
+    public ApiResponse<List<AdminTrainingOfflineScore>> listOfflineScores(@PathVariable Long trainingId) {
+        return ApiResponse.ok(offlineScoreService.listScores(trainingId));
     }
 
     public static class ReviewAttemptRequest {

@@ -233,10 +233,12 @@ import { ArrowLeft, Calendar, Check, Document, Histogram, Medal, PieChart, Trend
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   fetchAdminTraining,
+  fetchAdminTrainingOfflineScores,
   fetchAdminTrainingReviews,
   fetchAdminTrainingStatistics,
   fetchAdminTrainingWeakSteps,
   type AdminTrainingReviewRow,
+  type AdminTrainingOfflineScore,
   type AdminTrainingWeakStep,
   type AdminTrainingStatistics as TrainingStatistics
 } from '../../api/admin-training';
@@ -312,14 +314,13 @@ const timeText = ref(String(route.query.time || ''));
 const activeClass = ref('全部班级');
 const statistics = ref<TrainingStatistics>({});
 const reviewRows = ref<AdminTrainingReviewRow[]>([]);
+const offlineScores = ref<AdminTrainingOfflineScore[]>([]);
 const weakSteps = ref<AdminTrainingWeakStep[]>([]);
 
 const participantCount = computed(() => activeClass.value === '全部班级'
   ? numberValue(statistics.value.participantCount)
   : new Set(filteredReviewRows.value.map((item) => item.studentId)).size);
-const completedCount = computed(() => activeClass.value === '全部班级'
-  ? numberValue(statistics.value.submittedAttemptCount)
-  : new Set(filteredReviewRows.value.filter((item) => item.attemptId).map((item) => item.studentId)).size);
+const completedCount = computed(() => submittedStudentRows.value.length);
 const averageScore = computed(() => {
   const scores = submittedScores.value;
   return scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
@@ -348,6 +349,20 @@ const submittedStudentRows = computed(() => {
     current.totalScore += score;
     current.totalDuration += Number(item.durationSeconds || 0);
   });
+  offlineScores.value
+    .filter((item) => activeClass.value === '全部班级' || item.className === activeClass.value)
+    .forEach((item) => {
+      if (rows.has(item.studentId)) return;
+      rows.set(item.studentId, {
+        studentId: item.studentId,
+        studentName: item.studentName,
+        studentNo: item.studentNo,
+        className: item.className,
+        topicId: 0,
+        totalScore: Number(item.totalScore || 0),
+        totalDuration: 0
+      });
+    });
   return [...rows.values()];
 });
 const courseMaxScore = computed(() => [...new Map(reviewRows.value.map((item) => [item.topicId, Number(item.maxScore || 0)])).values()]
@@ -437,7 +452,7 @@ const donutGradient = computed(() => {
 const classParticipationData = computed<ChartClassItem[]>(() => {
   const labels = activeClass.value === '全部班级' ? classLabels.value : [activeClass.value];
   const joinedCounts = labels.map((label) => new Set(filteredReviewRows.value.filter((item) => item.className === label).map((item) => item.studentId)).size);
-  const completedCounts = labels.map((label) => new Set(filteredReviewRows.value.filter((item) => item.className === label && item.attemptId).map((item) => item.studentId)).size);
+  const completedCounts = labels.map((label) => submittedStudentRows.value.filter((item) => item.className === label).length);
   return labels.map((label, index) => {
     const joined = joinedCounts[index] ?? 0;
     const completed = Math.min(completedCounts[index] ?? 0, joined);
@@ -588,7 +603,10 @@ async function loadStatistics() {
     classText.value = detail.classNames || classText.value;
     timeText.value = `${formatDateTime(detail.openStartTime)} 至 ${formatDateTime(detail.openEndTime)}`.trim();
     statistics.value = result;
-    reviewRows.value = await fetchAdminTrainingReviews(trainingId.value);
+    [reviewRows.value, offlineScores.value] = await Promise.all([
+      fetchAdminTrainingReviews(trainingId.value),
+      fetchAdminTrainingOfflineScores(trainingId.value)
+    ]);
     weakSteps.value = await fetchAdminTrainingWeakSteps(
       trainingId.value,
       activeClass.value === '全部班级' ? undefined : activeClass.value

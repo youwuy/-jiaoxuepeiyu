@@ -27,7 +27,7 @@
         </div>
         <div class="admin-training-action-row">
           <el-button class="admin-training-primary" type="primary" :icon="Plus" @click="openCreate">新增实训课</el-button>
-          <el-button class="admin-training-ghost" :icon="Upload" disabled>导入线下成绩</el-button>
+          <el-button class="admin-training-ghost" :icon="Upload" @click="openOfflineImport">导入线下成绩</el-button>
         </div>
       </div>
 
@@ -340,21 +340,34 @@
       </el-dialog>
 
       <el-dialog v-model="importVisible" class="admin-training-dialog" width="760px" :show-close="false" append-to-body>
-        <template #header><div class="admin-training-dialog-head"><strong>导入实训课</strong><el-button text circle :icon="Close" @click="importVisible = false" /></div></template>
+        <template #header><div class="admin-training-dialog-head"><strong>导入线下成绩</strong><el-button text circle :icon="Close" @click="importVisible = false" /></div></template>
         <div class="admin-training-import">
+          <section class="offline-import-section">
+            <strong>1. 下载模板</strong>
+            <p>请选择已结束的实训组课，模板将按该组课的实训题生成成绩列。</p>
+            <div class="offline-import-row">
+              <el-select v-model="offlineTrainingId" placeholder="请选择已结束的实训组课" filterable @change="loadOfflineTopics">
+                <el-option v-for="item in offlineTrainingOptions" :key="item.trainingId" :label="item.trainingName" :value="item.trainingId" />
+              </el-select>
+              <el-button :disabled="!offlineTrainingId" @click="downloadOfflineTemplate">下载导入模板</el-button>
+            </div>
+          </section>
           <div class="admin-training-upload-box">
             <el-icon><UploadFilled /></el-icon>
-            <strong>上传实训组课模板</strong>
-            <span>支持 .xlsx，导入前会先进入预览校验</span>
+            <strong>2. 上传文件</strong>
+            <span>仅支持系统模板生成的 .xlsx 文件，禁止修改表头</span>
             <input ref="importInput" class="admin-training-file-input" type="file" accept=".xlsx" @change="handleImportChange" />
-            <el-button type="primary" plain :loading="importLoading" @click="importInput?.click()">选择文件</el-button>
+            <el-button type="primary" plain :disabled="!offlineTrainingId" @click="importInput?.click()">选择文件</el-button>
+            <small v-if="offlineImportFileName">{{ offlineImportFileName }}，共 {{ offlineImportRows.length }} 条</small>
           </div>
-          <div class="admin-training-import-result" :class="{ active: importChecked }">
-            <strong>{{ importChecked ? `校验完成：${importValidCount} 条可导入，${importErrorCount} 条有错误` : '等待上传文件' }}</strong>
-            <p>{{ importChecked ? importErrorSummary : '上传后会展示数据行、错误原因和可导入数量。' }}</p>
+          <div class="admin-training-import-result" :class="{ active: offlineImportResult }">
+            <strong>3. 导入记录提示</strong>
+            <p v-if="offlineImportResult">共 {{ offlineImportResult.totalCount }} 条，成功 {{ offlineImportResult.successCount }} 条，失败 {{ offlineImportResult.failureCount }} 条。</p>
+            <p v-else>导入后将展示成功数量和错误明细；重复导入只覆盖原线下成绩。</p>
+            <el-button v-if="offlineImportResult?.failureCount" link type="primary" @click="downloadOfflineErrors">下载错误日志</el-button>
           </div>
         </div>
-        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :loading="importLoading" :disabled="!importValidCount" @click="confirmImport">确认导入</el-button></div></template>
+        <template #footer><div class="admin-training-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :loading="importLoading" :disabled="!offlineTrainingId || !offlineImportRows.length" @click="confirmImport">确认导入</el-button></div></template>
       </el-dialog>
 
       <el-drawer v-model="logVisible" class="admin-training-log-drawer" direction="rtl" size="520px" :with-header="false">
@@ -387,13 +400,19 @@ import {
   cancelPublishAdminTraining,
   createAdminTraining,
   deleteAdminTraining,
+  fetchAdminTraining,
   fetchAdminTrainingLogs,
+  fetchAdminTrainingTopics,
   fetchAdminTrainings,
+  importAdminTrainingOfflineScores,
   publishAdminTraining,
   startAdminTrainingExam,
   updateAdminTraining,
   type AdminTraining,
-  type AdminTrainingLog
+  type AdminTrainingLog,
+  type AdminTrainingOfflineScoreImportResult,
+  type AdminTrainingOfflineScoreImportRow,
+  type AdminTrainingTopic
 } from '../../api/admin-training';
 import { fetchAdminAcademicYears, fetchAdminClassrooms, fetchAdminClasses as fetchAdminSettingsClasses, fetchAdminMajors } from '../../api/admin-settings';
 import { fetchAdminTeachers } from '../../api/admin-course';
@@ -470,13 +489,14 @@ const publishVisible = ref(false);
 const publishTarget = ref<CourseRow>();
 const publishNotify = ref(true);
 const importVisible = ref(false);
-const importChecked = ref(false);
 const importInput = ref<HTMLInputElement>();
 const importLoading = ref(false);
-const importRows = ref<Array<{ rowNo: number; errors: string[]; command?: Record<string, unknown> }>>([]);
-const importValidCount = computed(() => importRows.value.filter((row) => !row.errors.length && row.command).length);
-const importErrorCount = computed(() => importRows.value.filter((row) => row.errors.length > 0).length);
-const importErrorSummary = computed(() => importRows.value.filter((row) => row.errors.length).slice(0, 3).map((row) => `第 ${row.rowNo} 行：${row.errors.join('、')}`).join('；') || '所有数据均通过校验');
+const offlineTrainingId = ref<number>();
+const offlineTrainingOptions = ref<AdminTraining[]>([]);
+const offlineTrainingTopics = ref<AdminTrainingTopic[]>([]);
+const offlineImportFileName = ref('');
+const offlineImportRows = ref<AdminTrainingOfflineScoreImportRow[]>([]);
+const offlineImportResult = ref<AdminTrainingOfflineScoreImportResult>();
 
 const form = reactive({
   id: 0,
@@ -716,56 +736,65 @@ async function confirmPublish() {
   }
 }
 
-function importCell(row: Record<string, unknown>, names: string[]) {
-  const key = Object.keys(row).find((item) => names.includes(item.trim()));
-  return key ? String(row[key] ?? '').trim() : '';
+async function openOfflineImport() {
+  importVisible.value = true;
+  offlineTrainingId.value = undefined;
+  offlineTrainingTopics.value = [];
+  offlineImportFileName.value = '';
+  offlineImportRows.value = [];
+  offlineImportResult.value = undefined;
+  if (importInput.value) importInput.value.value = '';
+  try {
+    const result = await fetchAdminTrainings({ publishStatus: 'PUBLISHED', page: 1, pageSize: 100 });
+    const now = Date.now();
+    offlineTrainingOptions.value = result.records.filter((item) => item.openEndTime && new Date(item.openEndTime).getTime() < now);
+  } catch (error) {
+    offlineTrainingOptions.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '已结束实训组课加载失败');
+  }
 }
 
-function findSelectable(items: SelectableItem[], value: string) {
-  return items.find((item) => item.name === value || item.name.includes(value) || value.includes(item.name));
+async function loadOfflineTopics() {
+  offlineImportFileName.value = '';
+  offlineImportRows.value = [];
+  offlineImportResult.value = undefined;
+  if (importInput.value) importInput.value.value = '';
+  if (!offlineTrainingId.value) {
+    offlineTrainingTopics.value = [];
+    return;
+  }
+  try {
+    const [detail, topics] = await Promise.all([fetchAdminTraining(offlineTrainingId.value), fetchAdminTrainingTopics()]);
+    const topicIds = new Set(detail.topicIds || []);
+    offlineTrainingTopics.value = topics.filter((item) => topicIds.has(item.topicId));
+  } catch (error) {
+    offlineTrainingTopics.value = [];
+    ElMessage.error(error instanceof Error ? error.message : '实训题信息加载失败');
+  }
 }
 
-function parseTrainingImportRow(row: Record<string, unknown>, rowNo: number) {
-  const name = importCell(row, ['实训课名称', '实训课程名', '课程名称']);
-  const semesterName = importCell(row, ['学年学期', '所属学年学期']);
-  const semester = semesterOptions.value.find((item) => item.label.replace(/\s+/g, '') === semesterName.replace(/\s+/g, ''));
-  const classes = importCell(row, ['参训班级', '班级']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(classOptions.value, item));
-  const teachers = importCell(row, ['监考教师', '教师']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(teacherOptions.value, item));
-  const topics = importCell(row, ['实训题', '实训题目', '题目']).split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean).map((item) => findSelectable(topicOptions.value, item));
-  const room = findSelectable(roomOptions.value, importCell(row, ['教室', '实训教室']));
-  const type = importCell(row, ['类型', '实训类型']);
-  const mode = importCell(row, ['模式', '实训模式']);
-  const errors: string[] = [];
-  if (!name) errors.push('实训课名称不能为空');
-  if (!semester) errors.push('学年学期不存在');
-  if (!classes.length || classes.some((item) => !item)) errors.push('参训班级不存在');
-  if (!teachers.length || teachers.some((item) => !item)) errors.push('监考教师不存在');
-  if (!room) errors.push('实训教室不存在');
-  if (!topics.length || topics.some((item) => !item)) errors.push('实训题不存在');
-  if (type !== '考试' && type !== '练习') errors.push('类型只能填写考试或练习');
-  if (mode !== '单人实训' && mode !== '协同实训' && mode !== '多人实训') errors.push('模式填写不正确');
-  const command = errors.length ? undefined : {
-    trainingName: name,
-    academicYearId: semester?.academicYearId,
-    semesterId: semester?.semesterId,
-    majorId: classes[0]?.majorId,
-    coverUrl: trainingCoverUrl,
-    trainingType: type === '考试' ? 'EXAM' : 'PRACTICE',
-    trainingMode: mode === '单人实训' ? 'SINGLE' : 'TEAM',
-    paperMode: 'NONE',
-    openStartTime: importCell(row, ['开始时间', '实训开始时间']),
-    openEndTime: importCell(row, ['结束时间', '实训结束时间']),
-    teamSize: mode === '单人实训' ? 1 : topics.length,
-    appRequired: importCell(row, ['自动录屏']) === '是',
-    classroomId: room?.id,
-    teacherIds: teachers.filter(Boolean).map((item) => item!.id),
-    scoreBasis: importCell(row, ['最终成绩取值依据']) === '最后一次提交的成绩' ? 'LAST_SUBMIT' : 'HIGHEST',
-    topicIds: topics.filter(Boolean).map((item) => item!.id),
-    classIds: classes.filter(Boolean).map((item) => item!.id),
-    roles: [],
-    publishStatus: 'DRAFT'
-  };
-  return { rowNo, errors, command };
+function offlineTopicHeader(topic: AdminTrainingTopic) {
+  return `${topic.topicName}（题目ID:${topic.topicId}）`;
+}
+
+function downloadOfflineTemplate() {
+  if (!offlineTrainingId.value || !offlineTrainingTopics.value.length) {
+    ElMessage.warning('该实训组课未配置实训题');
+    return;
+  }
+  const headers = ['学员姓名', '工号', '班级', ...offlineTrainingTopics.value.map(offlineTopicHeader), '总成绩', '训练备注'];
+  const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+  worksheet['!cols'] = headers.map((header) => ({ wch: Math.max(14, Math.min(32, header.length + 4)) }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '线下实训成绩');
+  const training = offlineTrainingOptions.value.find((item) => item.trainingId === offlineTrainingId.value);
+  XLSX.writeFile(workbook, `${training?.trainingName || '实训组课'}-线下成绩导入模板.xlsx`);
+}
+
+function numericCell(value: unknown) {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 async function handleImportChange(event: Event) {
@@ -779,31 +808,60 @@ async function handleImportChange(event: Event) {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
-    importRows.value = rows.map((row, index) => parseTrainingImportRow(row, index + 2));
-    importChecked.value = rows.length > 0;
+    const requiredHeaders = ['学员姓名', '工号', '班级', ...offlineTrainingTopics.value.map(offlineTopicHeader), '总成绩', '训练备注'];
+    const actualHeaders = rows[0] ? Object.keys(rows[0]).map((item) => item.trim()) : [];
+    if (requiredHeaders.some((header) => !actualHeaders.includes(header))) {
+      ElMessage.error('模板表头不完整，请重新下载当前组课的导入模板');
+      return;
+    }
+    offlineImportFileName.value = file.name;
+    offlineImportResult.value = undefined;
+    offlineImportRows.value = rows.map((row, index) => ({
+      rowNumber: index + 2,
+      studentName: String(row['学员姓名'] || '').trim(),
+      studentNo: String(row['工号'] || '').trim(),
+      className: String(row['班级'] || '').trim(),
+      totalScore: numericCell(row['总成绩']),
+      remark: String(row['训练备注'] || '').trim() || undefined,
+      topicScores: Object.fromEntries(offlineTrainingTopics.value.map((topic) => [topic.topicId, numericCell(row[offlineTopicHeader(topic)])]))
+    }));
     if (!rows.length) ElMessage.warning('导入文件没有可识别的数据行');
   } catch {
-    ElMessage.error('文件解析失败，请使用系统导出的 .xlsx 模板');
+    ElMessage.error('文件解析失败，请使用当前组课下载的 .xlsx 模板');
   }
 }
 
 async function confirmImport() {
-  const validRows = importRows.value.filter((row) => row.command && !row.errors.length);
-  if (!validRows.length) {
-    ElMessage.warning('没有可导入的数据，请先修正错误行');
-    return;
-  }
+  if (!offlineTrainingId.value || !offlineImportFileName.value || !offlineImportRows.value.length) return;
   importLoading.value = true;
   try {
-    for (const row of validRows) await createAdminTraining(row.command as never);
-    importVisible.value = false;
-    ElMessage.success(`已导入 ${validRows.length} 条实训课草稿`);
-    await loadCourses();
+    offlineImportResult.value = await importAdminTrainingOfflineScores({
+      trainingId: offlineTrainingId.value,
+      fileName: offlineImportFileName.value,
+      rows: offlineImportRows.value
+    });
+    if (offlineImportResult.value.failureCount) {
+      ElMessage.warning(`成功 ${offlineImportResult.value.successCount} 条，失败 ${offlineImportResult.value.failureCount} 条`);
+    } else {
+      ElMessage.success(`已导入 ${offlineImportResult.value.successCount} 条线下成绩`);
+    }
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '实训课导入失败');
+    ElMessage.error(error instanceof Error ? error.message : '线下成绩导入失败');
   } finally {
     importLoading.value = false;
   }
+}
+
+function downloadOfflineErrors() {
+  if (!offlineImportResult.value?.errors.length) return;
+  const worksheet = XLSX.utils.json_to_sheet(offlineImportResult.value.errors.map((item) => ({
+    行号: item.rowNumber,
+    工号: item.studentNo || '',
+    错误原因: item.message
+  })));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '错误明细');
+  XLSX.writeFile(workbook, `线下成绩导入错误日志-批次${offlineImportResult.value.batchId}.xlsx`);
 }
 
 function openMonitor(row: CourseRow) {
@@ -1632,6 +1690,27 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.offline-import-section {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #dfe7f1;
+  border-radius: 8px;
+}
+
+.offline-import-section > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.offline-import-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
 }
 
 .admin-training-upload-box,

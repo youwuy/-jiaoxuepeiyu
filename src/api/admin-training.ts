@@ -206,6 +206,36 @@ export interface AdminTrainingReviewAttempt {
   maxScore?: number;
 }
 
+export interface AdminTrainingOfflineScoreImportRow {
+  rowNumber: number;
+  studentNo: string;
+  studentName: string;
+  className: string;
+  totalScore?: number;
+  remark?: string;
+  topicScores: Record<number, number | undefined>;
+}
+
+export interface AdminTrainingOfflineScoreImportResult {
+  batchId: number;
+  totalCount: number;
+  successCount: number;
+  failureCount: number;
+  errors: Array<{ rowNumber: number; studentNo?: string; message: string }>;
+}
+
+export interface AdminTrainingOfflineScore {
+  scoreId: number;
+  trainingId: number;
+  studentId: number;
+  studentNo: string;
+  studentName: string;
+  className: string;
+  totalScore: number;
+  remark?: string;
+  importBatchId: number;
+}
+
 function buildQuery(query: object = {}) {
   const search = new URLSearchParams();
   Object.entries(query as Record<string, string | number | boolean | undefined>).forEach(([key, value]) => {
@@ -322,5 +352,23 @@ export function reviewAdminTrainingAttempt(trainingId: number, attemptId: number
     method: 'POST',
     body: JSON.stringify(command),
     fallbackLabel: '保存实训批阅'
+  });
+}
+
+export function importAdminTrainingOfflineScores(command: {
+  trainingId: number;
+  fileName: string;
+  rows: AdminTrainingOfflineScoreImportRow[];
+}) {
+  return requestJson<AdminTrainingOfflineScoreImportResult>('/admin/trainings/offline-scores/import', {
+    method: 'POST',
+    body: JSON.stringify(command),
+    fallbackLabel: '导入线下实训成绩'
+  });
+}
+
+export function fetchAdminTrainingOfflineScores(trainingId: number) {
+  return requestJson<AdminTrainingOfflineScore[]>(`/admin/trainings/${trainingId}/offline-scores`, {
+    fallbackLabel: '线下实训成绩'
   });
 }

@@ -1703,6 +1703,22 @@ Response `data`:
 - `maxScore`
 - `minScore`
 
+### `POST /api/admin/trainings/offline-scores/import`
+
+Imports parsed `.xlsx` rows for one ended, published training. The request contains:
+
+- `trainingId`
+- `fileName`
+- `rows`: student name, student number, class, total score, remark, and a `topicScores` map keyed by training topic ID.
+
+The backend validates the participant identity, class, complete topic columns, per-topic score ranges, total score, duplicate student numbers, and training state. Valid rows are persisted even when other rows fail. Re-importing the same student replaces only the prior offline score and topic details; UE attempts remain unchanged.
+
+Response `data` contains `batchId`, total/success/failure counts, and row-level errors. Import batches and errors are persisted for audit and error-log download.
+
+### `GET /api/admin/trainings/{trainingId}/offline-scores`
+
+Returns the latest offline score per participant for statistics. The management statistics page uses an offline score only when that student has no UE online attempt, preventing duplicate participants while preserving online results.
+
 ### `GET /api/admin/trainings/{trainingId}/monitor`
 
 Response `data`:
