@@ -320,6 +320,10 @@ function formatDateTime(value?: string) {
   return value.includes('T') ? value.replace('T', ' ').slice(0, 16) : value.slice(0, 16);
 }
 
+function formatDate(value?: string) {
+  return value ? value.slice(0, 10) : '-';
+}
+
 function findMajorLabel(majorId?: number | null) {
   return majorOptions.value.find((item) => item.value === majorId)?.label || '-';
 }
@@ -342,7 +346,7 @@ function mapResourceRow(resource: AdminResource): PublicResourceRow {
     statusTone: statusTone(status),
     majorLabel,
     fileSizeLabel: formatFileSize(resource.fileSize),
-    publishedAtLabel: formatDateTime(resource.createdAt || resource.updatedAt),
+    publishedAtLabel: formatDate(resource.createdAt || resource.updatedAt),
     updatedAtLabel: formatDateTime(resource.updatedAt || resource.createdAt),
     publicStatus: status
   };
@@ -449,7 +453,7 @@ function downloadPreview() {
     window.open(url, '_blank', 'noopener');
     return;
   }
-  ElMessage.info('正在下载资源');
+  ElMessage.error('资源文件地址不可用，无法下载');
 }
 
 watch(page, () => {

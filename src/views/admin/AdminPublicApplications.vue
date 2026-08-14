@@ -801,16 +801,7 @@ async function submitReview(): Promise<boolean> {
       ElMessage.success('公开申请已驳回');
     }
     await loadApplications();
-    const nextStatus = reviewMode.value;
-    selectedApplication.value = {
-      ...application,
-      publicStatus: nextStatus,
-      statusTone: statusTone(nextStatus),
-      statusLabel: statusLabel(nextStatus),
-      reviewerName: application.reviewerName || '-',
-      reviewedAtLabel: formatDateTime(new Date().toISOString()),
-      reviewComment: reviewComment.value.trim() || application.reviewComment || ''
-    };
+    selectedApplication.value = applications.value.find((item) => item.applicationId === application.applicationId) || null;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '审核失败');
     return false;

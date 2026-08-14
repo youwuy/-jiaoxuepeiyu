@@ -868,7 +868,7 @@ async function applyPublic(row: ResourceRow) {
 
 async function deleteResource(row: ResourceRow) {
   try {
-    await ElMessageBox.confirm(`确认删除资源「${row.resourceName}」？`, '删除资源', {
+    await ElMessageBox.confirm('确定删除吗？若该资源已被同步到了公开库，不会影响公开库继续展示', `删除资源「${row.resourceName}」`, {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning'
@@ -897,7 +897,7 @@ async function batchDeleteResources() {
   }
 
   try {
-    await ElMessageBox.confirm(`确认删除已选 ${selectedIds.value.length} 条资源？`, '批量删除', {
+    await ElMessageBox.confirm('确定删除吗？若资源已被同步到了公开库，不会影响公开库继续展示', `批量删除 ${selectedIds.value.length} 条资源`, {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning'
