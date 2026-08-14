@@ -34,7 +34,12 @@
 
         <section v-if="activeTab === 'monitor'" class="monitor-camera-panel">
           <div class="panel-heading camera-heading"><h3>教室全景监控 <small>LIVE 实时直播</small></h3></div>
-          <div v-if="!loading && cameras.length" class="monitor-grid">
+          <div
+            v-if="!loading && cameras.length"
+            class="monitor-grid"
+            :class="{ 'is-single': cameras.length === 1 }"
+            :style="{ '--camera-count': cameras.length }"
+          >
             <article v-for="camera in cameras" :key="camera.id" class="camera-card" @click="openCamera(camera)">
               <div class="camera-screen">
                 <video v-if="isCameraPlayable(camera)" :src="camera.streamUrl" autoplay muted playsinline />
@@ -43,7 +48,7 @@
                 <template v-if="!isCameraPlayable(camera)">
                   <el-icon><Monitor /></el-icon>
                   <strong>{{ camera.name }}</strong>
-                  <p>{{ camera.online && camera.streamUrl?.toLowerCase().startsWith('rtsp://') ? 'RTSP 流需经流媒体网关转换' : '暂无可播放的实时视频流' }}</p>
+                  <p>{{ cameraPlaceholder(camera) }}</p>
                 </template>
               </div>
               <footer><span>{{ camera.location }}</span><time>{{ snapshotTime }}</time></footer>
@@ -62,6 +67,21 @@
         </section>
 
         <section v-else class="monitor-student-panel">
+          <div class="admin-training-monitor-overview">
+            <article>
+              <span>已完成训练人数</span>
+              <strong>{{ completedStudentCount }} / {{ students.length }}</strong>
+            </article>
+            <article>
+              <span>已完成题目占比</span>
+              <strong>{{ completedTopicRatio }}%</strong>
+              <el-progress :percentage="completedTopicRatio" :show-text="false" />
+            </article>
+            <article>
+              <span>当前在线人数</span>
+              <strong>{{ onlineStudentCount }} / {{ students.length }}</strong>
+            </article>
+          </div>
           <div class="panel-heading">
             <h3>学员实训实况</h3>
           </div>
@@ -85,6 +105,8 @@
                   <th>所在房间</th>
                   <th>队员姓名</th>
                   <th>整队成绩</th>
+                  <th>在线状态</th>
+                  <th>提交状态</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -102,6 +124,16 @@
                     <span class="student-teammates">{{ student.teammates }}</span>
                   </td>
                   <td>{{ student.teamScore }}</td>
+                  <td>
+                    <span class="admin-training-monitor-status" :class="{ offline: !student.online }">
+                      {{ student.online ? '在线' : '离线' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="admin-training-monitor-submit-status" :class="`is-${student.progressStatus.toLowerCase()}`">
+                      {{ student.submitStatus }}
+                    </span>
+                  </td>
                   <td class="student-actions">
                     <el-button link type="primary" @click="openStudentMonitor(student)">查看监控</el-button>
                     <el-button v-if="student.roomId" link type="danger" @click="dissolveRoom(student)">解散房间</el-button>
@@ -143,7 +175,12 @@
               </el-tag>
             </header>
             <div class="admin-training-student-desktop-screen">
-              <img v-if="studentMonitorTarget.desktopStreamUrl" :src="desktopImageUrl(studentMonitorTarget)" :alt="`${studentMonitorTarget.name}桌面监控`" />
+              <img
+                v-if="desktopAvailable(studentMonitorTarget)"
+                :src="desktopImageUrl(studentMonitorTarget)"
+                :alt="`${studentMonitorTarget.name}桌面监控`"
+                @error="markDesktopUnavailable(studentMonitorTarget)"
+              />
               <template v-else>
                 <el-icon><Monitor /></el-icon>
                 <strong>{{ studentMonitorTarget.name }} 的桌面画面</strong>
@@ -222,6 +259,8 @@ interface MonitorStudent {
   className: string;
   ip: string;
   online: boolean;
+  progressStatus: string;
+  submitStatus: string;
   desktopStreamUrl?: string;
 }
 
@@ -241,10 +280,25 @@ const studentMonitorTarget = ref<MonitorStudent>();
 const cameraVisible = ref(false);
 const cameraTarget = ref<MonitorCamera>();
 const snapshotTime = ref('-');
+const unavailableDesktopIds = ref<number[]>([]);
 const currentStudentIndex = computed(() => students.value.findIndex((student) => student.id === studentMonitorTarget.value?.id));
 const hasPreviousStudent = computed(() => currentStudentIndex.value > 0);
 const hasNextStudent = computed(() => currentStudentIndex.value >= 0 && currentStudentIndex.value < students.value.length - 1);
 const cameraPlayable = computed(() => Boolean(cameraTarget.value && isCameraPlayable(cameraTarget.value)));
+const completedStudentCount = computed(() => students.value.filter((student) => student.progressStatus === 'SUBMITTED').length);
+const onlineStudentCount = computed(() => students.value.filter((student) => student.online).length);
+const completedTopicRatio = computed(() => {
+  const totals = students.value.reduce(
+    (result, student) => {
+      const [submitted, total] = student.progress.split('/').map((value) => Number(value.trim()) || 0);
+      result.submitted += Math.min(submitted, total);
+      result.total += total;
+      return result;
+    },
+    { submitted: 0, total: 0 }
+  );
+  return totals.total ? Math.round((totals.submitted / totals.total) * 100) : 0;
+});
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 function goBack() {
@@ -256,19 +310,20 @@ function mapCamera(item: AdminTrainingCameraState, index: number): MonitorCamera
     id: `${item.cameraId || 'camera'}-${index}`,
     name: item.cameraName || `摄像头${item.cameraId || index + 1}`,
     location: item.classroomName || '-',
-    online: item.cameraStatus !== 'OFFLINE',
+    online: item.cameraStatus === 'ONLINE',
     streamUrl: resolvePublicUrl(item.streamUrl),
     channel: item.nvrChannel || String(index + 1)
   };
 }
 
 function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStudent {
+  const progressStatus = (item.progressStatus || 'NOT_STARTED').toUpperCase();
   return {
     id: item.studentId || index + 1,
     name: item.studentName || '-',
     studentNo: item.studentNo || '-',
     topic: item.currentTopicName || '-',
-    mode: item.trainingMode === 'SINGLE' ? '单人实训' : '协同实训',
+    mode: item.trainingMode === 'SINGLE' ? '单人实训' : '多人实训',
     score: item.score == null ? '-' : String(item.score),
     progress: `${item.submittedTopicCount || 0} / ${item.totalTopicCount || 0}`,
     role: item.roleName || '-',
@@ -278,9 +333,21 @@ function mapStudent(item: AdminTrainingStudentState, index: number): MonitorStud
     teamScore: item.roomId && item.teamScore != null ? String(item.teamScore) : '-',
     className: item.className || '-',
     ip: item.clientIp || '-',
-    online: item.deskStatus !== 'OFFLINE',
+    online: item.deskStatus === 'ONLINE',
+    progressStatus,
+    submitStatus: formatProgressStatus(progressStatus),
     desktopStreamUrl: item.desktopStreamUrl
   };
+}
+
+function formatProgressStatus(status: string) {
+  const labels: Record<string, string> = {
+    NOT_STARTED: '未开始',
+    RUNNING: '进行中',
+    SUBMITTED: '已提交',
+    ABNORMAL: '异常退出'
+  };
+  return labels[status] || '-';
 }
 
 function openStudentMonitor(student: MonitorStudent) {
@@ -300,6 +367,22 @@ function openCamera(camera: MonitorCamera) {
 
 function isCameraPlayable(camera: MonitorCamera) {
   return Boolean(camera.online && camera.streamUrl && !camera.streamUrl.toLowerCase().startsWith('rtsp://'));
+}
+
+function cameraPlaceholder(camera: MonitorCamera) {
+  if (!camera.online) return '设备离线，暂无实时视频流';
+  if (camera.streamUrl?.toLowerCase().startsWith('rtsp://')) return 'RTSP 流需经流媒体网关转换';
+  return '暂无可播放的实时视频流';
+}
+
+function desktopAvailable(student: MonitorStudent) {
+  return student.online && Boolean(student.desktopStreamUrl) && !unavailableDesktopIds.value.includes(student.id);
+}
+
+function markDesktopUnavailable(student: MonitorStudent) {
+  if (!unavailableDesktopIds.value.includes(student.id)) {
+    unavailableDesktopIds.value.push(student.id);
+  }
 }
 
 function desktopImageUrl(student: MonitorStudent) {
@@ -344,6 +427,7 @@ async function loadMonitor(showLoading = true) {
 
   try {
     const snapshot = await fetchAdminTrainingMonitor(trainingId.value);
+    unavailableDesktopIds.value = [];
     cameras.value = (snapshot.cameras || []).slice(0, 4).map(mapCamera);
     students.value = (snapshot.students || []).map(mapStudent);
     snapshotTime.value = formatDateTime(snapshot.generatedAt);
@@ -545,8 +629,14 @@ onBeforeUnmount(() => {
 }
 
 .admin-training-monitor-page .monitor-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(var(--camera-count), minmax(260px, 1fr));
   gap: 18px;
+  overflow-x: auto;
+}
+
+.admin-training-monitor-page .monitor-grid.is-single {
+  grid-template-columns: minmax(420px, 720px);
+  justify-content: center;
 }
 
 .camera-heading {
@@ -643,9 +733,39 @@ onBeforeUnmount(() => {
   overflow-x: auto;
 }
 
+.admin-training-monitor-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px 16px 0;
+}
+
+.admin-training-monitor-overview article {
+  display: grid;
+  align-content: center;
+  min-height: 104px;
+  gap: 8px;
+  border: 1px solid #e1e8f1;
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: #f8fbff;
+}
+
+.admin-training-monitor-overview span {
+  color: #8290a5;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-training-monitor-overview strong {
+  color: #172033;
+  font-size: 24px;
+  font-weight: 900;
+}
+
 .admin-training-monitor-table {
   width: 100%;
-  min-width: 1680px;
+  min-width: 1900px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -718,6 +838,39 @@ onBeforeUnmount(() => {
   border-color: #e1e7ef;
   background: #f5f7fa;
   color: #909399;
+}
+
+.admin-training-monitor-submit-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  height: 24px;
+  border: 1px solid #dbe4ef;
+  border-radius: 5px;
+  padding: 0 8px;
+  background: #f5f7fa;
+  color: #718096;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-training-monitor-submit-status.is-running {
+  border-color: #bfd7ff;
+  background: #edf5ff;
+  color: #367df5;
+}
+
+.admin-training-monitor-submit-status.is-submitted {
+  border-color: #cbe8d8;
+  background: #effaf4;
+  color: #20a66a;
+}
+
+.admin-training-monitor-submit-status.is-abnormal {
+  border-color: #ffd2d2;
+  background: #fff2f2;
+  color: #e45454;
 }
 
 .admin-training-student-monitor-dialog.el-dialog {
@@ -992,6 +1145,7 @@ onBeforeUnmount(() => {
 
   .student-monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .student-monitor-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-training-monitor-overview { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -1009,6 +1163,10 @@ onBeforeUnmount(() => {
 
   .student-monitor-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-training-monitor-page .monitor-grid.is-single {
+    grid-template-columns: minmax(280px, 1fr);
   }
 
   .admin-training-monitor-content {
