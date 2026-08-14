@@ -347,11 +347,15 @@ public class AdminPaperService {
         }
         String fileName = command.getFileName().trim();
         String lowerFileName = fileName.toLowerCase(Locale.ENGLISH);
-        if (!lowerFileName.endsWith(".xls") && !lowerFileName.endsWith(".xlsx")) {
+        if (!lowerFileName.endsWith(".xls") && !lowerFileName.endsWith(".xlsx")
+                && !lowerFileName.endsWith(".excel")) {
             throw new BusinessException(400, "Import file must be an Excel file");
         }
         if (command.getFileSize() == null || command.getFileSize().longValue() <= 0) {
             throw new BusinessException(400, "Import file size is required");
+        }
+        if (command.getFileSize().longValue() > 200L * 1024L * 1024L) {
+            throw new BusinessException(400, "Import file cannot exceed 200MB");
         }
         if (command.getRows() == null || command.getRows().isEmpty()) {
             throw new BusinessException(400, "Import rows are required");

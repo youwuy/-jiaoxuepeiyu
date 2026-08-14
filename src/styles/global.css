@@ -14799,6 +14799,8 @@ a {
 }
 
 .admin-theory-paper-answer-card {
+  position: sticky;
+  top: 20px;
   align-self: start;
   padding: 18px 16px;
   border: 1px solid #dbe3ee;
@@ -14949,14 +14951,21 @@ a {
   font-weight: 900;
 }
 
-.admin-theory-paper-preview-card ol {
+.admin-theory-paper-preview-card ul {
   display: grid;
   gap: 10px;
   margin: 0;
-  padding-left: 24px;
+  padding: 0;
+  list-style: none;
   color: #475569;
   font-size: 14px;
   line-height: 20px;
+}
+
+.admin-theory-paper-preview-card h3 small {
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .admin-theory-paper-preview-card label {

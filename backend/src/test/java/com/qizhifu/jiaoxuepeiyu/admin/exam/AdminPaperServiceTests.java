@@ -167,6 +167,32 @@ class AdminPaperServiceTests {
         assertEquals(3, preview.getErrors().get(0).getRowNumber());
     }
 
+    @Test
+    void acceptsDocumentedExcelExtensionForPaperImportPreview() {
+        FakePapers repository = new FakePapers();
+        repository.availableQuestions = Arrays.asList(question(1L, "SINGLE", true));
+        AdminPaperService service = new AdminPaperService(repository);
+        AdminPaperImportCommand command = new AdminPaperImportCommand();
+        command.setFileName("papers.excel");
+        command.setFileSize(2048L);
+        command.setRows(Arrays.asList(importRow(2, "Manual Paper")));
+
+        assertEquals(1, service.previewImport(command).getValidCount());
+    }
+
+    @Test
+    void rejectsOversizedPaperImport() {
+        AdminPaperService service = new AdminPaperService(new FakePapers());
+        AdminPaperImportCommand command = new AdminPaperImportCommand();
+        command.setFileName("papers.xlsx");
+        command.setFileSize(200L * 1024L * 1024L + 1L);
+        command.setRows(Arrays.asList(importRow(2, "Manual Paper")));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.previewImport(command));
+
+        assertEquals("Import file cannot exceed 200MB", exception.getMessage());
+    }
+
     private AdminPaperCommand manualPaper() {
         AdminPaperCommand command = new AdminPaperCommand();
         command.setPaperName("Manual Paper");

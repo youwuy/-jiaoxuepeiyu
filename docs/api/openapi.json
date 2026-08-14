@@ -3094,6 +3094,38 @@
         }
       }
     },
+    "/api/admin/papers/preview": {
+      "post": {
+        "tags": [
+          "Admin Papers"
+        ],
+        "summary": "Preview paper",
+        "description": "Builds a stable manual or automatic paper preview without persisting it.",
+        "operationId": "previewPaper",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPaperCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAdminPaperPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/papers/{paperId}/publish": {
       "post": {
         "tags": [
@@ -3185,6 +3217,38 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAdminPaperImportPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/papers/import/questions": {
+      "post": {
+        "tags": [
+          "Admin Papers"
+        ],
+        "summary": "Import question rows as a paper",
+        "description": "Atomically imports Excel questions into the question bank and creates a manual paper.",
+        "operationId": "importQuestionPaper",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPaperQuestionImportCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLong"
                 }
               }
             }
@@ -6839,6 +6903,9 @@
           "paperName": {
             "type": "string"
           },
+          "courseName": {
+            "type": "string"
+          },
           "composeMode": {
             "type": "string"
           },
@@ -6866,6 +6933,30 @@
           "score": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "AdminPaperQuestionImportCommand": {
+        "type": "object",
+        "properties": {
+          "paperName": {
+            "type": "string"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminQuestionImportRow"
+            }
           }
         }
       },
@@ -10981,6 +11072,9 @@
           "paperName": {
             "type": "string"
           },
+          "courseName": {
+            "type": "string"
+          },
           "composeMode": {
             "type": "string"
           },
@@ -11050,6 +11144,45 @@
             "items": {
               "$ref": "#/components/schemas/AdminQuestionOption"
             }
+          }
+        }
+      },
+      "AdminPaperPreview": {
+        "type": "object",
+        "properties": {
+          "paperName": {
+            "type": "string"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "composeMode": {
+            "type": "string"
+          },
+          "totalScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaperQuestion"
+            }
+          }
+        }
+      },
+      "ApiResponseAdminPaperPreview": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminPaperPreview"
           }
         }
       },

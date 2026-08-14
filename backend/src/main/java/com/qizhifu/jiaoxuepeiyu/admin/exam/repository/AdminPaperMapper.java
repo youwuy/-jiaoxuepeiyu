@@ -32,7 +32,7 @@ public interface AdminPaperMapper {
             + "<if test='composeMode != null'>AND p.compose_mode = #{composeMode}</if> "
             + "<if test='publishStatus != null'>AND p.publish_status = #{publishStatus}</if> "
             + "<if test='creatorId != null'>AND p.creator_id = #{creatorId}</if> "
-            + "ORDER BY p.updated_at DESC, p.id DESC LIMIT #{pageSize} OFFSET #{offset} "
+            + "ORDER BY p.created_at DESC, p.id DESC LIMIT #{pageSize} OFFSET #{offset} "
             + "</script>")
     @Results(id = "paperMap", value = {
             @Result(column = "paper_id", property = "paperId", id = true),

@@ -80,6 +80,9 @@
                   </div>
                 </td>
               </tr>
+              <tr v-if="papers.length === 0 && !loading">
+                <td colspan="10"><el-empty description="暂无试卷" /></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -123,7 +126,7 @@
             <thead><tr><th>题型</th><th>选题数量</th></tr></thead>
             <tbody>
               <tr v-for="rule in builder.rules" :key="rule.type">
-                <td><el-checkbox v-model="rule.selected">{{ rule.type }}</el-checkbox></td>
+                <td><el-checkbox v-model="rule.selected" @change="toggleAutoRule(rule)">{{ rule.type }}</el-checkbox></td>
                 <td><el-input-number v-model="rule.count" :min="0" :max="100" :disabled="!rule.selected" :controls="false" /></td>
               </tr>
             </tbody>
@@ -131,7 +134,7 @@
           <footer class="admin-theory-paper-rule-summary">选题数量合计：<b>{{ autoQuestionTotal }}题</b></footer>
         </section>
         <footer class="admin-theory-paper-builder-footer is-center is-create-actions">
-          <button type="button" class="ghost" @click="backToList">取消</button>
+          <button type="button" class="ghost" @click="cancelCreate">取消</button>
           <button type="button" class="primary" @click="openPreview('auto')">下一步</button>
         </footer>
       </main>
@@ -160,8 +163,8 @@
           </div>
         </section>
         <footer class="admin-theory-paper-builder-footer is-center is-create-actions">
-          <button type="button" class="ghost" @click="backToList">取消</button>
-          <button type="button" class="primary" @click="viewMode = 'manual-select'">下一步</button>
+          <button type="button" class="ghost" @click="cancelCreate">取消</button>
+          <button type="button" class="primary" @click="enterManualSelection">下一步</button>
         </footer>
       </main>
     </section>
@@ -195,7 +198,7 @@
             <el-input v-model="manageCourse" :prefix-icon="Search" placeholder="请输入所属课程" clearable />
           </label>
           <div class="admin-theory-paper-manage-filter-buttons">
-            <el-button class="admin-theory-paper-query-button" @click="managePage = 1">查询</el-button>
+            <el-button class="admin-theory-paper-query-button" @click="applyManageFilters">查询</el-button>
             <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
           </div>
         </section>
@@ -223,19 +226,20 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in pagedManageQuestions" :key="item.id">
-                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
+                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" :disabled="!item.enabled" @change="toggleQuestion(item.id)" /></td>
                 <td class="seq-col">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
                 <td class="type-col"><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
                 <td>{{ item.title }}</td>
                 <td class="course-col">{{ item.courseName }}</td>
-                <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+                <td class="status-col"><span class="admin-theory-paper-status" :class="item.enabled ? 'enabled' : 'disabled'"><i></i>{{ item.enabled ? '已启用' : '已禁用' }}</span></td>
                 <td class="action-col">
                   <el-button v-if="isQuestionInPaper(item.id)" text class="warn" @click="removeQuestion(item.id)">删除</el-button>
-                  <el-button v-else text @click="addQuestion(item)">加入</el-button>
+                  <el-button v-else text :disabled="!item.enabled" @click="addQuestion(item)">加入</el-button>
                 </td>
               </tr>
             </tbody>
           </table>
+          <el-empty v-if="pagedManageQuestions.length === 0" :description="questionBank.length ? '暂无匹配试题，请更换筛选条件' : '题库暂无试题，请前往试题管理页面录入试题'" />
         </section>
 
         <footer class="admin-theory-paper-manage-bottom">
@@ -244,9 +248,8 @@
         </footer>
 
         <footer class="admin-theory-paper-builder-footer is-center is-manage-actions">
-          <button type="button" class="ghost" @click="backToList">取消</button>
-          <button type="button" class="lite" @click="openPreview('manual')">预览</button>
-          <button type="button" class="primary" @click="saveBuilder">保存试卷</button>
+          <button type="button" class="ghost" @click="cancelManualSelection">取消</button>
+          <button type="button" class="primary" @click="openPreview('manual')">预览试卷</button>
         </footer>
       </main>
     </section>
@@ -280,7 +283,7 @@
             <el-input v-model="manageCourse" :prefix-icon="Search" placeholder="请输入所属课程" clearable />
           </label>
           <div class="admin-theory-paper-manage-filter-buttons">
-            <el-button class="admin-theory-paper-query-button" @click="managePage = 1">查询</el-button>
+            <el-button class="admin-theory-paper-query-button" @click="applyManageFilters">查询</el-button>
             <el-button class="admin-theory-paper-reset-button" @click="resetManageFilters">重置</el-button>
           </div>
         </section>
@@ -308,19 +311,20 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in pagedManageQuestions" :key="item.id">
-                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" @change="toggleQuestion(item.id)" /></td>
+                <td class="check-col"><el-checkbox :model-value="selectedQuestionIds.includes(item.id)" :disabled="!item.enabled" @change="toggleQuestion(item.id)" /></td>
                 <td class="seq-col">{{ (managePage - 1) * managePageSize + index + 1 }}</td>
                 <td class="type-col"><span class="admin-theory-paper-type-pill" :class="typeTone(item.type)">{{ item.type }}</span></td>
                 <td>{{ item.title }}</td>
                 <td class="course-col">{{ item.courseName }}</td>
-                <td class="status-col"><span class="admin-theory-paper-status enabled"><i></i>已启用</span></td>
+                <td class="status-col"><span class="admin-theory-paper-status" :class="item.enabled ? 'enabled' : 'disabled'"><i></i>{{ item.enabled ? '已启用' : '已禁用' }}</span></td>
                 <td class="action-col">
                   <el-button v-if="isQuestionInPaper(item.id)" text class="warn" @click="removeQuestion(item.id)">删除</el-button>
-                  <el-button v-else text @click="addQuestion(item)">加入</el-button>
+                  <el-button v-else text :disabled="!item.enabled" @click="addQuestion(item)">加入</el-button>
                 </td>
               </tr>
             </tbody>
           </table>
+          <el-empty v-if="pagedManageQuestions.length === 0" :description="questionBank.length ? '暂无匹配试题，请更换筛选条件' : '题库暂无试题，请前往试题管理页面录入试题'" />
         </section>
 
         <footer class="admin-theory-paper-manage-bottom">
@@ -330,7 +334,7 @@
 
         <footer class="admin-theory-paper-builder-footer is-center is-manage-actions">
           <button type="button" class="primary" @click="openPreview('manage')">预览试卷</button>
-          <button type="button" class="ghost" @click="backToList">取消</button>
+          <button type="button" class="ghost" @click="cancelManage">取消</button>
         </footer>
       </main>
     </section>
@@ -372,26 +376,45 @@
       </template>
       <div class="admin-theory-paper-upload-body">
         <label><span>试卷名称 <b>*</b></span><el-input v-model="previewPaper.paperName" maxlength="30" show-word-limit placeholder="请输入试卷名称" /></label>
-        <label><span>试卷模板</span><el-button class="admin-theory-paper-template-button" @click="downloadPaperTemplate">点击下载试卷上传模板</el-button></label>
-        <label><span>试卷内容 <b>*</b></span><el-upload drag action="#" accept=".xls,.xlsx" :auto-upload="false" :limit="1" :on-change="handlePaperFileChange"><el-icon><UploadFilled /></el-icon><div class="el-upload__text">点击或拖拽上传资源文件</div><template #tip><p>仅支持 .xls、.xlsx 格式，大小不超过 200MB</p></template></el-upload></label>
+        <label><span>试卷模板</span><el-button class="admin-theory-paper-template-button" :loading="templateDownloading" @click="downloadPaperTemplate">点击下载试卷上传模板</el-button></label>
+        <label>
+          <span>试卷内容 <b>*</b></span>
+          <el-upload
+            v-model:file-list="paperImportFileList"
+            drag
+            action="#"
+            accept=".xls,.xlsx,.excel"
+            :auto-upload="false"
+            :limit="1"
+            :on-change="handlePaperFileChange"
+            :on-remove="handlePaperFileRemove"
+          >
+            <el-icon><UploadFilled /></el-icon>
+            <div class="el-upload__text">点击或拖拽上传资源文件</div>
+            <template #tip><p>仅支持 .xls、.xlsx、.excel 格式，大小不超过 200MB</p></template>
+          </el-upload>
+          <el-progress v-if="importProgress > 0" :percentage="importProgress" :status="importProgress === 100 ? 'success' : undefined" />
+          <el-button v-if="paperImportErrors.length" text type="danger" @click="downloadPaperImportErrors">下载错误明细</el-button>
+        </label>
         <label><span>所属课程 <b>*</b></span><el-input v-model="previewPaper.courseName" maxlength="30" show-word-limit placeholder="请输入所属课程名称" /></label>
       </div>
       <template #footer><div class="admin-theory-paper-dialog-footer"><el-button @click="importVisible = false">取消</el-button><el-button type="primary" :icon="UploadFilled" :loading="importParsing" @click="openPreview('upload')">确认上传</el-button></div></template>
     </el-dialog>
 
-    <el-dialog v-model="previewVisible" class="admin-theory-paper-preview-modal" fullscreen :show-close="false" append-to-body>
+    <el-dialog v-model="previewVisible" class="admin-theory-paper-preview-modal" fullscreen :show-close="false" :close-on-click-modal="false" append-to-body>
       <section class="admin-theory-paper-preview-page">
         <header class="admin-theory-paper-preview-head">
           <div><h2>预览试卷</h2><p>预览确认无误后，可提交完成上传</p></div>
-          <el-button text circle :icon="Close" @click="previewVisible = false" />
+          <el-button text circle :icon="Close" @click="closePreview" />
         </header>
         <section class="admin-theory-paper-preview-meta">
           <p><span>试卷名称：</span><strong>{{ previewPaper.paperName }}</strong></p>
           <i></i>
-          <p><span>总分：</span><strong>{{ selectedScore }}</strong><span>分</span></p>
+          <p v-if="uploadPreviewActive"><span>所属课程：</span><strong>{{ previewPaper.courseName }}</strong></p>
+          <p v-else><span>总分：</span><strong>{{ selectedScore }}</strong><span>分</span></p>
           <div>
-            <el-button @click="previewVisible = false">返回</el-button>
-            <el-button class="admin-theory-paper-primary" @click="submitImport">保存</el-button>
+            <el-button v-if="!uploadPreviewActive" @click="closePreview">返回</el-button>
+            <el-button class="admin-theory-paper-primary" :loading="saving" @click="submitImport">{{ uploadPreviewActive ? '提交' : '保存' }}</el-button>
           </div>
         </section>
         <main class="admin-theory-paper-preview-layout">
@@ -417,7 +440,10 @@
               <section v-for="group in previewGroups" :key="group.type" class="admin-theory-paper-preview-card" :class="group.tone">
                 <header><strong>{{ group.title }}</strong><span>{{ group.meta }}</span><el-button text @click="openBatchScore(group.type)">批量修改得分</el-button></header>
                 <article v-for="question in group.questions" :key="question.id" :ref="(element) => setPreviewQuestionRef(question.index, element)">
-                  <div><h3>{{ question.index }}、{{ question.title }}</h3><ol v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ol></div>
+                  <div>
+                    <h3>{{ question.index }}、{{ question.title }}<small v-if="group.type === '多选题'">（多选）</small></h3>
+                    <ul v-if="question.options.length"><li v-for="option in question.options" :key="option">{{ option }}</li></ul>
+                  </div>
                   <label><span>得分</span><el-input-number v-model="question.score" :min="1" :max="100" :controls="false" @change="updatePreviewScore(question.id, $event)" /></label>
                 </article>
               </section>
@@ -446,7 +472,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import type { UploadFile } from 'element-plus';
+import type { UploadFile, UploadFiles, UploadUserFile } from 'element-plus';
 import { ArrowLeft, Close, Plus, Search, UploadFilled } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import AdminShell from '../../components/admin/AdminShell.vue';
@@ -470,14 +496,25 @@ import { useAdminPermissions } from '../../features/admin/use-admin-permissions'
 
 type ViewMode = 'list' | 'auto' | 'manual' | 'manual-select' | 'manage' | 'manage-edit';
 
-function downloadPaperTemplate() {
+async function downloadPaperTemplate() {
   const url = `/templates/${encodeURIComponent('试卷导入表格.xlsx')}`;
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = '试卷导入表格.xlsx';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  templateDownloading.value = true;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('试卷模板下载失败');
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = '试卷导入表格.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '试卷模板下载失败');
+  } finally {
+    templateDownloading.value = false;
+  }
 }
 
 function normalizedPaperCellMap(row: Record<string, unknown>) {
@@ -581,6 +618,8 @@ interface QuestionItem {
   type: string;
   score: number;
   courseName: string;
+  creatorName: string;
+  enabled: boolean;
   options?: string[];
   importRowNumber?: number;
 }
@@ -610,12 +649,15 @@ const BuilderFooter = defineComponent({
 
 const pageSize = 12;
 const questionTypeOptions = ['单选题', '多选题', '判断题', '填空题', '简答题'];
+const PAPER_DRAFT_KEY = 'admin-theory-paper-create-draft';
 const viewMode = ref<ViewMode>('list');
 const page = ref(1);
 const totalCount = ref(0);
 const loading = ref(false);
 const saving = ref(false);
 const importParsing = ref(false);
+const templateDownloading = ref(false);
+const importProgress = ref(0);
 const jumpPage = ref(1);
 const selectedIds = ref<number[]>([]);
 const { can } = useAdminPermissions('resource:theory-paper');
@@ -625,6 +667,7 @@ const activePreviewQuestionNumber = ref(1);
 const previewQuestionRefs = new Map<number, HTMLElement>();
 const logsVisible = ref(false);
 const activePaper = ref<TheoryPaper | null>(null);
+const previewSource = ref<'auto' | 'manual' | 'manage' | 'upload'>('manual');
 const questionKeyword = ref('');
 const questionType = ref('');
 const manageCreator = ref('');
@@ -633,6 +676,7 @@ const managePage = ref(1);
 const managePageSize = 6;
 const selectedQuestionIds = ref<number[]>([]);
 const paperLogs = ref<AdminPaperLog[]>([]);
+const creatorOptions = ref<Array<{ creatorId: number; creatorName: string }>>([]);
 
 const draft = reactive({ keyword: '', courseName: '', creatorId: undefined as number | undefined, enabled: undefined as boolean | undefined });
 const applied = ref({ ...draft });
@@ -646,7 +690,9 @@ const builder = reactive({
 const manageForm = reactive({ paperName: '', courseName: '' });
 const previewPaper = reactive({ paperName: '', courseName: '' });
 const paperImportFile = ref<File | null>(null);
+const paperImportFileList = ref<UploadUserFile[]>([]);
 const paperImportRows = ref<AdminQuestionImportRow[]>([]);
+const paperImportErrors = ref<Array<{ rowNumber?: number; message?: string }>>([]);
 const uploadPreviewActive = ref(false);
 
 const papers = ref<TheoryPaper[]>([]);
@@ -686,15 +732,6 @@ const previewGroups = computed(() => {
     .filter(Boolean) as Array<{ type: string; title: string; meta: string; tone: string; questions: Array<{ id: number; index: number; title: string; score: number; options: string[] }> }>;
 });
 
-const creatorOptions = computed(() => {
-  const map = new Map<number, string>();
-  papers.value.forEach((item) => {
-    if (item.creatorId && item.creatorName !== '-') {
-      map.set(item.creatorId, item.creatorName);
-    }
-  });
-  return Array.from(map.entries()).map(([creatorId, creatorName]) => ({ creatorId, creatorName }));
-});
 const maxPage = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize)));
 const allSelected = computed(() => papers.value.length > 0 && papers.value.every((item) => selectedIds.value.includes(item.paperId)));
 const partSelected = computed(() => selectedIds.value.length > 0 && !allSelected.value);
@@ -702,9 +739,19 @@ const pageStart = computed(() => (totalCount.value === 0 ? 0 : (page.value - 1) 
 const pageEnd = computed(() => Math.min(page.value * pageSize, totalCount.value));
 const selectedScore = computed(() => selectedQuestions.value.reduce((sum, item) => sum + Number(item.score || 0), 0));
 const autoQuestionTotal = computed(() => builder.rules.reduce((sum, rule) => sum + (rule.selected ? Number(rule.count || 0) : 0), 0));
-const filteredQuestionBank = computed(() => questionBank.value.filter((item) => (!questionKeyword.value || item.title.includes(questionKeyword.value)) && (!questionType.value || item.type === questionType.value) && (!manageCourse.value || item.courseName.includes(manageCourse.value))));
+const appliedManageFilters = ref({ keyword: '', type: '', creator: '', course: '' });
+const filteredQuestionBank = computed(() => questionBank.value.filter((item) => {
+  const filters = appliedManageFilters.value;
+  return (!filters.keyword || item.title.includes(filters.keyword))
+    && (!filters.type || item.type === filters.type)
+    && (!filters.creator || item.creatorName.includes(filters.creator))
+    && (!filters.course || item.courseName.includes(filters.course));
+}));
 const pagedManageQuestions = computed(() => filteredQuestionBank.value.slice((managePage.value - 1) * managePageSize, managePage.value * managePageSize));
-const allQuestionSelected = computed(() => pagedManageQuestions.value.length > 0 && pagedManageQuestions.value.every((item) => selectedQuestionIds.value.includes(item.id)));
+const allQuestionSelected = computed(() => {
+  const enabledQuestions = pagedManageQuestions.value.filter((item) => item.enabled);
+  return enabledQuestions.length > 0 && enabledQuestions.every((item) => selectedQuestionIds.value.includes(item.id));
+});
 const partQuestionSelected = computed(() => selectedQuestionIds.value.length > 0 && !allQuestionSelected.value);
 const questionStats = computed(() => questionTypeOptions.map((type) => ({
   type,
@@ -749,6 +796,48 @@ watch(managePage, () => {
   selectedQuestionIds.value = [];
 });
 
+watch([builder, selectedQuestions, viewMode], () => {
+  if (viewMode.value === 'auto' || viewMode.value === 'manual' || viewMode.value === 'manual-select') {
+    sessionStorage.setItem(PAPER_DRAFT_KEY, JSON.stringify({
+      viewMode: viewMode.value,
+      builder: {
+        paperName: builder.paperName,
+        courseName: builder.courseName,
+        rules: builder.rules
+      },
+      selectedQuestions: selectedQuestions.value
+    }));
+  }
+}, { deep: true });
+
+function clearCreateDraft() {
+  sessionStorage.removeItem(PAPER_DRAFT_KEY);
+}
+
+function restoreCreateDraft() {
+  const raw = sessionStorage.getItem(PAPER_DRAFT_KEY);
+  if (!raw) return false;
+  try {
+    const draft = JSON.parse(raw) as {
+      viewMode?: ViewMode;
+      builder?: { paperName?: string; courseName?: string; rules?: ReturnType<typeof createDefaultRules> };
+      selectedQuestions?: QuestionItem[];
+    };
+    if (!['auto', 'manual', 'manual-select'].includes(String(draft.viewMode))) return false;
+    Object.assign(builder, {
+      paperName: draft.builder?.paperName || '',
+      courseName: draft.builder?.courseName || '',
+      rules: Array.isArray(draft.builder?.rules) ? draft.builder?.rules : createDefaultRules()
+    });
+    selectedQuestions.value = Array.isArray(draft.selectedQuestions) ? draft.selectedQuestions : [];
+    viewMode.value = draft.viewMode as ViewMode;
+    return true;
+  } catch {
+    clearCreateDraft();
+    return false;
+  }
+}
+
 function formatDateTime(value?: string) { return value ? value.replace('T', ' ').slice(0, 19) : '-'; }
 function paperLogActionLabel(action?: string) {
   const labels: Record<string, string> = {
@@ -782,7 +871,7 @@ function mapPaper(item: AdminPaper): TheoryPaper {
     totalScore: item.totalScore || 0,
     creatorId: item.creatorId,
     creatorName: item.creatorName || '-',
-    createdAt: formatDateTime(item.createdAt),
+    createdAt: item.createdAt ? item.createdAt.replace('T', ' ').slice(0, 16) : '-',
     enabled: status === 'PUBLISHED',
     publishStatus: item.publishStatus
   };
@@ -795,6 +884,8 @@ function mapQuestion(item: AdminQuestion | AdminPaperQuestion): QuestionItem {
     type: typeLabel(item.questionType),
     score: Number(item.score || 1),
     courseName: (item as AdminQuestion & { courseName?: string }).courseName || '-',
+    creatorName: (item as AdminQuestion & { creatorName?: string }).creatorName || '-',
+    enabled: (item as AdminQuestion & { enabled?: boolean }).enabled !== false,
     options: item.options?.map((option) => `${option.optionKey || ''}. ${option.optionText || ''}`)
   };
 }
@@ -811,11 +902,15 @@ function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
     throw new Error('所属课程不能超过 30 个字符');
   }
   if (mode === 'auto') {
+    const invalidRule = builder.rules.find((rule) => rule.selected && (!Number.isInteger(Number(rule.count)) || Number(rule.count) <= 0));
+    if (invalidRule) {
+      throw new Error(`${invalidRule.type}选题数量必须为正整数`);
+    }
     const autoRules = builder.rules
       .filter((rule) => rule.selected && Number(rule.count) > 0)
       .map((rule) => ({ questionType: typeCode(rule.type), questionCount: Number(rule.count), scorePerQuestion: Number(rule.score || 1) }));
     if (autoRules.length === 0) {
-      throw new Error('请至少设置一种题型');
+      throw new Error('至少选择一类题型并设置抽题数量');
     }
     const questions = selectedQuestions.value.length
       ? selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }))
@@ -825,7 +920,10 @@ function paperCommand(mode: 'auto' | 'manual' | 'manage'): AdminPaperCommand {
 
   const questions = selectedQuestions.value.map((item) => ({ questionId: item.id, score: Number(item.score || 1) }));
   if (questions.length === 0) {
-    throw new Error('请至少加入一道试题');
+    throw new Error('试题篮暂无试题，请先勾选试题加入试题篮');
+  }
+  if (questions.some((item) => !Number.isInteger(item.score) || item.score <= 0)) {
+    throw new Error('所有试题分值必须为正整数');
   }
   return { paperName, courseName, composeMode: 'MANUAL', questions };
 }
@@ -856,9 +954,11 @@ async function loadQuestionBank() {
     let currentPage = 1;
     let total = 0;
     do {
-      const result = await fetchAdminQuestions({ enabled: true, page: currentPage, pageSize: 100 });
+      const previousLength = allQuestions.length;
+      const result = await fetchAdminQuestions({ page: currentPage, pageSize: 100 });
       allQuestions.push(...result.records);
       total = result.total;
+      if (allQuestions.length === previousLength) break;
       currentPage += 1;
     } while (allQuestions.length < total);
     questionBank.value = allQuestions.map(mapQuestion).filter((item) => item.id > 0);
@@ -866,17 +966,54 @@ async function loadQuestionBank() {
     ElMessage.error(error instanceof Error ? error.message : '理论试题加载失败');
   }
 }
+async function loadPaperCreators() {
+  try {
+    const records: AdminPaper[] = [];
+    let currentPage = 1;
+    let total = 0;
+    do {
+      const previousLength = records.length;
+      const result = await fetchAdminPapers({ page: currentPage, pageSize: 100 });
+      records.push(...result.records);
+      total = result.total;
+      if (records.length === previousLength) break;
+      currentPage++;
+    } while (records.length < total);
+    const creators = new Map<number, string>();
+    records.forEach((item) => {
+      if (item.creatorId && item.creatorName) creators.set(item.creatorId, item.creatorName);
+    });
+    creatorOptions.value = Array.from(creators, ([creatorId, creatorName]) => ({ creatorId, creatorName }));
+  } catch {
+    creatorOptions.value = [];
+  }
+}
 function applyFilters() { applied.value = { ...draft }; page.value = 1; selectedIds.value = []; void loadPapers(); }
 function resetFilters() { Object.assign(draft, { keyword: '', courseName: '', creatorId: undefined, enabled: undefined }); applyFilters(); }
 function toggleOne(id: number) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter((item) => item !== id) : [...selectedIds.value, id]; }
 function toggleAll(value: string | number | boolean) { selectedIds.value = value ? Array.from(new Set([...selectedIds.value, ...papers.value.map((item) => item.paperId)])) : selectedIds.value.filter((id) => !papers.value.some((item) => item.paperId === id)); }
-function openCreate() { resetBuilder(); selectedQuestions.value = []; selectedQuestionIds.value = []; void loadQuestionBank(); viewMode.value = 'auto'; }
+function openCreate() { clearCreateDraft(); resetBuilder(); resetManageFilters(); activePaper.value = null; selectedQuestions.value = []; selectedQuestionIds.value = []; void loadQuestionBank(); viewMode.value = 'manual'; }
 function switchCreateMode(value: string | number | boolean) { viewMode.value = value === 'manual' ? 'manual' : 'auto'; }
+function cancelCreate() {
+  clearCreateDraft();
+  resetBuilder();
+  selectedQuestions.value = [];
+  selectedQuestionIds.value = [];
+  backToList();
+}
+function enterManualSelection() {
+  if (!builder.paperName.trim()) {
+    ElMessage.warning('请填写试卷名称');
+    return;
+  }
+  viewMode.value = 'manual-select';
+}
 async function openManage(row: TheoryPaper) {
   activePaper.value = row;
   Object.assign(manageForm, { paperName: row.paperName, courseName: row.courseName });
   previewPaper.paperName = row.paperName;
   previewPaper.courseName = row.courseName;
+  resetManageFilters();
   await loadQuestionBank();
   try {
     const detail = await fetchAdminPaper(row.paperId);
@@ -887,37 +1024,85 @@ async function openManage(row: TheoryPaper) {
   viewMode.value = 'manage';
 }
 function backToList() { viewMode.value = 'list'; }
+async function cancelManualSelection() {
+  try {
+    await ElMessageBox.confirm('确认退出手动组卷？试题篮内所有题目将清空，已填写的试卷名称保留', '退出手动组卷', {
+      confirmButtonText: '确认退出',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+  } catch {
+    return;
+  }
+  selectedQuestions.value = [];
+  selectedQuestionIds.value = [];
+  viewMode.value = 'manual';
+}
+function cancelManage() {
+  selectedQuestionIds.value = [];
+  backToList();
+}
 function createDefaultRules() {
   return [
-    { type: '单选题', count: 20, score: 1, difficulty: '全部', selected: true },
-    { type: '多选题', count: 10, score: 1, difficulty: '全部', selected: true },
-    { type: '判断题', count: 10, score: 1, difficulty: '基础', selected: true },
-    { type: '填空题', count: 5, score: 1, difficulty: '全部', selected: true },
-    { type: '简答题', count: 0, score: 1, difficulty: '全部', selected: false }
+    { type: '单选题', count: 20, previousCount: 20, score: 1, difficulty: '全部', selected: true },
+    { type: '多选题', count: 10, previousCount: 10, score: 1, difficulty: '全部', selected: true },
+    { type: '判断题', count: 10, previousCount: 10, score: 1, difficulty: '基础', selected: true },
+    { type: '填空题', count: 5, previousCount: 5, score: 1, difficulty: '全部', selected: true },
+    { type: '简答题', count: 0, previousCount: 1, score: 1, difficulty: '全部', selected: false }
   ];
+}
+function toggleAutoRule(rule: ReturnType<typeof createDefaultRules>[number]) {
+  if (rule.selected) {
+    rule.count = rule.previousCount > 0 ? rule.previousCount : 1;
+    return;
+  }
+  if (rule.count > 0) rule.previousCount = rule.count;
+  rule.count = 0;
 }
 function resetBuilder() { Object.assign(builder, { paperName: '', courseName: '', totalScore: 100, passScore: 60, rules: createDefaultRules() }); }
 function isQuestionInPaper(id: number) { return selectedQuestions.value.some((item) => item.id === id); }
-function addQuestion(item: QuestionItem) { if (!selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
+function addQuestion(item: QuestionItem) { if (item.enabled && !selectedQuestions.value.some((question) => question.id === item.id)) selectedQuestions.value.push({ ...item }); }
 function removeQuestion(id: number) { selectedQuestions.value = selectedQuestions.value.filter((item) => item.id !== id); }
-function toggleQuestion(id: number) { selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id]; }
-function toggleAllQuestions(value: string | number | boolean) { selectedQuestionIds.value = value ? Array.from(new Set([...selectedQuestionIds.value, ...pagedManageQuestions.value.map((item) => item.id)])) : selectedQuestionIds.value.filter((id) => !pagedManageQuestions.value.some((item) => item.id === id)); }
-function addFilteredQuestions() { questionBank.value.filter((item) => selectedQuestionIds.value.includes(item.id)).forEach(addQuestion); }
-function resetManageFilters() { questionKeyword.value = ''; questionType.value = ''; manageCreator.value = ''; manageCourse.value = ''; managePage.value = 1; selectedQuestionIds.value = []; }
-function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
-async function saveBuilder() {
-  saving.value = true;
-  try {
-    await createAdminPaper(paperCommand('manual'));
-    ElMessage.success('试卷已保存');
-    backToList();
-    await loadPapers();
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '试卷保存失败');
-  } finally {
-    saving.value = false;
-  }
+function toggleQuestion(id: number) {
+  const question = questionBank.value.find((item) => item.id === id);
+  if (!question?.enabled) return;
+  selectedQuestionIds.value = selectedQuestionIds.value.includes(id) ? selectedQuestionIds.value.filter((item) => item !== id) : [...selectedQuestionIds.value, id];
 }
+function toggleAllQuestions(value: string | number | boolean) {
+  const enabledPageQuestions = pagedManageQuestions.value.filter((item) => item.enabled);
+  selectedQuestionIds.value = value
+    ? Array.from(new Set([...selectedQuestionIds.value, ...enabledPageQuestions.map((item) => item.id)]))
+    : selectedQuestionIds.value.filter((id) => !enabledPageQuestions.some((item) => item.id === id));
+}
+function addFilteredQuestions() {
+  const selected = questionBank.value.filter((item) => item.enabled && selectedQuestionIds.value.includes(item.id));
+  if (!selected.length) {
+    ElMessage.warning('请先勾选需要加入试题篮的试题');
+    return;
+  }
+  selected.forEach(addQuestion);
+  selectedQuestionIds.value = [];
+}
+function applyManageFilters() {
+  appliedManageFilters.value = {
+    keyword: questionKeyword.value.trim(),
+    type: questionType.value,
+    creator: manageCreator.value.trim(),
+    course: manageCourse.value.trim()
+  };
+  managePage.value = 1;
+  selectedQuestionIds.value = [];
+}
+function resetManageFilters() {
+  questionKeyword.value = '';
+  questionType.value = '';
+  manageCreator.value = '';
+  manageCourse.value = '';
+  appliedManageFilters.value = { keyword: '', type: '', creator: '', course: '' };
+  managePage.value = 1;
+  selectedQuestionIds.value = [];
+}
+function typeTone(type: string) { if (type.includes('多')) return 'multiple'; if (type.includes('判断')) return 'judge'; if (type.includes('填空')) return 'blank'; if (type.includes('简答')) return 'essay'; return 'single'; }
 async function saveManage() {
   if (!activePaper.value) return;
   saving.value = true;
@@ -935,12 +1120,52 @@ async function saveManage() {
 function openImport() {
   Object.assign(previewPaper, { paperName: '', courseName: '' });
   paperImportFile.value = null;
+  paperImportFileList.value = [];
   paperImportRows.value = [];
+  paperImportErrors.value = [];
+  importProgress.value = 0;
   uploadPreviewActive.value = false;
   importVisible.value = true;
 }
-function handlePaperFileChange(file: UploadFile) {
-  paperImportFile.value = file.raw ?? null;
+function handlePaperFileChange(file: UploadFile, files: UploadFiles) {
+  const raw = file.raw;
+  paperImportErrors.value = [];
+  importProgress.value = 0;
+  if (!raw) {
+    paperImportFile.value = null;
+    paperImportFileList.value = [];
+    return;
+  }
+  if (!/\.(xls|xlsx|excel)$/i.test(raw.name)) {
+    ElMessage.warning('仅支持 Excel 文件');
+    paperImportFile.value = null;
+    paperImportFileList.value = [];
+    return;
+  }
+  if (raw.size > 200 * 1024 * 1024) {
+    ElMessage.warning('文件大小不能超过 200MB');
+    paperImportFile.value = null;
+    paperImportFileList.value = [];
+    return;
+  }
+  paperImportFile.value = raw;
+  paperImportFileList.value = files.slice(-1);
+}
+function handlePaperFileRemove(_file: UploadFile, files: UploadFiles) {
+  paperImportFileList.value = files;
+  paperImportFile.value = null;
+  paperImportRows.value = [];
+  paperImportErrors.value = [];
+  importProgress.value = 0;
+}
+function downloadPaperImportErrors() {
+  const worksheet = XLSX.utils.json_to_sheet(paperImportErrors.value.map((item) => ({
+    行号: item.rowNumber ?? '-',
+    错误原因: item.message || '试题格式不正确'
+  })));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '错误明细');
+  XLSX.writeFile(workbook, '试卷导入错误明细.xlsx');
 }
 async function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') {
   if (source === 'upload') {
@@ -948,6 +1173,7 @@ async function openPreview(source: 'auto' | 'manual' | 'manage' | 'upload') {
     return;
   }
   uploadPreviewActive.value = false;
+  previewSource.value = source;
   try {
     const mode = source === 'auto' ? 'auto' : source === 'manage' ? 'manage' : 'manual';
     const command = paperCommand(mode);
@@ -969,27 +1195,30 @@ async function prepareUploadPreview() {
     ElMessage.warning('请输入试卷名称');
     return;
   }
-  if (!previewPaper.courseName.trim()) {
-    ElMessage.warning('请输入所属课程名称');
-    return;
-  }
   const file = paperImportFile.value;
   if (!file) {
-    ElMessage.warning('请选择需要导入的 Excel 文件');
+    ElMessage.warning('请上传试卷 Excel 文件');
     return;
   }
-  if (!/\.xlsx?$/i.test(file.name)) {
-    ElMessage.warning('仅支持 .xls、.xlsx 格式');
+  if (!/\.(xls|xlsx|excel)$/i.test(file.name)) {
+    ElMessage.warning('仅支持 Excel 文件');
     return;
   }
   if (file.size > 200 * 1024 * 1024) {
     ElMessage.warning('文件大小不能超过 200MB');
     return;
   }
+  if (!previewPaper.courseName.trim()) {
+    ElMessage.warning('请输入所属课程名称');
+    return;
+  }
   importParsing.value = true;
+  importProgress.value = 20;
+  paperImportErrors.value = [];
   try {
     const rows = await parsePaperWorkbook(file);
-    if (!rows.length) throw new Error('文件中没有可解析的试题，请使用试卷导入模板');
+    importProgress.value = 60;
+    if (!rows.length) throw new Error('Excel 内未读取到有效试题');
     const result = await previewAdminQuestionImport({
       fileName: file.name,
       fileSize: file.size,
@@ -997,6 +1226,7 @@ async function prepareUploadPreview() {
       rows
     });
     if ((result.errorCount ?? 0) > 0) {
+      paperImportErrors.value = result.errors ?? [];
       const first = result.errors?.[0];
       throw new Error(`第 ${first?.rowNumber ?? '-'} 行：${first?.message || '试题格式不正确'}`);
     }
@@ -1008,15 +1238,25 @@ async function prepareUploadPreview() {
       type: typeLabel(row.questionType),
       score: Number(row.score || 5),
       courseName: previewPaper.courseName,
+      creatorName: '-',
+      enabled: true,
       options: (row.options ?? []).map((option) => `${option.optionKey}. ${option.optionText}`)
     }));
     uploadPreviewActive.value = true;
+    previewSource.value = 'upload';
+    importProgress.value = 100;
     importVisible.value = false;
     previewVisible.value = true;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '试卷文件解析失败');
   } finally {
     importParsing.value = false;
+  }
+}
+function closePreview() {
+  previewVisible.value = false;
+  if (uploadPreviewActive.value) {
+    importVisible.value = true;
   }
 }
 function updatePreviewScore(questionId: number, value: number | undefined) {
@@ -1090,13 +1330,17 @@ async function submitImport() {
         fileSize: file.size,
         rows: paperRowsForSubmission()
       });
+    } else if (previewSource.value === 'manage' && activePaper.value) {
+      await updateAdminPaper(activePaper.value.paperId, paperCommand('manage'));
     } else {
       await createAdminPaper(paperCommand(viewMode.value === 'auto' ? 'auto' : 'manual'));
     }
     previewVisible.value = false;
-    ElMessage.success('试卷已提交');
+    ElMessage.success(uploadPreviewActive.value ? '试卷上传提交成功' : previewSource.value === 'manage' ? '试卷已修改' : '试卷已保存');
+    clearCreateDraft();
     backToList();
     await loadPapers();
+    await loadPaperCreators();
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '试卷提交失败');
   } finally {
@@ -1157,6 +1401,8 @@ async function openLogs(row: TheoryPaper) {
 function jumpToPage(value?: number) { page.value = Math.min(maxPage.value, Math.max(1, Number(value || 1))); }
 
 onMounted(() => {
+  if (restoreCreateDraft()) void loadQuestionBank();
   void loadPapers();
+  void loadPaperCreators();
 });
 </script>
