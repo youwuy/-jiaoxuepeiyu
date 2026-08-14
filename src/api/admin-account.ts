@@ -24,7 +24,11 @@ export interface AdminAccount {
   classId?: number | null;
   className?: string;
   enabled: boolean;
+  faceFileId?: number | null;
+  faceFileUrl?: string;
   faceRecorded?: boolean;
+  fingerprintFileId?: number | null;
+  fingerprintFileUrl?: string;
   fingerprintRecorded?: boolean;
   createdAt?: string;
   roleIds?: number[];
@@ -95,6 +99,14 @@ export interface AdminRoleOption {
   enabled?: boolean;
 }
 
+export interface UploadedBiometricFile {
+  fileId: number;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+}
+
 function accountPath(kind: AdminAccountKind) {
   return kind === 'teacher' ? '/admin/accounts/teachers' : '/admin/accounts/students';
 }
@@ -120,6 +132,19 @@ export async function fetchAdminAccounts(kind: AdminAccountKind, query: AdminAcc
 export async function fetchAdminAccountDetail(userId: number) {
   return requestJson<AdminAccount>(`/admin/accounts/${userId}`, {
     fallbackLabel: '用户详情'
+  });
+}
+
+export async function uploadAdminBiometricFile(file: File, kind: 'face' | 'fingerprint') {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('category', kind === 'face' ? 'user-faces' : 'user-fingerprints');
+
+  return requestJson<UploadedBiometricFile>('/files', {
+    method: 'POST',
+    body,
+    authPortal: 'admin',
+    fallbackLabel: kind === 'face' ? '人脸信息上传' : '指纹信息上传'
   });
 }
 

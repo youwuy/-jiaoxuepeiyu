@@ -65,18 +65,20 @@
         <div class="admin-user-teacher-bio-row">
           <div class="admin-user-bio-item">
             <span>人脸信息录入</span>
-            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFaceRecorded }" @click="markBioRecorded('face')">
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('face')">
               <el-icon><Camera /></el-icon>
-              <strong>{{ bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
+              <strong>{{ uploadingBio === 'face' ? '人脸信息上传中...' : bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
             </button>
+            <input ref="faceFileInput" type="file" accept="image/jpeg,image/png,image/bmp" capture="user" hidden @change="handleBioFileChange('face', $event)" />
             <p>状态：<b :class="{ recorded: bioFaceRecorded }">{{ bioFaceRecorded ? '已录入' : '未录入' }}</b></p>
           </div>
           <div class="admin-user-bio-item">
             <span>指纹信息录入</span>
-            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFingerprintRecorded }" @click="markBioRecorded('fingerprint')">
+            <button type="button" class="admin-user-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('fingerprint')">
               <el-icon><Pointer /></el-icon>
-              <strong>{{ bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
+              <strong>{{ uploadingBio === 'fingerprint' ? '指纹信息上传中...' : bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
             </button>
+            <input ref="fingerprintFileInput" type="file" accept="image/jpeg,image/png,image/bmp" hidden @change="handleBioFileChange('fingerprint', $event)" />
             <p>状态：<b :class="{ recorded: bioFingerprintRecorded }">{{ bioFingerprintRecorded ? '已录入' : '未录入' }}</b></p>
           </div>
         </div>
@@ -135,18 +137,20 @@
           <div class="admin-user-student-bio-row">
             <div class="admin-user-student-bio-item">
               <span>人脸信息录入</span>
-              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFaceRecorded }" @click="markBioRecorded('face')">
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFaceRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('face')">
                 <el-icon><Camera /></el-icon>
-                <strong>{{ bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
+                <strong>{{ uploadingBio === 'face' ? '人脸信息上传中...' : bioFaceRecorded ? '已录入人脸信息' : '点击拍照或上传照片' }}</strong>
               </button>
+              <input ref="faceFileInput" type="file" accept="image/jpeg,image/png,image/bmp" capture="user" hidden @change="handleBioFileChange('face', $event)" />
               <p>状态：<b :class="{ recorded: bioFaceRecorded }">{{ bioFaceRecorded ? '已录入' : '未录入' }}</b></p>
             </div>
             <div class="admin-user-student-bio-item">
               <span>指纹信息录入</span>
-              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFingerprintRecorded }" @click="markBioRecorded('fingerprint')">
+              <button type="button" class="admin-user-student-bio-box" :class="{ recorded: bioFingerprintRecorded }" :disabled="uploadingBio !== null" @click="triggerBioUpload('fingerprint')">
                 <el-icon><Pointer /></el-icon>
-                <strong>{{ bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传照片' }}</strong>
+                <strong>{{ uploadingBio === 'fingerprint' ? '指纹信息上传中...' : bioFingerprintRecorded ? '已录入指纹信息' : '点击录入指纹或上传指纹' }}</strong>
               </button>
+              <input ref="fingerprintFileInput" type="file" accept="image/jpeg,image/png,image/bmp" hidden @change="handleBioFileChange('fingerprint', $event)" />
               <p>状态：<b :class="{ recorded: bioFingerprintRecorded }">{{ bioFingerprintRecorded ? '已录入' : '未录入' }}</b></p>
             </div>
           </div>
@@ -195,8 +199,8 @@
           <div class="admin-user-detail-bio-row">
             <div class="admin-user-detail-bio-item">
               <span>人脸数据</span>
-              <div class="admin-user-detail-face" :class="{ empty: !detailAccount.faceRecorded }">
-                <img v-if="detailAccount.faceRecorded" :src="detailFaceImage" alt="人脸数据" />
+              <div class="admin-user-detail-face" :class="{ empty: !detailAccount.faceFileUrl }">
+                <img v-if="detailAccount.faceFileUrl" :src="detailAccount.faceFileUrl" alt="人脸数据" />
                 <el-icon v-else><Camera /></el-icon>
               </div>
               <p :class="{ recorded: detailAccount.faceRecorded }"><i></i>{{ detailAccount.faceRecorded ? '已录入' : '未录入' }}</p>
@@ -542,6 +546,7 @@ import {
   updateAdminAccount,
   updateAdminAccountOrg,
   updateAdminTeacherRoles,
+  uploadAdminBiometricFile,
   type AdminAccount,
   type AdminAccountCommand,
   type AdminAccountImportPreview,
@@ -585,6 +590,9 @@ const studentFormPageVisible = ref(false);
 const detailPageVisible = ref(false);
 const bioFaceRecorded = ref(false);
 const bioFingerprintRecorded = ref(false);
+const uploadingBio = ref<'face' | 'fingerprint' | null>(null);
+const faceFileInput = ref<HTMLInputElement | null>(null);
+const fingerprintFileInput = ref<HTMLInputElement | null>(null);
 const formVisible = ref(false);
 const formMode = ref<FormMode>('create');
 const editingId = ref<number | null>(null);
@@ -604,7 +612,6 @@ const importText = ref('');
 const importFileName = ref('');
 const importPreview = ref<AdminAccountImportPreview | null>(null);
 const importFileInput = ref<HTMLInputElement | null>(null);
-const detailFaceImage = new URL('../../assets/resource-cover-manual.jpg', import.meta.url).href;
 
 const emptyForm = (): AdminAccountCommand => ({
   realName: '',
@@ -820,8 +827,8 @@ function accountToForm(account: AdminAccount): AdminAccountCommand {
     jobTitle: account.jobTitle || '',
     orgId: account.orgId ?? null,
     classId: account.classId ?? null,
-    faceFileId: null,
-    fingerprintFileId: null,
+    faceFileId: account.faceFileId ?? null,
+    fingerprintFileId: account.fingerprintFileId ?? null,
     roleIds: account.roleIds ?? [],
     managedOrgIds: account.managedOrgIds ?? [],
     teachingClassIds: account.teachingClassIds ?? []
@@ -881,11 +888,43 @@ function cancelStudentForm() {
   resetBioState();
 }
 
-function markBioRecorded(type: 'face' | 'fingerprint') {
-  if (type === 'face') {
-    bioFaceRecorded.value = !bioFaceRecorded.value;
-  } else {
-    bioFingerprintRecorded.value = !bioFingerprintRecorded.value;
+function triggerBioUpload(type: 'face' | 'fingerprint') {
+  const input = type === 'face' ? faceFileInput.value : fingerprintFileInput.value;
+  input?.click();
+}
+
+async function handleBioFileChange(type: 'face' | 'fingerprint', event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  if (!['image/jpeg', 'image/png', 'image/bmp'].includes(file.type)) {
+    ElMessage.warning('仅支持 JPG、PNG、BMP 图片格式');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning('生物信息图片大小不能超过10MB');
+    return;
+  }
+
+  uploadingBio.value = type;
+  try {
+    const uploaded = await uploadAdminBiometricFile(file, type);
+    if (!uploaded.fileId) {
+      throw new Error('上传接口未返回文件ID');
+    }
+    if (type === 'face') {
+      form.faceFileId = uploaded.fileId;
+      bioFaceRecorded.value = true;
+    } else {
+      form.fingerprintFileId = uploaded.fileId;
+      bioFingerprintRecorded.value = true;
+    }
+    ElMessage.success(type === 'face' ? '人脸信息上传成功' : '指纹信息上传成功');
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '生物信息上传失败');
+  } finally {
+    uploadingBio.value = null;
   }
 }
 

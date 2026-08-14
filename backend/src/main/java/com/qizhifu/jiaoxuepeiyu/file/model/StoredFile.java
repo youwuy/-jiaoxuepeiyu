@@ -2,6 +2,7 @@ package com.qizhifu.jiaoxuepeiyu.file.model;
 
 public class StoredFile {
 
+    private Long fileId;
     private String fileUrl;
     private String fileName;
     private String storedFileName;
@@ -24,6 +25,14 @@ public class StoredFile {
         this.fileSize = fileSize;
         this.contentType = contentType;
         this.category = category;
+    }
+
+    public Long getFileId() {
+        return fileId;
+    }
+
+    public void setFileId(Long fileId) {
+        this.fileId = fileId;
     }
 
     public String getFileUrl() {

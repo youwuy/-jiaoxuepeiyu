@@ -20,7 +20,11 @@ public class AdminAccount {
     private Long classId;
     private String className;
     private boolean enabled;
+    private Long faceFileId;
+    private String faceFileUrl;
     private boolean faceRecorded;
+    private Long fingerprintFileId;
+    private String fingerprintFileUrl;
     private boolean fingerprintRecorded;
     private LocalDateTime createdAt;
     private List<Long> roleIds = new ArrayList<Long>();
@@ -144,12 +148,44 @@ public class AdminAccount {
         return faceRecorded;
     }
 
+    public Long getFaceFileId() {
+        return faceFileId;
+    }
+
+    public void setFaceFileId(Long faceFileId) {
+        this.faceFileId = faceFileId;
+    }
+
+    public String getFaceFileUrl() {
+        return faceFileUrl;
+    }
+
+    public void setFaceFileUrl(String faceFileUrl) {
+        this.faceFileUrl = faceFileUrl;
+    }
+
     public void setFaceRecorded(boolean faceRecorded) {
         this.faceRecorded = faceRecorded;
     }
 
     public boolean isFingerprintRecorded() {
         return fingerprintRecorded;
+    }
+
+    public Long getFingerprintFileId() {
+        return fingerprintFileId;
+    }
+
+    public void setFingerprintFileId(Long fingerprintFileId) {
+        this.fingerprintFileId = fingerprintFileId;
+    }
+
+    public String getFingerprintFileUrl() {
+        return fingerprintFileUrl;
+    }
+
+    public void setFingerprintFileUrl(String fingerprintFileUrl) {
+        this.fingerprintFileUrl = fingerprintFileUrl;
     }
 
     public void setFingerprintRecorded(boolean fingerprintRecorded) {

@@ -5,6 +5,7 @@ import com.qizhifu.jiaoxuepeiyu.auth.model.AuthenticatedUser;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import com.qizhifu.jiaoxuepeiyu.file.FileStorageService;
+import com.qizhifu.jiaoxuepeiyu.file.StoredFileRegistry;
 import com.qizhifu.jiaoxuepeiyu.file.model.StoredFile;
 import com.qizhifu.jiaoxuepeiyu.ue.UeIdentityResolver;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,10 +27,14 @@ public class FileUploadController {
     private static final String USER_ID_HEADER = "X-User-Id";
 
     private final FileStorageService storageService;
+    private final StoredFileRegistry fileRegistry;
     private final UeIdentityResolver ueIdentityResolver;
 
-    public FileUploadController(FileStorageService storageService, UeIdentityResolver ueIdentityResolver) {
+    public FileUploadController(FileStorageService storageService,
+                                StoredFileRegistry fileRegistry,
+                                UeIdentityResolver ueIdentityResolver) {
         this.storageService = storageService;
+        this.fileRegistry = fileRegistry;
         this.ueIdentityResolver = ueIdentityResolver;
     }
 
@@ -40,8 +45,9 @@ public class FileUploadController {
                                           @Parameter(description = "Optional storage category such as resources, covers, assignments, or recordings.")
                                           @RequestParam(value = "category", required = false) String category,
                                           HttpServletRequest request) {
-        requireUploadUserId(request);
-        return ApiResponse.ok(storageService.store(file, category));
+        Long uploaderId = requireUploadUserId(request);
+        StoredFile storedFile = storageService.store(file, category);
+        return ApiResponse.ok(fileRegistry.register(storedFile, uploaderId));
     }
 
     private Long requireUploadUserId(HttpServletRequest request) {
