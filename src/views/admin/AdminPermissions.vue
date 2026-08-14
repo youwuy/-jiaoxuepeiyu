@@ -172,9 +172,14 @@
             <el-input v-model="form.permissionName" maxlength="8" show-word-limit placeholder="请输入菜单名称" @input="syncPermissionCode" />
           </label>
 
-          <label v-if="form.permissionType !== 'BUTTON'" class="admin-permission-field">
+          <label class="admin-permission-field">
             <span>路由地址 <b>*</b></span>
-            <el-input v-model="form.routePath" maxlength="100" show-word-limit placeholder="请输入路由地址" />
+            <el-input
+              v-model="form.routePath"
+              maxlength="100"
+              show-word-limit
+              :placeholder="form.permissionType === 'BUTTON' ? '请输入权限标识路由值' : '请输入路由地址'"
+            />
           </label>
         </div>
 
@@ -478,7 +483,7 @@ function syncPermissionCode() {
 function validateForm(): AdminPermissionCommand {
   const permissionName = form.permissionName.trim();
   const routePathValue = String(form.routePath ?? '').trim();
-  const routePath = form.permissionType === 'BUTTON' ? routePathValue || null : routePathValue;
+  const routePath = routePathValue;
 
   if (!permissionName) {
     throw new Error('请输入菜单名称');
@@ -488,8 +493,8 @@ function validateForm(): AdminPermissionCommand {
     throw new Error('请选择父级菜单');
   }
 
-  if (form.permissionType !== 'BUTTON' && !routePath) {
-    throw new Error('请输入路由地址');
+  if (!routePath) {
+    throw new Error(form.permissionType === 'BUTTON' ? '请输入权限标识路由值' : '请输入路由地址');
   }
   return {
     parentId: form.permissionType === 'MENU' ? null : form.parentId ?? null,
@@ -531,6 +536,23 @@ async function savePermission() {
 }
 
 async function toggleVisible(row: AdminPermissionRow) {
+  const action = row.visible ? '隐藏' : '显示';
+  try {
+    await ElMessageBox.confirm(
+      row.visible
+        ? `确认隐藏菜单「${row.permissionName}」？隐藏后其下级节点也将不可见。`
+        : `确认显示菜单「${row.permissionName}」？下级节点将沿用原有显示状态。`,
+      `${action}菜单`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+  } catch {
+    return;
+  }
+
   busyId.value = row.permissionId;
   try {
     if (row.visible) {
@@ -540,7 +562,7 @@ async function toggleVisible(row: AdminPermissionRow) {
     }
     await loadPermissionTree();
     window.dispatchEvent(new Event(adminPermissionsChangedEvent));
-    ElMessage.success(row.visible ? '菜单已隐藏' : '菜单已显示');
+    ElMessage.success(`菜单已${action}`);
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '状态更新失败');
   } finally {
