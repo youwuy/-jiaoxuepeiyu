@@ -158,7 +158,7 @@
           </div>
         </template>
 
-        <section v-if="currentStudent" class="admin-course-stats-detail-body">
+        <section v-if="currentStudent" v-loading="detailLoading" class="admin-course-stats-detail-body">
           <div class="admin-course-stats-detail-table-head">
             <span>名称</span>
             <span>类型</span>
@@ -167,17 +167,14 @@
           </div>
 
           <div class="admin-course-stats-detail-tree">
-            <section v-for="chapter in detailTree" :key="chapter.title" class="admin-course-stats-detail-chapter">
-              <div class="admin-course-stats-detail-chapter-row">
-                <el-icon><ArrowDown /></el-icon>
+            <el-empty v-if="!detailLoading && detailTree.length === 0" description="暂无课程学习明细" />
+            <section v-for="chapter in detailTree" :key="chapter.id" class="admin-course-stats-detail-chapter">
+              <button type="button" class="admin-course-stats-detail-chapter-row" @click="toggleChapter(chapter.id)">
+                <el-icon><ArrowDown v-if="expandedChapterIds.includes(chapter.id)" /><ArrowRight v-else /></el-icon>
                 <strong>{{ chapter.title }}</strong>
-              </div>
-              <article v-for="section in chapter.sections" :key="section.title" class="admin-course-stats-detail-section">
-                <div class="admin-course-stats-detail-section-row">
-                  <el-icon><ArrowDown /></el-icon>
-                  <strong>{{ section.title }}</strong>
-                </div>
-                <div v-for="item in section.items" :key="item.name" class="admin-course-stats-detail-item-row">
+              </button>
+              <template v-if="expandedChapterIds.includes(chapter.id)">
+                <div v-for="item in chapter.items" :key="item.id" class="admin-course-stats-detail-item-row root-item">
                   <span class="admin-course-stats-detail-item-name">
                     <el-icon :class="item.type"><component :is="item.type === 'assignment' ? EditPen : Document" /></el-icon>
                     {{ item.name }}
@@ -186,7 +183,27 @@
                   <span><em>{{ item.status }}</em></span>
                   <span class="score">{{ item.score }}</span>
                 </div>
-              </article>
+                <article v-for="section in chapter.sections" :key="section.id" class="admin-course-stats-detail-section">
+                <button
+                  type="button"
+                  class="admin-course-stats-detail-section-row"
+                  :style="{ paddingLeft: `${20 + section.depth * 18}px` }"
+                  @click="toggleSection(section.id)"
+                >
+                  <el-icon><ArrowDown v-if="expandedSectionIds.includes(section.id)" /><ArrowRight v-else /></el-icon>
+                  <strong>{{ section.title }}</strong>
+                </button>
+                <div v-for="item in expandedSectionIds.includes(section.id) ? section.items : []" :key="item.id" class="admin-course-stats-detail-item-row">
+                  <span class="admin-course-stats-detail-item-name">
+                    <el-icon :class="item.type"><component :is="item.type === 'assignment' ? EditPen : Document" /></el-icon>
+                    {{ item.name }}
+                  </span>
+                  <span><b :class="item.type">{{ item.typeText }}</b></span>
+                  <span><em>{{ item.status }}</em></span>
+                  <span class="score">{{ item.score }}</span>
+                </div>
+                </article>
+              </template>
             </section>
           </div>
         </section>
@@ -223,8 +240,10 @@ import {
   exportAdminCourseStudentStatistics,
   fetchAdminCourseDetail,
   fetchAdminCourseStatistics,
+  fetchAdminCourseStudentStatisticsDetail,
   fetchAdminCourseStudentStatistics,
   type AdminCourseStatistics,
+  type AdminCourseStudentContentStatistics,
   type AdminCourseStudentStatistics
 } from '../../api/admin-course';
 
@@ -239,6 +258,26 @@ interface StudentScoreRow {
   assignmentScore: number;
 }
 
+interface DetailItem {
+  id: number;
+  name: string;
+  type: 'courseware' | 'assignment';
+  typeText: '课件' | '作业';
+  status: string;
+  score: string;
+}
+
+interface DetailSection {
+  id: number;
+  title: string;
+  depth: number;
+  items: DetailItem[];
+}
+
+interface DetailChapter extends DetailSection {
+  sections: DetailSection[];
+}
+
 const route = useRoute();
 const router = useRouter();
 const courseId = computed(() => Number(route.params.id));
@@ -248,6 +287,7 @@ const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const loading = ref(false);
+const detailLoading = ref(false);
 const exporting = ref(false);
 const initialStudentNo = String(route.query.studentNo || '').trim();
 const filters = reactive({
@@ -270,101 +310,12 @@ const students = ref<StudentScoreRow[]>([]);
 const detailVisible = ref(false);
 const currentStudent = ref<StudentScoreRow>();
 const detailAutoOpened = ref(false);
+const detailRows = ref<AdminCourseStudentContentStatistics[]>([]);
+const expandedChapterIds = ref<number[]>([]);
+const expandedSectionIds = ref<number[]>([]);
 
 const detailTree = computed(() => {
-  const student = currentStudent.value;
-  if (!student) {
-    return [];
-  }
-
-  return [
-    {
-      title: '第一章 信号系统概述',
-      sections: [
-        {
-          title: '1.1 城市轨道交通信号系统发展历程',
-          items: [
-            {
-              name: '信号系统发展历程课件',
-              type: 'courseware',
-              typeText: '课件',
-              status: student.progress > 0 ? '已完成' : '未完成',
-              score: '-'
-            },
-            {
-              name: '信号系统发展历程课后作业',
-              type: 'assignment',
-              typeText: '作业',
-              status: student.assignmentCount > 0 ? '已完成' : '未完成',
-              score: student.assignmentCount > 0 ? formatScore(Math.round(student.assignmentScore * 0.45)) : '-'
-            }
-          ]
-        },
-        {
-          title: '1.2 信号系统组成与功能',
-          items: [
-            {
-              name: '信号系统组成与功能课件',
-              type: 'courseware',
-              typeText: '课件',
-              status: student.progress >= 50 ? '已完成' : '未完成',
-              score: '-'
-            },
-            {
-              name: '信号系统组成与功能课后作业',
-              type: 'assignment',
-              typeText: '作业',
-              status: student.assignmentCount > 1 ? '已完成' : '未完成',
-              score: student.assignmentCount > 1 ? formatScore(Math.round(student.assignmentScore * 0.35)) : '-'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      title: '第二章 CBTC系统原理',
-      sections: [
-        {
-          title: '2.1 CBTC系统架构',
-          items: [
-            {
-              name: 'CBTC系统架构课件',
-              type: 'courseware',
-              typeText: '课件',
-              status: student.progress >= 75 ? '已完成' : '未完成',
-              score: '-'
-            },
-            {
-              name: 'CBTC系统架构课后作业',
-              type: 'assignment',
-              typeText: '作业',
-              status: student.assignmentCount > 2 ? '已完成' : '未完成',
-              score: student.assignmentCount > 2 ? formatScore(Math.round(student.assignmentScore * 0.2)) : '-'
-            }
-          ]
-        },
-        {
-          title: '2.2 移动闭塞原理',
-          items: [
-            {
-              name: '移动闭塞原理课件',
-              type: 'courseware',
-              typeText: '课件',
-              status: student.progress >= 100 ? '已完成' : '未完成',
-              score: '-'
-            },
-            {
-              name: '移动闭塞原理课后作业',
-              type: 'assignment',
-              typeText: '作业',
-              status: student.assignmentCount > 3 ? '已完成' : '未完成',
-              score: student.assignmentCount > 3 ? formatScore(student.assignmentScore) : '-'
-            }
-          ]
-        }
-      ]
-    }
-  ];
+  return buildDetailTree(detailRows.value);
 });
 
 const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
@@ -416,9 +367,21 @@ async function exportData() {
   }
 }
 
-function showDetail(student: StudentScoreRow) {
+async function showDetail(student: StudentScoreRow) {
   currentStudent.value = student;
   detailVisible.value = true;
+  detailRows.value = [];
+  detailLoading.value = true;
+  try {
+    detailRows.value = await fetchAdminCourseStudentStatisticsDetail(courseId.value, student.studentId);
+    const tree = buildDetailTree(detailRows.value);
+    expandedChapterIds.value = tree.map((chapter) => chapter.id);
+    expandedSectionIds.value = tree.flatMap((chapter) => chapter.sections.map((section) => section.id));
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '课程学员成绩详情加载失败');
+  } finally {
+    detailLoading.value = false;
+  }
 }
 
 async function loadCourseStatistics() {
@@ -470,8 +433,7 @@ function openInitialDetail() {
 
   const matched = students.value.find((student) => student.studentNo === initialStudentNo);
   if (matched) {
-    currentStudent.value = matched;
-    detailVisible.value = true;
+    void showDetail(matched);
     detailAutoOpened.value = true;
   }
 }
@@ -497,6 +459,75 @@ function mapStudent(row: AdminCourseStudentStatistics): StudentScoreRow {
     assignmentCount: Number(row.assignmentCount || 0),
     assignmentScore: Number(row.assignmentScore || 0)
   };
+}
+
+function buildDetailTree(rows: AdminCourseStudentContentStatistics[]): DetailChapter[] {
+  const nodes = new Map<number, DetailChapter & { parentId?: number; sortOrder: number; children: DetailSection[] }>();
+  for (const row of rows) {
+    if (!nodes.has(row.chapterId)) {
+      nodes.set(row.chapterId, {
+        id: row.chapterId,
+        parentId: row.parentChapterId,
+        title: row.chapterTitle || '未命名章节',
+        depth: 0,
+        sortOrder: Number(row.chapterSortOrder || 0),
+        items: [],
+        sections: [],
+        children: []
+      });
+    }
+    if (row.contentId) {
+      const type = row.itemType === 'ASSIGNMENT' ? 'assignment' : 'courseware';
+      nodes.get(row.chapterId)?.items.push({
+        id: row.contentId,
+        name: row.contentTitle || '未命名内容',
+        type,
+        typeText: type === 'assignment' ? '作业' : '课件',
+        status: completionStatusText(row.completionStatus),
+        score: type === 'assignment' && row.score !== undefined && row.score !== null ? formatScore(Number(row.score)) : '-'
+      });
+    }
+  }
+
+  const roots: Array<DetailChapter & { parentId?: number; sortOrder: number; children: DetailSection[] }> = [];
+  for (const node of nodes.values()) {
+    const parent = node.parentId ? nodes.get(node.parentId) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  const byOrder = (left: { sortOrder?: number; id: number }, right: { sortOrder?: number; id: number }) =>
+    Number(left.sortOrder || 0) - Number(right.sortOrder || 0) || left.id - right.id;
+  roots.sort(byOrder);
+  const flatten = (node: DetailChapter & { children: DetailSection[] }, depth = 1): DetailSection[] =>
+    node.children.sort(byOrder).flatMap((child) => [
+      { id: child.id, title: child.title, depth, items: child.items },
+      ...flatten(child as DetailChapter & { children: DetailSection[] }, depth + 1)
+    ]);
+  return roots.map((root) => ({
+    id: root.id,
+    title: root.title,
+    depth: 0,
+    items: root.items,
+    sections: flatten(root)
+  }));
+}
+
+function completionStatusText(value?: string) {
+  if (value === 'COMPLETED') return '已完成';
+  if (value === 'IN_PROGRESS') return '进行中';
+  return '未完成';
+}
+
+function toggleChapter(id: number) {
+  expandedChapterIds.value = expandedChapterIds.value.includes(id)
+    ? expandedChapterIds.value.filter((item) => item !== id)
+    : [...expandedChapterIds.value, id];
+}
+
+function toggleSection(id: number) {
+  expandedSectionIds.value = expandedSectionIds.value.includes(id)
+    ? expandedSectionIds.value.filter((item) => item !== id)
+    : [...expandedSectionIds.value, id];
 }
 
 onMounted(() => {

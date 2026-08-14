@@ -5853,6 +5853,48 @@
         }
       }
     },
+    "/api/admin/courses/{courseId}/student-statistics/{studentId}/detail": {
+      "get": {
+        "tags": [
+          "Admin Courses"
+        ],
+        "summary": "Get course student score detail",
+        "description": "Returns the real chapter, courseware completion, assignment completion, and assignment score rows for one student.",
+        "operationId": "getStudentStatisticsDetail",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAdminCourseStudentContentStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/courses/{courseId}/student-statistics/export/file": {
       "get": {
         "tags": [
@@ -11969,6 +12011,64 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "AdminCourseStudentContentStatistics": {
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentChapterId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "chapterTitle": {
+            "type": "string"
+          },
+          "chapterSortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "itemType": {
+            "type": "string"
+          },
+          "contentTitle": {
+            "type": "string"
+          },
+          "contentSortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completionStatus": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      },
+      "ApiResponseListAdminCourseStudentContentStatistics": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseStudentContentStatistics"
+            }
           }
         }
       },

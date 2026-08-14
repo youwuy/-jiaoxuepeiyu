@@ -10,6 +10,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
@@ -230,6 +231,24 @@ class AdminCourseServiceTests {
         assertEquals(12, statistics.getCompletedCount().intValue());
     }
 
+    @Test
+    void returnsRealStudentContentStatistics() {
+        FakeCourses repository = new FakeCourses();
+        repository.course = existingCourse(31L, 2);
+        AdminCourseStudentContentStatistics row = new AdminCourseStudentContentStatistics();
+        row.setChapterId(41L);
+        row.setContentId(51L);
+        row.setCompletionStatus("COMPLETED");
+        repository.studentContentStatistics.add(row);
+        AdminCourseService service = new AdminCourseService(repository);
+
+        List<AdminCourseStudentContentStatistics> rows = service.getStudentContentStatistics(31L, 7L);
+
+        assertEquals(1, rows.size());
+        assertEquals(51L, rows.get(0).getContentId().longValue());
+        assertEquals("COMPLETED", rows.get(0).getCompletionStatus());
+    }
+
     private AdminCourseCommand courseCommand() {
         AdminCourseCommand command = new AdminCourseCommand();
         command.setCourseName("Safety Course");
@@ -295,6 +314,8 @@ class AdminCourseServiceTests {
         private Long copiedCreatorId;
         private String lastLogAction;
         private AdminCourseQuery lastQuery;
+        private final List<AdminCourseStudentContentStatistics> studentContentStatistics =
+                new ArrayList<AdminCourseStudentContentStatistics>();
 
         @Override
         public List<AdminCourse> findCourses(AdminCourseQuery query) {
@@ -357,6 +378,11 @@ class AdminCourseServiceTests {
         @Override
         public long countStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
             return 0;
+        }
+
+        @Override
+        public List<AdminCourseStudentContentStatistics> findStudentContentStatistics(Long courseId, Long studentId) {
+            return studentContentStatistics;
         }
 
         @Override

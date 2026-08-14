@@ -6,6 +6,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContent;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import java.util.List;
@@ -382,20 +383,26 @@ public interface AdminCourseMapper {
     @Select("<script>"
             + "SELECT u.id AS student_id, u.real_name AS student_name, u.username AS student_no, "
             + "u.class_id, ec.class_name, "
-            + "ROUND(CASE WHEN (c.courseware_count + c.assignment_count) > 0 "
-            + "THEN COALESCE(p.completed_items, 0) * 100 / (c.courseware_count + c.assignment_count) ELSE 0 END, 1) AS progress_percent, "
-            + "ROUND(CASE WHEN (c.courseware_count + c.assignment_count) > 0 "
-            + "THEN COALESCE(p.completed_items, 0) * c.courseware_score_cap / (c.courseware_count + c.assignment_count) ELSE 0 END, 1) AS progress_score, "
+            + "ROUND(CASE WHEN c.courseware_count > 0 "
+            + "THEN COALESCE(p.completed_courseware, 0) * 100 / c.courseware_count ELSE 0 END, 1) AS progress_percent, "
+            + "ROUND(CASE WHEN c.courseware_count > 0 "
+            + "THEN COALESCE(p.completed_courseware, 0) * c.courseware_score_cap / c.courseware_count ELSE 0 END, 1) AS progress_score, "
             + "COALESCE(a.assignment_count, 0) AS assignment_count, COALESCE(a.assignment_score, 0) AS assignment_score "
             + "FROM course c "
             + "JOIN course_class cc ON cc.course_id = c.id "
             + "JOIN sys_user u ON u.class_id = cc.class_id AND u.user_type = 'student' AND u.status = 1 "
             + "LEFT JOIN edu_class ec ON ec.id = u.class_id "
-            + "LEFT JOIN course_learning_progress p ON p.course_id = c.id AND p.student_id = u.id "
+            + "LEFT JOIN (SELECT cp.student_id, COUNT(DISTINCT cp.content_id) AS completed_courseware "
+            + "FROM course_content_learning_progress cp "
+            + "JOIN course_content progress_content ON progress_content.id = cp.content_id "
+            + "AND progress_content.course_id = cp.course_id AND progress_content.item_type = 'COURSEWARE' "
+            + "WHERE cp.course_id = #{courseId} AND cp.completed = 1 GROUP BY cp.student_id) p ON p.student_id = u.id "
             + "LEFT JOIN ("
-            + "SELECT aa.student_id, COUNT(*) AS assignment_count, SUM(COALESCE(aa.score, 0)) AS assignment_score "
+            + "SELECT attempts.student_id, COUNT(*) AS assignment_count, SUM(COALESCE(attempts.assignment_score, 0)) AS assignment_score "
+            + "FROM (SELECT aa.student_id, aa.assignment_id, MAX(aa.score) AS assignment_score "
             + "FROM assignment_attempt aa JOIN course_assignment ca ON ca.id = aa.assignment_id "
-            + "WHERE ca.course_id = #{courseId} GROUP BY aa.student_id"
+            + "WHERE ca.course_id = #{courseId} AND aa.status IN ('SUBMITTED', 'REVIEWED') "
+            + "GROUP BY aa.student_id, aa.assignment_id) attempts GROUP BY attempts.student_id"
             + ") a ON a.student_id = u.id "
             + "WHERE c.id = #{courseId} "
             + "<if test='query.studentName != null'>AND u.real_name LIKE #{query.studentName}</if> "
@@ -419,6 +426,35 @@ public interface AdminCourseMapper {
             + "</script>")
     long countStudentStatistics(@Param("courseId") Long courseId,
                                 @Param("query") AdminCourseStudentStatisticsQuery query);
+
+    @Select("SELECT ch.id AS chapter_id, ch.parent_chapter_id, ch.chapter_title, "
+            + "ch.sort_order AS chapter_sort_order, ct.id AS content_id, ct.item_type, "
+            + "ct.title AS content_title, ct.sort_order AS content_sort_order, "
+            + "CASE WHEN ct.id IS NULL THEN NULL "
+            + "WHEN ct.item_type = 'COURSEWARE' THEN CASE "
+            + "WHEN COALESCE(cp.completed, 0) = 1 THEN 'COMPLETED' "
+            + "WHEN COALESCE(cp.studied_seconds, 0) > 0 THEN 'IN_PROGRESS' ELSE 'NOT_COMPLETED' END "
+            + "WHEN COALESCE(attempts.has_submitted, 0) = 1 AND (ca.completion_rule = 'SUBMIT' "
+            + "OR COALESCE(attempts.best_score, 0) >= COALESCE(ca.pass_score, 0)) THEN 'COMPLETED' "
+            + "WHEN COALESCE(attempts.has_attempt, 0) = 1 THEN 'IN_PROGRESS' ELSE 'NOT_COMPLETED' END AS completion_status, "
+            + "CASE WHEN ct.item_type = 'ASSIGNMENT' THEN attempts.best_score ELSE NULL END AS score "
+            + "FROM course_chapter ch JOIN course c ON c.id = ch.course_id AND c.deleted_flag = 0 "
+            + "JOIN course_class cc ON cc.course_id = c.id "
+            + "JOIN sys_user u ON u.class_id = cc.class_id AND u.id = #{studentId} "
+            + "AND u.user_type = 'student' AND u.status = 1 "
+            + "LEFT JOIN course_content ct ON ct.chapter_id = ch.id AND ct.course_id = c.id "
+            + "LEFT JOIN course_assignment ca ON ca.id = ct.assignment_id "
+            + "LEFT JOIN course_content_learning_progress cp ON cp.course_id = c.id "
+            + "AND cp.content_id = ct.id AND cp.student_id = u.id "
+            + "LEFT JOIN (SELECT aa.assignment_id, 1 AS has_attempt, "
+            + "MAX(CASE WHEN aa.status IN ('SUBMITTED', 'REVIEWED') THEN 1 ELSE 0 END) AS has_submitted, "
+            + "MAX(CASE WHEN aa.status IN ('SUBMITTED', 'REVIEWED') THEN aa.score ELSE NULL END) AS best_score "
+            + "FROM assignment_attempt aa WHERE aa.student_id = #{studentId} GROUP BY aa.assignment_id) attempts "
+            + "ON attempts.assignment_id = ca.id WHERE c.id = #{courseId} "
+            + "ORDER BY ch.sort_order ASC, ch.id ASC, ct.sort_order ASC, ct.id ASC")
+    List<AdminCourseStudentContentStatistics> findStudentContentStatistics(
+            @Param("courseId") Long courseId,
+            @Param("studentId") Long studentId);
 
     @Insert("INSERT INTO course_log (course_id, operator_id, action, content, created_at) "
             + "VALUES (#{courseId}, #{operatorId}, #{action}, #{content}, NOW())")

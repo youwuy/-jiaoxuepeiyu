@@ -60,6 +60,19 @@ export interface AdminCourseStudentStatistics {
   assignmentScore?: number;
 }
 
+export interface AdminCourseStudentContentStatistics {
+  chapterId: number;
+  parentChapterId?: number;
+  chapterTitle: string;
+  chapterSortOrder?: number;
+  contentId?: number;
+  itemType?: string;
+  contentTitle?: string;
+  contentSortOrder?: number;
+  completionStatus?: string;
+  score?: number;
+}
+
 export interface AdminCourseLog {
   logId: number;
   courseId: number;
@@ -301,6 +314,13 @@ export async function fetchAdminCourseStudentStatistics(courseId: number, query:
     page: result.page ?? query.page ?? 1,
     pageSize: result.pageSize ?? query.pageSize ?? 20
   };
+}
+
+export async function fetchAdminCourseStudentStatisticsDetail(courseId: number, studentId: number) {
+  return requestJson<AdminCourseStudentContentStatistics[]>(
+    `/admin/courses/${courseId}/student-statistics/${studentId}/detail`,
+    { fallbackLabel: '课程学员成绩详情' }
+  );
 }
 
 export async function exportAdminCourseStudentStatistics(courseId: number, query: AdminCourseStudentStatisticsQuery = {}) {

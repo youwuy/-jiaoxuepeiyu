@@ -5,6 +5,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import java.util.Collections;
@@ -35,6 +36,10 @@ public interface AdminCourseRepository {
     List<AdminCourseStudentStatistics> findStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query);
 
     long countStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query);
+
+    default List<AdminCourseStudentContentStatistics> findStudentContentStatistics(Long courseId, Long studentId) {
+        return Collections.emptyList();
+    }
 
     void appendCourseLog(Long courseId, Long operatorId, String action, String content);
 

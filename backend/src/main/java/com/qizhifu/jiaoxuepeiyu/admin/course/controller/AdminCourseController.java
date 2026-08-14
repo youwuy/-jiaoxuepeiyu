@@ -7,6 +7,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.common.api.ApiResponse;
@@ -105,6 +106,14 @@ public class AdminCourseController {
             @PathVariable Long courseId,
             @ModelAttribute AdminCourseStudentStatisticsQuery query) {
         return ApiResponse.ok(service.listStudentStatistics(courseId, query));
+    }
+
+    @GetMapping("/{courseId}/student-statistics/{studentId}/detail")
+    @Operation(summary = "Get course student score detail", description = "Returns the real chapter, courseware completion, assignment completion, and assignment score rows for one student.")
+    public ApiResponse<List<AdminCourseStudentContentStatistics>> getStudentStatisticsDetail(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId) {
+        return ApiResponse.ok(service.getStudentContentStatistics(courseId, studentId));
     }
 
     @GetMapping("/{courseId}/student-statistics/export/file")

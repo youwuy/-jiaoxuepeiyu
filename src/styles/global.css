@@ -3766,9 +3766,14 @@ a {
 
 .admin-course-stats-detail-chapter-row,
 .admin-course-stats-detail-section-row {
+  width: 100%;
+  border: 0;
   display: flex;
   align-items: center;
   gap: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
   color: #334155;
   font-size: 14px;
   font-weight: 900;
@@ -3793,6 +3798,10 @@ a {
   border-radius: 8px;
   padding: 0 20px;
   background: #ffffff;
+}
+
+.admin-course-stats-detail-item-row.root-item {
+  padding-left: 48px;
 }
 
 .admin-course-stats-detail-item-row {

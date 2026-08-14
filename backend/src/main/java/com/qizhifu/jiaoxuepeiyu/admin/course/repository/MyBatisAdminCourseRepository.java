@@ -9,6 +9,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
@@ -102,6 +103,11 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
     @Override
     public long countStudentStatistics(Long courseId, AdminCourseStudentStatisticsQuery query) {
         return mapper.countStudentStatistics(courseId, likeStudentStatisticsQuery(query));
+    }
+
+    @Override
+    public List<AdminCourseStudentContentStatistics> findStudentContentStatistics(Long courseId, Long studentId) {
+        return mapper.findStudentContentStatistics(courseId, studentId);
     }
 
     @Override

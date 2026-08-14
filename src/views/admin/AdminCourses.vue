@@ -87,6 +87,10 @@
                       <el-button class="admin-op-button primary" :disabled="!can('update')" @click="handleReview(course)">批改作业</el-button>
                       <el-button class="admin-op-button primary" :disabled="!can('list')" @click="openStatistics(course)">成绩统计</el-button>
                       <el-button class="admin-op-button gray" :disabled="!can('create')" @click="copyCourse(course)">复制</el-button>
+                      <el-button class="admin-op-button light" :disabled="!can('update')" @click="handleEditCourse(course)">编辑</el-button>
+                      <el-button class="admin-op-button danger" :disabled="!can('delete')" :loading="busyId === course.id" @click="deleteCourse(course)">
+                        删除
+                      </el-button>
                       <el-dropdown trigger="click">
                         <el-button class="admin-op-button more">
                           更多
@@ -380,7 +384,22 @@ function handleCreateCourse() {
   router.push('/admin/courses/new');
 }
 
-function handleEditCourse(course: AdminCourseView) {
+async function handleEditCourse(course: AdminCourseView) {
+  if (course.statusTone === 'published') {
+    try {
+      await ElMessageBox.confirm(
+        `确定要编辑「${course.title}」吗？若已存在学习数据则会自动删除，请谨慎操作`,
+        '编辑课程',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      );
+    } catch {
+      return;
+    }
+  }
   router.push(`/admin/courses/${course.id}/edit`);
 }
 
@@ -444,8 +463,8 @@ async function cancelPublish(course: AdminCourseView) {
 
 async function deleteCourse(course: AdminCourseView) {
   try {
-    await ElMessageBox.confirm(`确认删除课程「${course.title}」？`, '删除课程', {
-      confirmButtonText: '删除',
+    await ElMessageBox.confirm(`确定要删除「${course.title}」吗？删除后课程及学习数据将无法恢复，请谨慎操作`, '删除课程', {
+      confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     });

@@ -7,6 +7,7 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseContentCommand;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseLog;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStatistics;
+import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentContentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.course.model.AdminCourseStudentStatisticsQuery;
 import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
@@ -142,6 +143,14 @@ public class AdminCourseService {
         normalized.setPage(1);
         normalized.setPageSize(MAX_PAGE_SIZE);
         return repository.findStudentStatistics(courseId, normalized);
+    }
+
+    public List<AdminCourseStudentContentStatistics> getStudentContentStatistics(Long courseId, Long studentId) {
+        getCourse(courseId);
+        if (studentId == null) {
+            throw new BusinessException(400, "Student is required");
+        }
+        return repository.findStudentContentStatistics(courseId, studentId);
     }
 
     private AdminCourseCommand normalizedCourse(AdminCourseCommand command) {
