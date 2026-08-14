@@ -189,13 +189,13 @@ public class AdminTrainingController {
     }
 
     @GetMapping("/{trainingId}/reviews")
-    @Operation(summary = "List training review rows", description = "Lists every participant with latest attempt and review state.")
+    @Operation(summary = "List training review rows", description = "Lists every participant with latest attempt and review state after the training has ended.")
     public ApiResponse<List<Map<String, Object>>> listReviews(@PathVariable Long trainingId) {
         return ApiResponse.ok(service.listReviewRows(trainingId));
     }
 
     @GetMapping("/{trainingId}/reviews/{studentId}/{topicId}/attempts")
-    @Operation(summary = "List review attempts", description = "Lists one student's submissions for a training topic in reverse chronological order.")
+    @Operation(summary = "List review attempts", description = "Lists one student's submissions for an ended training topic in reverse chronological order.")
     public ApiResponse<List<Map<String, Object>>> listReviewAttempts(@PathVariable Long trainingId,
                                                                      @PathVariable Long studentId,
                                                                      @PathVariable Long topicId) {
@@ -203,7 +203,7 @@ public class AdminTrainingController {
     }
 
     @PostMapping("/{trainingId}/attempts/{attemptId}/review")
-    @Operation(summary = "Review training attempt", description = "Stores a manual score and optional teacher comment without overwriting the UE system score.")
+    @Operation(summary = "Review training attempt", description = "Stores or updates a manual score and optional teacher comment after training ends without overwriting the UE system score.")
     public ApiResponse<Void> reviewAttempt(@PathVariable Long trainingId,
                                            @PathVariable Long attemptId,
                                            @RequestBody ReviewAttemptRequest body,

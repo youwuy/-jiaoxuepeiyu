@@ -125,7 +125,7 @@
                     @click="openReview(item)"
                   >
                     <el-icon><View /></el-icon>
-                    查看批阅
+                    修改批阅
                   </el-button>
                   <el-button v-else class="admin-course-reviews-action edit" @click="openReview(item)">
                     <el-icon><EditPen /></el-icon>
@@ -170,6 +170,7 @@
             <span>学号<strong>{{ reviewTarget.studentNo }}</strong></span>
             <span>所属班级<strong>{{ reviewTarget.className }}</strong></span>
             <span>实训任务<strong>{{ reviewTarget.taskName }}</strong></span>
+            <span>个人训练时长<strong>{{ formatDuration(selectedAttempt?.durationSeconds) }}</strong></span>
           </div>
           <div class="review-attempt-list">
             <button v-for="attempt in attempts" :key="attempt.attemptId" :class="{ active: selectedAttempt?.attemptId === attempt.attemptId }" @click="selectAttempt(attempt)">
@@ -184,7 +185,7 @@
                 <thead><tr><th>序号</th><th>步骤名称</th><th>正确结果</th><th>实际操作</th><th>得分</th><th>用时(秒)</th></tr></thead>
                 <tbody><tr v-for="(step, index) in attemptDetail.steps || []" :key="step.stepId" @click="seekVideo(step.videoStartSecond)">
                   <td>{{ index + 1 }}</td><td class="step-link">{{ step.stepName }}</td><td>{{ step.standardOperation || '-' }}</td>
-                  <td :class="{ error: step.actualOperation !== step.standardOperation }">{{ step.actualOperation || '-' }}</td>
+                  <td :class="{ error: Number(step.score || 0) < Number(step.maxScore || 0) }">{{ step.actualOperation || '-' }}</td>
                   <td>{{ step.score ?? 0 }}</td><td>{{ step.durationSeconds ?? 0 }}</td>
                 </tr></tbody>
               </table>
@@ -434,13 +435,19 @@ function exportRows() {
 
 async function loadTrainingTitle() {
   if (!trainingId.value) {
-    return;
+    return false;
   }
   try {
     const detail = await fetchAdminTraining(trainingId.value);
     trainingTitle.value = detail.trainingName || trainingTitle.value;
+    if (!detail.openEndTime || Date.now() < new Date(detail.openEndTime).getTime()) {
+      ElMessage.warning('实训结束后才可进入阅卷');
+      await router.replace('/admin/training');
+      return false;
+    }
+    return true;
   } catch {
-    return;
+    return true;
   }
 }
 
@@ -489,9 +496,17 @@ function formatDateTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
 }
 
-onMounted(() => {
-  void loadTrainingTitle();
-  void loadReviews();
+function formatDuration(value?: number) {
+  const seconds = Math.max(0, Number(value || 0));
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+  return `${minutes} 分 ${restSeconds} 秒`;
+}
+
+onMounted(async () => {
+  if (await loadTrainingTitle()) {
+    await loadReviews();
+  }
 });
 </script>
 

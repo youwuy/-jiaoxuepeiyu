@@ -92,8 +92,8 @@
                     <template v-else-if="course.exam">
                       <el-button v-if="course.mode === '协同实训' && !course.examStarted" class="primary-action" link @click="openExamStart(course)">开始考试</el-button>
                       <el-button v-else-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
-                      <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
-                      <el-button v-if="course.mode === '单人实训' || course.examStarted" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
                       <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
                       <el-button link @click="withdrawCourse(course)">取消发布</el-button>
@@ -101,8 +101,8 @@
                     </template>
                     <template v-else>
                       <el-button v-if="isTrainingOpen(course)" class="primary-action" link @click="openMonitor(course)">监考</el-button>
-                      <el-button class="primary-action" link @click="openMarking(course)">阅卷</el-button>
-                      <el-button class="primary-action" link @click="openStats(course)">成绩统计</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openMarking(course)">阅卷</el-button>
+                      <el-button v-if="isTrainingEnded(course)" class="primary-action" link @click="openStats(course)">成绩统计</el-button>
                       <el-button link type="primary" @click="openEdit(course)">编辑</el-button>
                       <el-button link type="danger" @click="confirmDelete(course)">删除</el-button>
                       <el-button link @click="withdrawCourse(course)">取消发布</el-button>
@@ -880,6 +880,10 @@ function openExamStart(row: CourseRow) {
 }
 
 function openMarking(row: CourseRow) {
+  if (!isTrainingEnded(row)) {
+    ElMessage.warning('实训结束后才可进入阅卷');
+    return;
+  }
   router.push({
     name: 'admin-training-reviews',
     params: { id: row.id },
@@ -1038,6 +1042,10 @@ function isTrainingOpen(course: CourseRow) {
   if (!course.openStartTime || !course.openEndTime) return false;
   const now = Date.now();
   return now >= new Date(course.openStartTime).getTime() && now <= new Date(course.openEndTime).getTime();
+}
+
+function isTrainingEnded(course: CourseRow) {
+  return Boolean(course.openEndTime && Date.now() >= new Date(course.openEndTime).getTime());
 }
 
 function buildTrainingCommand(publishStatus: string) {

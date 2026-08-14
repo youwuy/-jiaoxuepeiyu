@@ -13,7 +13,7 @@ public interface StudentArchiveMapper {
 
     @Select("<script>"
             + "SELECT ta.id AS archive_id, ta.training_name, ta.training_mode, ta.role_name, "
-            + "ta.submitted_at, ta.submit_type, ta.duration_seconds, ta.personal_score, ta.team_score "
+            + "ta.submitted_at, ta.submit_type, ta.duration_seconds, COALESCE(ta.manual_score, ta.personal_score) AS personal_score, ta.team_score "
             + "FROM training_attempt ta "
             + "WHERE ta.student_id = #{studentId} "
             + "<if test='mode != null'>AND ta.training_mode = #{mode}</if> "
@@ -27,7 +27,8 @@ public interface StudentArchiveMapper {
     @Select("SELECT ta.id AS archive_id, ta.training_name, ta.training_mode, ta.role_name, "
             + "u.real_name AS student_name, u.username AS student_no, c.class_name, "
             + "ta.submitted_at, ta.submit_type, ta.duration_seconds, "
-            + "ta.personal_score, ta.team_score, ta.recording_url "
+            + "COALESCE(ta.manual_score, ta.personal_score) AS personal_score, ta.team_score, ta.recording_url, "
+            + "ta.review_comment, ta.reviewed_at "
             + "FROM training_attempt ta "
             + "JOIN sys_user u ON u.id = ta.student_id "
             + "LEFT JOIN edu_class c ON c.id = u.class_id "

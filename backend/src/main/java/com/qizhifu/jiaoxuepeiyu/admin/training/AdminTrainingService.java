@@ -174,12 +174,12 @@ public class AdminTrainingService {
     }
 
     public List<Map<String, Object>> listReviewRows(Long trainingId) {
-        getTraining(trainingId);
+        assertTrainingEnded(getTraining(trainingId));
         return repository.findReviewRows(trainingId);
     }
 
     public List<Map<String, Object>> listReviewAttempts(Long trainingId, Long studentId, Long topicId) {
-        getTraining(trainingId);
+        assertTrainingEnded(getTraining(trainingId));
         if (studentId == null || topicId == null) {
             throw new BusinessException(400, "Student and training topic are required");
         }
@@ -189,7 +189,7 @@ public class AdminTrainingService {
     @Transactional
     public void reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
         requireOperator(reviewerId);
-        getTraining(trainingId);
+        assertTrainingEnded(getTraining(trainingId));
         Double maxScore = repository.findAttemptMaxScore(trainingId, attemptId);
         if (maxScore == null) {
             throw new BusinessException(404, "Training attempt not found");
@@ -203,6 +203,13 @@ public class AdminTrainingService {
         }
         if (!repository.reviewAttempt(trainingId, attemptId, manualScore, normalizedComment, reviewerId)) {
             throw new BusinessException(404, "Training attempt not found");
+        }
+        repository.appendTrainingLog(trainingId, reviewerId, "REVIEW", "Review training attempt " + attemptId);
+    }
+
+    private void assertTrainingEnded(AdminTraining training) {
+        if (training.getOpenEndTime() == null || LocalDateTime.now(clock).isBefore(training.getOpenEndTime())) {
+            throw new BusinessException(400, "Training review is available only after the training has ended");
         }
     }
 

@@ -13,7 +13,10 @@ import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingStatistics;
 import com.qizhifu.jiaoxuepeiyu.admin.training.model.AdminTrainingWeakStep;
 import com.qizhifu.jiaoxuepeiyu.admin.training.port.AdminTrainingRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +24,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AdminTrainingServiceTests {
+
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            Instant.parse("2026-09-15T04:00:00Z"), ZoneId.of("Asia/Shanghai"));
 
     @Test
     void createsDraftTrainingWithNormalizedRoles() {
@@ -193,6 +199,33 @@ class AdminTrainingServiceTests {
     }
 
     @Test
+    void rejectsReviewBeforeTrainingEnds() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        repository.training.setOpenEndTime(LocalDateTime.of(2026, 9, 15, 12, 1));
+        AdminTrainingService service = new AdminTrainingService(repository, FIXED_CLOCK);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.listReviewRows(71L));
+
+        assertEquals("Training review is available only after the training has ended", exception.getMessage());
+    }
+
+    @Test
+    void permitsRepeatedReviewUpdatesAfterTrainingEnds() {
+        FakeTrainings repository = new FakeTrainings();
+        repository.training = existingTraining(71L);
+        repository.training.setOpenEndTime(LocalDateTime.of(2026, 9, 15, 11, 59));
+        repository.reviewUpdated = true;
+        AdminTrainingService service = new AdminTrainingService(repository, FIXED_CLOCK);
+
+        service.reviewAttempt(71L, 91L, 88D, "Good operation", 9L);
+        service.reviewAttempt(71L, 91L, 92D, "Improved review", 9L);
+
+        assertEquals(2, repository.reviewUpdateCount);
+        assertEquals("REVIEW", repository.lastLogAction);
+    }
+
+    @Test
     void exportsTrainingsWithFilterAndMaximumPageSize() {
         FakeTrainings repository = new FakeTrainings();
         repository.trainings = Arrays.asList(existingTraining(71L));
@@ -272,6 +305,8 @@ class AdminTrainingServiceTests {
         private AdminTrainingQuery lastQuery;
         private int findTrainingsCalls;
         private int countTrainingsCalls;
+        private boolean reviewUpdated;
+        private int reviewUpdateCount;
 
         @Override
         public List<AdminTraining> findTrainings(AdminTrainingQuery query) {
@@ -375,7 +410,8 @@ class AdminTrainingServiceTests {
 
         @Override
         public boolean reviewAttempt(Long trainingId, Long attemptId, Double manualScore, String comment, Long reviewerId) {
-            return false;
+            reviewUpdateCount++;
+            return reviewUpdated;
         }
 
         @Override

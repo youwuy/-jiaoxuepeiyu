@@ -36,7 +36,7 @@ public class StudentArchiveController {
     }
 
     @GetMapping("/{archiveId}")
-    @Operation(summary = "Get training archive detail", description = "Returns one training archive detail for the current student.")
+    @Operation(summary = "Get training archive detail", description = "Returns one training archive detail with the final reviewed score and teacher comment for the current student.")
     public ApiResponse<StudentTrainingArchiveDetail> get(@PathVariable Long archiveId, HttpServletRequest request) {
         return ApiResponse.ok(service.getArchiveDetail(StudentContext.requireStudentId(request), archiveId));
     }

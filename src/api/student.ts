@@ -229,6 +229,8 @@ interface BackendArchiveDetail extends BackendArchive {
   studentNo?: string;
   className?: string;
   recordingUrl?: string;
+  reviewComment?: string;
+  reviewedAt?: string;
   steps?: BackendArchiveStep[];
 }
 
@@ -523,6 +525,8 @@ function mapArchiveDetail(detail: BackendArchiveDetail): TrainingArchiveDetail {
     studentNo: detail.studentNo,
     className: detail.className,
     recordingUrl: detail.recordingUrl,
+    reviewComment: detail.reviewComment,
+    reviewedAt: detail.reviewedAt,
     steps: (detail.steps ?? []).map(mapArchiveStep)
   };
 }

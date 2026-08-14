@@ -4842,7 +4842,7 @@
           "Student Archives"
         ],
         "summary": "Get training archive detail",
-        "description": "Returns one training archive detail for the current student.",
+        "description": "Returns one training archive detail with the final reviewed score and teacher comment for the current student.",
         "operationId": "get_3",
         "parameters": [
           {
@@ -4972,6 +4972,186 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAdminTrainingMonitorSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/reviews": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "List training review rows",
+        "description": "Lists every participant with latest attempt and review state after the training has ended.",
+        "operationId": "listReviews",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/reviews/{studentId}/{topicId}/attempts": {
+      "get": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "List review attempts",
+        "description": "Lists one student's submissions for an ended training topic in reverse chronological order.",
+        "operationId": "listReviewAttempts",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "topicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/trainings/{trainingId}/attempts/{attemptId}/review": {
+      "post": {
+        "tags": [
+          "Admin Trainings"
+        ],
+        "summary": "Review training attempt",
+        "description": "Stores or updates a manual score and optional teacher comment after training ends without overwriting the UE system score.",
+        "operationId": "reviewAttempt",
+        "parameters": [
+          {
+            "name": "trainingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "manualScore"
+                ],
+                "properties": {
+                  "manualScore": {
+                    "type": "number"
+                  },
+                  "comment": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
                 }
               }
             }
@@ -8430,6 +8610,13 @@
           },
           "recordingUrl": {
             "type": "string"
+          },
+          "reviewComment": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
           },
           "steps": {
             "type": "array",

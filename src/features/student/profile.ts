@@ -55,6 +55,8 @@ export interface TrainingArchiveDetail extends TrainingArchive {
   studentNo?: string;
   className?: string;
   recordingUrl?: string;
+  reviewComment?: string;
+  reviewedAt?: string;
   steps: TrainingArchiveStep[];
 }
 

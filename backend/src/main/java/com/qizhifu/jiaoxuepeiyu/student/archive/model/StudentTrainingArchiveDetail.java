@@ -20,6 +20,8 @@ public class StudentTrainingArchiveDetail {
     private BigDecimal personalScore;
     private BigDecimal teamScore;
     private String recordingUrl;
+    private String reviewComment;
+    private LocalDateTime reviewedAt;
     private List<StudentTrainingArchiveStep> steps = new ArrayList<StudentTrainingArchiveStep>();
 
     public Long getArchiveId() {
@@ -124,6 +126,22 @@ public class StudentTrainingArchiveDetail {
 
     public void setRecordingUrl(String recordingUrl) {
         this.recordingUrl = recordingUrl;
+    }
+
+    public String getReviewComment() {
+        return reviewComment;
+    }
+
+    public void setReviewComment(String reviewComment) {
+        this.reviewComment = reviewComment;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 
     public List<StudentTrainingArchiveStep> getSteps() {

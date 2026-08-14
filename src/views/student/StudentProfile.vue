@@ -178,29 +178,24 @@
                       <td>{{ step.index }}</td>
                       <td><a>{{ step.name }}</a></td>
                       <td class="expected">{{ step.expected }}</td>
-                      <td :class="step.score < 10 ? 'wrong' : 'actual'">{{ step.actual }}</td>
-                      <td :class="step.score < 10 ? 'score-low' : 'score-high'">{{ step.score }}</td>
+                      <td :class="step.error ? 'wrong' : 'actual'">{{ step.actual }}</td>
+                      <td :class="step.error ? 'score-low' : 'score-high'">{{ step.score }}</td>
                       <td>{{ step.duration }}</td>
                     </tr>
                   </tbody>
                 </table>
                 <el-empty v-if="visibleArchiveSteps.length === 0" description="暂无步骤详情" />
-                <footer>步骤总得分: <strong>{{ archiveDetailScore }}</strong> / 100 分 <span></span> 总用时: <strong>{{ archiveDetailDurationSeconds }} 秒</strong> <em>（{{ archiveDetailDurationText }}）</em></footer>
+                <footer>步骤总得分: <strong>{{ archiveDetailScore }}</strong> / {{ archiveDetailMaxScore }} 分 <span></span> 总用时: <strong>{{ archiveDetailDurationSeconds }} 秒</strong> <em>（{{ archiveDetailDurationText }}）</em></footer>
+                <div v-if="selectedArchiveDetail.reviewComment" class="archive-review-comment">
+                  <strong>教师评语</strong>
+                  <p>{{ selectedArchiveDetail.reviewComment }}</p>
+                </div>
               </section>
 
               <aside class="archive-video-card">
                 <h2><el-icon><VideoPlay /></el-icon>实训操作视频</h2>
-                <div class="archive-video-box"></div>
-                <div class="archive-video-progress">
-                  <span>00:00</span>
-                  <b></b>
-                  <span>{{ archiveDetailDurationText }}</span>
-                </div>
-                <div class="archive-video-controls">
-                  <button type="button"><el-icon><VideoPause /></el-icon></button>
-                  <el-icon><Headset /></el-icon>
-                  <el-icon><FullScreen /></el-icon>
-                </div>
+                <video v-if="selectedArchiveDetail.recordingUrl" class="archive-video-box" :src="selectedArchiveDetail.recordingUrl" controls />
+                <el-empty v-else description="本次实训未上传录屏" />
               </aside>
             </div>
           </section>
@@ -289,8 +284,6 @@ import {
   Clock,
   Document,
   EditPen,
-  FullScreen,
-  Headset,
   Histogram,
   InfoFilled,
   Iphone,
@@ -302,7 +295,6 @@ import {
   Search,
   Tickets,
   User,
-  VideoPause,
   VideoPlay
 } from '@element-plus/icons-vue';
 import {
@@ -362,6 +354,7 @@ interface ArchiveStep {
   expected: string;
   actual: string;
   score: number;
+  error: boolean;
   duration: string;
 }
 
@@ -504,6 +497,7 @@ const visibleArchiveSteps = computed<ArchiveStep[]>(() => {
     expected: step.expected,
     actual: step.actual,
     score: step.score,
+    error: step.score < step.maxScore,
     duration: String(step.durationSeconds)
   }));
 });
@@ -516,6 +510,7 @@ const archiveDetailStudentName = computed(() => selectedArchiveDetail.value?.stu
 const archiveDetailStudentNo = computed(() => selectedArchiveDetail.value?.studentNo || student.value.studentId || '-');
 const archiveDetailClassName = computed(() => selectedArchiveDetail.value?.className || student.value.className || '-');
 const archiveDetailScore = computed(() => selectedArchiveDetail.value?.score ?? visibleArchiveSteps.value.reduce((sum, step) => sum + step.score, 0));
+const archiveDetailMaxScore = computed(() => selectedArchiveDetail.value?.steps.reduce((sum, step) => sum + step.maxScore, 0) || 0);
 const archiveDetailDurationSeconds = computed(() =>
   Math.round(visibleArchiveSteps.value.reduce((sum, step) => sum + Number(step.duration || 0), 0))
 );
