@@ -286,17 +286,13 @@ watch(
       form.parentId = null;
     } else if (nextType === 'PAGE') {
       const parent = form.parentId ? findAdminPermissionById(permissionTree.value, form.parentId) : null;
-      if (!parent || parent.permissionType === 'BUTTON') {
-        const defaultParent = parentOptions.value.find((item) => item.permissionType === 'MENU');
-        form.parentId = defaultParent?.permissionId ?? null;
+      if (!parent || parent.permissionType !== 'MENU') {
+        form.parentId = null;
       }
     } else if (nextType === 'BUTTON') {
-      form.routePath = '';
       const parent = form.parentId ? findAdminPermissionById(permissionTree.value, form.parentId) : null;
-      if (!parent || parent.permissionType === 'MENU') {
-        const defaultParent =
-          parentOptions.value.find((item) => item.permissionType === 'PAGE') ?? parentOptions.value.find((item) => item.permissionType === 'MENU');
-        form.parentId = defaultParent?.permissionId ?? null;
+      if (!parent || parent.permissionType !== 'PAGE') {
+        form.parentId = null;
       }
     }
     syncPermissionCode();
