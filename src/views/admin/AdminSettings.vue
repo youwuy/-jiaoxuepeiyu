@@ -294,17 +294,6 @@
 
         <section v-else-if="addKind === 'class'" class="admin-settings-add-form">
           <label>
-            <span>所属专业 <b>*</b></span>
-            <el-select v-model="addClassMajorId" placeholder="请选择所属专业" filterable>
-              <el-option
-                v-for="major in enabledMajors"
-                :key="major.majorId"
-                :label="major.majorName"
-                :value="major.majorId"
-              />
-            </el-select>
-          </label>
-          <label>
             <span>班级名称 <b>*</b></span>
             <el-input v-model="addClassName" maxlength="20" placeholder="请输入班级名称" />
             <small>最多输入20个字</small>
@@ -498,7 +487,6 @@ const addYearValue = ref('');
 const selectedSemesterId = ref<number | null>(null);
 const addMajorName = ref('');
 const addClassName = ref('');
-const addClassMajorId = ref<number>();
 const editingClassroomId = ref<number | null>(null);
 
 const academicYears = ref<AdminAcademicYear[]>([]);
@@ -605,8 +593,6 @@ const semesterRows = computed<SemesterDisplayRow[]>(() => {
 });
 
 const displayMajors = computed(() => majors.value);
-
-const enabledMajors = computed(() => majors.value.filter((item) => item.enabled));
 
 const displayClasses = computed(() => classes.value);
 
@@ -808,7 +794,6 @@ function openAdd(kind: AddKind) {
   if (kind === 'major') addMajorName.value = '';
   if (kind === 'class') {
     addClassName.value = '';
-    addClassMajorId.value = undefined;
   }
   if (kind === 'room') {
     roomForm.roomName = '';
@@ -1027,8 +1012,7 @@ async function saveAdd() {
     }
     if (addKind.value === 'class') {
       if (!addClassName.value.trim()) return ElMessage.warning('请输入班级名称');
-      if (!addClassMajorId.value) return ElMessage.warning('请选择所属专业');
-      await createAdminClass({ majorId: addClassMajorId.value, className: addClassName.value.trim() });
+      await createAdminClass({ className: addClassName.value.trim() });
     }
     if (addKind.value === 'room') {
       if (!roomForm.roomName.trim()) return ElMessage.warning('请输入教室名称');
