@@ -55,7 +55,7 @@ class AuthServiceTests {
     }
 
     @Test
-    void invalidatesExistingSessionAndCreatesTwentyFourHourSession() {
+    void createsTwentyFourHourSessionWhenNoSessionIsActive() {
         FakeUsers users = new FakeUsers();
         users.account = account(1L, "teacher", 1);
         FakeSessions sessions = new FakeSessions();
@@ -67,9 +67,24 @@ class AuthServiceTests {
 
         assertEquals("token-1", result.getToken());
         assertEquals(1L, result.getUser().getId());
-        assertEquals(1L, sessions.invalidatedUserId.longValue());
         assertEquals("token-1", sessions.createdToken);
         assertEquals(Instant.parse("2026-07-31T08:00:00Z"), sessions.expiresAt);
+    }
+
+    @Test
+    void rejectsLoginWhenAnotherActiveSessionExists() {
+        FakeUsers users = new FakeUsers();
+        users.account = account(1L, "teacher", 1);
+        FakeSessions sessions = new FakeSessions();
+        sessions.activeSession = true;
+
+        AuthService service = service(users, sessions, new PlainHasher(), new FixedTokenGenerator());
+
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> service.login(
+                new LoginCommand(Portal.ADMIN, LoginIdentityType.USERNAME, "teacher001", "secret123", "127.0.0.1")));
+
+        assertEquals("Account already has an active session", exception.getMessage());
+        assertEquals(null, sessions.createdToken);
     }
 
     @Test
@@ -212,11 +227,17 @@ class AuthServiceTests {
     }
 
     private static class FakeSessions implements SessionRepository {
+        private boolean activeSession;
         private Long invalidatedUserId;
         private String invalidatedToken;
         private String createdToken;
         private Instant expiresAt;
         private AuthenticatedUser activeUser;
+
+        @Override
+        public boolean hasActiveSession(Long userId, Instant now) {
+            return activeSession;
+        }
 
         @Override
         public void invalidateActiveSessions(Long userId) {

@@ -62,9 +62,13 @@ public class AuthService {
             throw new AuthenticationException("Invalid account or password");
         }
 
+        Instant now = Instant.now(clock);
+        if (sessions.hasActiveSession(user.getId(), now)) {
+            throw new AuthenticationException("Account already has an active session");
+        }
+
         String token = tokenGenerator.generate(user.getId());
-        Instant expiresAt = Instant.now(clock).plus(24, ChronoUnit.HOURS);
-        sessions.invalidateActiveSessions(user.getId());
+        Instant expiresAt = now.plus(24, ChronoUnit.HOURS);
         sessions.createSession(user.getId(), token, command.getPortal(), command.getLoginIp(), expiresAt);
 
         return new LoginResult(token, expiresAt, user.toAuthenticatedUser());

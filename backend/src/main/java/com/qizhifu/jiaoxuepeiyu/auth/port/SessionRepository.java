@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface SessionRepository {
 
+    boolean hasActiveSession(Long userId, Instant now);
+
     void invalidateActiveSessions(Long userId);
 
     void createSession(Long userId, String token, Portal portal, String loginIp, Instant expiresAt);

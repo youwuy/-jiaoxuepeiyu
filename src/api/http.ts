@@ -233,6 +233,7 @@ async function extractErrorMessage(response: Response): Promise<string> {
 
 const apiMessageMap: Record<string, string> = {
   'Account is disabled': '账号已被禁用，请联系管理员',
+  'Account already has an active session': '当前账号已登录，不能重复登录',
   'Account does not belong to admin portal': '当前账号不是管理端账号',
   'Account does not belong to this portal': '当前账号不属于该登录入口',
   'Account number already exists': '账号已存在，请更换账号',

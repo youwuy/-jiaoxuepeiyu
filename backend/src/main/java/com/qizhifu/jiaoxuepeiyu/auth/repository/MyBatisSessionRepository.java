@@ -18,6 +18,11 @@ public class MyBatisSessionRepository implements SessionRepository {
     }
 
     @Override
+    public boolean hasActiveSession(Long userId, Instant now) {
+        return mapper.countActiveSessions(userId, now) > 0;
+    }
+
+    @Override
     public void invalidateActiveSessions(Long userId) {
         mapper.invalidateActiveSessions(userId);
     }

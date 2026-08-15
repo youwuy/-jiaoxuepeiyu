@@ -11,6 +11,10 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface SessionMapper {
 
+    @Select("SELECT COUNT(*) FROM sys_user_session "
+            + "WHERE user_id = #{userId} AND invalidated_at IS NULL AND expires_at > #{now}")
+    int countActiveSessions(@Param("userId") Long userId, @Param("now") Instant now);
+
     @Update("UPDATE sys_user_session SET invalidated_at = NOW() "
             + "WHERE user_id = #{userId} AND invalidated_at IS NULL AND expires_at > NOW()")
     void invalidateActiveSessions(@Param("userId") Long userId);
