@@ -51,6 +51,35 @@ class AdminCourseServiceTests {
     }
 
     @Test
+    void acceptsCourseWithoutMajorOrCoverAndAllowsPositiveScoreAboveOneHundred() {
+        FakeCourses repository = new FakeCourses();
+        AdminCourseService service = new AdminCourseService(repository);
+        AdminCourseCommand command = courseCommand();
+        command.setMajorId(null);
+        command.setCoverUrl(null);
+        command.setCoursewareScoreCap(150);
+
+        service.createCourse(command, 9L);
+
+        assertNull(repository.savedCommand.getMajorId());
+        assertNull(repository.savedCommand.getCoverUrl());
+        assertEquals(150, repository.savedCommand.getCoursewareScoreCap().intValue());
+    }
+
+    @Test
+    void rejectsCourseWithoutCoursewareScoreCap() {
+        AdminCourseService service = new AdminCourseService(new FakeCourses());
+        AdminCourseCommand command = courseCommand();
+        command.setCoursewareScoreCap(null);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            service.createCourse(command, 9L);
+        });
+
+        assertEquals("Courseware score cap must be a positive integer", exception.getMessage());
+    }
+
+    @Test
     void rejectsInvalidOpenTimeRange() {
         AdminCourseService service = new AdminCourseService(new FakeCourses());
         AdminCourseCommand command = courseCommand();

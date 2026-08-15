@@ -19,6 +19,7 @@ public class AdminTraining {
     private String paperMode;
     private Long paperId;
     private String paperName;
+    private Integer totalScore;
     private String publishStatus;
     private LocalDateTime openStartTime;
     private LocalDateTime openEndTime;
@@ -156,6 +157,14 @@ public class AdminTraining {
 
     public void setPaperName(String paperName) {
         this.paperName = paperName;
+    }
+
+    public Integer getTotalScore() {
+        return totalScore;
+    }
+
+    public void setTotalScore(Integer totalScore) {
+        this.totalScore = totalScore;
     }
 
     public String getPublishStatus() {

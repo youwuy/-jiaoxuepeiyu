@@ -27,7 +27,7 @@
           <label class="admin-course-stats-field">
             <span>所属班级</span>
             <el-select v-model="filters.className" placeholder="请选择所属班级" clearable>
-              <el-option v-for="item in classOptions" :key="item" :label="item" :value="item" />
+              <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.className" />
             </el-select>
           </label>
           <div class="admin-course-stats-buttons">
@@ -43,40 +43,13 @@
         </div>
       </section>
 
-      <section class="admin-course-stats-summary">
-        <article>
-          <span>课程人数</span>
-          <strong>{{ courseStats.studentCount }}</strong>
-        </article>
-        <article>
-          <span>已完成</span>
-          <strong>{{ courseStats.completedCount }}</strong>
-        </article>
-        <article>
-          <span>学习中</span>
-          <strong>{{ courseStats.studyingCount }}</strong>
-        </article>
-        <article>
-          <span>未开始</span>
-          <strong>{{ courseStats.notStartedCount }}</strong>
-        </article>
-        <article>
-          <span>待批改</span>
-          <strong>{{ courseStats.pendingReviewCount }}</strong>
-        </article>
-        <article>
-          <span>平均分</span>
-          <strong>{{ formatScore(courseStats.averageScore) }}</strong>
-        </article>
-      </section>
-
       <section class="admin-course-stats-table-card">
         <header class="admin-course-stats-table-head">
           <div>
             <el-icon><Tickets /></el-icon>
             <strong>成绩列表</strong>
           </div>
-          <el-button class="admin-course-stats-export" :loading="exporting" @click="exportData">
+          <el-button class="admin-course-stats-export" :disabled="!can('export')" :loading="exporting" @click="exportData">
             <el-icon><Download /></el-icon>
             导出数据
           </el-button>
@@ -239,13 +212,13 @@ import AdminShell from '../../components/admin/AdminShell.vue';
 import {
   exportAdminCourseStudentStatistics,
   fetchAdminCourseDetail,
-  fetchAdminCourseStatistics,
   fetchAdminCourseStudentStatisticsDetail,
   fetchAdminCourseStudentStatistics,
-  type AdminCourseStatistics,
   type AdminCourseStudentContentStatistics,
   type AdminCourseStudentStatistics
 } from '../../api/admin-course';
+import { fetchAdminClasses, type AdminClassOption } from '../../api/admin-account';
+import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 interface StudentScoreRow {
   studentId: number;
@@ -289,6 +262,7 @@ const total = ref(0);
 const loading = ref(false);
 const detailLoading = ref(false);
 const exporting = ref(false);
+const { can } = useAdminPermissions('teaching:course');
 const initialStudentNo = String(route.query.studentNo || '').trim();
 const filters = reactive({
   studentName: '',
@@ -296,16 +270,6 @@ const filters = reactive({
   className: ''
 });
 const appliedFilters = ref({ ...filters });
-const courseStats = ref<AdminCourseStatistics>({
-  courseId: courseId.value,
-  studentCount: 0,
-  completedCount: 0,
-  studyingCount: 0,
-  notStartedCount: 0,
-  pendingReviewCount: 0,
-  averageScore: 0
-});
-
 const students = ref<StudentScoreRow[]>([]);
 const detailVisible = ref(false);
 const currentStudent = ref<StudentScoreRow>();
@@ -318,7 +282,7 @@ const detailTree = computed(() => {
   return buildDetailTree(detailRows.value);
 });
 
-const classOptions = computed(() => Array.from(new Set(students.value.map((item) => item.className))));
+const classOptions = ref<AdminClassOption[]>([]);
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 const pageStart = computed(() => (total.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1));
 const pageEnd = computed(() => Math.min(page.value * pageSize.value, total.value));
@@ -384,11 +348,12 @@ async function showDetail(student: StudentScoreRow) {
   }
 }
 
-async function loadCourseStatistics() {
+async function loadClassOptions() {
   try {
-    courseStats.value = await fetchAdminCourseStatistics(courseId.value);
+    classOptions.value = (await fetchAdminClasses()).filter((item) => item.enabled !== false);
   } catch (error) {
-    ElMessage.warning(error instanceof Error ? error.message : '课程统计接口暂不可用');
+    classOptions.value = [];
+    ElMessage.warning(error instanceof Error ? error.message : '班级列表接口暂不可用');
   }
 }
 
@@ -532,7 +497,7 @@ function toggleSection(id: number) {
 
 onMounted(() => {
   void loadCourseDetail();
-  void loadCourseStatistics();
+  void loadClassOptions();
   void loadStudents();
 });
 </script>

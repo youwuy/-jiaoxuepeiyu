@@ -167,13 +167,7 @@ public class AdminCourseService {
         if (command.getAcademicYearId() == null || command.getSemesterId() == null) {
             throw new BusinessException(400, "Course academic year and semester are required");
         }
-        if (command.getMajorId() == null) {
-            throw new BusinessException(400, "Course major is required");
-        }
         String coverUrl = trimToNull(command.getCoverUrl());
-        if (coverUrl == null) {
-            throw new BusinessException(400, "Course cover is required");
-        }
         validateOpenTime(command.getOpenStartTime(), command.getOpenEndTime());
 
         AdminCourseCommand normalized = new AdminCourseCommand();
@@ -393,11 +387,10 @@ public class AdminCourseService {
     }
 
     private Integer normalizedScoreCap(Integer scoreCap) {
-        int value = scoreCap == null ? 100 : scoreCap.intValue();
-        if (value <= 0 || value > 100) {
-            throw new BusinessException(400, "Courseware score cap must be between 1 and 100");
+        if (scoreCap == null || scoreCap.intValue() <= 0) {
+            throw new BusinessException(400, "Courseware score cap must be a positive integer");
         }
-        return Integer.valueOf(value);
+        return scoreCap;
     }
 
     private Integer normalizedPassScore(String completionRule, Integer passScore, Integer totalScore) {

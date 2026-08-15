@@ -34,6 +34,7 @@ export interface AdminTraining {
   paperMode?: string;
   paperId?: number;
   paperName?: string;
+  totalScore?: number;
   publishStatus?: string;
   openStartTime?: string;
   openEndTime?: string;

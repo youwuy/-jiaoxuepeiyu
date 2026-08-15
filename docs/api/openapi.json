@@ -9503,6 +9503,10 @@
           "paperName": {
             "type": "string"
           },
+          "totalScore": {
+            "type": "integer",
+            "format": "int32"
+          },
           "publishStatus": {
             "type": "string"
           },

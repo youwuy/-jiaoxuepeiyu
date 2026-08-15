@@ -583,6 +583,63 @@ a {
   width: 126px;
 }
 
+.admin-course-date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+}
+
+.admin-course-date-range .el-date-editor {
+  width: 150px;
+  height: 40px;
+}
+
+.admin-course-date-range .el-input__wrapper {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #dbe4ef inset;
+}
+
+.admin-course-log-dialog .el-dialog__body {
+  padding-top: 0;
+}
+
+.admin-course-log-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-course-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.admin-course-log-table th,
+.admin-course-log-table td {
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid #edf0f4;
+  color: #475569;
+  text-align: left;
+}
+
+.admin-course-log-table th {
+  background: #f7f8fa;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.admin-course-log-table th:first-child,
+.admin-course-log-table td:first-child {
+  width: 72px;
+  text-align: center;
+}
+
+.admin-course-log-table tr:last-child td {
+  border-bottom: 0;
+}
+
 .admin-course-search .el-input__wrapper,
 .admin-course-select .el-input__wrapper,
 .admin-course-select .el-select__wrapper {
@@ -2002,12 +2059,14 @@ a {
 }
 
 .admin-course-form-field .el-input,
+.admin-course-form-field .el-input-number,
 .admin-course-form-field .el-select,
 .admin-course-form-field .el-date-editor.el-input {
   width: 100%;
 }
 
 .admin-course-form-field .el-input__wrapper,
+.admin-course-form-field .el-input-number .el-input__wrapper,
 .admin-course-form-field .el-select__wrapper {
   min-height: 40px;
   border-radius: 6px;
@@ -2018,6 +2077,43 @@ a {
 .admin-course-form-radio {
   gap: 46px;
   min-height: 42px;
+}
+
+.admin-course-outline-collapse {
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+
+.admin-course-outline-collapse.collapsed {
+  transform: rotate(-90deg);
+}
+
+.admin-course-question-picker-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.admin-course-question-picker-summary small {
+  color: #94a3b8;
+}
+
+.admin-course-question-picker-row.disabled {
+  cursor: not-allowed;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.admin-course-homework-mode-help {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .admin-course-form-radio .el-radio {

@@ -19,12 +19,26 @@
           <el-select v-model="draft.classId" class="admin-course-select" placeholder="授课班级" filterable clearable>
             <el-option v-for="item in classOptions" :key="item.classId" :label="item.className" :value="item.classId" />
           </el-select>
-          <el-select v-model="draft.semesterKey" class="admin-course-select" placeholder="教学时间" filterable clearable>
-            <el-option v-for="item in termOptions" :key="item.key" :label="item.label" :value="item.key" />
-          </el-select>
+          <div class="admin-course-date-range">
+            <el-date-picker
+              v-model="draft.teachingStartDate"
+              type="date"
+              placeholder="教学开始日期"
+              value-format="YYYY-MM-DD"
+              clearable
+            />
+            <span>至</span>
+            <el-date-picker
+              v-model="draft.teachingEndDate"
+              type="date"
+              placeholder="教学结束日期"
+              value-format="YYYY-MM-DD"
+              clearable
+            />
+          </div>
           <el-select v-model="draft.publishStatus" class="admin-course-select" placeholder="课程状态" clearable>
             <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="未发布" value="DRAFT" />
+            <el-option label="未发布" value="NOT_PUBLISHED" />
           </el-select>
           <el-button class="admin-course-query-button" @click="applyFilters">查询</el-button>
           <el-button class="admin-course-reset-button" @click="resetFilters">重置</el-button>
@@ -211,12 +225,12 @@
       </template>
     </el-drawer>
 
-    <el-drawer
+    <el-dialog
       v-model="logsVisible"
-      class="admin-course-drawer"
-      direction="rtl"
-      size="560px"
-      :with-header="false"
+      class="admin-course-log-dialog"
+      width="760px"
+      :show-close="false"
+      destroy-on-close
     >
       <div class="admin-drawer-head">
         <div>
@@ -227,17 +241,31 @@
       </div>
 
       <div v-if="logsLoading" class="admin-course-empty drawer-state">日志加载中...</div>
-      <div v-else class="admin-log-list">
-        <article v-for="log in logs" :key="log.logId" class="admin-log-item">
-          <header>
-            <strong>{{ log.action }}</strong>
-            <span>{{ formatDateTime(log.createdAt) }}</span>
-          </header>
-          <p>{{ log.content }}</p>
-          <small>{{ log.operatorName }}</small>
-        </article>
+      <el-empty v-else-if="logs.length === 0" description="暂无操作日志" />
+      <div v-else class="admin-course-log-table-wrap">
+        <table class="admin-course-log-table">
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>操作人</th>
+              <th>操作时间</th>
+              <th>操作内容</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(log, index) in logs" :key="log.logId">
+              <td>{{ index + 1 }}</td>
+              <td>{{ log.operatorName || '-' }}</td>
+              <td>{{ formatLogDateTime(log.createdAt) }}</td>
+              <td>{{ formatLogAction(log.action) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </el-drawer>
+      <template #footer>
+        <el-button @click="logsVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </AdminShell>
 </template>
 
@@ -248,9 +276,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowDown, Close, Plus, Search } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import {
-  copyAdminCourse,
   deleteAdminCourse,
-  fetchAdminAcademicYears,
   fetchAdminClasses,
   fetchAdminCourseDetail,
   fetchAdminCourseLogs,
@@ -265,7 +291,7 @@ import {
   type AdminCourseRecord,
   type AdminCourseView
 } from '../../features/admin/courses';
-import type { AdminAcademicYearOption, AdminClassOption } from '../../api/admin-course';
+import type { AdminClassOption } from '../../api/admin-course';
 import { useAdminPermissions } from '../../features/admin/use-admin-permissions';
 
 const pageSize = 5;
@@ -279,7 +305,6 @@ const detailLoading = ref(false);
 const logsLoading = ref(false);
 
 const courses = ref<AdminCourseRecord[]>([]);
-const academicYears = ref<AdminAcademicYearOption[]>([]);
 const classOptions = ref<AdminClassOption[]>([]);
 const selectedCourse = ref<AdminCourseView | null>(null);
 const selectedDetail = ref<AdminCourseRecord | null>(null);
@@ -299,7 +324,8 @@ const logs = ref<
 const draft = reactive({
   keyword: '',
   classId: undefined as number | undefined,
-  semesterKey: '',
+  teachingStartDate: '',
+  teachingEndDate: '',
   publishStatus: ''
 });
 
@@ -308,26 +334,26 @@ let requestId = 0;
 
 const courseViews = computed(() => buildAdminCourseViews(courses.value));
 
-const termOptions = computed(() =>
-  academicYears.value.flatMap((year) =>
-    (year.semesters ?? []).map((semester) => ({
-      key: `${year.academicYearId}:${semester.semesterId}`,
-      label: `${year.yearName} ${semester.semesterName}`,
-      academicYearId: year.academicYearId,
-      semesterId: semester.semesterId
-    }))
-  )
-);
-
 const pagedCourses = computed(() => courseViews.value);
 
-function formatDateTime(value?: string) {
+function formatLogDateTime(value?: string) {
   if (!value) {
     return '-';
   }
+  return value.replace('T', ' ').slice(0, 19);
+}
 
-  const normalized = value.includes('T') ? value.replace('T', ' ') : value;
-  return normalized.slice(0, 16);
+function formatLogAction(action?: string) {
+  const labels: Record<string, string> = {
+    CREATE: '新增',
+    COPY: '新增',
+    UPDATE: '编辑',
+    PUBLISH: '发布',
+    CANCEL_PUBLISH: '取消发布',
+    ENABLE: '启用',
+    DISABLE: '禁用'
+  };
+  return labels[String(action || '').toUpperCase()] || '编辑';
 }
 
 async function loadCourses() {
@@ -335,12 +361,15 @@ async function loadCourses() {
   loading.value = true;
 
   try {
-    const term = termOptions.value.find((item) => item.key === appliedFilters.value.semesterKey);
     const result = await fetchAdminCourses({
       keyword: appliedFilters.value.keyword.trim() || undefined,
-      academicYearId: term?.academicYearId,
-      semesterId: term?.semesterId,
       classId: appliedFilters.value.classId,
+      teachingStartTime: appliedFilters.value.teachingStartDate
+        ? `${appliedFilters.value.teachingStartDate}T00:00:00`
+        : undefined,
+      teachingEndTime: appliedFilters.value.teachingEndDate
+        ? `${appliedFilters.value.teachingEndDate}T23:59:59`
+        : undefined,
       publishStatus: appliedFilters.value.publishStatus || undefined,
       page: page.value,
       pageSize
@@ -365,6 +394,14 @@ async function loadCourses() {
 }
 
 function applyFilters() {
+  if (
+    draft.teachingStartDate &&
+    draft.teachingEndDate &&
+    draft.teachingEndDate < draft.teachingStartDate
+  ) {
+    ElMessage.warning('教学结束日期不能早于开始日期');
+    return;
+  }
   appliedFilters.value = { ...draft };
   page.value = 1;
   void loadCourses();
@@ -373,7 +410,8 @@ function applyFilters() {
 function resetFilters() {
   draft.keyword = '';
   draft.classId = undefined;
-  draft.semesterKey = '';
+  draft.teachingStartDate = '';
+  draft.teachingEndDate = '';
   draft.publishStatus = '';
   appliedFilters.value = { ...draft };
   page.value = 1;
@@ -486,20 +524,8 @@ async function deleteCourse(course: AdminCourseView) {
   }
 }
 
-async function copyCourse(course: AdminCourseView) {
-  setBusy(course.id);
-  try {
-    const result = await copyAdminCourse(course.id);
-    if (!result.courseId) {
-      throw new Error('复制接口未返回新课程编号');
-    }
-    await loadCourses();
-    ElMessage.success('课程已复制');
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '复制失败');
-  } finally {
-    setBusy(null);
-  }
+function copyCourse(course: AdminCourseView) {
+  router.push({ path: '/admin/courses/new', query: { copyFrom: String(course.id) } });
 }
 
 async function openDetail(course: AdminCourseView) {
@@ -550,11 +576,8 @@ function mutateCourse(courseId: number, patch: Partial<AdminCourseRecord>) {
 
 async function loadFilterOptions() {
   try {
-    const [years, classes] = await Promise.all([fetchAdminAcademicYears(), fetchAdminClasses()]);
-    academicYears.value = years;
-    classOptions.value = classes.filter((item) => item.enabled !== false);
+    classOptions.value = (await fetchAdminClasses()).filter((item) => item.enabled !== false);
   } catch {
-    academicYears.value = [];
     classOptions.value = [];
   }
 }

@@ -42,6 +42,7 @@ export interface AdminCourseRecord {
   semesterName?: string;
   academicTerm?: string;
   majorName?: string;
+  coverUrl?: string;
   classNames?: string;
   teacherNames?: string;
   learningMode?: string;

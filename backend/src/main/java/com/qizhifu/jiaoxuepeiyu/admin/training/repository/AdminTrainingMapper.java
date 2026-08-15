@@ -29,7 +29,7 @@ public interface AdminTrainingMapper {
             + "SELECT DISTINCT t.id AS training_id, t.training_name, t.academic_year_id, "
             + "ay.year_name AS academic_year_name, t.semester_id, s.semester_name, "
             + "t.major_id, m.major_name, t.cover_url, t.training_type, t.training_mode, "
-            + "t.paper_mode, t.paper_id, p.paper_name, t.publish_status, "
+            + "t.paper_mode, t.paper_id, p.paper_name, p.total_score AS paper_total_score, t.publish_status, "
             + "t.open_start_time, t.open_end_time, t.exam_started_at, t.team_size, "
             + "CASE WHEN t.app_required = 1 THEN TRUE ELSE FALSE END AS app_required, "
             + "CASE WHEN t.recording_enabled = 1 THEN TRUE ELSE FALSE END AS recording_enabled, "
@@ -77,6 +77,7 @@ public interface AdminTrainingMapper {
             @Result(column = "paper_mode", property = "paperMode"),
             @Result(column = "paper_id", property = "paperId"),
             @Result(column = "paper_name", property = "paperName"),
+            @Result(column = "paper_total_score", property = "totalScore"),
             @Result(column = "publish_status", property = "publishStatus"),
             @Result(column = "open_start_time", property = "openStartTime"),
             @Result(column = "open_end_time", property = "openEndTime"),
@@ -125,7 +126,7 @@ public interface AdminTrainingMapper {
 
     @Select("SELECT t.id AS training_id, t.training_name, t.academic_year_id, ay.year_name AS academic_year_name, "
             + "t.semester_id, s.semester_name, t.major_id, m.major_name, t.cover_url, "
-            + "t.training_type, t.training_mode, t.paper_mode, t.paper_id, p.paper_name, "
+            + "t.training_type, t.training_mode, t.paper_mode, t.paper_id, p.paper_name, p.total_score AS paper_total_score, "
             + "t.publish_status, t.open_start_time, t.open_end_time, t.exam_started_at, t.team_size, "
             + "CASE WHEN t.app_required = 1 THEN TRUE ELSE FALSE END AS app_required, "
             + "CASE WHEN t.recording_enabled = 1 THEN TRUE ELSE FALSE END AS recording_enabled, "
@@ -152,6 +153,7 @@ public interface AdminTrainingMapper {
             @Result(column = "paper_mode", property = "paperMode"),
             @Result(column = "paper_id", property = "paperId"),
             @Result(column = "paper_name", property = "paperName"),
+            @Result(column = "paper_total_score", property = "totalScore"),
             @Result(column = "publish_status", property = "publishStatus"),
             @Result(column = "open_start_time", property = "openStartTime"),
             @Result(column = "open_end_time", property = "openEndTime"),

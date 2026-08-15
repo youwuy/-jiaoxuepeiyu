@@ -75,7 +75,8 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
     public Long copyCourse(Long sourceCourseId, Long creatorId) {
         AdminCourse source = mapper.findCourse(sourceCourseId);
         AdminCourseCommand command = commandFromCourse(source);
-        command.setCourseName(source.getCourseName() + " Copy");
+        String sourceName = source.getCourseName() == null ? "" : source.getCourseName();
+        command.setCourseName(sourceName.substring(0, Math.min(17, sourceName.length())) + "-复制");
         command.setPublishStatus("DRAFT");
         return createCourse(command, creatorId);
     }
@@ -309,7 +310,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             command.setItemType(content.getItemType());
             command.setTitle(content.getTitle());
             command.setResourceId(content.getResourceId());
-            command.setAssignmentId(content.getAssignmentId());
+            command.setAssignmentId(null);
             command.setRequiredDurationSeconds(content.getRequiredDurationSeconds());
             command.setLearningStartTime(content.getLearningStartTime());
             command.setLearningEndTime(content.getLearningEndTime());
@@ -320,6 +321,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             command.setAnswerEndTime(content.getAnswerEndTime());
             command.setAssignmentTotalScore(content.getAssignmentTotalScore());
             command.setQuestionIds(content.getQuestionIds());
+            command.setTrainingIds(content.getTrainingIds());
             command.setSortOrder(content.getSortOrder());
             commands.add(command);
         }
