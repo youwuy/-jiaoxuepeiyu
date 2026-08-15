@@ -99,7 +99,7 @@
                   <td>{{ formatDateTime(row.updatedAt) }}</td>
                   <td>
                     <div class="admin-org-actions">
-                      <el-button v-if="row.enabled" class="admin-org-action edit" :disabled="!can('update')" @click="openEdit(row)">编辑</el-button>
+                      <el-button class="admin-org-action edit" :disabled="!can('update')" @click="openEdit(row)">编辑</el-button>
                       <el-button v-if="row.enabled" class="admin-org-action child" :disabled="!can('create')" @click="openCreateChild(row)">新增下级</el-button>
                       <el-button v-if="row.enabled" class="admin-org-action danger" :disabled="!can('disable')" :loading="busyId === row.orgId" @click="disableOrg(row)">
                         禁用
@@ -142,10 +142,10 @@
       </template>
 
       <div class="admin-org-form">
-        <label v-if="dialogMode === 'child'" class="admin-org-field">
+        <label v-if="dialogMode !== 'root'" class="admin-org-field">
           <span>所属父级组织 <b>*</b></span>
           <el-select v-model="form.parentId" disabled>
-            <el-option :label="parentName" :value="form.parentId" />
+            <el-option :label="parentName || '顶级组织'" :value="form.parentId" />
           </el-select>
         </label>
 
