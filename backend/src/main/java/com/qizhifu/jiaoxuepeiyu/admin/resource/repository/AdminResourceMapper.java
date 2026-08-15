@@ -102,7 +102,7 @@ public interface AdminResourceMapper {
     @Select("<script>"
             + "SELECT DISTINCT c.course_name FROM course_content cc "
             + "JOIN course c ON c.id = cc.course_id "
-            + "WHERE cc.resource_id IN "
+            + "WHERE cc.deleted_flag = 0 AND cc.resource_id IN "
             + "<foreach collection='resourceIds' item='resourceId' open='(' separator=',' close=')'>#{resourceId}</foreach>"
             + " ORDER BY c.course_name ASC"
             + "</script>")

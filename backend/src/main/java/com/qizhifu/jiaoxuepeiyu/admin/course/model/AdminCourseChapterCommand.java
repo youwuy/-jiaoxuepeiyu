@@ -4,10 +4,19 @@ import java.util.List;
 
 public class AdminCourseChapterCommand {
 
+    private Long chapterId;
     private String chapterTitle;
     private Integer sortOrder;
     private List<AdminCourseContentCommand> contents;
     private List<AdminCourseChapterCommand> children;
+
+    public Long getChapterId() {
+        return chapterId;
+    }
+
+    public void setChapterId(Long chapterId) {
+        this.chapterId = chapterId;
+    }
 
     public String getChapterTitle() {
         return chapterTitle;

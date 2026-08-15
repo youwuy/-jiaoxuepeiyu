@@ -30,10 +30,10 @@ cd backend && mvn clean package -DskipTests
 
 ## 线上地址
 
-- 前端：`http://jiao.pei.luoyan.xin`
-- 健康检查：`http://jiao.pei.luoyan.xin/api/health`
-- 接口文档：`http://jiao.pei.luoyan.xin/swagger-ui/index.html`
-- OpenAPI JSON：`http://jiao.pei.luoyan.xin/v3/api-docs`
+- 前端：`http://luoyan.xin`
+- 健康检查：`http://luoyan.xin/api/health`
+- 接口文档：`http://luoyan.xin/swagger-ui/index.html`
+- OpenAPI JSON：`http://luoyan.xin/v3/api-docs`
 
 ## 部署包
 

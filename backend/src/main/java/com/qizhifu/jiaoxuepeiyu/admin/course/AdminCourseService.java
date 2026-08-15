@@ -214,6 +214,7 @@ public class AdminCourseService {
                 throw new BusinessException(400, "Course chapter title cannot exceed 20 characters");
             }
             AdminCourseChapterCommand normalizedChapter = new AdminCourseChapterCommand();
+            normalizedChapter.setChapterId(chapter.getChapterId());
             normalizedChapter.setChapterTitle(chapterTitle);
             normalizedChapter.setSortOrder(chapter.getSortOrder() == null ? Integer.valueOf(defaultChapterSort) : chapter.getSortOrder());
             normalizedChapter.setContents(normalizedContents(chapter.getContents()));
@@ -240,6 +241,7 @@ public class AdminCourseService {
                 throw new BusinessException(400, "Course content title is required");
             }
             AdminCourseContentCommand normalizedContent = new AdminCourseContentCommand();
+            normalizedContent.setContentId(content.getContentId());
             normalizedContent.setItemType(itemType);
             normalizedContent.setTitle(title);
             if ("COURSEWARE".equals(itemType)) {

@@ -16,7 +16,9 @@ import com.qizhifu.jiaoxuepeiyu.admin.course.port.AdminCourseRepository;
 import com.qizhifu.jiaoxuepeiyu.common.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -132,20 +134,60 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
         for (Long classId : command.getClassIds()) {
             mapper.insertClass(courseId, classId, classSort++);
         }
-        mapper.deleteContents(courseId);
-        mapper.deleteChapters(courseId);
+        List<Long> retainedChapterIds = new ArrayList<Long>();
+        List<Long> retainedContentIds = new ArrayList<Long>();
+        collectRetainedIds(command.getChapters(), retainedChapterIds, retainedContentIds);
+        mapper.offlineRemovedAssignments(courseId, retainedContentIds);
+        mapper.softDeleteContentsExcept(courseId, retainedContentIds);
+        mapper.softDeleteChaptersExcept(courseId, retainedChapterIds);
         for (AdminCourseChapterCommand chapterCommand : command.getChapters()) {
-            insertChapterTree(courseId, null, chapterCommand);
+            upsertChapterTree(courseId, null, chapterCommand);
         }
     }
 
-    private void insertChapterTree(Long courseId, Long parentChapterId, AdminCourseChapterCommand chapterCommand) {
+    private void collectRetainedIds(List<AdminCourseChapterCommand> chapters,
+                                    List<Long> chapterIds,
+                                    List<Long> contentIds) {
+        Set<Long> uniqueChapterIds = new LinkedHashSet<Long>(chapterIds);
+        Set<Long> uniqueContentIds = new LinkedHashSet<Long>(contentIds);
+        collectRetainedIds(chapters, uniqueChapterIds, uniqueContentIds);
+        chapterIds.clear();
+        chapterIds.addAll(uniqueChapterIds);
+        contentIds.clear();
+        contentIds.addAll(uniqueContentIds);
+    }
+
+    private void collectRetainedIds(List<AdminCourseChapterCommand> chapters,
+                                    Set<Long> chapterIds,
+                                    Set<Long> contentIds) {
+        for (AdminCourseChapterCommand chapter : chapters) {
+            if (chapter.getChapterId() != null) {
+                chapterIds.add(chapter.getChapterId());
+            }
+            for (AdminCourseContentCommand content : chapter.getContents()) {
+                if (content.getContentId() != null) {
+                    contentIds.add(content.getContentId());
+                }
+            }
+            collectRetainedIds(chapter.getChildren(), chapterIds, contentIds);
+        }
+    }
+
+    private void upsertChapterTree(Long courseId, Long parentChapterId, AdminCourseChapterCommand chapterCommand) {
         AdminCourseChapter chapter = toChapter(chapterCommand);
         chapter.setParentChapterId(parentChapterId);
-        mapper.insertChapter(courseId, chapter);
+        if (chapter.getChapterId() == null) {
+            mapper.insertChapter(courseId, chapter);
+        } else if (mapper.updateChapter(courseId, chapter) != 1) {
+            throw new BusinessException(400, "Course chapter does not belong to this course");
+        }
         for (AdminCourseContentCommand contentCommand : chapterCommand.getContents()) {
             AdminCourseContent content = toContent(contentCommand);
-            mapper.insertContent(courseId, chapter.getChapterId(), content);
+            if (content.getContentId() == null) {
+                mapper.insertContent(courseId, chapter.getChapterId(), content);
+            } else if (mapper.updateContent(courseId, chapter.getChapterId(), content) != 1) {
+                throw new BusinessException(400, "Course content does not belong to this course");
+            }
             if ("ASSIGNMENT".equals(content.getItemType())) {
                 if (content.getAssignmentId() == null) {
                     mapper.insertAssignment(courseId, content.getContentId(), content);
@@ -158,7 +200,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
             }
         }
         for (AdminCourseChapterCommand childCommand : chapterCommand.getChildren()) {
-            insertChapterTree(courseId, chapter.getChapterId(), childCommand);
+            upsertChapterTree(courseId, chapter.getChapterId(), childCommand);
         }
     }
 
@@ -223,6 +265,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
 
     private AdminCourseChapter toChapter(AdminCourseChapterCommand command) {
         AdminCourseChapter chapter = new AdminCourseChapter();
+        chapter.setChapterId(command.getChapterId());
         chapter.setChapterTitle(command.getChapterTitle());
         chapter.setSortOrder(command.getSortOrder());
         return chapter;
@@ -230,6 +273,7 @@ public class MyBatisAdminCourseRepository implements AdminCourseRepository {
 
     private AdminCourseContent toContent(AdminCourseContentCommand command) {
         AdminCourseContent content = new AdminCourseContent();
+        content.setContentId(command.getContentId());
         content.setItemType(command.getItemType());
         content.setTitle(command.getTitle());
         content.setResourceId(command.getResourceId());

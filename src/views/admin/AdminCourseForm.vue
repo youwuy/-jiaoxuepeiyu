@@ -910,6 +910,7 @@ const selectedClasses = computed(() => classOptions.value.filter((item) => form.
 
 interface OutlineItem {
   id: number;
+  contentId?: number;
   type: 'homework' | 'resource';
   title: string;
   desc: string;
@@ -929,6 +930,7 @@ interface OutlineItem {
 
 interface OutlineSection {
   id: number;
+  chapterId?: number;
   title: string;
   items: OutlineItem[];
   children: OutlineSection[];
@@ -936,6 +938,7 @@ interface OutlineSection {
 
 interface OutlineChapter {
   id: number;
+  chapterId?: number;
   title: string;
   items: OutlineItem[];
   sections: OutlineSection[];
@@ -1895,6 +1898,7 @@ type CourseChapterCommand = NonNullable<AdminCourseCommand['chapters']>[number];
 
 function serializeOutlineItems(items: OutlineItem[]): NonNullable<CourseChapterCommand['contents']> {
   return items.map((item, itemIndex) => ({
+    contentId: isEditMode.value ? item.contentId : undefined,
     itemType: item.type === 'homework' ? 'ASSIGNMENT' : 'COURSEWARE',
     title: item.title.slice(0, 30),
     sortOrder: itemIndex + 1,
@@ -1922,6 +1926,7 @@ function serializeOutlineItems(items: OutlineItem[]): NonNullable<CourseChapterC
 
 function serializeOutlineSection(section: OutlineSection, index: number): CourseChapterCommand {
   return {
+    chapterId: isEditMode.value ? section.chapterId : undefined,
     chapterTitle: section.title.slice(0, 20),
     sortOrder: index + 1,
     contents: serializeOutlineItems(section.items),
@@ -1954,6 +1959,7 @@ async function saveCourse() {
       assignmentCompletionRule: 'SUBMIT',
       coursewareScoreCap: payload.scoreCap,
       chapters: chapters.value.map((chapter, index) => ({
+        chapterId: isEditMode.value ? chapter.chapterId : undefined,
         chapterTitle: chapter.title.slice(0, 20),
         sortOrder: index + 1,
         contents: serializeOutlineItems(chapter.items),
@@ -2008,6 +2014,7 @@ function parseDateTime(value?: string) {
 function mapOutlineItems(contents?: AdminCourseContent[]): OutlineItem[] {
   return (contents ?? []).map((item) => ({
     id: item.contentId ?? nextOutlineId(),
+    contentId: item.contentId,
     type: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? 'homework' : 'resource',
     title: item.title || '未命名内容',
     desc: item.itemType?.toUpperCase() === 'ASSIGNMENT' ? '课程作业' : '教学资源',
@@ -2028,6 +2035,7 @@ function mapOutlineItems(contents?: AdminCourseContent[]): OutlineItem[] {
 function mapOutlineSection(section: AdminCourseChapter): OutlineSection {
   return {
     id: section.chapterId ?? nextOutlineId(),
+    chapterId: section.chapterId,
     title: section.chapterTitle || '未命名小节',
     items: mapOutlineItems(section.contents),
     children: (section.children ?? []).map(mapOutlineSection)
@@ -2075,6 +2083,7 @@ async function findTheoryPaper(questionIds: number[]) {
 async function loadCourseOutline(detail: Awaited<ReturnType<typeof fetchAdminCourseDetail>>) {
   chapters.value = (detail.chapters ?? []).map((chapter) => ({
     id: chapter.chapterId ?? nextOutlineId(),
+    chapterId: chapter.chapterId,
     title: chapter.chapterTitle || '未命名章节',
     items: mapOutlineItems(chapter.contents),
     sections: (chapter.children ?? []).map(mapOutlineSection)

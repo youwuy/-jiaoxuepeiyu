@@ -6,6 +6,7 @@ import java.util.List;
 
 public class AdminCourseContentCommand {
 
+    private Long contentId;
     private String itemType;
     private String title;
     private Long resourceId;
@@ -23,6 +24,14 @@ public class AdminCourseContentCommand {
     private List<Long> questionIds = new ArrayList<Long>();
     private List<Long> trainingIds = new ArrayList<Long>();
     private Integer sortOrder;
+
+    public Long getContentId() {
+        return contentId;
+    }
+
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
+    }
 
     public String getItemType() {
         return itemType;

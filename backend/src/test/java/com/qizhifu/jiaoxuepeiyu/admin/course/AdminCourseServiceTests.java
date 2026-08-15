@@ -184,6 +184,24 @@ class AdminCourseServiceTests {
     }
 
     @Test
+    void preservesExistingChapterAndContentIdsWhenUpdatingCourse() {
+        FakeCourses repository = new FakeCourses();
+        repository.course = existingCourse(31L, 2);
+        AdminCourseService service = new AdminCourseService(repository);
+        AdminCourseCommand command = courseCommand();
+        command.getChapters().get(0).setChapterId(101L);
+        command.getChapters().get(0).getContents().get(0).setContentId(201L);
+        command.getChapters().get(0).getContents().get(1).setContentId(202L);
+
+        service.updateCourse(31L, command, 9L);
+
+        AdminCourseChapterCommand chapter = repository.savedCommand.getChapters().get(0);
+        assertEquals(101L, chapter.getChapterId());
+        assertEquals(201L, chapter.getContents().get(0).getContentId());
+        assertEquals(202L, chapter.getContents().get(1).getContentId());
+    }
+
+    @Test
     void rejectsChapterDeeperThanThreeLevels() {
         AdminCourseService service = new AdminCourseService(new FakeCourses());
         AdminCourseCommand command = courseCommand();

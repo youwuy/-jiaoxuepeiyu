@@ -13,15 +13,21 @@ import org.springframework.stereotype.Component;
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class AdminCourseSchemaInitializer implements ApplicationRunner {
 
+    private static final String COURSE_CHAPTER = "course_chapter";
     private static final String COURSE_CONTENT = "course_content";
     private static final String COURSE_ASSIGNMENT = "course_assignment";
     private static final String ASSIGNMENT_QUESTION = "assignment_question";
     private static final String ASSIGNMENT_TRAINING = "assignment_training";
+    private static final List<ColumnPatch> CHAPTER_COLUMNS = Arrays.asList(
+            new ColumnPatch(COURSE_CHAPTER, "deleted_flag",
+                    "ALTER TABLE `course_chapter` ADD COLUMN `deleted_flag` TINYINT NOT NULL DEFAULT 0 AFTER `sort_order`"));
     private static final List<ColumnPatch> CONTENT_COLUMNS = Arrays.asList(
             new ColumnPatch(COURSE_CONTENT, "learning_start_time",
                     "ALTER TABLE `course_content` ADD COLUMN `learning_start_time` DATETIME NULL AFTER `required_duration_seconds`"),
             new ColumnPatch(COURSE_CONTENT, "learning_end_time",
-                    "ALTER TABLE `course_content` ADD COLUMN `learning_end_time` DATETIME NULL AFTER `learning_start_time`"));
+                    "ALTER TABLE `course_content` ADD COLUMN `learning_end_time` DATETIME NULL AFTER `learning_start_time`"),
+            new ColumnPatch(COURSE_CONTENT, "deleted_flag",
+                    "ALTER TABLE `course_content` ADD COLUMN `deleted_flag` TINYINT NOT NULL DEFAULT 0 AFTER `sort_order`"));
     private static final List<ColumnPatch> ASSIGNMENT_COLUMNS = Arrays.asList(
             new ColumnPatch(COURSE_ASSIGNMENT, "answer_start_time",
                     "ALTER TABLE `course_assignment` ADD COLUMN `answer_start_time` DATETIME NULL AFTER `deadline`"),
@@ -56,6 +62,7 @@ public class AdminCourseSchemaInitializer implements ApplicationRunner {
 
     void ensureCourseCompatibility() {
         ensureAssignmentTrainingTable();
+        applyColumns(CHAPTER_COLUMNS);
         applyColumns(CONTENT_COLUMNS);
         applyColumns(ASSIGNMENT_COLUMNS);
         applyColumns(ASSIGNMENT_QUESTION_COLUMNS);

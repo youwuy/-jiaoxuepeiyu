@@ -98,9 +98,11 @@ export interface AdminCourseCommand {
   coursewareScoreCap?: number;
   publishStatus?: AdminCoursePublishStatus;
   chapters?: Array<{
+    chapterId?: number;
     chapterTitle?: string;
     sortOrder?: number;
     contents?: Array<{
+      contentId?: number;
       itemType?: string;
       title?: string;
       resourceId?: number;

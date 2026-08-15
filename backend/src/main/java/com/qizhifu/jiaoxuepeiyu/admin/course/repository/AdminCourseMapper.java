@@ -32,6 +32,7 @@ public interface AdminCourseMapper {
             + "c.courseware_score_cap, c.courseware_count, c.assignment_count, "
             + "(SELECT COUNT(*) FROM assignment_attempt aa "
             + "JOIN course_assignment ca_pending ON ca_pending.id = aa.assignment_id "
+            + "JOIN course_content ct_pending ON ct_pending.id = ca_pending.content_id AND ct_pending.deleted_flag = 0 "
             + "WHERE ca_pending.course_id = c.id AND aa.status = 'SUBMITTED') AS pending_review_count, "
             + "c.publish_status, "
             + "c.open_start_time, c.open_end_time, c.created_by, u.real_name AS creator_name, c.created_at, c.updated_at "
@@ -155,7 +156,7 @@ public interface AdminCourseMapper {
 
     @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
             + "FROM course_chapter ch WHERE ch.course_id = #{courseId} "
-            + "AND ch.parent_chapter_id IS NULL ORDER BY ch.sort_order ASC, ch.id ASC")
+            + "AND ch.deleted_flag = 0 AND ch.parent_chapter_id IS NULL ORDER BY ch.sort_order ASC, ch.id ASC")
     @Results(id = "courseChapterMap", value = {
             @Result(column = "chapter_id", property = "chapterId", id = true),
             @Result(column = "course_id", property = "courseId"),
@@ -169,7 +170,7 @@ public interface AdminCourseMapper {
 
     @Select("SELECT ch.id AS chapter_id, ch.course_id, ch.parent_chapter_id, ch.chapter_title, ch.sort_order "
             + "FROM course_chapter ch WHERE ch.parent_chapter_id = #{parentChapterId} "
-            + "ORDER BY ch.sort_order ASC, ch.id ASC")
+            + "AND ch.deleted_flag = 0 ORDER BY ch.sort_order ASC, ch.id ASC")
     @ResultMap("courseChapterMap")
     List<AdminCourseChapter> findChildChapters(@Param("parentChapterId") Long parentChapterId);
 
@@ -180,7 +181,7 @@ public interface AdminCourseMapper {
             + "a.total_score AS assignment_total_score, ct.sort_order "
             + "FROM course_content ct "
             + "LEFT JOIN course_assignment a ON a.id = ct.assignment_id "
-            + "WHERE ct.chapter_id = #{chapterId} ORDER BY ct.sort_order ASC, ct.id ASC")
+            + "WHERE ct.chapter_id = #{chapterId} AND ct.deleted_flag = 0 ORDER BY ct.sort_order ASC, ct.id ASC")
     @Results(id = "courseContentMap", value = {
             @Result(column = "content_id", property = "contentId", id = true),
             @Result(column = "assignment_id", property = "assignmentId"),
@@ -234,16 +235,40 @@ public interface AdminCourseMapper {
             + "VALUES (#{courseId}, #{classId}, #{sortOrder}, NOW())")
     void insertClass(@Param("courseId") Long courseId, @Param("classId") Long classId, @Param("sortOrder") int sortOrder);
 
-    @Delete("DELETE FROM course_content WHERE course_id = #{courseId}")
-    void deleteContents(@Param("courseId") Long courseId);
+    @Update("<script>UPDATE course_assignment a JOIN course_content ct ON ct.id = a.content_id "
+            + "SET a.publish_status = 'OFFLINE', a.updated_at = NOW() "
+            + "WHERE ct.course_id = #{courseId} AND ct.deleted_flag = 0 "
+            + "<if test='retainedContentIds != null and retainedContentIds.size() > 0'>"
+            + "AND ct.id NOT IN <foreach collection='retainedContentIds' item='contentId' open='(' separator=',' close=')'>#{contentId}</foreach>"
+            + "</if></script>")
+    void offlineRemovedAssignments(@Param("courseId") Long courseId,
+                                   @Param("retainedContentIds") List<Long> retainedContentIds);
 
-    @Delete("DELETE FROM course_chapter WHERE course_id = #{courseId}")
-    void deleteChapters(@Param("courseId") Long courseId);
+    @Update("<script>UPDATE course_content SET deleted_flag = 1, updated_at = NOW() "
+            + "WHERE course_id = #{courseId} AND deleted_flag = 0 "
+            + "<if test='retainedContentIds != null and retainedContentIds.size() > 0'>"
+            + "AND id NOT IN <foreach collection='retainedContentIds' item='contentId' open='(' separator=',' close=')'>#{contentId}</foreach>"
+            + "</if></script>")
+    void softDeleteContentsExcept(@Param("courseId") Long courseId,
+                                  @Param("retainedContentIds") List<Long> retainedContentIds);
+
+    @Update("<script>UPDATE course_chapter SET deleted_flag = 1, updated_at = NOW() "
+            + "WHERE course_id = #{courseId} AND deleted_flag = 0 "
+            + "<if test='retainedChapterIds != null and retainedChapterIds.size() > 0'>"
+            + "AND id NOT IN <foreach collection='retainedChapterIds' item='chapterId' open='(' separator=',' close=')'>#{chapterId}</foreach>"
+            + "</if></script>")
+    void softDeleteChaptersExcept(@Param("courseId") Long courseId,
+                                  @Param("retainedChapterIds") List<Long> retainedChapterIds);
 
     @Insert("INSERT INTO course_chapter (course_id, parent_chapter_id, chapter_title, sort_order, created_at, updated_at) "
             + "VALUES (#{courseId}, #{chapter.parentChapterId}, #{chapter.chapterTitle}, #{chapter.sortOrder}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "chapter.chapterId")
     void insertChapter(@Param("courseId") Long courseId, @Param("chapter") AdminCourseChapter chapter);
+
+    @Update("UPDATE course_chapter SET parent_chapter_id = #{chapter.parentChapterId}, "
+            + "chapter_title = #{chapter.chapterTitle}, sort_order = #{chapter.sortOrder}, updated_at = NOW() "
+            + "WHERE id = #{chapter.chapterId} AND course_id = #{courseId} AND deleted_flag = 0")
+    int updateChapter(@Param("courseId") Long courseId, @Param("chapter") AdminCourseChapter chapter);
 
     @Insert("INSERT INTO course_content "
             + "(course_id, chapter_id, item_type, title, resource_id, assignment_id, required_duration_seconds, "
@@ -255,6 +280,16 @@ public interface AdminCourseMapper {
     void insertContent(@Param("courseId") Long courseId,
                        @Param("chapterId") Long chapterId,
                        @Param("content") AdminCourseContent content);
+
+    @Update("UPDATE course_content SET chapter_id = #{chapterId}, item_type = #{content.itemType}, "
+            + "title = #{content.title}, resource_id = #{content.resourceId}, assignment_id = #{content.assignmentId}, "
+            + "required_duration_seconds = #{content.requiredDurationSeconds}, "
+            + "learning_start_time = #{content.learningStartTime}, learning_end_time = #{content.learningEndTime}, "
+            + "sort_order = #{content.sortOrder}, updated_at = NOW() "
+            + "WHERE id = #{content.contentId} AND course_id = #{courseId} AND deleted_flag = 0")
+    int updateContent(@Param("courseId") Long courseId,
+                      @Param("chapterId") Long chapterId,
+                      @Param("content") AdminCourseContent content);
 
     @Insert("INSERT INTO course_assignment "
             + "(course_id, content_id, assignment_title, assignment_type, deadline, answer_start_time, answer_end_time, "
@@ -313,8 +348,9 @@ public interface AdminCourseMapper {
             + "updated_at = NOW() WHERE id = #{assignmentId}")
     void refreshAssignmentTotalScore(@Param("assignmentId") Long assignmentId);
 
-    @Update("UPDATE course_assignment SET publish_status = #{publishStatus}, updated_at = NOW() "
-            + "WHERE course_id = #{courseId}")
+    @Update("UPDATE course_assignment a JOIN course_content ct ON ct.id = a.content_id "
+            + "SET a.publish_status = #{publishStatus}, a.updated_at = NOW() "
+            + "WHERE a.course_id = #{courseId} AND ct.deleted_flag = 0")
     void updateAssignmentPublishStatus(@Param("courseId") Long courseId,
                                        @Param("publishStatus") String publishStatus);
 
@@ -369,9 +405,11 @@ public interface AdminCourseMapper {
             + "SUM(CASE WHEN COALESCE(p.completed_items, 0) = 0 THEN 1 ELSE 0 END) AS not_started_count, "
             + "(SELECT COUNT(*) FROM assignment_attempt aa "
             + "JOIN course_assignment ca ON ca.id = aa.assignment_id "
+            + "JOIN course_content ct_active ON ct_active.id = ca.content_id AND ct_active.deleted_flag = 0 "
             + "WHERE ca.course_id = #{courseId} AND aa.status = 'SUBMITTED') AS pending_review_count, "
             + "(SELECT AVG(aa.score) FROM assignment_attempt aa "
             + "JOIN course_assignment ca ON ca.id = aa.assignment_id "
+            + "JOIN course_content ct_active ON ct_active.id = ca.content_id AND ct_active.deleted_flag = 0 "
             + "WHERE ca.course_id = #{courseId} AND aa.score IS NOT NULL) AS average_score "
             + "FROM course c "
             + "JOIN course_class cc ON cc.course_id = c.id "
@@ -396,11 +434,13 @@ public interface AdminCourseMapper {
             + "FROM course_content_learning_progress cp "
             + "JOIN course_content progress_content ON progress_content.id = cp.content_id "
             + "AND progress_content.course_id = cp.course_id AND progress_content.item_type = 'COURSEWARE' "
+            + "AND progress_content.deleted_flag = 0 "
             + "WHERE cp.course_id = #{courseId} AND cp.completed = 1 GROUP BY cp.student_id) p ON p.student_id = u.id "
             + "LEFT JOIN ("
             + "SELECT attempts.student_id, COUNT(*) AS assignment_count, SUM(COALESCE(attempts.assignment_score, 0)) AS assignment_score "
             + "FROM (SELECT aa.student_id, aa.assignment_id, MAX(aa.score) AS assignment_score "
             + "FROM assignment_attempt aa JOIN course_assignment ca ON ca.id = aa.assignment_id "
+            + "JOIN course_content active_content ON active_content.id = ca.content_id AND active_content.deleted_flag = 0 "
             + "WHERE ca.course_id = #{courseId} AND aa.status IN ('SUBMITTED', 'REVIEWED') "
             + "GROUP BY aa.student_id, aa.assignment_id) attempts GROUP BY attempts.student_id"
             + ") a ON a.student_id = u.id "
@@ -442,7 +482,7 @@ public interface AdminCourseMapper {
             + "JOIN course_class cc ON cc.course_id = c.id "
             + "JOIN sys_user u ON u.class_id = cc.class_id AND u.id = #{studentId} "
             + "AND u.user_type = 'student' AND u.status = 1 "
-            + "LEFT JOIN course_content ct ON ct.chapter_id = ch.id AND ct.course_id = c.id "
+            + "LEFT JOIN course_content ct ON ct.chapter_id = ch.id AND ct.course_id = c.id AND ct.deleted_flag = 0 "
             + "LEFT JOIN course_assignment ca ON ca.id = ct.assignment_id "
             + "LEFT JOIN course_content_learning_progress cp ON cp.course_id = c.id "
             + "AND cp.content_id = ct.id AND cp.student_id = u.id "
@@ -450,7 +490,7 @@ public interface AdminCourseMapper {
             + "MAX(CASE WHEN aa.status IN ('SUBMITTED', 'REVIEWED') THEN 1 ELSE 0 END) AS has_submitted, "
             + "MAX(CASE WHEN aa.status IN ('SUBMITTED', 'REVIEWED') THEN aa.score ELSE NULL END) AS best_score "
             + "FROM assignment_attempt aa WHERE aa.student_id = #{studentId} GROUP BY aa.assignment_id) attempts "
-            + "ON attempts.assignment_id = ca.id WHERE c.id = #{courseId} "
+            + "ON attempts.assignment_id = ca.id WHERE c.id = #{courseId} AND ch.deleted_flag = 0 "
             + "ORDER BY ch.sort_order ASC, ch.id ASC, ct.sort_order ASC, ct.id ASC")
     List<AdminCourseStudentContentStatistics> findStudentContentStatistics(
             @Param("courseId") Long courseId,

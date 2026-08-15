@@ -59,6 +59,9 @@ public interface StudentCourseMapper {
             + "LEFT JOIN course_content_learning_progress cp "
             + "ON cp.content_id = ct.id AND cp.student_id = u.id "
             + "WHERE u.id = #{studentId} AND c.id = #{courseId} AND c.publish_status = 'PUBLISHED' "
+            + "AND ct.deleted_flag = 0 AND ch.deleted_flag = 0 "
+            + "AND (parent_ch.id IS NULL OR parent_ch.deleted_flag = 0) "
+            + "AND (root_ch.id IS NULL OR root_ch.deleted_flag = 0) "
             + "ORDER BY COALESCE(root_ch.sort_order, parent_ch.sort_order, ch.sort_order) ASC, "
             + "COALESCE(root_ch.id, parent_ch.id, ch.id) ASC, "
             + "CASE WHEN root_ch.id IS NULL AND parent_ch.id IS NULL THEN 0 "
@@ -85,14 +88,16 @@ public interface StudentCourseMapper {
             + "LEFT JOIN course_content_learning_progress cp "
             + "ON cp.content_id = ct.id AND cp.student_id = u.id "
             + "WHERE u.id = #{studentId} AND c.id = #{courseId} AND ct.id = #{contentId} "
+            + "AND ct.deleted_flag = 0 AND ch.deleted_flag = 0 "
             + "AND ct.item_type = 'COURSEWARE' AND c.publish_status = 'PUBLISHED' LIMIT 1")
     StudentCourseContentRecord findCoursewareContent(@Param("studentId") Long studentId,
                                                      @Param("courseId") Long courseId,
                                                      @Param("contentId") Long contentId);
 
-    @Select("SELECT content_id FROM course_content_learning_progress "
-            + "WHERE student_id = #{studentId} AND course_id = #{courseId} "
-            + "ORDER BY updated_at DESC, id DESC LIMIT 1")
+    @Select("SELECT cp.content_id FROM course_content_learning_progress cp "
+            + "JOIN course_content ct ON ct.id = cp.content_id AND ct.deleted_flag = 0 "
+            + "WHERE cp.student_id = #{studentId} AND cp.course_id = #{courseId} "
+            + "ORDER BY cp.updated_at DESC, cp.id DESC LIMIT 1")
     Long findLastContentId(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 
     @Insert("INSERT INTO course_content_learning_progress "
@@ -116,7 +121,7 @@ public interface StudentCourseMapper {
             + "LEFT JOIN assignment_attempt aa "
             + "ON aa.assignment_id = a.id AND aa.student_id = #{studentId} "
             + "AND aa.status IN ('SUBMITTED', 'REVIEWED') "
-            + "WHERE ct.course_id = #{courseId} "
+            + "WHERE ct.course_id = #{courseId} AND ct.deleted_flag = 0 "
             + "AND ((ct.item_type = 'COURSEWARE' AND cp.completed = 1) "
             + "OR (ct.item_type = 'ASSIGNMENT' AND aa.id IS NOT NULL "
             + "AND (a.completion_rule = 'SUBMIT' "

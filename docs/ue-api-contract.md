@@ -45,7 +45,7 @@ Response `data`:
 The web client opens the following registered protocol after creating the session:
 
 ```text
-jiaoyu-ue://launch?protocolVersion=1&apiBase=http%3A%2F%2Fjiao.pei.luoyan.xin%2Fapi&trainingId=15&topicId=31&studentId=7&roomId=22&launchToken=...
+jiaoyu-ue://launch?protocolVersion=1&apiBase=http%3A%2F%2Fluoyan.xin%2Fapi&trainingId=15&topicId=31&studentId=7&roomId=22&launchToken=...
 ```
 
 The UE installer must register the `jiaoyu-ue` protocol and map these values to the executable's command-line arguments. UE then sends `X-UE-Token` on task, upload, status, and result requests.

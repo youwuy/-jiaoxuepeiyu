@@ -6,11 +6,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://jiao.pei.luoyan.xin',
+        target: 'http://luoyan.xin',
         changeOrigin: true
       },
       '/uploads': {
-        target: 'http://jiao.pei.luoyan.xin',
+        target: 'http://luoyan.xin',
         changeOrigin: true
       }
     }

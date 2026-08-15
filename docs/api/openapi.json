@@ -6997,6 +6997,10 @@
       "AdminCourseChapterCommand": {
         "type": "object",
         "properties": {
+          "chapterId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "chapterTitle": {
             "type": "string"
           },
@@ -7008,6 +7012,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AdminCourseContentCommand"
+            }
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseChapterCommand"
             }
           }
         }
@@ -7087,6 +7097,10 @@
       "AdminCourseContentCommand": {
         "type": "object",
         "properties": {
+          "contentId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "itemType": {
             "type": "string"
           },

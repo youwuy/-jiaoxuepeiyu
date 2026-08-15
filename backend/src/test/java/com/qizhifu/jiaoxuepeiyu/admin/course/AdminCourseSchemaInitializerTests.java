@@ -18,6 +18,7 @@ class AdminCourseSchemaInitializerTests {
         operations.addColumns("course_content",
                 "id", "course_id", "chapter_id", "item_type", "title", "resource_id", "assignment_id",
                 "required_duration_seconds", "sort_order", "created_at", "updated_at");
+        operations.addColumns("course_chapter", "id", "course_id", "parent_chapter_id", "chapter_title", "sort_order");
         operations.addColumns("course_assignment",
                 "id", "course_id", "content_id", "assignment_title", "assignment_type", "deadline",
                 "total_score", "publish_status", "created_by", "created_at", "updated_at");
@@ -26,19 +27,21 @@ class AdminCourseSchemaInitializerTests {
         initializer.ensureCourseCompatibility();
 
         assertTrue(operations.columns("course_content").containsAll(Arrays.asList(
-                "learning_start_time", "learning_end_time")));
+                "learning_start_time", "learning_end_time", "deleted_flag")));
+        assertTrue(operations.columns("course_chapter").contains("deleted_flag"));
         assertTrue(operations.columns("course_assignment").containsAll(Arrays.asList(
                 "answer_start_time", "answer_end_time", "completion_rule", "pass_score", "publish_mode")));
         assertTrue(operations.indexes("course_content").contains("idx_course_content_learning_window"));
         assertTrue(operations.indexes("course_assignment").contains("idx_course_assignment_answer_window"));
-        assertEquals(9, operations.executedSql.size());
+        assertEquals(11, operations.executedSql.size());
     }
 
     @Test
     void skipsExistingColumnsAndIndexes() {
         FakeCourseSchemaOperations operations = new FakeCourseSchemaOperations();
         operations.addColumns("course_content",
-                "learning_start_time", "learning_end_time");
+                "learning_start_time", "learning_end_time", "deleted_flag");
+        operations.addColumns("course_chapter", "deleted_flag");
         operations.addColumns("course_assignment",
                 "answer_start_time", "answer_end_time", "completion_rule", "pass_score", "publish_mode");
         operations.addIndexes("course_content", "idx_course_content_learning_window");
@@ -52,7 +55,7 @@ class AdminCourseSchemaInitializerTests {
 
     private static class FakeCourseSchemaOperations implements AdminCourseSchemaOperations {
         private final Set<String> tables = new LinkedHashSet<String>(Arrays.asList(
-                "course_content", "course_assignment", "assignment_training"));
+                "course_chapter", "course_content", "course_assignment", "assignment_training"));
         private final List<String> executedSql = new ArrayList<String>();
         private final java.util.Map<String, Set<String>> tableColumns = new java.util.LinkedHashMap<String, Set<String>>();
         private final java.util.Map<String, Set<String>> tableIndexes = new java.util.LinkedHashMap<String, Set<String>>();
